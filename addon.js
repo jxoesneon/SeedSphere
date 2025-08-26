@@ -1,12 +1,13 @@
 const { addonBuilder } = require("stremio-addon-sdk")
 const axios = require("axios")
 const { isTrackerUrl, unique, filterByHealth } = require("./lib/health")
+const { setLastFetch } = require("./lib/trackers_meta")
 const boosts = require("./lib/boosts")
 
 // Docs: https://github.com/Stremio/stremio-addon-sdk/blob/master/docs/api/responses/manifest.md
 const manifest = {
 	"id": "community.SeedSphere",
-	"version": "0.0.1",
+	"version": "0.0.3",
 	"catalogs": [],
 	"resources": [
 		"stream"
@@ -16,10 +17,15 @@ const manifest = {
 		"series"
 	],
 	"name": "SeedSphere",
+	"logo": "https://seedsphere.fly.dev/assets/icon.png",
 	"description": "Say goodbye to buffering. SeedSphere strengthens your stream connections by finding more sources, ensuring faster start times and a smoother playback experience, especially for less common content.",
 	"idPrefixes": [
 		"tt"
 	],
+	"stremioAddonsConfig": {
+		"issuer": "https://stremio-addons.net",
+		"signature": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMTI4Q0JDLUhTMjU2In0..0dhFNY0_5nxeA6QsQHVQAQ.RnUtICPP-vQdh3RH5lmmmFQsfllR6T8tV5gq6puxOICWuKCJlGKqQkhqc9JZwrPbgnnwNIup5xSpH7zfCtkTARkhexamJKe9brEF4Fhm2pHAVmo73yHctqzRbKoNTLYn.lYbSy2Rwzm_kLjcpzjy8dg"
+	},
 	"behaviorHints": {
 		"configurable": true
 	},
@@ -79,64 +85,90 @@ const VARIANT_URLS = {
 }
 const DEFAULT_TRACKERS_URL = process.env.TRACKERS_URL || VARIANT_URLS[VARIANT] || VARIANT_URLS.all
 const CACHE_MS = 24 * 60 * 60 * 1000
-const trackersCacheByUrl = new Map() // url -> { list: string[], ts: number }
+// Variant-specific TTLs (defaults to 24h)
+const VARIANT_TTLS = {
+    all: 12 * 60 * 60 * 1000,
+    best: 6 * 60 * 60 * 1000,
+    all_udp: 12 * 60 * 60 * 1000,
+    all_http: 12 * 60 * 60 * 1000,
+    all_ws: 12 * 60 * 60 * 1000,
+    all_ip: 24 * 60 * 60 * 1000,
+    best_ip: 12 * 60 * 60 * 1000,
+}
+const trackersCacheByUrl = new Map() // url -> { list: string[], ts: number, ttl: number }
+const inFlightByUrl = new Map() // url -> Promise<string[]>
+
+function findVariantForUrl(url) {
+    for (const [k, v] of Object.entries(VARIANT_URLS)) {
+        if (v === url) return k
+    }
+    return null
+}
 
 async function fetchTrackers(url) {
     const now = Date.now()
     const entry = trackersCacheByUrl.get(url)
-    if (entry && now - entry.ts < CACHE_MS) return entry.list
-    const res = await axios.get(url)
-    const list = res.data
-        .split("\n")
-        .map((t) => t.trim())
-        .filter((t) => t && !t.startsWith("#") && isTrackerUrl(t))
-    const deduped = unique(list)
-    trackersCacheByUrl.set(url, { list: deduped, ts: now })
-    return deduped
+    if (entry && now - entry.ts < (entry.ttl || CACHE_MS)) return entry.list
+    if (inFlightByUrl.has(url)) return inFlightByUrl.get(url)
+    const ttl = VARIANT_TTLS[findVariantForUrl(url) || 'all'] || CACHE_MS
+    const task = (async () => {
+        const res = await axios.get(url, { timeout: 10000 })
+        const list = res.data
+            .split("\n")
+            .map((t) => t.trim())
+            .filter((t) => t && !t.startsWith("#") && isTrackerUrl(t))
+        const deduped = unique(list)
+        trackersCacheByUrl.set(url, { list: deduped, ts: now, ttl })
+        try { setLastFetch(Date.now()) } catch (_) {}
+        return deduped
+    })()
+    inFlightByUrl.set(url, task)
+    try { return await task } finally { inFlightByUrl.delete(url) }
 }
 
 // Preload trackers on startup (non-blocking)
-fetchTrackers(DEFAULT_TRACKERS_URL).catch((e) => console.warn("Initial trackers fetch failed:", e.message))
+Promise.allSettled(Object.values(VARIANT_URLS).map((u) => fetchTrackers(u))).then(() => {
+    // noop
+}).catch((e) => console.warn("Initial trackers prefetch failed:", e && e.message ? e.message : String(e)))
 
 builder.defineStreamHandler(async ({ type, id, config }) => {
     console.log("request for streams:", type, id)
     // Docs: https://github.com/Stremio/stremio-addon-sdk/blob/master/docs/api/requests/defineStreamHandler.md
 
-    // Demo: for a known IMDb id, return a magnet with appended trackers
-    // Big Buck Bunny IMDb id is tt1254207; we will serve a demo magnet for illustration only
+    // Determine effective URL based on user config (if any)
+    // Stremio passes user configuration in args.config
+    // We support either a custom URL or a variant selection
+    const cfg = config || {}
+    const selectedVariant = (cfg.variant || VARIANT).toLowerCase()
+    const selectedUrl = (cfg.trackers_url && cfg.trackers_url.trim()) || VARIANT_URLS[selectedVariant] || DEFAULT_TRACKERS_URL
+
+    let trackers = []
+    try {
+        trackers = await fetchTrackers(selectedUrl)
+    } catch (e) {
+        console.warn("Falling back to empty trackers due to fetch error:", e.message)
+    }
+
+    // Apply health filtering and limits
+    const mode = (cfg.validation_mode || "basic").toLowerCase()
+    let maxTrackers = Number(cfg.max_trackers)
+    if (!Number.isFinite(maxTrackers) || maxTrackers < 0) maxTrackers = 0 // 0 means unlimited
+    let effective = trackers
+    try {
+        effective = await filterByHealth(trackers, mode, maxTrackers)
+    } catch (e) {
+        console.warn("Health filtering failed:", e.message)
+        effective = maxTrackers > 0 ? trackers.slice(0, maxTrackers) : trackers
+    }
+
+    // Log recent boost (for visibility in /configure) for every request
+    try {
+        const source = selectedUrl || selectedVariant
+        boosts.push({ mode, limit: maxTrackers || 0, healthy: effective.length, total: trackers.length, source, type, id })
+    } catch (_) { /* ignore */ }
+
+    // Demo stream only for a known IMDb id for illustration purposes
     if ((type === "movie" || type === "series") && id === "tt1254207") {
-        // Determine effective URL based on user config (if any)
-        // Stremio passes user configuration in args.config
-        // We support either a custom URL or a variant selection
-        const cfg = config || {}
-        const selectedVariant = (cfg.variant || VARIANT).toLowerCase()
-        const selectedUrl = (cfg.trackers_url && cfg.trackers_url.trim()) || VARIANT_URLS[selectedVariant] || DEFAULT_TRACKERS_URL
-
-        let trackers = []
-        try {
-            trackers = await fetchTrackers(selectedUrl)
-        } catch (e) {
-            console.warn("Falling back to empty trackers due to fetch error:", e.message)
-        }
-
-        // Apply health filtering and limits
-        const mode = (cfg.validation_mode || "basic").toLowerCase()
-        let maxTrackers = Number(cfg.max_trackers)
-        if (!Number.isFinite(maxTrackers) || maxTrackers < 0) maxTrackers = 0 // 0 means unlimited
-        let effective = trackers
-        try {
-            effective = await filterByHealth(trackers, mode, maxTrackers)
-        } catch (e) {
-            console.warn("Health filtering failed:", e.message)
-            effective = maxTrackers > 0 ? trackers.slice(0, maxTrackers) : trackers
-        }
-
-        // Log recent boost (for visibility in /configure)
-        try {
-            const source = selectedUrl || selectedVariant
-            boosts.push({ mode, limit: maxTrackers || 0, healthy: effective.length, total: trackers.length, source })
-        } catch (_) { /* ignore */ }
-
         // Example infoHash (not an actual copyrighted content hash); replace with real hashes in real sources
         const infoHash = "0000000000000000000000000000000000000000"
         const trParams = effective.map((t) => `tr=${encodeURIComponent(t)}`).join("&")

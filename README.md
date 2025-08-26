@@ -8,6 +8,8 @@ This Stremio addon enhances your streaming experience by adding custom BitTorren
 - Caches trackers for 24 hours
 - Easy to deploy and configure
 - Full Configure button support (User Data) to choose trackers list
+- Configure page includes a Boosts Metrics panel with totals, averages, and per-mode breakdown
+- Live updates via Server-Sent Events (SSE) for recent boosts (falls back to polling if needed)
 
 ## Installation
 
@@ -49,11 +51,34 @@ Environment variables (optional):
 
 Once installed, the addon will automatically enhance streams with additional trackers. No further configuration is needed.
 
+### Configure page
+
+Open `/configure` to access advanced tools:
+
+- Quick sweep of a trackers list with health filtering
+- Recent boosts list with content context (`type`, `id`)
+- Boosts Metrics panel: Requests, Avg healthy/total trackers, Avg health ratio, and per-mode mini bars
+
+The recent boosts and metrics update live via SSE from `/api/boosts/events`.
+
 ## Development
 
 - The addon interface is defined in `addon.js`
 - The server entry is `server.js` using Stremio Addon SDK `serveHTTP`
-- Trackers are cached per-URL for 24 hours
+- Trackers fetching: variant-specific TTL cache, in-flight de-duplication, startup warmup
+- Health validation: bounded concurrency with retry/backoff
+- Static caching: immutable for `public/assets/*`, short-lived for other static
+- Health endpoint: `GET /health` returns `{ ok, version, uptime_s, last_trackers_fetch_ts }`
+
+### Tests
+
+Run the smoke tests:
+
+```bash
+npm test
+```
+
+CI runs the smoke tests on pushes and pull requests via GitHub Actions.
 
 ## License
 

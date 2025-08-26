@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="seedsphere-version" content="0.0.3" />
+    <title>SeedSphere — Stremio Addon</title>
+    <link rel="icon" type="image/png" href="/assets/icon.png" />
+    <meta property="og:title" content="SeedSphere — Stremio Addon" />
+    <meta property="og:description" content="Boost your Stremio streams with healthy trackers." />
+    <meta property="og:image" content="/assets/icon.png" />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="SeedSphere — Stremio Addon" />
+    <meta name="twitter:description" content="Boost your Stremio streams with healthy trackers." />
+    <meta name="twitter:image" content="/assets/icon.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/assets/style.css" />
+  </head>
+  <body>
+    <header class="hero">
+      <div class="container">
+        <img class="logo" src="/assets/icon.png" alt="SeedSphere logo" />
+        <h1>SeedSphere</h1>
+        <p class="tagline">Say goodbye to buffering. Boost your Stremio streams with healthy trackers.</p>
+        <div class="cta">
+          <a id="installLink" class="btn primary" href="#">Install in Stremio</a>
+          <a class="btn" href="/configure">Configure Addon</a>
+          <a id="openStremioLink" class="btn" href="#">Open Stremio</a>
+          <a id="refreshLink" class="btn" href="#">Refresh in Stremio</a>
+          <button id="copyInstallLink" class="btn" type="button">Copy Install Link</button>
+          <button id="themeToggle" class="btn" type="button" aria-label="Toggle theme">Toggle Theme</button>
+        </div>
+        <div class="small-note">
+          <a href="/manifest.json" class="muted" target="_blank" rel="noopener">Manifest (fallback link)</a>
+        </div>
+        <p class="muted tip">
+          Tip: If you already installed the addon, clicking <strong>Install</strong> will refresh it in Stremio (acts as <em>Update</em>). You can always paste the manifest URL manually inside Stremio if protocol links are blocked.
+        </p>
+        <div class="manifest-url">
+          <code id="manifestUrl"></code>
+          <button id="copyBtn" class="btn small" type="button">Copy</button>
+        </div>
+
+        <div id="qrWrap" class="qr-wrap" aria-label="QR code for mobile install">
+          <img id="qrImg" alt="QR to install/refresh addon in Stremio" />
+          <div class="muted small-note">Scan on mobile to open the manifest in Stremio</div>
+        </div>
+      </div>
+    </header>
+
+    <main class="container">
+      <section class="features">
+        <h2>What is SeedSphere?</h2>
+        <p>
+          SeedSphere augments magnet links with additional public trackers after validating their health. This helps peers find each other faster, improving start times and reducing stalls.
+        </p>
+        <ul>
+          <li><strong>Health validation</strong> — Off, Basic (DNS + HTTP), or Aggressive with UDP handshakes.</li>
+          <li><strong>Opt-in limits</strong> — Default unlimited healthy trackers; optionally cap how many to append.</li>
+          <li><strong>Transparency</strong> — Recent Boosts panel shows what was actually applied.</li>
+        </ul>
+      </section>
+
+      <section class="links">
+        <h2>Useful Links</h2>
+        <ul>
+          <li><a href="/manifest.json">Manifest</a></li>
+          <li><a href="/configure">Configure UI</a></li>
+          <li><a href="/api/trackers/health" target="_blank" rel="noopener">Health stats (JSON)</a></li>
+          <li><a href="/api/boosts/recent" target="_blank" rel="noopener">Recent boosts (JSON)</a></li>
+        </ul>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <div class="container">
+        <span>© <span id="year"></span> SeedSphere</span>
+      </div>
+    </footer>
+
+    <script src="/assets/app.js" defer></script>
+  </body>
+</html>
