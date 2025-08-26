@@ -3,9 +3,9 @@
   const el = document.getElementById('manifestUrl');
   const copyBtn = document.getElementById('copyBtn');
   const yearEl = document.getElementById('year');
-  const installLink = document.getElementById('installLink');
-  const openStremioLink = document.getElementById('openStremioLink');
-  const refreshLink = document.getElementById('refreshLink');
+  const installBtn = document.getElementById('installBtn');
+  const openStremioBtn = document.getElementById('openStremioBtn');
+  const refreshBtn = document.getElementById('refreshBtn');
   const copyInstallLinkBtn = document.getElementById('copyInstallLink');
   const themeToggle = document.getElementById('themeToggle');
   const qrImg = document.getElementById('qrImg');
@@ -21,11 +21,7 @@
     return `stremio://addon-install?url=${encodeURIComponent(u)}&version=${encodeURIComponent(v)}`;
   }
 
-  // No JS navigation needed; use native anchor navigation for protocol links
-
-  if (refreshLink) {
-    refreshLink.href = buildPrimaryInstallLink(manifestUrl, version);
-  }
+  // Single JS-triggered attempt via window.open for protocol links (no HTTP fallback)
 
   if (copyInstallLinkBtn) {
     copyInstallLinkBtn.addEventListener('click', async () => {
@@ -65,17 +61,17 @@
   }
 
   function setInstallButtonLabel(installed) {
-    if (!installLink) return;
-    installLink.textContent = installed ? 'Update in Stremio' : 'Install in Stremio';
-    installLink.setAttribute('aria-label', installLink.textContent);
+    if (!installBtn) return;
+    installBtn.textContent = installed ? 'Update in Stremio' : 'Install in Stremio';
+    installBtn.setAttribute('aria-label', installBtn.textContent);
   }
 
   setInstallButtonLabel(localStorage.getItem(STORAGE_KEY) === '1');
 
-  if (installLink) {
-    installLink.href = buildPrimaryInstallLink(manifestUrl, version);
-    installLink.addEventListener('click', () => {
-      // Optimistically mark as installed to toggle label immediately
+  if (installBtn) {
+    installBtn.addEventListener('click', () => {
+      try { window.open(buildPrimaryInstallLink(manifestUrl, version)); } catch (_) {}
+      // Optimistically mark as installed to toggle label
       setTimeout(() => {
         try { localStorage.setItem(STORAGE_KEY, '1'); } catch (_) {}
         setInstallButtonLabel(true);
@@ -83,8 +79,16 @@
     });
   }
 
-  if (openStremioLink) {
-    openStremioLink.href = 'stremio://addons';
+  if (openStremioBtn) {
+    openStremioBtn.addEventListener('click', () => {
+      try { window.open('stremio://addons'); } catch (_) {}
+    });
+  }
+
+  if (refreshBtn) {
+    refreshBtn.addEventListener('click', () => {
+      try { window.open(buildPrimaryInstallLink(manifestUrl, version)); } catch (_) {}
+    });
   }
 
   if (copyBtn) {
