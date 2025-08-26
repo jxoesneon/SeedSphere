@@ -14,11 +14,11 @@
   if (yearEl) yearEl.textContent = new Date().getFullYear();
 
   // Heuristic: remember if user attempted install before
-  const STORAGE_KEY = 'seedsphereInstalledOnce';
+  const STORAGE_KEY = 'seedsphereInstalledOnce'
   const version = (document.querySelector('meta[name="seedsphere-version"]')?.getAttribute('content')) || '0.0.3';
-  function buildPrimaryInstallLink(u, v) {
-    // Use a single canonical deep link to avoid multiple protocol errors
-    return `stremio://addon-install?url=${encodeURIComponent(u)}&version=${encodeURIComponent(v)}`;
+  function buildPrimaryInstallLink(u) {
+    // Canonical per Stremio docs: replace https?:// with stremio:// pointing to manifest.json
+    return u.replace(/^https?:\/\//, 'stremio://');
   }
 
   // Single JS-triggered attempt via window.open for protocol links (no HTTP fallback)
@@ -26,7 +26,7 @@
   if (copyInstallLinkBtn) {
     copyInstallLinkBtn.addEventListener('click', async () => {
       try {
-        const link = buildPrimaryInstallLink(manifestUrl, version);
+        const link = buildPrimaryInstallLink(manifestUrl);
         await navigator.clipboard.writeText(link);
         copyInstallLinkBtn.textContent = 'Link Copied!';
         setTimeout(() => (copyInstallLinkBtn.textContent = 'Copy Install Link'), 1400);
@@ -70,7 +70,7 @@
 
   if (installBtn) {
     installBtn.addEventListener('click', () => {
-      try { window.open(buildPrimaryInstallLink(manifestUrl, version)); } catch (_) {}
+      try { window.location.href = buildPrimaryInstallLink(manifestUrl); } catch (_) {}
       // Optimistically mark as installed to toggle label
       setTimeout(() => {
         try { localStorage.setItem(STORAGE_KEY, '1'); } catch (_) {}
@@ -87,7 +87,7 @@
 
   if (refreshBtn) {
     refreshBtn.addEventListener('click', () => {
-      try { window.open(buildPrimaryInstallLink(manifestUrl, version)); } catch (_) {}
+      try { window.location.href = buildPrimaryInstallLink(manifestUrl); } catch (_) {}
     });
   }
 
