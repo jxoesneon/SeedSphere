@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="seedsphere-version" content="0.0.7" />
+    <meta name="seedsphere-version" content="0.0.8" />
     <title>SeedSphere — Stremio Addon</title>
     <link rel="icon" type="image/png" href="/assets/icon.png" />
     <meta property="og:title" content="SeedSphere — Stremio Addon" />
@@ -81,6 +81,17 @@
       </div>
     </footer>
 
-    <script src="/assets/app.js?v=0.0.7" defer></script>
+    <script src="/assets/app.js?v=0.0.8" defer></script>
+    
+    <!-- Ko‑Fi overlay widget -->
+    <script src='https://storage.ko-fi.com/cdn/scripts/overlay-widget.js'></script>
+    <script>
+      kofiWidgetOverlay.draw('jxoesneon', {
+        'type': 'floating-chat',
+        'floating-chat.donateButton.text': 'Support me',
+        'floating-chat.donateButton.background-color': '#00b9fe',
+        'floating-chat.donateButton.text-color': '#fff'
+      });
+    </script>
   </body>
 </html>

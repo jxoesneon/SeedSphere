@@ -35,10 +35,12 @@ function setCSP(res) {
   res.setHeader("Content-Security-Policy",
     [
       "default-src 'self'",
-      "script-src 'self'",
-      "style-src 'self'",
+      "script-src 'self' 'unsafe-inline' https://storage.ko-fi.com https://ko-fi.com",
+      "style-src 'self' 'unsafe-inline' https:",
       "img-src 'self' https: data:",
-      "connect-src 'self'",
+      "font-src 'self' https: data:",
+      "connect-src 'self' https:",
+      "frame-src 'self' https://ko-fi.com https://storage.ko-fi.com",
       "frame-ancestors 'none'",
     ].join('; ')
   )
