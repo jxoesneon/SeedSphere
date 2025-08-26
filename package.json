@@ -1,0 +1,25 @@
+{
+	"name": "stremio-addon-seedsphere",
+	"version": "0.0.5",
+	"description": "Say goodbye to buffering. SeedSphere strengthens your stream connections by finding more sources, ensuring faster start times and a smoother playback experience, especially for less common content.",
+	"scripts": {
+		"start": "node server.js",
+		"test": "echo \"Error: no test specified\" && exit 1"
+	},
+	"dependencies": {
+		"stremio-addon-sdk": "^1.6.10",
+		"axios": "^1.6.2",
+		"express": "^4.19.2"
+	},
+	"engines": {
+		"node": ">=14.0.0"
+	},
+	"keywords": [
+		"stremio",
+		"addon",
+		"bittorrent",
+		"trackers"
+	],
+	"author": "Jose Eduardo Rojas Jimenez",
+	"license": "MIT"
+}

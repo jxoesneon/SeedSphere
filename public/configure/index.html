@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>SeedSphere Addon — Configure</title>
+    <link rel="stylesheet" href="/configure/style.css">
+  </head>
+  <body>
+    <div class="backdrop"></div>
+    <header class="site-header">
+      <div class="wrap">
+        <div class="brand">
+          <div class="logo" aria-hidden="true">⚙️</div>
+          <div class="titles">
+            <h1>SeedSphere Trackers</h1>
+            <p class="tagline">Beautiful, fast configuration for your Stremio addon</p>
+          </div>
+        </div>
+        <nav class="links">
+          <a href="/manifest.json" target="_blank" rel="noopener">Manifest</a>
+        </nav>
+      </div>
+    </header>
+
+    <main class="container">
+      <section class="card hero">
+        <div class="hero-content">
+          <h2>Configure your addon</h2>
+          <p>This browser page is a companion to the in‑app Configure screen. Use it to quickly copy the manifest URL and review the available settings.
+          </p>
+          <div class="manifest">
+            <label>Manifest URL</label>
+            <div class="manifest-row">
+              <code id="manifestUrl">http://127.0.0.1:55025/manifest.json</code>
+              <button id="copyBtn" class="btn" type="button">Copy</button>
+              <a class="btn outline" href="/manifest.json" target="_blank" rel="noopener">Open</a>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="grid">
+        <section class="card">
+          <h3>Settings (reference)</h3>
+          <form id="cfgForm" onsubmit="return false;" class="form-grid" aria-describedby="settingsNote">
+            <div class="field">
+              <label for="variant">Trackers list variant</label>
+              <select id="variant" name="variant">
+                <option value="all" selected>All trackers (default)</option>
+                <option value="best">Best curated trackers</option>
+                <option value="all_udp">All UDP trackers</option>
+                <option value="all_http">All HTTP trackers</option>
+                <option value="all_ws">All WebSocket trackers</option>
+                <option value="all_ip">All trackers (IP only)</option>
+                <option value="best_ip">Best trackers (IP only)</option>
+              </select>
+            </div>
+
+            <div class="field">
+              <label for="trackers_url">Custom trackers URL (overrides variant)</label>
+              <div class="validate-row">
+                <input id="trackers_url" name="trackers_url" type="url" placeholder="https://.../trackers.txt" inputmode="url" aria-describedby="validateHint">
+                <button id="validateBtn" class="btn outline" type="button">Validate</button>
+              </div>
+              <div id="validateResult" class="validate-result" role="status" aria-live="polite"></div>
+            </div>
+
+            <p id="settingsNote" class="note">In Stremio, set these options via the Configure button. This page does not push settings into Stremio.</p>
+
+            <details class="advanced" id="advanced">
+              <summary>Advanced settings</summary>
+              <div class="advanced-grid">
+                <div class="field">
+                  <label for="validation_mode">Validation mode</label>
+                  <select id="validation_mode" name="validation_mode">
+                    <option value="off">Off (fastest)</option>
+                    <option value="basic" selected>Basic (DNS + HTTP HEAD)</option>
+                    <option value="aggressive">Aggressive (more probes)</option>
+                  </select>
+                  <p class="note">Basic removes clearly dead trackers using light checks and a cache. Aggressive may be slower and noisier.</p>
+                </div>
+
+                <div class="field">
+                  <label for="max_trackers">Max trackers to append (0 = unlimited)</label>
+                  <div class="validate-row">
+                    <input id="max_trackers" name="max_trackers" type="number" min="0" max="500" step="1" value="0" inputmode="numeric" disabled>
+                    <label style="display:flex;align-items:center;gap:.5rem;">
+                      <input id="limit_enable" type="checkbox"> Enable limit
+                    </label>
+                  </div>
+                  <p class="note">By default all healthy trackers are used. Turn on limit if you want to cap the number appended.</p>
+                </div>
+
+                <div class="field">
+                  <label>Tracker health cache</label>
+                  <div class="validate-row">
+                    <button id="healthBtn" class="btn" type="button">Check health</button>
+                  </div>
+                  <div id="healthResult" class="validate-result" role="status" aria-live="polite"></div>
+                </div>
+
+                <div class="field">
+                  <label>Quick sweep (current list)</label>
+                  <div class="validate-row">
+                    <button id="sweepBtn" class="btn outline" type="button">Run quick sweep</button>
+                  </div>
+                  <div id="sweepResult" class="validate-result" role="status" aria-live="polite"></div>
+                  <p class="note">Uses the Custom URL if provided; otherwise uses the selected Variant. Defaults to unlimited; enable limit to cap results.</p>
+                </div>
+
+                <hr class="divider" />
+                <div class="field">
+                  <label>Recent boosts</label>
+                  <div class="validate-row">
+                    <button id="boostsRefresh" class="btn" type="button">Refresh</button>
+                  </div>
+                  <ul id="boostsList" class="boosts-list" aria-live="polite"></ul>
+                  <p class="note">Shows the last few streams built by the addon with effective healthy trackers, validation mode, limit, and source.</p>
+                </div>
+              </div>
+            </details>
+          </form>
+        </section>
+
+        <section class="card steps">
+          <h3>Use in Stremio</h3>
+          <ol>
+            <li>Open Stremio → Addons → Install via URL</li>
+            <li>Paste your <span class="pill">Manifest URL</span> and install</li>
+            <li>Click <b>Configure</b> and choose a variant or set a custom trackers URL</li>
+          </ol>
+          <div class="tips">
+            <div class="tip">Pro tip: Leave custom URL empty to use the selected variant list.</div>
+            <div class="tip">Changes apply instantly to new stream requests.</div>
+          </div>
+        </section>
+      </section>
+
+      <section class="card about">
+        <h3>About SeedSphere</h3>
+        <p>SeedSphere augments magnet links with additional public trackers to help peers find each other faster — smoother playback, fewer stalls.</p>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="wrap">
+        <span>Running locally</span>
+        <span>•</span>
+        <a href="/manifest.json" target="_blank" rel="noopener">manifest.json</a>
+      </div>
+    </footer>
+
+    <script src="/configure/app.js"></script>
+  </body>
+</html>
