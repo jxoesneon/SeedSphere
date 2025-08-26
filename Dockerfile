@@ -3,12 +3,13 @@ FROM node:20-alpine
 
 WORKDIR /app
 
-# Copy full source
-COPY . .
-
+# Install dependencies using lockfile (deterministic, cacheable layer)
 ENV NODE_ENV=production
-# Install only production deps
-RUN npm install --omit=dev
+COPY package.json package-lock.json ./
+RUN npm ci --omit=dev
+
+# Copy the rest of the application
+COPY . .
 
 # Default local port; Fly injects PORT
 EXPOSE 55025
