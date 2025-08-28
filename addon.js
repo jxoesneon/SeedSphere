@@ -7,7 +7,7 @@ const boosts = require("./lib/boosts")
 // Docs: https://github.com/Stremio/stremio-addon-sdk/blob/master/docs/api/responses/manifest.md
 const manifest = {
 	"id": "community.SeedSphere",
-	"version": "0.0.8",
+	"version": "0.0.9",
 	"catalogs": [],
 	"resources": [
 		"stream"

@@ -1,6 +1,6 @@
 {
 	"name": "stremio-addon-seedsphere",
-	"version": "0.0.8",
+	"version": "0.0.9",
 	"description": "Say goodbye to buffering. SeedSphere strengthens your stream connections by finding more sources, ensuring faster start times and a smoother playback experience, especially for less common content.",
 	"scripts": {
 		"start": "node server.js",
