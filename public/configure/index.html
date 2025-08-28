@@ -18,7 +18,7 @@
           </div>
         </div>
         <nav class="links">
-          <a href="/manifest.json" target="_blank" rel="noopener">Manifest</a>
+          <button id="installBtn" class="btn outline" type="button"><span class="icon" data-icon="arrow-down-tray"></span>Install / Update</button>
         </nav>
       </div>
     </header>
@@ -33,8 +33,8 @@
             <label>Manifest URL</label>
             <div class="manifest-row">
               <code id="manifestUrl">http://127.0.0.1:55025/manifest.json</code>
-              <button id="copyBtn" class="btn" type="button">Copy</button>
-              <a class="btn outline" href="/manifest.json" target="_blank" rel="noopener">Open</a>
+              <button id="copyBtn" class="btn" type="button"><span class="icon" data-icon="clipboard"></span>Copy</button>
+              <a class="btn outline" href="/manifest.json" target="_blank" rel="noopener"><span class="icon" data-icon="arrow-top-right-on-square"></span>Open</a>
             </div>
           </div>
         </div>
@@ -61,12 +61,44 @@
               <label for="trackers_url">Custom trackers URL (overrides variant)</label>
               <div class="validate-row">
                 <input id="trackers_url" name="trackers_url" type="url" placeholder="https://.../trackers.txt" inputmode="url" aria-describedby="validateHint">
-                <button id="validateBtn" class="btn outline" type="button">Validate</button>
+                <button id="validateBtn" class="btn outline" type="button"><span class="icon" data-icon="shield-check"></span>Validate</button>
               </div>
               <div id="validateResult" class="validate-result" role="status" aria-live="polite"></div>
             </div>
 
             <p id="settingsNote" class="note">In Stremio, set these options via the Configure button. This page does not push settings into Stremio.</p>
+
+            <div class="field">
+              <label>Presets</label>
+              <div class="validate-row">
+                <button id="presetDefault" class="btn" type="button"><span class="icon" data-icon="sparkles"></span>Default</button>
+                <button id="presetMinimal" class="btn outline" type="button"><span class="icon" data-icon="minus-circle"></span>Minimal</button>
+                <button id="presetAggressive" class="btn outline" type="button"><span class="icon" data-icon="fire"></span>Aggressive</button>
+              </div>
+              <p class="note">Presets set Variant, Validation Mode, and optional limits. You can adjust fields afterwards.</p>
+            </div>
+
+            <div class="field">
+              <label>Share your current settings</label>
+              <div class="validate-row">
+                <button id="shareCopyBtn" class="btn outline" type="button"><span class="icon" data-icon="link"></span>Copy share link</button>
+              </div>
+              <p class="note">Send this link to load the same Variant/URL/Mode/Limit values.</p>
+            </div>
+
+            <div class="field">
+              <label for="allowlist">Allowlist (one domain or host per line)</label>
+              <textarea id="allowlist" name="allowlist" rows="3" placeholder="example.org\ntracker.net"></textarea>
+              <p class="note">When set, only trackers whose host matches any line here will be used.</p>
+            </div>
+
+            <div class="field">
+              <label for="blocklist">Blocklist (one domain or host per line)</label>
+              <textarea id="blocklist" name="blocklist" rows="3" placeholder="badtracker.com\ntracker.to"></textarea>
+              <p class="note">Any tracker whose host matches any line here will be excluded.</p>
+            </div>
+
+            <!-- Manual Trackers moved to its own panel below -->
 
             <details class="advanced" id="advanced">
               <summary>Advanced settings</summary>
@@ -85,8 +117,10 @@
                   <label for="max_trackers">Max trackers to append (0 = unlimited)</label>
                   <div class="validate-row">
                     <input id="max_trackers" name="max_trackers" type="number" min="0" max="500" step="1" value="0" inputmode="numeric" disabled>
-                    <label style="display:flex;align-items:center;gap:.5rem;">
-                      <input id="limit_enable" type="checkbox"> Enable limit
+                    <label class="toggle">
+                      <input id="limit_enable" type="checkbox" class="toggle-input">
+                      <span class="toggle-slider" aria-hidden="true"></span>
+                      <span class="toggle-text">Enable limit</span>
                     </label>
                   </div>
                   <p class="note">By default all healthy trackers are used. Turn on limit if you want to cap the number appended.</p>
@@ -95,7 +129,7 @@
                 <div class="field">
                   <label>Tracker health cache</label>
                   <div class="validate-row">
-                    <button id="healthBtn" class="btn" type="button">Check health</button>
+                    <button id="healthBtn" class="btn" type="button"><span class="icon" data-icon="heart"></span>Check health</button>
                   </div>
                   <div id="healthResult" class="validate-result" role="status" aria-live="polite"></div>
                 </div>
@@ -103,7 +137,7 @@
                 <div class="field">
                   <label>Quick sweep (current list)</label>
                   <div class="validate-row">
-                    <button id="sweepBtn" class="btn outline" type="button">Run quick sweep</button>
+                    <button id="sweepBtn" class="btn outline" type="button"><span class="icon" data-icon="arrow-path"></span>Run quick sweep</button>
                   </div>
                   <div id="sweepResult" class="validate-result" role="status" aria-live="polite"></div>
                   <p class="note">Uses the Custom URL if provided; otherwise uses the selected Variant. Defaults to unlimited; enable limit to cap results.</p>
@@ -118,7 +152,7 @@
                 <div class="field">
                   <label>Recent boosts</label>
                   <div class="validate-row">
-                    <button id="boostsRefresh" class="btn" type="button">Refresh</button>
+                    <button id="boostsRefresh" class="btn" type="button"><span class="icon" data-icon="arrow-path"></span>Refresh</button>
                   </div>
                   <ul id="boostsList" class="boosts-list" aria-live="polite"></ul>
                   <p class="note">Shows the last few streams built by the addon with effective healthy trackers, validation mode, limit, and source.</p>
@@ -126,6 +160,60 @@
               </div>
             </details>
           </form>
+        </section>
+
+        <section class="card manual-panel" aria-labelledby="manualTrackersH">
+          <h2 id="manualTrackersH" style="margin-top:0;">Manual trackers</h2>
+          <p class="note">Manage your own trackers list locally. Edit rows, add new entries, then Save or Cancel your changes.</p>
+          <div class="table-wrap">
+            <table id="manualTable" class="table">
+              <thead>
+                <tr>
+                  <th scope="col" class="col-num" title="Row">#</th>
+                  <th scope="col">Tracker URL</th>
+                  <th scope="col" class="actions" style="width: 140px;">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="manualTbody"></tbody>
+              <tfoot>
+                <tr>
+                  <td class="col-num" aria-hidden="true"></td>
+                  <td>
+                    <input id="manualNewInput" class="track-input" type="text" placeholder="udp://tracker.example:80/announce" aria-label="New tracker URL">
+                  </td>
+                  <td class="actions">
+                    <button id="manualAddRowBtn" class="btn small" type="button"><span class="icon" data-icon="plus"></span>Add</button>
+                  </td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+          <div class="manual-actions">
+            <div class="left">
+              <button id="manualCancelBtn" class="btn outline" type="button"><span class="icon" data-icon="x-mark"></span>Cancel</button>
+              <button id="manualSaveBtn" class="btn" type="button"><span class="icon" data-icon="check"></span>Save changes</button>
+              <button id="manualRevertBtn" class="btn outline" type="button" title="Revert staged edits to last saved list"><span class="icon" data-icon="arrow-uturn-left"></span>Revert to saved</button>
+              <label class="toggle" style="margin-left:10px;">
+                <input id="manualStrict" type="checkbox" class="toggle-input">
+                <span class="toggle-slider" aria-hidden="true"></span>
+                <span class="toggle-text">Strict validation before save</span>
+              </label>
+            </div>
+            <div class="right" style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+              <label class="inline" for="manualMergeMode">Sweep merge:</label>
+              <select id="manualMergeMode">
+                <option value="append" selected>Append</option>
+                <option value="replace">Replace</option>
+              </select>
+              <button id="manualImportBtn" class="btn outline" type="button"><span class="icon" data-icon="arrow-up-tray"></span>Import (paste)</button>
+              <button id="manualExportBtn" class="btn outline" type="button"><span class="icon" data-icon="arrow-down-tray"></span>Export (.txt)</button>
+              <label class="toggle">
+                <input id="manualAutoSave" type="checkbox" class="toggle-input">
+                <span class="toggle-slider" aria-hidden="true"></span>
+                <span class="toggle-text">Auto-save after sweep</span>
+              </label>
+            </div>
+          </div>
         </section>
 
         <section class="card steps">
@@ -156,6 +244,7 @@
       </div>
     </footer>
 
+    <script src="/assets/icons.js"></script>
     <script src="/configure/app.js"></script>
     
     <!-- Ko‑Fi overlay widget -->

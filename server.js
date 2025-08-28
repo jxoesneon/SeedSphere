@@ -95,6 +95,7 @@ app.get("/api/trackers/sweep", async (req, res) => {
     const url = String(req.query.url || "").trim()
     const mode = String(req.query.mode || "basic").toLowerCase()
     const limit = Math.max(0, parseInt(String(req.query.limit || "0"), 10) || 0)
+    const full = String(req.query.full || '0') === '1'
     if (!url) return res.status(400).json({ ok: false, error: "missing_url" })
     // basic input validation
     try {
@@ -106,7 +107,9 @@ app.get("/api/trackers/sweep", async (req, res) => {
     const text = typeof response.data === "string" ? response.data : String(response.data)
     const urls = unique(text.split("\n").map((t) => t.trim()).filter((t) => t && !t.startsWith("#") && isTrackerUrl(t)))
     const healthy = await filterByHealth(urls, mode, limit)
-    return res.json({ ok: true, total: urls.length, healthy: healthy.length, limit, mode, sample: healthy.slice(0, 10) })
+    const payload = { ok: true, total: urls.length, healthy: healthy.length, limit, mode, sample: healthy.slice(0, 10) }
+    if (full) payload.list = healthy
+    return res.json(payload)
   } catch (e) {
     return res.status(500).json({ ok: false, error: e.message })
   }

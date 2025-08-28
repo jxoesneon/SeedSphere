@@ -7,8 +7,11 @@
   const openStremioBtn = document.getElementById('openStremioBtn');
   const refreshBtn = document.getElementById('refreshBtn');
   const copyInstallLinkBtn = document.getElementById('copyInstallLink');
+  const copyProtocolBtn = document.getElementById('copyProtocolBtn');
   const themeToggle = document.getElementById('themeToggle');
   const qrImg = document.getElementById('qrImg');
+  const updateBanner = document.getElementById('updateBanner');
+  const dismissUpdate = document.getElementById('dismissUpdate');
 
   if (el) el.textContent = manifestUrl;
   if (yearEl) yearEl.textContent = new Date().getFullYear();
@@ -19,6 +22,19 @@
   function buildPrimaryInstallLink(u) {
     // Canonical per Stremio docs: replace https?:// with stremio:// pointing to manifest.json
     return u.replace(/^https?:\/\//, 'stremio://');
+  }
+
+  if (copyProtocolBtn) {
+    copyProtocolBtn.addEventListener('click', async () => {
+      try {
+        const link = buildPrimaryInstallLink(manifestUrl);
+        await navigator.clipboard.writeText(link);
+        copyProtocolBtn.textContent = 'Copied!';
+        setTimeout(() => (copyProtocolBtn.textContent = 'Copy stremio://'), 1400);
+      } catch (e) {
+        console.error('Copy protocol link failed', e);
+      }
+    });
   }
 
   // Single JS-triggered attempt via window.open for protocol links (no HTTP fallback)
@@ -56,14 +72,48 @@
 
   // Generate QR code (client-side via external image service)
   if (qrImg) {
-    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(manifestUrl)}`;
+    const protocolLink = buildPrimaryInstallLink(manifestUrl);
+    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(protocolLink)}`;
     qrImg.src = qrUrl;
+  }
+
+  // Update banner logic: show when last seen version differs from current
+  const VERSION_KEY = 'seedsphereLastSeenVersion';
+  try {
+    const last = localStorage.getItem(VERSION_KEY);
+    // If we have seen a version before and it differs, show the banner
+    if (updateBanner && last && last !== version) {
+      updateBanner.style.display = 'flex';
+    }
+    // Initialize last seen on first visit if not set
+    if (!last) {
+      localStorage.setItem(VERSION_KEY, version);
+    }
+  } catch (_) {}
+
+  if (dismissUpdate) {
+    dismissUpdate.addEventListener('click', () => {
+      try { localStorage.setItem(VERSION_KEY, version); } catch (_) {}
+      if (updateBanner) updateBanner.style.display = 'none';
+    });
   }
 
   function setInstallButtonLabel(installed) {
     if (!installBtn) return;
     installBtn.textContent = installed ? 'Update in Stremio' : 'Install in Stremio';
     installBtn.setAttribute('aria-label', installBtn.textContent);
+  }
+
+  // Helper to navigate to custom protocol using a temporary anchor element
+  function navigateProtocol(url) {
+    try {
+      const a = document.createElement('a');
+      a.href = url;
+      a.style.display = 'none';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    } catch (_) {}
   }
 
   setInstallButtonLabel(localStorage.getItem(STORAGE_KEY) === '1');
@@ -81,7 +131,7 @@
 
   if (openStremioBtn) {
     openStremioBtn.addEventListener('click', () => {
-      try { window.open('stremio://addons'); } catch (_) {}
+      navigateProtocol('stremio://');
     });
   }
 
