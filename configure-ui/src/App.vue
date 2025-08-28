@@ -1,5 +1,8 @@
 <script setup>
 import ManualTrackers from './components/ManualTrackers.vue'
+import ValidateSweep from './components/ValidateSweep.vue'
+import HealthStats from './components/HealthStats.vue'
+import Boosts from './components/Boosts.vue'
 </script>
 
 <template>
@@ -17,8 +20,25 @@ import ManualTrackers from './components/ManualTrackers.vue'
         </div>
       </div>
 
-      <div class="alert alert-info">
-        <span>Additional panels (validation, sweep, health, boosts) will follow. Current build focuses on Manual Trackers parity.</span>
+      <div class="card bg-base-100 shadow">
+        <div class="card-body">
+          <h2 class="card-title">Validate & Sweep</h2>
+          <ValidateSweep />
+        </div>
+      </div>
+
+      <div class="card bg-base-100 shadow">
+        <div class="card-body">
+          <h2 class="card-title">Health Stats</h2>
+          <HealthStats />
+        </div>
+      </div>
+
+      <div class="card bg-base-100 shadow">
+        <div class="card-body">
+          <h2 class="card-title">Boosts</h2>
+          <Boosts />
+        </div>
       </div>
     </section>
   </div>
