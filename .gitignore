@@ -37,3 +37,6 @@ tmp/
 
 # Misc
 *.local
+
+# Legacy backup
+backup/
