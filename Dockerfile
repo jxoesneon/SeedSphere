@@ -1,7 +1,7 @@
 ## SeedSphere Stremio Addon - Multi-stage build with Vue configure UI
 
 # --- builder: build Vue app ---
-FROM node:20-alpine AS builder
+FROM node:24-alpine AS builder
 WORKDIR /app
 
 # Install frontend deps and build configure UI
@@ -11,7 +11,7 @@ COPY configure-ui ./configure-ui
 RUN cd configure-ui && npm run build
 
 # --- runtime: node server + static assets ---
-FROM node:20-alpine
+FROM node:24-alpine
 WORKDIR /app
 
 ENV NODE_ENV=production
