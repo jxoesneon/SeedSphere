@@ -1,0 +1,6 @@
+/* Tailwind CSS v4 + DaisyUI */
+@import "tailwindcss";
+@plugin "daisyui";
+
+html, body, #app { height: 100%; }
+body { @apply bg-base-200 text-base-content; }
