@@ -1,30 +1,25 @@
 <script setup>
-import HelloWorld from './components/HelloWorld.vue'
+import ManualTrackers from './components/ManualTrackers.vue'
 </script>
 
 <template>
-  <div>
-    <a href="https://vite.dev" target="_blank">
-      <img src="/vite.svg" class="logo" alt="Vite logo" />
-    </a>
-    <a href="https://vuejs.org/" target="_blank">
-      <img src="./assets/vue.svg" class="logo vue" alt="Vue logo" />
-    </a>
-  </div>
-  <HelloWorld msg="Vite + Vue" />
-</template>
+  <div class="min-h-full p-6">
+    <header class="mb-6">
+      <h1 class="text-3xl font-semibold">SeedSphere Configure</h1>
+      <p class="text-sm opacity-70">Refactored UI (Vue + Tailwind + DaisyUI)</p>
+    </header>
 
-<style scoped>
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
-}
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
-}
-.logo.vue:hover {
-  filter: drop-shadow(0 0 2em #42b883aa);
-}
-</style>
+    <section class="grid gap-6">
+      <div class="card bg-base-100 shadow">
+        <div class="card-body">
+          <h2 class="card-title">Manual Trackers</h2>
+          <ManualTrackers />
+        </div>
+      </div>
+
+      <div class="alert alert-info">
+        <span>Additional panels (validation, sweep, health, boosts) will follow. Current build focuses on Manual Trackers parity.</span>
+      </div>
+    </section>
+  </div>
+</template>
