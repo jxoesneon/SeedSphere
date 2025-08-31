@@ -1,37 +1,103 @@
+# Dependabot configuration file
+# See: https://docs.github.com/code-security/dependabot/dependabot-version-updates/configuration-options-for-the-dependabot.yml-file
 version: 2
+
+enable-beta-ecosystems: true
+
 updates:
+  # 1) Keep npm packages up to date (root project)
   - package-ecosystem: "npm"
     directory: "/"
     schedule:
-      interval: "weekly"
-    open-pull-requests-limit: 5
-    commit-message:
-      prefix: "deps"
-      include: "scope"
+      interval: "daily"
+      time: "07:00"
+      timezone: "America/Denver"
+    open-pull-requests-limit: 10
+    rebase-strategy: "auto"
+    # Security-only updates will always be opened regardless of PR limit
+    security-updates-only: false
+    allow:
+      - dependency-type: "direct"
+      - dependency-type: "indirect"
+    versioning-strategy: increase
     labels:
       - "dependencies"
+      - "security"
+      - "automated"
+    commit-message:
+      prefix: "deps(npm)"
+      prefix-development: "deps(dev)"
+      include: "scope"
     groups:
-      minor-and-patch:
+      prod-deps:
+        applies-to: security-updates
+        patterns:
+          - "*"
         update-types:
           - "minor"
           - "patch"
+      dev-deps:
+        applies-to: version-updates
+        patterns:
+          - "vite"
+          - "@vitejs/*"
+          - "@tailwindcss/*"
+          - "tailwindcss"
+          - "postcss"
+          - "autoprefixer"
+          - "daisyui"
+        update-types:
+          - "minor"
+          - "patch"
+      tooling-low-risk:
+        applies-to: version-updates
+        patterns:
+          - "eslint*"
+          - "prettier*"
+          - "*types*"
+        update-types:
+          - "minor"
+          - "patch"
+
+  # 2) Keep GitHub Actions up to date
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
-      interval: "weekly"
-    open-pull-requests-limit: 5
-    commit-message:
-      prefix: "deps"
-      include: "scope"
+      interval: "daily"
+      time: "07:15"
+      timezone: "America/Denver"
+    open-pull-requests-limit: 10
+    rebase-strategy: "auto"
     labels:
       - "dependencies"
+      - "ci"
+      - "automated"
+    commit-message:
+      prefix: "deps(actions)"
+      include: "scope"
+
+  # 3) Keep Docker base images up to date
   - package-ecosystem: "docker"
     directory: "/"
     schedule:
       interval: "weekly"
-    open-pull-requests-limit: 5
-    commit-message:
-      prefix: "deps"
-      include: "scope"
+      day: "sunday"
+      time: "07:30"
+      timezone: "America/Denver"
+    open-pull-requests-limit: 10
+    rebase-strategy: "auto"
     labels:
       - "dependencies"
+      - "security"
+      - "container"
+      - "automated"
+    commit-message:
+      prefix: "deps(docker)"
+      include: "scope"
+    groups:
+      node-base:
+        patterns:
+          - "node"
+        update-types:
+          - "minor"
+          - "patch"
