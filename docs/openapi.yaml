@@ -1,0 +1,252 @@
+openapi: 3.0.3
+info:
+  title: Gardener API
+  version: 1.0.0-alpha
+  description: |
+    Gardener v1 API for executor registration, pairing, SSE rooms, and tasks.
+    Follows Appendix A envelopes and Natural schema (§8.2).
+servers:
+  - url: http://localhost:5173
+paths:
+  /api/executor/register:
+    post:
+      summary: Register executor device
+      tags: [executor]
+      responses:
+        '200':
+          description: Device registered
+          headers:
+            Cache-Control:
+              schema: { type: string, example: no-store }
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OkRegister'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+  /api/pair/start:
+    post:
+      summary: Start pairing flow
+      tags: [pair]
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                install_id:
+                  type: string
+                  description: Client installation identifier
+      responses:
+        '200':
+          description: Pair code created
+          headers:
+            Cache-Control:
+              schema: { type: string }
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OkPairStart'
+        '429':
+          $ref: '#/components/responses/RateLimitedWithRetry'
+  /api/pair/complete:
+    post:
+      summary: Complete pairing
+      tags: [pair]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [pair_code, device_id]
+              properties:
+                pair_code: { type: string }
+                device_id: { type: string }
+      responses:
+        '200':
+          description: Paired
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OkPairComplete'
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '410': { $ref: '#/components/responses/Gone' }
+        '429': { $ref: '#/components/responses/RateLimitedWithRetry' }
+  /api/rooms/{room_id}/events:
+    get:
+      summary: Server-Sent Events stream
+      tags: [sse]
+      parameters:
+        - in: path
+          name: room_id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: SSE stream
+          headers:
+            Content-Type:
+              schema: { type: string, example: text/event-stream }
+        '429': { $ref: '#/components/responses/RateLimited' }
+  /api/telemetry/collect:
+    post:
+      summary: Collect telemetry events
+      tags: [telemetry]
+      parameters:
+        - in: header
+          name: x-telemetry-key
+          required: false
+          schema: { type: string }
+          description: Shared key if TELEMETRY_KEY is configured
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+      responses:
+        '200':
+          description: Accepted
+          headers:
+            Cache-Control: { schema: { type: string, example: no-store } }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/OkSimple' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+  /api/tasks/request:
+    post:
+      summary: Request task issuance
+      tags: [tasks]
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                room_id: { type: string }
+                type: { type: string, example: normalize }
+                params: { type: object, additionalProperties: true }
+      responses:
+        '200':
+          description: Task token created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OkTaskRequest'
+        '429': { $ref: '#/components/responses/RateLimited' }
+  /api/tasks/result:
+    post:
+      summary: Submit task result
+      tags: [tasks]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [token]
+              properties:
+                room_id: { type: string }
+                token: { type: string, description: Signed JWT from /api/tasks/request }
+                data: { type: object, additionalProperties: true }
+      responses:
+        '200':
+          description: Accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OkSimple'
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+components:
+  responses:
+    RateLimited:
+      description: Too Many Requests
+      headers:
+        X-RateLimit-Limit:
+          schema: { type: string }
+        X-RateLimit-Remaining:
+          schema: { type: string }
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Err' }
+    RateLimitedWithRetry:
+      description: Too Many Requests
+      headers:
+        Retry-After:
+          schema: { type: string, example: '60' }
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Err' }
+    BadRequest:
+      description: Bad Request
+      content: { application/json: { schema: { $ref: '#/components/schemas/Err' } } }
+    Unauthorized:
+      description: Unauthorized
+      content: { application/json: { schema: { $ref: '#/components/schemas/Err' } } }
+    NotFound:
+      description: Not Found
+      content: { application/json: { schema: { $ref: '#/components/schemas/Err' } } }
+    Gone:
+      description: Gone / expired
+      content: { application/json: { schema: { $ref: '#/components/schemas/Err' } } }
+  schemas:
+    OkSimple:
+      type: object
+      properties:
+        ok: { type: boolean, example: true }
+    OkRegister:
+      allOf:
+        - $ref: '#/components/schemas/OkSimple'
+        - type: object
+          properties:
+            device_id: { type: string, example: 'a1b2c3d4e5f6' }
+    OkPairStart:
+      allOf:
+        - $ref: '#/components/schemas/OkSimple'
+        - type: object
+          properties:
+            pair_code: { type: string, example: 'ABCDEF' }
+            expires_at: { type: integer, format: int64 }
+            install_id: { type: string }
+    OkPairComplete:
+      allOf:
+        - $ref: '#/components/schemas/OkSimple'
+        - type: object
+          properties:
+            pair_code: { type: string }
+            device_id: { type: string }
+            install_id: { type: string }
+    OkTaskRequest:
+      allOf:
+        - $ref: '#/components/schemas/OkSimple'
+        - type: object
+          properties:
+            token: { type: string }
+            room_id: { type: string }
+    Err:
+      type: object
+      properties:
+        ok: { type: boolean, example: false }
+        error: { type: string, example: rate_limited }
+    Natural:
+      type: object
+      description: Natural schema (§8.2)
+      properties:
+        title_natural: { type: string }
+        year: { type: integer, nullable: true }
+        edition: { type: string, nullable: true }
+        remaster: { type: string, nullable: true }
+        version_tag: { type: string, nullable: true }
+        quality: { type: string, nullable: true }
+        languages_display: { type: array, items: { type: string } }
+        provider_display: { type: string, nullable: true }
+        infohash: { type: string, nullable: true }
+        extras: { type: object, additionalProperties: true }

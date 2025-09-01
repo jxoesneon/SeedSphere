@@ -1,0 +1,20 @@
+/* Tailwind v4 layers must be imported before other at-rules */
+@import "tailwindcss/base";
+@import "tailwindcss/components";
+@import "tailwindcss/utilities";
+
+/* DaisyUI plugin for Tailwind v4 */
+/* stylelint-disable at-rule-no-unknown */
+@plugin "daisyui";
+/* stylelint-enable at-rule-no-unknown */
+
+/* Global backdrop gradient (from backup Configure page) */
+.backdrop {
+  position: fixed;
+  inset: 0;
+  background: radial-gradient(1200px 600px at -20% -10%, #5b9cff33, transparent 60%),
+              radial-gradient(1000px 800px at 110% 110%, #9b5bff33, transparent 60%),
+              linear-gradient(180deg, #0b1220 0%, #0b1220 100%);
+  pointer-events: none;
+  z-index: 0;
+}

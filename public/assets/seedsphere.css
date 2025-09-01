@@ -1,0 +1,35 @@
+:root[data-theme="seedsphere"] {
+  /* DaisyUI v4 theme variables (OKLCH triplets: L C H) */
+  /* Primary */
+  --p: 0.84 0.11 240;         /* ~#7cc4fa */
+  --pc: 0.18 0.02 250;         /* ~#051423 (content on primary) */
+  /* Secondary */
+  --s: 0.89 0.10 150;         /* ~#9ef0a6 */
+  --sc: 0.18 0.02 250;         /* dark text on secondary */
+  /* Accent */
+  --a: 0.70 0.16 250;         /* ~#2b8ad6 */
+  --ac: 0.95 0.02 250;         /* ~#e8eef7 */
+  /* Neutral */
+  --n: 0.30 0.02 250;         /* ~#1b2430 */
+  --nc: 0.95 0.02 250;         /* ~#e8eef7 */
+  /* Base */
+  --b1: 0.18 0.02 250;        /* ~#0b0f17 */
+  --b2: 0.24 0.02 250;        /* ~#121826 */
+  --b3: 0.30 0.03 250;        /* ~#1a2332 */
+  --bc: 0.95 0.02 250;        /* ~#e8eef7 */
+  /* State colors */
+  --in: 0.84 0.11 240;        /* info (blue) */
+  --su: 0.70 0.12 150;        /* success (green) */
+  --wa: 0.87 0.12 95;         /* warning (amber) */
+  --er: 0.70 0.18 25;         /* error (red) */
+
+  /* Roundness & other optional tokens (keep defaults reasonable) */
+  --rounded-box: 0.75rem;
+  --rounded-btn: 0.5rem;
+  --rounded-badge: 1.9rem;
+  --animation-btn: 0.25s;
+  --animation-input: .2s;
+  --border-btn: 1px;
+  --tab-border: 1px;
+  --tab-radius: 0.5rem;
+}

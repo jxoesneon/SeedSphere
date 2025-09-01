@@ -1,0 +1,10 @@
+{
+  "allowed": ["PROPER", "REPACK", "RERIP", "FINAL", "v2", "v3", "v4"],
+  "patterns": [
+    "(?<![A-Z0-9])(PROPER)(?![A-Z0-9])",
+    "(?<![A-Z0-9])(REPACK)(?![A-Z0-9])",
+    "(?<![A-Z0-9])(RERIP)(?![A-Z0-9])",
+    "(?<![A-Z0-9])(FINAL)(?![A-Z0-9])",
+    "(?<![A-Za-z0-9])v(2|3|4)(?![A-Za-z0-9])"
+  ]
+}

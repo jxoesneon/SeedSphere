@@ -1,0 +1,61 @@
+{
+  "policy": {
+    "unspecified_display": ["Multi"],
+    "unspecified_flags": ["\uD83C\uDF10"],
+    "default_flags": {
+      "en": "\uD83C\uDDEC\uD83C\uDDE7",
+      "es": "\uD83C\uDDEA\uD83C\uDDF8",
+      "pt": "\uD83C\uDDF5\uD83C\uDDF9",
+      "zh": "\uD83C\uDDE8\uD83C\uDDF3",
+      "fr": "\uD83C\uDDEB\uD83C\uDDF7",
+      "de": "\uD83C\uDDE9\uD83C\uDDEA",
+      "it": "\uD83C\uDDEE\uD83C\uDDF9"
+    }
+  },
+  "languages": [
+    { "code": "en", "display": "English", "flag": "\uD83C\uDDEC\uD83C\uDDE7" },
+    { "code": "es-ES", "display": "Spanish (Spain)", "flag": "\uD83C\uDDEA\uD83C\uDDF8" },
+    { "code": "es-419", "display": "Spanish (Latino)", "flag": "\uD83C\uDDF2\uD83C\uDDFD" },
+    { "code": "fr", "display": "French", "flag": "\uD83C\uDDEB\uD83C\uDDF7" },
+    { "code": "de", "display": "German", "flag": "\uD83C\uDDE9\uD83C\uDDEA" },
+    { "code": "it", "display": "Italian", "flag": "\uD83C\uDDEE\uD83C\uDDF9" },
+    { "code": "pt-PT", "display": "Portuguese (Portugal)", "flag": "\uD83C\uDDF5\uD83C\uDDF9" },
+    { "code": "pt-BR", "display": "Portuguese (Brazil)", "flag": "\uD83C\uDDE7\uD83C\uDDF7" },
+    { "code": "nl", "display": "Dutch", "flag": "\uD83C\uDDF3\uD83C\uDDF1" },
+    { "code": "sv", "display": "Swedish", "flag": "\uD83C\uDDF8\uD83C\uDDEA" },
+    { "code": "no", "display": "Norwegian", "flag": "\uD83C\uDDF3\uD83C\uDDF4" },
+    { "code": "da", "display": "Danish", "flag": "\uD83C\uDDE9\uD83C\uDDF0" },
+    { "code": "fi", "display": "Finnish", "flag": "\uD83C\uDDEB\uD83C\uDDEE" },
+    { "code": "pl", "display": "Polish", "flag": "\uD83C\uDDF5\uD83C\uDDF1" },
+    { "code": "cs", "display": "Czech", "flag": "\uD83C\uDDE8\uD83C\uDDFF" },
+    { "code": "ro", "display": "Romanian", "flag": "\uD83C\uDDF7\uD83C\uDDF4" },
+    { "code": "hu", "display": "Hungarian", "flag": "\uD83C\uDDED\uD83C\uDDFA" },
+    { "code": "el", "display": "Greek", "flag": "\uD83C\uDDEC\uD83C\uDDF7" },
+    { "code": "tr", "display": "Turkish", "flag": "\uD83C\uDDF9\uD83C\uDDF7" },
+    { "code": "ru", "display": "Russian", "flag": "\uD83C\uDDF7\uD83C\uDDFA" },
+    { "code": "uk", "display": "Ukrainian", "flag": "\uD83C\uDDFA\uD83C\uDDE6" },
+    { "code": "he", "display": "Hebrew", "flag": "\uD83C\uDDEE\uD83C\uDDF1" },
+    { "code": "ar", "display": "Arabic", "flag": "\uD83C\uDDE6\uD83C\uDDEA" },
+    { "code": "hi", "display": "Hindi", "flag": "\uD83C\uDDEE\uD83C\uDDF3" },
+    { "code": "id", "display": "Indonesian", "flag": "\uD83C\uDDEE\uD83C\uDDE9" },
+    { "code": "th", "display": "Thai", "flag": "\uD83C\uDDF9\uD83C\uDDED" },
+    { "code": "vi", "display": "Vietnamese", "flag": "\uD83C\uDDFB\uD83C\uDDF3" },
+    { "code": "ja", "display": "Japanese", "flag": "\uD83C\uDDEF\uD83C\uDDF5" },
+    { "code": "ko", "display": "Korean", "flag": "\uD83C\uDDF0\uD83C\uDDF7" },
+    { "code": "zh-CN", "display": "Chinese (Simplified)", "flag": "\uD83C\uDDE8\uD83C\uDDF3" },
+    { "code": "zh-TW", "display": "Chinese (Traditional)", "flag": "\uD83C\uDDF9\uD83C\uDDFC" }
+  ],
+  "aliases": {
+    "en": ["en", "eng", "english", "en-us", "en-gb"],
+    "es-ES": ["es-es", "es_es", "castellano", "spanish spain"],
+    "es-419": ["es-419", "es_419", "latino", "es-la", "es-mx", "spanish latino"],
+    "fr": ["fr", "fre", "fra", "french", "français"],
+    "de": ["de", "ger", "deu", "german", "deutsch"],
+    "it": ["it", "ita", "italian", "italiano"],
+    "pt-PT": ["pt", "pt-pt", "portuguese", "português"],
+    "pt-BR": ["pt-br", "brazil", "br", "portuguese brazil"],
+    "zh-CN": ["zh-cn", "chs", "simplified chinese"],
+    "zh-TW": ["zh-tw", "cht", "traditional chinese"],
+    "multi": ["multi", "multi-lang", "multi audio", "dual"]
+  }
+}

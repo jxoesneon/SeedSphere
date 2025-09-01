@@ -1,0 +1,20 @@
+{
+  "canonical": [
+    "Director’s Cut",
+    "Extended Edition",
+    "Ultimate Edition",
+    "Theatrical Cut",
+    "Unrated",
+    "IMAX",
+    "Special Edition"
+  ],
+  "aliases": {
+    "Director’s Cut": ["directors cut", "director's cut", "dircut"],
+    "Extended Edition": ["extended", "extended edition", "ext edition", "extended cut"],
+    "Ultimate Edition": ["ultimate", "ultimate edition"],
+    "Theatrical Cut": ["theatrical", "theatrical cut"],
+    "Unrated": ["unrated"],
+    "IMAX": ["imax"],
+    "Special Edition": ["special", "special edition"]
+  }
+}

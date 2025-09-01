@@ -1,18 +1,18 @@
 name: Deploy to Fly.io
 
 on:
-  push:
-    branches: [ main ]
-    paths:
-      - '**/*.js'
-      - 'package.json'
-      - 'package-lock.json'
-      - 'public/**'
-      - 'lib/**'
-      - 'server.js'
-      - 'Dockerfile'
-      - 'fly.toml'
+  # Manual trigger only until we enable auto-deploys
   workflow_dispatch:
+    inputs:
+      strategy:
+        description: "Fly deploy strategy"
+        required: false
+        default: immediate
+        type: choice
+        options: [immediate, bluegreen, rolling]
+
+permissions:
+  contents: read
 
 jobs:
   deploy:
@@ -24,8 +24,58 @@ jobs:
       - name: Setup Flyctl
         uses: superfly/flyctl-actions/setup-flyctl@master
 
+      # If you build assets during deploy, uncomment Node setup and build steps
+      # - name: Setup Node.js
+      #   uses: actions/setup-node@v4
+      #   with:
+      #     node-version: '20'
+      #     cache: 'npm'
+      # - name: Install dependencies
+      #   run: npm ci
+      # - name: Build frontend
+      #   run: npm run build
+
+      - name: Stage Fly secrets (if provided)
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+        run: |
+          set -euo pipefail
+          # Only set secrets that exist in GitHub Actions secrets
+          if [ -n "${{ secrets.AUTH_JWT_SECRET }}" ]; then flyctl secrets set AUTH_JWT_SECRET='${{ secrets.AUTH_JWT_SECRET }}' --stage; fi
+          if [ -n "${{ secrets.SMTP_HOST }}" ]; then flyctl secrets set SMTP_HOST='${{ secrets.SMTP_HOST }}' --stage; fi
+          if [ -n "${{ secrets.SMTP_PORT }}" ]; then flyctl secrets set SMTP_PORT='${{ secrets.SMTP_PORT }}' --stage; fi
+          if [ -n "${{ secrets.SMTP_USER }}" ]; then flyctl secrets set SMTP_USER='${{ secrets.SMTP_USER }}' --stage; fi
+          if [ -n "${{ secrets.SMTP_PASS }}" ]; then flyctl secrets set SMTP_PASS='${{ secrets.SMTP_PASS }}' --stage; fi
+          if [ -n "${{ secrets.SMTP_SECURE }}" ]; then flyctl secrets set SMTP_SECURE='${{ secrets.SMTP_SECURE }}' --stage; fi
+          if [ -n "${{ secrets.SMTP_FROM }}" ]; then flyctl secrets set SMTP_FROM='${{ secrets.SMTP_FROM }}' --stage; fi
+          if [ -n "${{ secrets.BREVO_API_KEY }}" ]; then flyctl secrets set BREVO_API_KEY='${{ secrets.BREVO_API_KEY }}' --stage; fi
+          if [ -n "${{ secrets.GOOGLE_CLIENT_ID }}" ]; then flyctl secrets set GOOGLE_CLIENT_ID='${{ secrets.GOOGLE_CLIENT_ID }}' --stage; fi
+          if [ -n "${{ secrets.GOOGLE_CLIENT_SECRET }}" ]; then flyctl secrets set GOOGLE_CLIENT_SECRET='${{ secrets.GOOGLE_CLIENT_SECRET }}' --stage; fi
+
       - name: Deploy app
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
         run: |
-          flyctl deploy --remote-only --strategy immediate
+          set -euo pipefail
+          STRATEGY="${{ github.event.inputs.strategy || 'immediate' }}"
+          echo "Deploying with strategy: ${STRATEGY}"
+          flyctl deploy --remote-only --strategy "${STRATEGY}"
+
+# Notes:
+# - Ensure fly.toml and (if used) Dockerfile are present at repo root.
+# - Required secrets in repo or environment: FLY_API_TOKEN
+# - To enable auto-deploy on push later, add a push trigger and path filters like:
+#   on:
+#     push:
+#       branches: [ main ]
+#       paths:
+#         - 'package.json'
+#         - 'package-lock.json'
+#         - 'server/**'
+#         - 'src/**'
+#         - 'public/**'
+#         - 'vite.config.js'
+#         - 'tailwind.config.js'
+#         - 'postcss.config.cjs'
+#         - 'fly.toml'
+#         - 'Dockerfile'

@@ -1,0 +1,9 @@
+{
+  "canonical": ["480p", "720p", "1080p", "2160p"],
+  "aliases": {
+    "2160p": ["2160p", "4k", "uhd", "ultra hd", "uhd-4k", "4k uhd"],
+    "1080p": ["1080p", "fhd", "fullhd", "full hd", "blu-ray 1080p", "web-dl 1080p", "bdrip 1080p"],
+    "720p": ["720p", "hd", "web 720p", "bdrip 720p"],
+    "480p": ["480p", "sd", "dvd", "dvdrip"]
+  }
+}
