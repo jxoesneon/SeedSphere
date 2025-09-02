@@ -14,6 +14,18 @@ function getCache(key) {
   return e.streams
 }
 
+function parseSeriesId(rawId) {
+  const parts = String(rawId || '').split(':')
+  if (parts.length >= 3) {
+    const season = parseInt(parts[1], 10)
+    const episode = parseInt(parts[2], 10)
+    if (Number.isFinite(season) && Number.isFinite(episode)) {
+      return { season, episode }
+    }
+  }
+  return null
+}
+
 function setCache(key, streams, ttl = DEFAULT_TTL_MS) {
   CACHE.set(key, { ts: Date.now(), ttl, streams })
 }
@@ -52,6 +64,30 @@ function formatBytes(bytes) {
   let b = n, i = 0
   while (b >= 1024 && i < units.length - 1) { b /= 1024; i++ }
   return `${b.toFixed(b >= 10 ? 0 : 1)} ${units[i]}`
+}
+
+// Build a human-friendly series title according to spec guidance:
+// "<Show Title> SxxEyy — <Episode Title>"
+// Falls back to a cleaned version of the raw title if parsing fails.
+function buildSeriesDisplayTitle(rawTitle) {
+  const raw = String(rawTitle || '')
+  if (!raw) return ''
+  // Normalize separators
+  const norm = raw.replace(/[._]+/g, ' ').replace(/\s+/g, ' ').trim()
+  const m = norm.match(/\bS(\d{1,2})E(\d{1,2})\b/i)
+  if (!m) return norm
+  const s = m[1].padStart(2, '0')
+  const e = m[2].padStart(2, '0')
+  const pre = norm.slice(0, m.index).trim()
+  let post = norm.slice(m.index + m[0].length).trim()
+  // Trim leading separators from post
+  post = post.replace(/^[\s:\-–—]+/, '').trim()
+  // Cut off known technical tokens from episode tail
+  const cutIdx = post.search(/\b(2160p|1080p|720p|480p|4K|UHD|WEB[- ]?DL|WEB[- ]?Rip|BluRay|BDRip|HDRip|DVDRip|DDP(?:\.\d+)?|E-?AC-?3|AC3|DTS(?:-HD)?(?: MA)?|TrueHD|HEVC|x265|H\.265|x264|H\.264|HDR10\+?|Dolby[ \-.]?Vision|DV)\b/i)
+  if (cutIdx > 0) post = post.slice(0, cutIdx).trim()
+  // Avoid extremely long episode titles
+  if (post.length > 120) post = post.slice(0, 120).trim()
+  return `${pre} S${s}E${e}${post ? ' — ' + post : ''}`.replace(/\s+/g, ' ').trim()
 }
 
 function buildDescriptionMultiline(magnetUrl, fallbackTitle, providerName, trackersAdded, upstream, opts) {
@@ -203,7 +239,10 @@ async function aggregateStreams({ type, id, providers, trackers, trackersTotal =
   // Emit enriched boost event with a representative title for Configure UI
   try {
     if (final.length > 0) {
-      const representativeTitle = final[0]?.title || ''
+      const rawRepTitle = final[0]?.title || ''
+      const representativeTitle = (String(type).toLowerCase() === 'series')
+        ? buildSeriesDisplayTitle(rawRepTitle)
+        : rawRepTitle
       const source = 'aggregate: ' + providers.map(p => p.name || 'Upstream').join(', ')
       boosts.push({
         mode: String(mode || 'basic').toLowerCase(),
