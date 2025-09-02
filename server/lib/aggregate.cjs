@@ -83,7 +83,7 @@ function buildSeriesDisplayTitle(rawTitle) {
   // Trim leading separators from post
   post = post.replace(/^[\s:\-–—]+/, '').trim()
   // Cut off known technical tokens from episode tail
-  const cutIdx = post.search(/\b(2160p|1080p|720p|480p|4K|UHD|WEB[- ]?DL|WEB[- ]?Rip|BluRay|BDRip|HDRip|DVDRip|DDP(?:\.\d+)?|E-?AC-?3|AC3|DTS(?:-HD)?(?: MA)?|TrueHD|HEVC|x265|H\.265|x264|H\.264|HDR10\+?|Dolby[ \-.]?Vision|DV)\b/i)
+  const cutIdx = post.search(/\b(2160p|1080p|720p|480p|4K|UHD|WEB[- ]?DL|WEB[- ]?Rip|BluRay|BDRip|HDRip|DVDRip|DDP(?:\.\d+)?|E-?AC-?3|AC3|DTS(?:-HD)?(?: MA)?|TrueHD|HEVC|x265|H\.265|x264|H\.264|HDR10\+?|Dolby[ \-.]?Vision|DV|ENG|ENGLISH|ITA|ITALIAN|MULTI|SUBS?|VOSTFR|LATINO|CASTELLANO)\b/i)
   if (cutIdx > 0) post = post.slice(0, cutIdx).trim()
   // Avoid extremely long episode titles
   if (post.length > 120) post = post.slice(0, 120).trim()
@@ -98,13 +98,11 @@ function buildDescriptionMultiline(magnetUrl, fallbackTitle, providerName, track
   else lines.push(`⚡ SeedSphere optimized`)
   if (providerName) lines.push(`📦 Provider: ${providerName}`)
 
-  // Second block: technicals
-  const tech = []
-  if (info.source) tech.push(info.source)
-  if (info.codec) tech.push(info.codec)
-  if (info.hdr) tech.push(info.hdr)
-  if (info.audio) tech.push(info.audio)
-  if (tech.length) lines.push(`⚙️ ${tech.join(' • ')}`)
+  // Second block: technicals (each field on its own line)
+  if (info.source) lines.push(`🧩 Source: ${info.source}`)
+  if (info.codec) lines.push(`🎞️ Codec: ${info.codec}`)
+  if (info.hdr) lines.push(`🌈 HDR: ${info.hdr}`)
+  if (info.audio) lines.push(`🔊 Audio: ${info.audio}`)
 
   if (info.resolution) lines.push(`🖥️ Resolution: ${info.resolution}`)
   if (info.group) lines.push(`🏷️ Group: ${info.group}`)
@@ -112,12 +110,8 @@ function buildDescriptionMultiline(magnetUrl, fallbackTitle, providerName, track
   // Peers (best-effort): seeds/leechers/peers
   const seeds = upstream && (upstream.seeds || upstream.seeders || upstream.peers || upstream.seed || null)
   const leech = upstream && (upstream.leechers || upstream.leech || null)
-  if (Number.isFinite(Number(seeds)) || Number.isFinite(Number(leech))) {
-    const parts = []
-    if (Number.isFinite(Number(seeds))) parts.push(`Seeds: ${Number(seeds)}`)
-    if (Number.isFinite(Number(leech))) parts.push(`Peers: ${Number(leech)}`)
-    if (parts.length) lines.push(`🌱 ${parts.join(' • ')}`)
-  }
+  if (Number.isFinite(Number(seeds))) lines.push(`🌱 Seeds: ${Number(seeds)}`)
+  if (Number.isFinite(Number(leech))) lines.push(`👥 Peers: ${Number(leech)}`)
 
   // Size
   const sizePref = upstream && (upstream.sizeStr || upstream.size || null)
@@ -135,7 +129,16 @@ function buildDescriptionMultiline(magnetUrl, fallbackTitle, providerName, track
   const enhanced = lines.join('\n')
 
   // Determine if details are meaningful
-  const detailCount = tech.length + (info.resolution ? 1 : 0) + (info.group ? 1 : 0) + (uniqueLangs.length ? 1 : 0) + (sizeDisplay ? 1 : 0) + ((Number(seeds) || Number(leech)) ? 1 : 0)
+  const detailCount =
+    (info.source ? 1 : 0) +
+    (info.codec ? 1 : 0) +
+    (info.hdr ? 1 : 0) +
+    (info.audio ? 1 : 0) +
+    (info.resolution ? 1 : 0) +
+    (info.group ? 1 : 0) +
+    (uniqueLangs.length ? 1 : 0) +
+    (sizeDisplay ? 1 : 0) +
+    ((Number(seeds) ? 1 : 0) + (Number(leech) ? 1 : 0))
   const original = (upstream && upstream.description) ? String(upstream.description) : ''
 
   if (!detailCount && opts && opts.descRequireDetails) {
