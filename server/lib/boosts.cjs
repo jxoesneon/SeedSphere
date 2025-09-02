@@ -22,6 +22,9 @@ function push(entry) {
       id: String(entry.id || ""),
       // optional title for UI
       title: String(entry.title || ""),
+      // optional series fields
+      ...(Number.isFinite(Number(entry.season)) ? { season: Number(entry.season) } : {}),
+      ...(Number.isFinite(Number(entry.episode)) ? { episode: Number(entry.episode) } : {}),
     }
     items.unshift(normalized)
     if (items.length > MAX) items.pop()

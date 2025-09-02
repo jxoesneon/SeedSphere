@@ -26,6 +26,17 @@ function parseSeriesId(rawId) {
   return null
 }
 
+function extractSeasonEpisode(rawTitle) {
+  const norm = String(rawTitle || '').replace(/[._]+/g, ' ')
+  const m = norm.match(/\bS(\d{1,2})E(\d{1,2})\b/i)
+  if (m) {
+    const season = parseInt(m[1], 10)
+    const episode = parseInt(m[2], 10)
+    if (Number.isFinite(season) && Number.isFinite(episode)) return { season, episode }
+  }
+  return null
+}
+
 function setCache(key, streams, ttl = DEFAULT_TTL_MS) {
   CACHE.set(key, { ts: Date.now(), ttl, streams })
 }
@@ -243,10 +254,11 @@ async function aggregateStreams({ type, id, providers, trackers, trackersTotal =
   try {
     if (final.length > 0) {
       const rawRepTitle = final[0]?.title || ''
-      const representativeTitle = (String(type).toLowerCase() === 'series')
-        ? buildSeriesDisplayTitle(rawRepTitle)
-        : rawRepTitle
+      const isSeries = String(type).toLowerCase() === 'series'
+      const representativeTitle = isSeries ? buildSeriesDisplayTitle(rawRepTitle) : rawRepTitle
       const source = 'aggregate: ' + providers.map(p => p.name || 'Upstream').join(', ')
+      const seFromId = isSeries ? parseSeriesId(id) : null
+      const seFromTitle = isSeries && !seFromId ? extractSeasonEpisode(rawRepTitle) : null
       boosts.push({
         mode: String(mode || 'basic').toLowerCase(),
         limit: Number.isFinite(maxTrackers) ? Number(maxTrackers) : 0,
@@ -256,6 +268,7 @@ async function aggregateStreams({ type, id, providers, trackers, trackersTotal =
         type: String(type || ''),
         id: String(id || ''),
         title: representativeTitle,
+        ...(isSeries && (seFromId || seFromTitle) ? { season: (seFromId || seFromTitle).season, episode: (seFromId || seFromTitle).episode } : {}),
       })
     }
   } catch (_) { /* ignore boost errors */ }
