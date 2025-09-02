@@ -70,7 +70,7 @@ const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 
 const isProd = process.env.NODE_ENV === 'production'
-const port = Number(process.env.PORT) || 5173
+const port = Number(process.env.PORT) || 8080
 
 async function createServer() {
   const app = express()
