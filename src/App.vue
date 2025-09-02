@@ -3,7 +3,7 @@
     <!-- Global backdrop gradient -->
     <div class="backdrop" aria-hidden="true"></div>
     <div class="navbar bg-base-200">
-      <div class="container mx-auto px-4 grid grid-cols-3 items-center">
+      <div class="container mx-auto px-4 grid grid-cols-2 md:grid-cols-3 items-center">
         <!-- Left: Brand -->
         <div class="flex items-center gap-2 justify-start">
           <RouterLink to="/" class="flex items-center gap-2 text-lg font-semibold">
@@ -13,7 +13,7 @@
         </div>
 
         <!-- Center: Gardener connection pill (PWA only) -->
-        <div class="flex justify-center" v-if="isStandalone">
+        <div class="hidden md:flex justify-center" v-if="isStandalone">
           <div class="tooltip tooltip-bottom" :data-tip="seedlingTooltip">
             <div class="badge gap-2" :class="serverOnline ? 'badge-success' : 'badge-error'">
               <span class="inline-block h-2 w-2 rounded-full" :class="serverOnline ? 'bg-green-400' : 'bg-red-400'"></span>
@@ -23,10 +23,13 @@
         </div>
 
         <!-- Right: Nav + Theme + Account -->
-        <div class="flex items-center gap-2 justify-end">
+        <div class="flex flex-wrap items-center gap-2 justify-end">
           <RouterLink to="/" class="btn btn-ghost btn-sm">Home</RouterLink>
           <RouterLink to="/configure" class="btn btn-ghost btn-sm">Configure</RouterLink>
-          <a class="btn btn-ghost btn-sm" href="/manifest.json" target="_blank" rel="noopener">Manifest</a>
+          <RouterLink to="/pair" class="btn btn-ghost btn-sm">Pair</RouterLink>
+          <a class="btn btn-ghost btn-sm" :href="manifestUrl" target="_blank" rel="noopener">Manifest</a>
+          <RouterLink v-if="isDev" to="/executor" class="btn btn-ghost btn-sm">Executor</RouterLink>
+          <span v-if="gardenerId" class="badge badge-outline badge-sm" :title="`gardener_id: ${gardenerId}`">G: {{ gardenerId }}</span>
           <div class="form-control">
             <label class="label cursor-pointer gap-2">
               <span class="label-text">Theme</span>
@@ -53,6 +56,7 @@ import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import AccountMenu from './components/AccountMenu.vue'
 import { auth } from './lib/auth'
 import DevDrawer from './components/DevDrawer.vue'
+import { gardener } from './lib/gardener'
 
 const theme = ref('seedsphere')
 const ALLOWED_THEMES = ['seedsphere', 'light', 'dark']
@@ -70,8 +74,16 @@ const isStandalone = computed(() => {
 })
 
 // Seedling info for tooltip
+const gardenerId = computed(() => {
+  try { return gardener.getGardenerId() || '' } catch { return '' }
+})
 const manifestUrl = computed(() => {
-  try { return `${window.location.origin}/manifest.json` } catch (_) { return '/manifest.json' }
+  try {
+    const base = new URL('/manifest.json', window.location.origin)
+    const gid = gardener.getGardenerId()
+    if (gid) base.searchParams.set('gardener_id', gid)
+    return base.toString()
+  } catch (_) { return '/manifest.json' }
 })
 const seedlingName = ref('Seedling')
 const seedlingVersion = ref('')
@@ -83,6 +95,7 @@ const seedlingTooltip = computed(() => {
   if (seedlingName.value) parts.push(`${seedlingName.value}${seedlingVersion.value ? ` v${seedlingVersion.value}` : ''}`)
   if (streamLabel.value) parts.push(`Stream label: ${streamLabel.value}`)
   if (deviceId.value) parts.push(`Seedling: ${deviceId.value}`)
+  if (gardenerId.value) parts.push(`Gardener: ${gardenerId.value}`)
   if (manifestUrl.value) parts.push(manifestUrl.value)
   return parts.join(' • ')
 })

@@ -9,7 +9,10 @@ function push(entry) {
   try {
     const now = new Date()
     const normalized = {
+      // timestamps
       time: now.toISOString(),
+      ts: Date.now(),
+      // core fields
       mode: String(entry.mode || "").toLowerCase(),
       limit: Number.isFinite(entry.limit) ? entry.limit : 0,
       healthy: Number(entry.healthy || 0),
@@ -17,6 +20,8 @@ function push(entry) {
       source: String(entry.source || ""),
       type: String(entry.type || ""),
       id: String(entry.id || ""),
+      // optional title for UI
+      title: String(entry.title || ""),
     }
     items.unshift(normalized)
     if (items.length > MAX) items.pop()

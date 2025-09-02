@@ -1,0 +1,265 @@
+{
+  "id": "community.SeedSphere",
+  "version": "0.0.10",
+  "catalogs": [],
+  "resources": [
+    "stream"
+  ],
+  "types": [
+    "movie",
+    "series"
+  ],
+  "name": "SeedSphere",
+  "logo": "https://seedsphere.fly.dev/assets/icon.png",
+  "contactEmail": "joseeduardox@gmail.com",
+  "description": "Say goodbye to buffering. SeedSphere strengthens your stream connections by finding more sources, ensuring faster start times and a smoother playback experience, especially for less common content.",
+  "idPrefixes": [
+    "tt"
+  ],
+  "stremioAddonsConfig": {
+    "issuer": "https://stremio-addons.net",
+    "signature": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMTI4Q0JDLUhTMjU2In0..0dhFNY0_5nxeA6QsQHVQAQ.RnUtICPP-vQdh3RH5lmmmFQsfllR6T8tV5gq6puxOICWuKCJlGKqQkhqc9JZwrPbgnnwNIup5xSpH7zfCtkTARkhexamJKe9brEF4Fhm2pHAVmo73yHctqzRbKoNTLYn.lYbSy2Rwzm_kLjcpzjy8dg"
+  },
+  "behaviorHints": {
+    "configurable": true,
+    "p2p": true,
+    "adult": false
+  },
+  "config": [
+    {
+      "key": "auto_proxy",
+      "type": "select",
+      "default": "on",
+      "title": "Proxy upstream streams",
+      "options": [
+        { "value": "on", "label": "On (aggregate and optimize)" },
+        { "value": "off", "label": "Off (addon emits only its own demo)" }
+      ]
+    },
+    {
+      "key": "variant",
+      "type": "select",
+      "default": "all",
+      "title": "Trackers list variant",
+      "options": [
+        { "value": "all", "label": "All trackers (default)" },
+        { "value": "best", "label": "Best curated trackers" },
+        { "value": "all_udp", "label": "All UDP trackers" },
+        { "value": "all_http", "label": "All HTTP trackers" },
+        { "value": "all_ws", "label": "All WebSocket trackers" },
+        { "value": "all_ip", "label": "All trackers (IP only)" },
+        { "value": "best_ip", "label": "Best trackers (IP only)" }
+      ]
+    },
+    {
+      "key": "trackers_url",
+      "type": "text",
+      "title": "Custom trackers URL (overrides variant)",
+      "default": ""
+    },
+    {
+      "key": "validation_mode",
+      "type": "select",
+      "title": "Validation mode",
+      "default": "basic",
+      "options": [
+        { "value": "off", "label": "Off (fastest)" },
+        { "value": "basic", "label": "Basic (DNS + HTTP HEAD)" },
+        { "value": "aggressive", "label": "Aggressive (more probes)" }
+      ]
+    },
+    {
+      "key": "stream_label",
+      "type": "text",
+      "title": "Stream label (name shown in Stremio)",
+      "default": "! SeedSphere"
+    },
+    {
+      "key": "max_trackers",
+      "type": "number",
+      "title": "Max trackers to append (0 = unlimited)",
+      "default": 0
+    },
+    {
+      "key": "desc_append_original",
+      "type": "select",
+      "title": "Append original provider description",
+      "default": "off",
+      "options": [ { "value": "on", "label": "On" }, { "value": "off", "label": "Off" } ]
+    },
+    {
+      "key": "desc_require_details",
+      "type": "select",
+      "title": "Use original description when no details parsed",
+      "default": "on",
+      "options": [ { "value": "on", "label": "On" }, { "value": "off", "label": "Off" } ]
+    },
+    {
+      "key": "ai_descriptions",
+      "type": "select",
+      "title": "AI enhanced descriptions (requires external API key)",
+      "default": "off",
+      "options": [ { "value": "off", "label": "Off" }, { "value": "on", "label": "On" } ]
+    },
+    {
+      "key": "ai_provider",
+      "type": "text",
+      "title": "AI provider (e.g., openai, anthropic, google, groq, mistral)",
+      "default": "openai"
+    },
+    {
+      "key": "ai_model",
+      "type": "text",
+      "title": "AI model (provider-specific)",
+      "default": "gpt-4o"
+    },
+    {
+      "key": "ai_timeout_ms",
+      "type": "number",
+      "title": "AI timeout (ms)",
+      "default": 2500
+    },
+    {
+      "key": "ai_cache_ttl_ms",
+      "type": "number",
+      "title": "AI cache TTL (ms)",
+      "default": 60000
+    },
+    {
+      "key": "ai_user_id",
+      "type": "text",
+      "title": "AI user id (opaque)",
+      "default": ""
+    },
+    {
+      "key": "providers_torrentio",
+      "type": "select",
+      "default": "on",
+      "title": "Provider: Torrentio",
+      "options": [
+        { "value": "on", "label": "On" },
+        { "value": "off", "label": "Off" }
+      ]
+    },
+    {
+      "key": "providers_yts",
+      "type": "select",
+      "default": "on",
+      "title": "Provider: YTS (Movies)",
+      "options": [
+        { "value": "on", "label": "On" },
+        { "value": "off", "label": "Off" }
+      ]
+    },
+    {
+      "key": "providers_eztv",
+      "type": "select",
+      "default": "on",
+      "title": "Provider: EZTV (Series)",
+      "options": [
+        { "value": "on", "label": "On" },
+        { "value": "off", "label": "Off" }
+      ]
+    },
+    {
+      "key": "providers_nyaa",
+      "type": "select",
+      "default": "on",
+      "title": "Provider: Nyaa (Anime)",
+      "options": [
+        { "value": "on", "label": "On" },
+        { "value": "off", "label": "Off" }
+      ]
+    },
+    {
+      "key": "providers_1337x",
+      "type": "select",
+      "default": "on",
+      "title": "Provider: 1337x",
+      "options": [
+        { "value": "on", "label": "On" },
+        { "value": "off", "label": "Off" }
+      ]
+    },
+    {
+      "key": "providers_piratebay",
+      "type": "select",
+      "default": "on",
+      "title": "Provider: Pirate Bay",
+      "options": [
+        { "value": "on", "label": "On" },
+        { "value": "off", "label": "Off" }
+      ]
+    },
+    {
+      "key": "providers_torrentgalaxy",
+      "type": "select",
+      "default": "on",
+      "title": "Provider: TorrentGalaxy",
+      "options": [
+        { "value": "on", "label": "On" },
+        { "value": "off", "label": "Off" }
+      ]
+    },
+    {
+      "key": "providers_torlock",
+      "type": "select",
+      "default": "on",
+      "title": "Provider: Torlock",
+      "options": [
+        { "value": "on", "label": "On" },
+        { "value": "off", "label": "Off" }
+      ]
+    },
+    {
+      "key": "providers_magnetdl",
+      "type": "select",
+      "default": "on",
+      "title": "Provider: MagnetDL",
+      "options": [
+        { "value": "on", "label": "On" },
+        { "value": "off", "label": "Off" }
+      ]
+    },
+    {
+      "key": "providers_anidex",
+      "type": "select",
+      "default": "on",
+      "title": "Provider: AniDex (Anime)",
+      "options": [
+        { "value": "on", "label": "On" },
+        { "value": "off", "label": "Off" }
+      ]
+    },
+    {
+      "key": "providers_tokyotosho",
+      "type": "select",
+      "default": "on",
+      "title": "Provider: TokyoTosho (Anime)",
+      "options": [
+        { "value": "on", "label": "On" },
+        { "value": "off", "label": "Off" }
+      ]
+    },
+    {
+      "key": "providers_zooqle",
+      "type": "select",
+      "default": "on",
+      "title": "Provider: Zooqle",
+      "options": [
+        { "value": "on", "label": "On" },
+        { "value": "off", "label": "Off" }
+      ]
+    },
+    {
+      "key": "providers_rutor",
+      "type": "select",
+      "default": "on",
+      "title": "Provider: Rutor",
+      "options": [
+        { "value": "on", "label": "On" },
+        { "value": "off", "label": "Off" }
+      ]
+    }
+  ]
+}

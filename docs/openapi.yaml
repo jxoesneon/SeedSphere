@@ -1,87 +1,93 @@
 openapi: 3.0.3
 info:
-  title: Gardener API
-  version: 1.0.0-alpha
+  title: SeedSphere Greenhouse API
+  version: 1.0.0-alpha2
   description: |
-    Gardener v1 API for executor registration, pairing, SSE rooms, and tasks.
-    Follows Appendix A envelopes and Natural schema (§8.2).
+    Greenhouse (backend) API for link-token binding, SSE rooms, and stream bridging to Gardener (PWA executor).
+    Identities: gardener_id (PWA) and seedling_id (addon). Requests use HMAC signing headers.
+    CORS: production addon host only; dev allows http://127.0.0.1:8080 and http://localhost:8080.
 servers:
-  - url: http://localhost:5173
+  - url: http://localhost:8080
+  - url: https://seedsphere.fly.dev
 paths:
-  /api/executor/register:
+  /api/link/start:
     post:
-      summary: Register executor device
-      tags: [executor]
-      responses:
-        '200':
-          description: Device registered
-          headers:
-            Cache-Control:
-              schema: { type: string, example: no-store }
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/OkRegister'
-        '429':
-          $ref: '#/components/responses/RateLimited'
-  /api/pair/start:
-    post:
-      summary: Start pairing flow
-      tags: [pair]
-      requestBody:
-        required: false
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                install_id:
-                  type: string
-                  description: Client installation identifier
-      responses:
-        '200':
-          description: Pair code created
-          headers:
-            Cache-Control:
-              schema: { type: string }
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/OkPairStart'
-        '429':
-          $ref: '#/components/responses/RateLimitedWithRetry'
-  /api/pair/complete:
-    post:
-      summary: Complete pairing
-      tags: [pair]
+      summary: Start link-token flow (PWA)
+      tags: [link]
+      description: Mints a short-lived link token (TTL 10 minutes).
       requestBody:
         required: true
         content:
           application/json:
             schema:
               type: object
-              required: [pair_code, device_id]
+              required: [gardener_id]
               properties:
-                pair_code: { type: string }
-                device_id: { type: string }
+                gardener_id: { type: string, description: PWA instance id }
       responses:
         '200':
-          description: Paired
+          description: Link token minted
+          headers: { Cache-Control: { schema: { type: string, example: no-store } } }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/OkLinkStart' }
+        '429': { $ref: '#/components/responses/RateLimitedWithRetry' }
+  /api/link/complete:
+    post:
+      summary: Complete link-token flow (Addon)
+      tags: [link]
+      description: Completes binding and issues a per-binding secret used for HMAC signing.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [token, seedling_id]
+              properties:
+                token: { type: string }
+                seedling_id: { type: string }
+      responses:
+        '200':
+          description: Linked
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/OkLinkComplete' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/RateLimitedWithRetry' }
+  /api/link/status:
+    get:
+      summary: Check linking status for a gardener_id
+      tags: [link]
+      parameters:
+        - in: query
+          name: gardener_id
+          required: true
+          schema: { type: string }
+        - in: query
+          name: seedling_id
+          required: false
+          schema: { type: string }
+          description: If provided, the response MAY include linked gardeners for this seedling.
+      responses:
+        '200':
+          description: Status
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/OkPairComplete'
-        '400': { $ref: '#/components/responses/BadRequest' }
-        '404': { $ref: '#/components/responses/NotFound' }
-        '410': { $ref: '#/components/responses/Gone' }
-        '429': { $ref: '#/components/responses/RateLimitedWithRetry' }
-  /api/rooms/{room_id}/events:
+                type: object
+                properties:
+                  ok: { type: boolean }
+                  linked_seedlings: { type: array, items: { type: string } }
+                  linked_gardeners: { type: array, items: { type: string } }
+  /api/rooms/{gardener_id}/events:
     get:
       summary: Server-Sent Events stream
       tags: [sse]
       parameters:
         - in: path
-          name: room_id
+          name: gardener_id
           required: true
           schema:
             type: string
@@ -91,6 +97,102 @@ paths:
           headers:
             Content-Type:
               schema: { type: string, example: text/event-stream }
+        '429': { $ref: '#/components/responses/RateLimited' }
+  /api/stream/{type}/{id}:
+    post:
+      summary: Stream bridge (Addon → Greenhouse → Gardener)
+      tags: [streams]
+      description: |
+        Attempts up to 3 executions with budgets 4s → 6s → 8s selecting next-best Gardener by health.
+        On failure, returns last cached value if available (7-day TTL, weekly write cap per stream_key+gardener_id).
+        Requests must be HMAC-signed using per-binding secret with the X-SeedSphere-* headers.
+      parameters:
+        - in: path
+          name: type
+          required: true
+          schema: { type: string, example: movie }
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, example: tt1234567 }
+        - in: header
+          name: X-SeedSphere-G
+          required: false
+          schema: { type: string }
+          description: gardener_id (optional hint)
+        - in: header
+          name: X-SeedSphere-Id
+          required: true
+          schema: { type: string }
+          description: seedling_id
+        - in: header
+          name: X-SeedSphere-Ts
+          required: true
+          schema: { type: string }
+        - in: header
+          name: X-SeedSphere-Nonce
+          required: true
+          schema: { type: string }
+        - in: header
+          name: X-SeedSphere-Sig
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+      responses:
+        '200':
+          description: Streams payload
+          headers:
+            Cache-Control: { schema: { type: string, example: no-store } }
+            X-RateLimit-Limit: { schema: { type: string } }
+            X-RateLimit-Remaining: { schema: { type: string } }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/StreamsEnvelope' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+  /api/rooms/{gardener_id}/heartbeat:
+    post:
+      summary: Signed heartbeat for presence/health
+      tags: [sse]
+      description: Updates presence and emits a heartbeat event on the SSE channel. Requires HMAC headers.
+      parameters:
+        - in: path
+          name: gardener_id
+          required: true
+          schema: { type: string }
+        - in: header
+          name: X-SeedSphere-G
+          required: true
+          schema: { type: string }
+          description: gardener_id (must match path)
+        - in: header
+          name: X-SeedSphere-Id
+          required: true
+          schema: { type: string }
+          description: seedling_id
+        - in: header
+          name: X-SeedSphere-Ts
+          required: true
+          schema: { type: string }
+        - in: header
+          name: X-SeedSphere-Nonce
+          required: true
+          schema: { type: string }
+        - in: header
+          name: X-SeedSphere-Sig
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: OK
+          content: { application/json: { schema: { $ref: '#/components/schemas/OkSimple' } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
         '429': { $ref: '#/components/responses/RateLimited' }
   /api/telemetry/collect:
     post:
@@ -202,51 +304,32 @@ components:
       type: object
       properties:
         ok: { type: boolean, example: true }
-    OkRegister:
-      allOf:
-        - $ref: '#/components/schemas/OkSimple'
-        - type: object
-          properties:
-            device_id: { type: string, example: 'a1b2c3d4e5f6' }
-    OkPairStart:
-      allOf:
-        - $ref: '#/components/schemas/OkSimple'
-        - type: object
-          properties:
-            pair_code: { type: string, example: 'ABCDEF' }
-            expires_at: { type: integer, format: int64 }
-            install_id: { type: string }
-    OkPairComplete:
-      allOf:
-        - $ref: '#/components/schemas/OkSimple'
-        - type: object
-          properties:
-            pair_code: { type: string }
-            device_id: { type: string }
-            install_id: { type: string }
-    OkTaskRequest:
+    OkLinkStart:
       allOf:
         - $ref: '#/components/schemas/OkSimple'
         - type: object
           properties:
             token: { type: string }
-            room_id: { type: string }
+            gardener_id: { type: string }
+            expires_at: { type: integer, format: int64 }
+    OkLinkComplete:
+      allOf:
+        - $ref: '#/components/schemas/OkSimple'
+        - type: object
+          properties:
+            gardener_id: { type: string }
+            seedling_id: { type: string }
+    StreamsEnvelope:
+      type: object
+      description: Envelope containing final Stremio-compatible streams array
+      properties:
+        streams:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
     Err:
       type: object
       properties:
         ok: { type: boolean, example: false }
         error: { type: string, example: rate_limited }
-    Natural:
-      type: object
-      description: Natural schema (§8.2)
-      properties:
-        title_natural: { type: string }
-        year: { type: integer, nullable: true }
-        edition: { type: string, nullable: true }
-        remaster: { type: string, nullable: true }
-        version_tag: { type: string, nullable: true }
-        quality: { type: string, nullable: true }
-        languages_display: { type: array, items: { type: string } }
-        provider_display: { type: string, nullable: true }
-        infohash: { type: string, nullable: true }
-        extras: { type: object, additionalProperties: true }

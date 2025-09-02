@@ -1,5 +1,6 @@
 const addonBuilder = require("stremio-addon-sdk")
 const axios = require("axios")
+const pkg = require('../package.json')
 const { isTrackerUrl, unique, filterByHealth } = require("./lib/health.cjs")
 const { setLastFetch } = require("./lib/trackers_meta.cjs")
 const boosts = require("./lib/boosts.cjs")
@@ -19,9 +20,14 @@ const zooqle = require('./providers/zooqle.cjs')
 const rutor = require('./providers/rutor.cjs')
 
 // Docs: https://github.com/Stremio/stremio-addon-sdk/blob/master/docs/api/responses/manifest.md
+const APP_ENV = process.env.APP_ENV || 'prod'
+const isDevEnv = APP_ENV === 'dev'
+const MANIFEST_ID = isDevEnv ? 'community.SeedSphereDev' : 'community.SeedSphere'
+const MANIFEST_NAME = isDevEnv ? 'SeedSphere (Dev)' : 'SeedSphere'
+const MANIFEST_LOGO = isDevEnv ? 'https://seedsphere-dev.fly.dev/assets/icon.png' : 'https://seedsphere.fly.dev/assets/icon.png'
 const manifest = {
-	"id": "community.SeedSphere",
-	"version": "0.0.9",
+	"id": MANIFEST_ID,
+	"version": pkg.version || "1.0.0",
 	"catalogs": [],
 	"resources": [
 		"stream"
@@ -30,8 +36,9 @@ const manifest = {
 		"movie",
 		"series"
 	],
-	"name": "SeedSphere",
-	"logo": "https://seedsphere.fly.dev/assets/icon.png",
+	"name": MANIFEST_NAME,
+	"logo": MANIFEST_LOGO,
+	"contactEmail": "joseeduardox@gmail.com",
 	"description": "Say goodbye to buffering. SeedSphere strengthens your stream connections by finding more sources, ensuring faster start times and a smoother playback experience, especially for less common content.",
 	"idPrefixes": [
 		"tt"
@@ -41,7 +48,9 @@ const manifest = {
 		"signature": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMTI4Q0JDLUhTMjU2In0..0dhFNY0_5nxeA6QsQHVQAQ.RnUtICPP-vQdh3RH5lmmmFQsfllR6T8tV5gq6puxOICWuKCJlGKqQkhqc9JZwrPbgnnwNIup5xSpH7zfCtkTARkhexamJKe9brEF4Fhm2pHAVmo73yHctqzRbKoNTLYn.lYbSy2Rwzm_kLjcpzjy8dg"
 	},
 	"behaviorHints": {
-		"configurable": true
+		"configurable": true,
+		"p2p": true,
+		"adult": false
 	},
 	"config": [
 		{
@@ -85,12 +94,6 @@ const manifest = {
 				{ "value": "basic", "label": "Basic (DNS + HTTP HEAD)" },
 				{ "value": "aggressive", "label": "Aggressive (more probes)" }
 			]
-		},
-		{
-			"key": "stream_label",
-			"type": "text",
-			"title": "Stream label (name shown in Stremio)",
-			"default": "! SeedSphere"
 		},
 		{
 			"key": "max_trackers",
@@ -283,6 +286,8 @@ const manifest = {
 	]
 }
 const builder = addonBuilder(manifest)
+// Expose manifest reference for dynamic handlers without duplicating it
+builder.manifestRef = manifest
 
 // Trackerslist integration
 const VARIANT = (process.env.TRACKERS_VARIANT || "all").toLowerCase()
@@ -350,7 +355,7 @@ builder.defineStreamHandler(async (args, cb) => {
   // Determine effective URL based on user config (SDK provides extra)
   const cfg = extra || {}
   const selectedVariant = (cfg.variant || VARIANT).toLowerCase()
-  const labelName = String(cfg.stream_label || '! SeedSphere')
+  const labelName = 'SeedSphere'
   const descAppendOriginal = String(cfg.desc_append_original || 'off').toLowerCase() === 'on'
   const descRequireDetails = String(cfg.desc_require_details || 'on').toLowerCase() === 'on'
   const aiConfig = {
@@ -414,13 +419,8 @@ builder.defineStreamHandler(async (args, cb) => {
       if (zooqleOn) providers.push(zooqle)
       const rutorOn = String(cfg.providers_rutor || 'on').toLowerCase() !== 'off'
       if (rutorOn) providers.push(rutor)
-      const streams = await aggregateStreams({ type, id, providers, trackers: effective, bingeGroup: 'seedsphere-optimized', labelName, descAppendOriginal, descRequireDetails, aiConfig })
+      const streams = await aggregateStreams({ type, id, providers, trackers: effective, trackersTotal: trackers.length, mode, maxTrackers, bingeGroup: 'seedsphere-optimized', labelName, descAppendOriginal, descRequireDetails, aiConfig })
       if (Array.isArray(streams) && streams.length > 0) {
-        // Log boost per aggregated response
-        try {
-          const source = 'aggregate: ' + providers.map(p => p.name).join(', ')
-          boosts.push({ mode, limit: maxTrackers || 0, healthy: effective.length, total: trackers.length, source, type, id })
-        } catch (_) { /* ignore */ }
         return cb(null, { streams })
       }
     } catch (e) {

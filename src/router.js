@@ -2,10 +2,14 @@ import { createRouter, createWebHistory } from 'vue-router'
 
 import Home from './pages/Home.vue'
 import Configure from './pages/Configure.vue'
+import Pair from './pages/Pair.vue'
+import Executor from './pages/Executor.vue'
 
 const routes = [
   { path: '/', name: 'home', component: Home },
   { path: '/configure', name: 'configure', component: Configure },
+  { path: '/pair', name: 'pair', component: Pair },
+  { path: '/executor', name: 'executor', component: Executor },
 ]
 
 const router = createRouter({

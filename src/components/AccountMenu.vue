@@ -27,7 +27,7 @@
         <div class="card bg-base-200 mb-4">
           <div class="card-body p-3 gap-2">
             <div class="text-sm">Magic link</div>
-            <input v-model="email" type="email" class="input input-bordered input-sm" placeholder="you@example.com" />
+            <input v-model="email" type="email" class="input input-bordered input-sm w-full" placeholder="you@example.com" />
             <button class="btn btn-sm" :disabled="sending" @click="sendMagic">
               <span v-if="!sending">Send link</span>
               <span v-else class="loading loading-spinner loading-sm"></span>

@@ -10,7 +10,7 @@
       <div class="rounded-t-xl border border-base-300 bg-base-200 shadow-lg overflow-hidden">
         <div class="flex items-center justify-between px-3 py-2 bg-base-300">
           <div class="font-semibold text-sm">Dev Drawer</div>
-          <div class="flex items-center gap-2">
+          <div class="flex flex-wrap items-center gap-2">
             <span class="badge badge-ghost text-xs">env: {{ env }}</span>
             <button class="btn btn-ghost btn-xs" @click="refresh">Refresh</button>
           </div>
@@ -57,7 +57,7 @@
         <!-- OAuth logs -->
         <div class="px-3 pb-3 text-sm">
           <div class="font-medium mb-1">OAuth logs (latest first)</div>
-          <div class="flex items-center gap-2 mb-2">
+          <div class="flex flex-wrap items-center gap-2 mb-2">
             <button class="btn btn-ghost btn-xs" @click="fetchOauthLogs">Reload logs</button>
             <span class="opacity-70 text-xs">/api/auth/oauth/logs</span>
             <div class="flex items-center gap-1 ml-2">

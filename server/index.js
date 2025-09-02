@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import path from 'node:path'
 import http from 'node:http'
+import crypto from 'node:crypto'
 import { fileURLToPath } from 'node:url'
 import fs from 'node:fs/promises'
 import express from 'express'
@@ -12,7 +13,7 @@ const boosts = require('./lib/boosts.cjs')
 const { isTrackerUrl, unique, filterByHealth, getHealthStats } = require('./lib/health.cjs')
 const { getLastFetch, setLastFetch } = require('./lib/trackers_meta.cjs')
 const addonInterface = require('./addon.cjs')
-const { filterAvailableProviders } = require('./lib/aggregate.cjs')
+const { filterAvailableProviders, aggregateStreams } = require('./lib/aggregate.cjs')
 const {
   initDb,
   upsertDevice,
@@ -25,6 +26,22 @@ const {
   setCacheRow,
   writeAudit,
   getLatestLinkedPairingByInstall,
+  // linking model
+  upsertGardener,
+  touchGardener,
+  upsertSeedling,
+  listBindingsByGardener,
+  listBindingsBySeedling,
+  createBinding,
+  deleteBinding,
+  countBindingsForGardener,
+  countBindingsForSeedling,
+  createLinkToken,
+  getLinkToken,
+  deleteLinkToken,
+  getBindingSecret,
+  getCacheRow,
+  setCacheRowWeeklyCapped,
 } = require('./lib/db.cjs')
 const { initCrypto } = require('./lib/crypto.cjs')
 const cookieParser = require('cookie-parser')
@@ -34,6 +51,7 @@ const { subscribe, publish } = require('./lib/rooms.cjs')
 const { normalize } = require('./lib/normalize.cjs')
 const { nanoid } = require('nanoid')
 const jwt = require('jsonwebtoken')
+const { fetchTrackers, DEFAULT_TRACKERS_URL, VARIANT_URLS } = require('./lib/trackers.cjs')
 const torrentio = require('./providers/torrentio.cjs')
 const yts = require('./providers/yts.cjs')
 const eztv = require('./providers/eztv.cjs')
@@ -58,13 +76,87 @@ async function createServer() {
   const app = express()
   const httpServer = http.createServer(app)
 
-  // Minimal CORS for API
+  // CORS — permissive for private testing; audit every CORS request
   app.use((req, res, next) => {
-    res.setHeader('Access-Control-Allow-Origin', '*')
-    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS')
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type')
-    if (req.method === 'OPTIONS') return res.sendStatus(204)
+    try {
+      const origin = req.headers.origin || ''
+      const allow = origin || '*'
+      res.setHeader('Access-Control-Allow-Origin', allow)
+      res.setHeader('Vary', 'Origin')
+      res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS')
+      res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-SeedSphere-G, X-SeedSphere-Id, X-SeedSphere-Ts, X-SeedSphere-Nonce, X-SeedSphere-Sig')
+      // Optional: do not set Allow-Credentials to keep wildcard compatibility
+      try { writeAudit('cors', { ip: req.ip, origin, method: req.method, path: req.originalUrl || req.url }) } catch (_) {}
+      if (req.method === 'OPTIONS') return res.sendStatus(204)
+    } catch (_) { /* ignore */ }
     next()
+  })
+
+  // Signed heartbeat to update presence/health per gardener
+  app.post('/api/rooms/:gardener_id/heartbeat', (req, res) => {
+    if (!rateLimit(`hb:${req.ip}`, 300, 60_000)) return res.status(429).json({ ok: false, error: 'rate_limited' })
+    try {
+      const gardener_id = String(req.params.gardener_id || '').trim()
+      const headerG = String(req.get('X-SeedSphere-G') || '').trim()
+      const seedling_id = String(req.get('X-SeedSphere-Id') || '').trim()
+      if (!gardener_id || !headerG || !seedling_id) return res.status(400).json({ ok: false, error: 'missing_identities' })
+      if (gardener_id !== headerG) return res.status(401).json({ ok: false, error: 'mismatch_ids' })
+      const secret = getBindingSecret(gardener_id, seedling_id)
+      if (!secret) return res.status(401).json({ ok: false, error: 'no_binding' })
+      if (!verifySignature(secret, req)) return res.status(401).json({ ok: false, error: 'bad_signature' })
+      try { touchGardener(gardener_id) } catch (_) {}
+      publish(gardener_id, 'heartbeat', { t: Date.now(), seedling_id })
+      res.setHeader('Cache-Control', 'no-store')
+      return res.json({ ok: true })
+    } catch (e) { return res.status(500).json({ ok: false, error: e.message }) }
+  })
+
+  // --- Link-token endpoints ---
+  app.post('/api/link/start', (req, res) => {
+    if (!rateLimit(`link-start:${req.ip}`, 3, 60_000)) { res.setHeader('Retry-After', '60'); return res.status(429).json({ ok: false, error: 'rate_limited' }) }
+    try {
+      const body = req.body || {}
+      const gardener_id = String(body.gardener_id || '').trim()
+      if (!gardener_id) return res.status(400).json({ ok: false, error: 'missing_gardener_id' })
+      upsertGardener(gardener_id, String(body.platform || null))
+      const token = crypto.randomBytes(32).toString('base64url')
+      const rec = createLinkToken(token, gardener_id, 10 * 60_000)
+      res.setHeader('Cache-Control', 'no-store')
+      return res.json({ ok: true, token: rec.token, gardener_id: rec.gardener_id, expires_at: rec.expires_at })
+    } catch (e) { return res.status(500).json({ ok: false, error: e.message }) }
+  })
+
+  app.post('/api/link/complete', (req, res) => {
+    if (!rateLimit(`link-complete:${req.ip}`, 10, 10 * 60_000)) { res.setHeader('Retry-After', '600'); return res.status(429).json({ ok: false, error: 'rate_limited' }) }
+    try {
+      const body = req.body || {}
+      const token = String(body.token || '').trim()
+      const seedling_id = String(body.seedling_id || '').trim()
+      if (!token || !seedling_id) return res.status(400).json({ ok: false, error: 'missing_input' })
+      const tok = getLinkToken(token)
+      if (!tok) return res.status(410).json({ ok: false, error: 'invalid_or_expired' })
+      if (countBindingsForGardener(tok.gardener_id) >= 10) return res.status(429).json({ ok: false, error: 'gardener_bindings_cap' })
+      if (countBindingsForSeedling(seedling_id) >= 10) return res.status(429).json({ ok: false, error: 'seedling_bindings_cap' })
+      upsertSeedling(seedling_id)
+      const secret = crypto.randomBytes(32).toString('base64url')
+      createBinding(tok.gardener_id, seedling_id, secret)
+      deleteLinkToken(token)
+      res.setHeader('Cache-Control', 'no-store')
+      return res.json({ ok: true, gardener_id: tok.gardener_id, seedling_id, secret })
+    } catch (e) { return res.status(500).json({ ok: false, error: e.message }) }
+  })
+
+  app.get('/api/link/status', (req, res) => {
+    if (!rateLimit(`link-status:${req.ip}`, 60, 60_000)) { res.setHeader('Retry-After', '60'); return res.status(429).json({ ok: false, error: 'rate_limited' }) }
+    try {
+      const gardener_id = String(req.query.gardener_id || '').trim()
+      const seedling_id = String(req.query.seedling_id || '').trim()
+      const out = { ok: true }
+      if (gardener_id) out.linked_seedlings = listBindingsByGardener(gardener_id).map(b => b.seedling_id)
+      if (seedling_id) out.linked_gardeners = listBindingsBySeedling(seedling_id).map(b => b.gardener_id)
+      res.setHeader('Cache-Control', 'no-store')
+      return res.json(out)
+    } catch (e) { return res.status(500).json({ ok: false, error: e.message }) }
   })
 
   // Pairing status (read-only)
@@ -108,6 +200,54 @@ async function createServer() {
     return true
   }
 
+  // In-memory nonce store for HMAC replay protection (5 minutes TTL)
+  const nonceStore = new Map() // nonce -> ts
+  function rememberNonce(nonce) {
+    const now = Date.now()
+    if (!nonce) return false
+    // Cleanup occasionally
+    if (nonceStore.size > 5000) {
+      for (const [n, ts] of nonceStore) { if (now - ts > 5 * 60_000) nonceStore.delete(n) }
+    }
+    if (nonceStore.has(nonce)) return false
+    nonceStore.set(nonce, now)
+    return true
+  }
+  // --- HMAC Signing verification helpers ---
+  function sha256(data) { return crypto.createHash('sha256').update(data).digest('hex') }
+  function canonicalizeQuery(url) {
+    try {
+      const u = new URL(url, 'http://local')
+      const entries = []
+      for (const [k, v] of u.searchParams.entries()) entries.push([k, v])
+      entries.sort((a, b) => a[0] === b[0] ? (a[1] < b[1] ? -1 : a[1] > b[1] ? 1 : 0) : (a[0] < b[0] ? -1 : 1))
+      return entries.map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`).join('&')
+    } catch (_) { return '' }
+  }
+  function buildCanonicalString(req) {
+    const ts = String(req.get('X-SeedSphere-Ts') || '')
+    const nonce = String(req.get('X-SeedSphere-Nonce') || '')
+    const method = String(req.method || 'GET').toUpperCase()
+    const pathOnly = (req.originalUrl || req.url || '').split('?')[0]
+    const q = canonicalizeQuery(req.originalUrl || req.url || '')
+    const bodyRaw = req.rawBody || JSON.stringify(req.body || {})
+    const bodyHash = sha256(bodyRaw || '')
+    return [ts, nonce, method, pathOnly, q, bodyHash].join('\n')
+  }
+  function verifySignature(secret, req) {
+    const sig = String(req.get('X-SeedSphere-Sig') || '')
+    const ts = Number(req.get('X-SeedSphere-Ts') || '0')
+    const nonce = String(req.get('X-SeedSphere-Nonce') || '')
+    if (!sig || !ts || !nonce) return false
+    const now = Date.now()
+    if (Math.abs(now - ts) > 120_000) return false // ±120s skew
+    if (!rememberNonce(nonce)) return false
+    const canonical = buildCanonicalString(req)
+    const mac = crypto.createHmac('sha256', Buffer.from(secret)).update(canonical).digest('base64')
+    const macUrl = mac.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '')
+    try { return crypto.timingSafeEqual(Buffer.from(sig), Buffer.from(macUrl)) } catch { return false }
+  }
+
   // Auth and Keys API
   app.use('/api/auth', authRouter)
   app.use('/api/keys', keysRouter)
@@ -148,6 +288,7 @@ async function createServer() {
   })
 
   // --- Greenhouse: Pairing routes ---
+  // DEPRECATED in favor of link-token flow (kept for backward-compat)
   app.post('/api/pair/start', (req, res) => {
     // Stricter limit: 5 per minute per IP
     if (!rateLimit(`pair-start:${req.ip}`, 5, 60_000)) {
@@ -191,6 +332,26 @@ async function createServer() {
   })
 
   // --- Greenhouse: SSE rooms ---
+  // New canonical SSE route by gardener_id
+  app.get('/api/rooms/:gardener_id/events', (req, res) => {
+    if (!rateLimit(`room:${req.ip}`, 300, 60_000)) return res.status(429).end()
+    const gardener_id = String(req.params.gardener_id || '').trim() || 'default'
+    res.setHeader('Content-Type', 'text/event-stream')
+    res.setHeader('Cache-Control', 'no-cache, no-transform')
+    res.setHeader('Connection', 'keep-alive')
+    res.flushHeaders && res.flushHeaders()
+    try { res.write(`retry: 2000\n\n`) } catch (_) {}
+    const writeEvent = (event, data) => { try { if (event) res.write(`event: ${event}\n`); res.write(`data: ${JSON.stringify(data)}\n\n`) } catch (_) {} }
+    writeEvent('init', { gardener_id, t: Date.now(), clients: 1 })
+    try { touchRoom(gardener_id); touchGardener(gardener_id) } catch (_) {}
+    const unsubscribe = subscribe(gardener_id, res)
+    const hb = setInterval(() => { try { touchGardener(gardener_id); res.write(`:keepalive\n\n`) } catch (_) {} }, 15000)
+    const close = () => { try { clearInterval(hb) } catch (_) {} try { unsubscribe && unsubscribe() } catch (_) {} try { res.end() } catch (_) {} }
+    req.on('close', close)
+    req.on('aborted', close)
+  })
+
+  // Backward-compat SSE route
   app.get('/api/rooms/:room_id/events', (req, res) => {
     if (!rateLimit(`room:${req.ip}`, 120, 60_000)) return res.status(429).end()
     const room_id = String(req.params.room_id || '').trim() || 'default'
@@ -451,6 +612,70 @@ async function createServer() {
     res.json({ ok: true, version: pkg.version || '', uptime_s: Math.round(process.uptime()), last_trackers_fetch_ts: getLastFetch() || 0 })
   })
 
+  // Configure redirect: launch SPA pair screen instead of SDK's default page
+  // Stremio's Configure button points to '/configure'. We redirect to '/pair'
+  // and preserve gardener_id and seedling_id (ensuring cookie exists). The Pair
+  // page will decide to forward to Configure if already linked.
+  app.get('/configure', (req, res) => {
+    try {
+      const gardener_id = String(req.query.gardener_id || '').trim()
+      // Ensure seedling_id cookie exists
+      let seedling_id = ''
+      try { seedling_id = String((req.cookies && req.cookies.seedling_id) || '').trim() } catch (_) { seedling_id = '' }
+      if (!seedling_id) {
+        try {
+          seedling_id = nanoid()
+          res.cookie('seedling_id', seedling_id, { maxAge: 365 * 24 * 60 * 60 * 1000, sameSite: 'lax', secure: isProd, httpOnly: false, path: '/' })
+        } catch (_) { /* ignore */ }
+      }
+      const baseOrigin = (() => {
+        try {
+          const proto = (req.headers['x-forwarded-proto'] || req.protocol || 'http').toString()
+          let host = (req.headers['x-forwarded-host'] || req.headers.host || 'localhost').toString()
+          host = host.replace(/^localhost(?::|$)/, (m) => m.replace('localhost', '127.0.0.1'))
+          return `${proto}://${host}`
+        } catch (_) { return '' }
+      })()
+      const params = new URLSearchParams()
+      if (gardener_id) params.set('gardener_id', gardener_id)
+      if (seedling_id) params.set('seedling_id', seedling_id)
+      const qs = params.toString()
+      const target = `${baseOrigin}/pair${qs ? ('?' + qs) : ''}`
+      res.redirect(302, target)
+    } catch (_) {
+      res.redirect(302, '/pair')
+    }
+  })
+
+  // Auto-pair endpoint: bind gardener_id and seedling_id idempotently
+  app.post('/api/link/auto', (req, res) => {
+    if (!rateLimit(`link-auto:${req.ip}`, 20, 60_000)) { res.setHeader('Retry-After', '60'); return res.status(429).json({ ok: false, error: 'rate_limited' }) }
+    try {
+      const body = req.body || {}
+      const gardener_id = String(body.gardener_id || '').trim()
+      let seedling_id = String(body.seedling_id || '').trim()
+      if (!seedling_id) {
+        // Fallback to cookie if not provided
+        try { seedling_id = String((req.cookies && req.cookies.seedling_id) || '').trim() } catch (_) { /* ignore */ }
+      }
+      if (!gardener_id || !seedling_id) return res.status(400).json({ ok: false, error: 'missing_input' })
+      // Caps
+      if (countBindingsForGardener(gardener_id) >= 10) return res.status(429).json({ ok: false, error: 'gardener_bindings_cap' })
+      if (countBindingsForSeedling(seedling_id) >= 10) return res.status(429).json({ ok: false, error: 'seedling_bindings_cap' })
+      // Upserts
+      upsertGardener(gardener_id, 'web')
+      upsertSeedling(seedling_id)
+      // Already linked?
+      const existing = listBindingsByGardener(gardener_id).some(b => b.seedling_id === seedling_id)
+      if (!existing) {
+        const secret = crypto.randomBytes(32).toString('base64url')
+        createBinding(gardener_id, seedling_id, secret)
+      }
+      res.setHeader('Cache-Control', 'no-store')
+      return res.json({ ok: true, gardener_id, seedling_id })
+    } catch (e) { return res.status(500).json({ ok: false, error: e.message }) }
+  })
+
   // Recent boosts
   app.get('/api/boosts/recent', (_req, res) => {
     if (!rateLimit(`recent:${_req.ip}`, 120, 60_000)) return res.status(429).json({ ok: false, error: 'rate_limited' })
@@ -566,8 +791,256 @@ async function createServer() {
     }
   })
 
-  // Mount Stremio SDK router (serves /manifest.json and /stream/*)
+  // Dynamic manifest: include gardener_id (non-standard field) without duplicating manifest
+  app.get(['/manifest.json', '/manifest'], (req, res) => {
+    try { console.log('[manifest] request', { ip: req.ip, ua: req.headers['user-agent'], q: req.query, accept: req.headers.accept || '' }) } catch (_) {}
+    try {
+      // If the manifest URL is opened in a browser/webview (Accept includes text/html),
+      // redirect to /configure to show the UI instead of returning JSON.
+      // Normal addon fetches (Accept: application/json) should get JSON.
+      const accept = String(req.headers.accept || '').toLowerCase()
+      if (accept.includes('text/html')) {
+        let seedling_id = ''
+        try { seedling_id = String(req.cookies.seedling_id || '').trim() } catch (_) {}
+        if (!seedling_id) {
+          try { seedling_id = nanoid(); res.cookie('seedling_id', seedling_id, { maxAge: 365 * 24 * 60 * 60 * 1000, sameSite: 'lax', secure: isProd, httpOnly: false, path: '/' }) } catch (_) {}
+        }
+        const gardener_id = String(req.query.gardener_id || '').trim()
+        const baseOrigin = (() => {
+          try {
+            const proto = (req.headers['x-forwarded-proto'] || req.protocol || 'http').toString()
+            let host = (req.headers['x-forwarded-host'] || req.headers.host || 'localhost').toString()
+            host = host.replace(/^localhost(?::|$)/, (m) => m.replace('localhost', '127.0.0.1'))
+            return `${proto}://${host}`
+          } catch (_) { return '' }
+        })()
+        const params = new URLSearchParams()
+        if (gardener_id) params.set('gardener_id', gardener_id)
+        if (seedling_id) params.set('seedling_id', seedling_id)
+        const qs = params.toString()
+        const target = `${baseOrigin}/configure${qs ? ('?' + qs) : ''}`
+        return res.redirect(302, target)
+      }
+      const base = addonInterface && addonInterface.manifest ? addonInterface.manifest : (addonInterface && addonInterface.manifestRef ? addonInterface.manifestRef : null)
+      const manifest = base ? { ...base } : {}
+      const gardener_id = String(req.query.gardener_id || '').trim()
+      const origin = (() => {
+        try {
+          const proto = (req.headers['x-forwarded-proto'] || req.protocol || 'http').toString()
+          let host = (req.headers['x-forwarded-host'] || req.headers.host || 'localhost').toString()
+          // Normalize localhost to 127.0.0.1 for Stremio local addon allowance
+          host = host.replace(/^localhost(?::|$)/, (m) => m.replace('localhost', '127.0.0.1'))
+          return `${proto}://${host}`
+        } catch (_) { return '' }
+      })()
+
+      // We inject dynamic fields below; any existing signature would be invalid.
+      // Strip stremioAddonsConfig so Stremio does not attempt to verify a stale signature.
+      try { delete manifest.stremioAddonsConfig } catch (_) { /* ignore */ }
+
+      // Ensure a per-client seedling_id (persisted in cookie)
+      let seedling_id = ''
+      try { seedling_id = String((req.cookies && req.cookies.seedling_id) || '').trim() } catch (_) { seedling_id = '' }
+      if (!seedling_id) {
+        try {
+          seedling_id = nanoid()
+          // 1 year, Lax, secure in prod
+          res.cookie('seedling_id', seedling_id, { maxAge: 365 * 24 * 60 * 60 * 1000, sameSite: 'lax', secure: isProd, httpOnly: false, path: '/' })
+        } catch (_) { /* ignore cookie set errors */ }
+      }
+
+      // Inject dynamic fields
+      manifest.seedsphere = { ...(manifest.seedsphere || {}), original_gardener_id: gardener_id, seedling_id }
+      // Choose asset base to avoid mixed-content on web.strem.io (HTTPS)
+      const reqOrigin = String(req.headers.origin || '')
+      const isWebStremio = reqOrigin === 'https://web.strem.io' || reqOrigin === 'https://web.stremio.com'
+      const assetBase = isWebStremio ? 'https://seedsphere.fly.dev' : origin
+      if (assetBase) {
+        manifest.logo = `${assetBase}/assets/icon-256.png`
+        manifest.background = `${assetBase}/assets/background-1024.jpg`
+      }
+
+      res.setHeader('Cache-Control', 'public, max-age=300, stale-while-revalidate=600')
+      return res.json(manifest)
+    } catch (e) {
+      return res.status(500).json({ error: e.message })
+    }
+  })
+
+  // Experimental manifest with additional non-official fields
+  // Note: We deliberately strip stremioAddonsConfig since payload is dynamic.
+  app.get(['/manifest.experiment.json', '/manifest.experiment'], (req, res) => {
+    try { console.log('[manifest.experiment] request', { ip: req.ip, ua: req.headers['user-agent'], q: req.query }) } catch (_) {}
+    try {
+      const base = addonInterface && addonInterface.manifest ? addonInterface.manifest : (addonInterface && addonInterface.manifestRef ? addonInterface.manifestRef : null)
+      const manifest = base ? { ...base } : {}
+      const gardener_id = String(req.query.gardener_id || '').trim()
+
+      // Determine absolute origin for asset URLs
+      const origin = (() => {
+        try {
+          const proto = (req.headers['x-forwarded-proto'] || req.protocol || 'http').toString()
+          let host = (req.headers['x-forwarded-host'] || req.headers.host || 'localhost').toString()
+          // Normalize localhost to 127.0.0.1 for Stremio local addon allowance
+          host = host.replace(/^localhost(?::|$)/, (m) => m.replace('localhost', '127.0.0.1'))
+          return `${proto}://${host}`
+        } catch (_) { return '' }
+      })()
+
+      // We inject dynamic fields; any existing signature would be invalid. Strip it.
+      try { delete manifest.stremioAddonsConfig } catch (_) { /* ignore */ }
+
+      // Ensure a per-client seedling_id (persisted in cookie)
+      let seedling_id = ''
+      try { seedling_id = String(req.cookies.seedling_id || '').trim() } catch (_) {}
+      if (!seedling_id) {
+        try {
+          seedling_id = nanoid()
+          // 1 year, Lax, secure in prod
+          res.cookie('seedling_id', seedling_id, { maxAge: 365 * 24 * 60 * 60 * 1000, sameSite: 'lax', secure: isProd, httpOnly: false, path: '/' })
+        } catch (_) { /* ignore cookie set errors */ }
+      }
+
+      // Inject dynamic fields
+      manifest.seedsphere = { ...(manifest.seedsphere || {}), original_gardener_id: gardener_id, seedling_id, channel: 'experiment' }
+      // Choose asset base to avoid mixed-content on web.strem.io (HTTPS)
+      const reqOrigin2 = String(req.headers.origin || '')
+      const isWebStremio2 = reqOrigin2 === 'https://web.strem.io' || reqOrigin2 === 'https://web.stremio.com'
+      const assetBase2 = isWebStremio2 ? 'https://seedsphere.fly.dev' : origin
+      if (assetBase2) {
+        manifest.logo = `${assetBase2}/assets/icon-256.png`
+        manifest.background = `${assetBase2}/assets/background-1024.jpg`
+      }
+
+      // Experimental, non-official or rarely used optional fields suitable for project
+      // These are hints for clients and for future distribution contexts.
+      const endpointUrl = `${origin}/manifest.experiment.json` // public URL to this manifest
+      Object.assign(manifest, {
+        endpoint: endpointUrl,
+        dontAnnounce: true,
+        listedOn: ["desktop", "web", "android"],
+        isFree: true,
+        suggested: ["com.stremio.opensubtitlesv3"],
+        searchDebounce: 300,
+        countrySpecific: false,
+        zipSpecific: false,
+        countrySpecificStreams: false,
+      })
+
+      // Behavior hints suitable for experiments (ensure configurable remains true)
+      manifest.behaviorHints = Object.assign({}, manifest.behaviorHints || {}, {
+        configurable: true,
+      })
+
+      res.setHeader('Cache-Control', 'public, max-age=60, stale-while-revalidate=300')
+      return res.json(manifest)
+    } catch (e) {
+      return res.status(500).json({ error: e.message })
+    }
+  })
+
+  // Mount Stremio SDK router (serves /stream/*); our manifest override stays above
   app.use(addonInterface.getRouter())
+
+  // --- Stream bridge ---
+  app.post('/api/stream/:type/:id', async (req, res) => {
+    if (!rateLimit(`stream:${req.ip}`, 120, 60_000)) return res.status(429).json({ ok: false, error: 'rate_limited' })
+    try {
+      const gardener_id = String(req.get('X-SeedSphere-G') || '').trim()
+      const seedling_id = String(req.get('X-SeedSphere-Id') || '').trim()
+      if (!gardener_id || !seedling_id) return res.status(401).json({ ok: false, error: 'missing_identities' })
+      const secret = getBindingSecret(gardener_id, seedling_id)
+      if (!secret) return res.status(401).json({ ok: false, error: 'no_binding' })
+      if (!verifySignature(secret, req)) return res.status(401).json({ ok: false, error: 'bad_signature' })
+
+      const type = String(req.params.type || '')
+      const id = String(req.params.id || '')
+      const filters = req.body && typeof req.body === 'object' ? req.body : {}
+      const streamKeyBase = JSON.stringify({ type, id, filters })
+      const keyHash = crypto.createHash('sha256').update(streamKeyBase).digest('hex')
+      const cacheKey = `stream:${gardener_id}:${keyHash}`
+
+      // Attempt cached first if exists
+      const cached = getCacheRow(cacheKey)
+      if (cached) {
+        try { res.setHeader('Cache-Control', 'no-store') } catch (_) {}
+        const payload = JSON.parse(Buffer.from(cached.payload_json).toString('utf8'))
+        return res.json(payload)
+      }
+
+      // Execution attempts with budgets 4s/6s/8s — reuse aggregate logic
+      const budgets = [4000, 6000, 8000]
+      let lastError = null
+      for (const budget of budgets) {
+        try {
+          const result = await Promise.race([
+            executeStreamTask({ type, id, filters }),
+            new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), budget)),
+          ])
+          if (result && result.streams) {
+            // weekly capped cache write
+            try { setCacheRowWeeklyCapped(cacheKey, result, 7 * 24 * 60 * 60_000) } catch (_) {}
+            res.setHeader('Cache-Control', 'no-store')
+            return res.json(result)
+          }
+        } catch (e) { lastError = e }
+      }
+
+      // Fallback to cache (already tried above) or empty
+      res.setHeader('Cache-Control', 'no-store')
+      return res.json({ streams: [] })
+    } catch (e) {
+      return res.status(500).json({ ok: false, error: e.message })
+    }
+  })
+
+  // Internal executor function reusing addon aggregate logic to keep DRY
+  async function executeStreamTask({ type, id, filters }) {
+    try {
+      const cfg = (filters && typeof filters === 'object') ? filters : {}
+      // Trackers config
+      const variant = String(cfg.variant || process.env.TRACKERS_VARIANT || 'all').toLowerCase()
+      const trackersUrl = (cfg.trackers_url && String(cfg.trackers_url).trim()) || VARIANT_URLS[variant] || DEFAULT_TRACKERS_URL
+      let trackers = []
+      try { trackers = await fetchTrackers(trackersUrl) } catch (_) { trackers = [] }
+      const mode = String(cfg.validation_mode || 'basic').toLowerCase()
+      let maxTrackers = Number(cfg.max_trackers)
+      if (!Number.isFinite(maxTrackers) || maxTrackers < 0) maxTrackers = 0
+      let effective = trackers
+      try { effective = await filterByHealth(trackers, mode, maxTrackers) } catch (_) { effective = maxTrackers > 0 ? trackers.slice(0, maxTrackers) : trackers }
+
+      // Provider toggles
+      const providers = []
+      const on = (v) => String(v || 'on').toLowerCase() !== 'off'
+      if (on(cfg.providers_torrentio)) providers.push(torrentio)
+      if (on(cfg.providers_yts)) providers.push(yts)
+      if (on(cfg.providers_eztv)) providers.push(eztv)
+      if (on(cfg.providers_nyaa)) providers.push(nyaa)
+      if (on(cfg.providers_1337x)) providers.push(x1337)
+      if (on(cfg.providers_piratebay)) providers.push(piratebay)
+      if (on(cfg.providers_torrentgalaxy)) providers.push(torrentgalaxy)
+      if (on(cfg.providers_torlock)) providers.push(torlock)
+      if (on(cfg.providers_magnetdl)) providers.push(magnetdl)
+      if (on(cfg.providers_anidex)) providers.push(anidex)
+      if (on(cfg.providers_tokyotosho)) providers.push(tokyotosho)
+      if (on(cfg.providers_zooqle)) providers.push(zooqle)
+      if (on(cfg.providers_rutor)) providers.push(rutor)
+
+      const labelName = String(cfg.stream_label || '! SeedSphere')
+      const descAppendOriginal = String(cfg.desc_append_original || 'off').toLowerCase() === 'on'
+      const descRequireDetails = String(cfg.desc_require_details || 'on').toLowerCase() === 'on'
+      const aiConfig = {
+        enabled: String(cfg.ai_descriptions || 'off').toLowerCase() === 'on',
+        provider: String(cfg.ai_provider || 'openai'),
+        model: String(cfg.ai_model || 'gpt-4o'),
+        timeoutMs: Number(cfg.ai_timeout_ms) || 2500,
+        cacheTtlMs: Number(cfg.ai_cache_ttl_ms) || 60_000,
+        userId: String(cfg.ai_user_id || ''),
+      }
+      const streams = await aggregateStreams({ type, id, providers, trackers: effective, bingeGroup: 'seedsphere-optimized', labelName, descAppendOriginal, descRequireDetails, aiConfig })
+      return { streams: Array.isArray(streams) ? streams : [] }
+    } catch (_) { return { streams: [] } }
+  }
 
   // In development, mount Vite after the API routes so /api and SSE endpoints are handled by Express first.
   if (!isProd) {

@@ -48,9 +48,10 @@ Design a low-cost, privacy-aware system where Seedling requests are fulfilled by
 
 ## 5) Flows
 
-- Register: Gardener → `/api/executor/register` → device_id; persists.
-- Pair: Seedling → `/api/pair/start` → QR/code → Gardener completes `/api/pair/complete`.
-- Task: Seedling → `/api/tasks/request` → Greenhouse signs → Gardener fetches → `/api/tasks/result` → Seedling via room SSE.
+- __Register Gardener__: Gardener (PWA) starts and establishes presence by joining `rooms/:gardener_id` and sending periodic heartbeats.
+- __Link (primary)__: Gardener → `POST /api/link/start` → `{ token, gardener_id }`; Seedling (on install via manifest with token) → `POST /api/link/complete` → binds `{ seedling_id, gardener_id, secret }`.
+- __Link (fallback)__: Seedling "Configure" opens `/pair?seedling_id=...`; if already bound, redirect to `/configure?gardener_id=...`.
+- __Streams__: Seedling → `GET /stream/*` (to Greenhouse). Greenhouse selects best Gardener by health and issues task via SSE. Up to 3 attempts (4s→6s→8s) across next-best Gardeners; on failure, return last cached. Seedling receives a single final JSON payload.
 
 ## 5Z) PWA-as-Executor and Addon Linking (Vertical Slice)
 
@@ -85,25 +86,128 @@ This section defines a simplified, production-ready path where the PWA runs the 
 
 Rationale: avoids entering codes inside Stremio and ties the addon to the user’s PWA instance cleanly, with strong UX on the landing page and bounded server work.
 
+### 5Z.1 Confirmed specifics
+
+- __Identities__
+  - `gardener_id` (formerly `install_id`) identifies a Gardener PWA instance; stored in LocalStorage.
+  - `seedling_id` identifies a Stremio addon install.
+  - Many-to-many supported: one Seedling can bind to many Gardeners and vice versa.
+
+- __Linking & fallback__
+  - Primary: link tokens (`POST /api/link/start`, `POST /api/link/complete`).
+  - Fallback Pair page: `/pair?seedling_id=...` (and optional `gardener_id`). If already linked, redirect to `/configure?gardener_id=...`.
+
+- __Dynamic manifest__
+  - `GET /manifest.json` accepts `?gardener_id=...`. Stremio retains query params on addon URL, enabling automatic linking.
+
+- __Bridge semantics__
+  - Addon makes `/stream/*` to Greenhouse. Greenhouse selects the best Gardener by health and issues a task via rooms/SSE.
+  - Retries: up to 3 attempts with budgets 4s → 6s → 8s. Prefer next-best Gardener each attempt; apply hysteresis (≥5-point delta to switch) and a 60s penalty after failures.
+  - Addon receives a single final JSON result (Stremio does not consume SSE); internal PWA↔Greenhouse streaming is allowed.
+
+- __Cache policy__
+  - Prefer fresh. Fallback to last cached if all attempts fail.
+  - Weekly write cap: at most 1 cache write per `stream_key + gardener_id` per 7 days. Reads are not rate-limited and follow TTL (7 days) semantics.
+  - `stream_key = hash(provider + id + filters)`.
+
+- __Signing & rate limits__
+  - On link-complete, Greenhouse issues a per-binding secret.
+  - All addon↔Greenhouse and PWA↔Greenhouse requests are HMAC-SHA256 signed over a canonical string: `ts\nnonce\nmethod\npath\nsortedQuery\nbodySha256`.
+  - Headers: `X-SeedSphere-G` (gardener_id), `X-SeedSphere-Id` (seedling_id), `X-SeedSphere-Ts`, `X-SeedSphere-Nonce`, `X-SeedSphere-Sig` (base64url HMAC).
+  - Replay window ±120s; nonce cache 5 minutes. Anonymous use allowed; authenticated users can receive higher quotas later.
+
+- __Presence & health__
+  - PWA connects to `rooms/:gardener_id` and emits heartbeats; Greenhouse tracks `last_seen`, latency, success %, jitter; selection uses these metrics.
+
+- __Routes (Gardener UI)__
+  - Direct routes: `/` (landing with Install PWA/Add-on), `/pair`, `/configure`, `/executor` (debug/status). Gardener shows sections by role.
+
+- __Environment & URLs__
+  - Dynamic addon base URL: CI sets production to `https://seedsphere.fly.dev`; Docker/dev use `http://127.0.0.1:8080` or `http://localhost:8080`.
+
+### 5Z.2 Defaults and limits
+
+- __Token__
+  - TTL: 10 minutes. Size: 32 random bytes (base64url, no padding).
+
+- __Identifiers__
+  - `gardener_id`, `seedling_id`: UUID v4 (lowercase, hyphenated).
+  - Max bindings: 10 per seedling, 10 per gardener (hard cap; 429 if exceeded).
+
+- __Signing__
+  - Canonical query: RFC 3986 percent-encoding, sort by key then value.
+  - Body hash: SHA‑256 of raw body bytes; empty body = SHA‑256(""). Max signed body: 1 MB.
+  - Secret rotation: mint new secret on each successful link‑complete; revoke old.
+
+- __Link status__
+  - `GET /api/link/status?gardener_id=...` returns linked seedlings.
+  - A sibling variant MAY return linked gardeners by `seedling_id`.
+
+- __Retries & timeout__
+  - Attempts: 4s → 6s → 8s (~18s total budget + small overhead).
+  - Selection: next‑best Gardener per attempt; hysteresis ≥5 points; 60s penalty after failure.
+  - Health weights: success 50%, latency 30%, freshness 20%.
+
+- __Partial events (internal)__
+  - `task:start`, `task:partial`, `task:final`, `task:error` (payloads are implementation-defined).
+
+- __Cache normalization__
+  - `stream_key = hash(type + provider + id + season + episode + normalized_filters)`.
+  - Normalize filter ordering and trim whitespace before hashing.
+
+- __Presence__
+  - Heartbeat every 15s; offline after 45s of silence.
+  - Rooms named `rooms/:gardener_id`.
+
+- __Rate limits (indicative)__
+  - `POST /api/link/start`: per‑IP 3/min, 30/hour; per‑gardener 5/10min.
+  - `POST /api/link/complete`: per‑IP 10/10min; per‑seedling 10/10min.
+  - `POST /api/stream/*`: per‑seedling 60/min (burst 10); per‑IP 120/min.
+
+- __CORS__
+  - Allowlist: production addon host; dev `http://127.0.0.1:8080`, `http://localhost:8080`.
+
+- __Config (env)__
+  - `ADDON_BASE_URL` (CI/dev). Optional: `CACHE_TTL_DAYS=7`, `HMAC_NONCE_TTL_MIN=5`.
+
+- __Migration__
+  - Rename `installations.install_id` → `gardeners.gardener_id`.
+  - Create `seedlings`, `bindings(secret)`; keep `pairings` for fallback.
+  - Backfill: convert existing pairs into bindings when possible.
+
+- __Bindings management__
+  - Provide endpoints to list and delete bindings; secrets are per‑binding.
+
+- __Telemetry & retention__
+  - Log anonymized counts/latency keyed by hashed ids; retain 30 days. Cache TTL 7 days.
+
+- __Error handling__
+  - If attempts fail and no cache exists, return empty array to Stremio.
+  - Pair page shows a "Re‑link" CTA if token expired or linking fails.
+
 ## 5A) Data Model (SQLite)
 
 - users: user_id, email, created_at.
-- devices: device_id (UUID), user_id (nullable), agent (pwa/phone), last_seen.
-- installations: install_id (UUID), user_id (nullable), platform, created_at, last_seen.
-- pairings: pair_code, install_id, device_id, expires_at, status (pending/linked/expired), created_at.
-- rooms: room_id (derived from install_id), last_activity.
-- cache: cache_key, payload_json (gzip/json), created_at, expires_at, hits.
-- audit: event, at, meta_json (for TTL tuning, abuse hints).
-
-Notes
-
-- `install_id` is per addon installation/device.
-- `device_id` represents the Gardener instance.
+- gardeners: gardener_id (UUID), user_id (nullable), platform, created_at, last_seen.
+- seedlings: seedling_id (UUID), user_id (nullable), created_at, last_seen.
+- bindings: seedling_id, gardener_id, secret, created_at.
+- pairings (fallback): pair_code, gardener_id (nullable), seedling_id (nullable), expires_at, status (pending/linked/expired), created_at.
+- rooms: room_id (derived from gardener_id), last_activity.
+- cache: stream_key, gardener_id, payload_json (gzip/json), created_at, expires_at, hits, last_write_at.
+- audit: event, at, meta_json (for TTL tuning, abuse hints, RL decisions).
 
 ## 5B) Security Model
 
-- Task JWTs: `{ sub: device_id, aud: 'executor', install_id, jti, iat, exp ≤ 60s }` signed by `AUTH_JWT_SECRET`.
-- Result JWTs: include `task_jti` + `install_id` to bind results to session/room.
+- __HMAC signing (per-binding secret)__
+  - Secret is minted on `link/complete` for each `{ seedling_id, gardener_id }` binding.
+  - Canonical string: `ts\nnonce\nmethod\npath\nsortedQuery\nbodySha256`.
+  - Headers:
+    - `X-SeedSphere-G`: gardener_id
+    - `X-SeedSphere-Id`: seedling_id
+    - `X-SeedSphere-Ts`: unix ms
+    - `X-SeedSphere-Nonce`: unique 16+ chars
+    - `X-SeedSphere-Sig`: base64url(HMAC-SHA256(secret, canonical))
+  - Replay window ±120s; nonces cached 5 minutes. Anonymous + rate limiting by default; authenticated users may receive higher quotas later.
 - Pair codes: 6 alphanumeric (A–Z, 0–9), 2‑minute expiry.
   - `/api/pair/start` limits: Per‑IP 3/min, 10/10min, 30/hour, 100/day. Per‑install_id 5/10min, 15/hour, 50/day. Max 1 pending per install.
   - `/api/pair/complete` limits: Per‑IP 10/10min, 30/hour, 100/day. Per‑install_id 10/10min. Invalid attempts cooldowns as in original design.

@@ -1,9 +1,9 @@
 <template>
   <main class="min-h-screen bg-base-100 text-base-content">
     <div class="container mx-auto p-6 space-y-4">
-      <div class="flex items-center justify-between">
+      <div class="flex flex-wrap items-center justify-between gap-2">
         <h1 id="install" class="text-2xl font-bold">Configure SeedSphere</h1>
-        <div class="flex items-center gap-2">
+        <div class="flex flex-wrap items-center gap-2">
           <a class="btn btn-primary btn-sm" :href="manifestProtocol">Install / Update</a>
           <RouterLink class="btn btn-ghost btn-sm" to="/">Home</RouterLink>
         </div>
@@ -37,40 +37,6 @@
       </div>
 
       <div class="columns-1 md:columns-2 gap-x-4">
-        <!-- Pairing Card -->
-        <div class="card bg-base-200 shadow-sm break-inside-avoid mb-4 w-full">
-          <div class="card-body p-3 md:p-4">
-            <details open class="collapse">
-              <summary class="collapse-title text-base font-semibold">Pairing</summary>
-              <div class="collapse-content p-0">
-                <div class="p-3 rounded-box bg-base-300/50 space-y-2">
-                  <div v-if="deviceId" class="alert alert-success">
-                    <span>Paired to Seedling <b class="font-mono">{{ deviceId }}</b></span>
-                  </div>
-                  <div class="text-sm opacity-70">These identifiers are stored locally to identify this Gardener install.</div>
-                  <div class="grid md:grid-cols-2 gap-2 items-end">
-                    <label class="form-control">
-                      <div class="label"><span class="label-text">Install ID</span></div>
-                      <input class="input input-bordered" :value="installId" readonly :title="installId" />
-                    </label>
-                    <button class="btn" type="button" @click="copy(installId)" :disabled="!installId">Copy</button>
-                  </div>
-                  <div class="grid md:grid-cols-3 gap-2 items-end">
-                    <label class="form-control md:col-span-2">
-                      <div class="label"><span class="label-text">Pair code</span></div>
-                      <input class="input input-bordered" :value="pairCode" readonly :title="pairCode" />
-                    </label>
-                    <div class="flex gap-2">
-                      <button class="btn" type="button" @click="copy(pairCode)" :disabled="!pairCode">Copy</button>
-                      <button class="btn btn-ghost" type="button" @click="regeneratePairCode" :disabled="!installId">Regenerate</button>
-                    </div>
-                  </div>
-                  <div class="text-xs" :class="pairingMsgClass">{{ pairingMsg }}</div>
-                </div>
-              </div>
-            </details>
-          </div>
-        </div>
         <!-- Recent Boosts -->
         <div class="card bg-base-200 shadow-sm break-inside-avoid mb-4 w-full">
           <div class="card-body p-3 md:p-4">
@@ -94,6 +60,7 @@
                     <th>Time</th>
                     <th>Type</th>
                     <th>ID</th>
+                    <th>Title</th>
                     <th>Healthy</th>
                     <th>Total</th>
                     <th>Mode</th>
@@ -104,12 +71,13 @@
                     <td>{{ fmtTime(it.ts || Date.now()) }}</td>
                     <td>{{ it.type }}</td>
                     <td class="truncate max-w-[12rem]" :title="it.id">{{ it.id }}</td>
+                    <td class="truncate max-w-[16rem]" :title="it.title">{{ it.title }}</td>
                     <td>{{ it.healthy }}</td>
                     <td>{{ it.total }}</td>
                     <td>{{ it.mode }}</td>
                   </tr>
                   <tr v-if="boosts.length === 0">
-                    <td colspan="6" class="text-center opacity-60">No events yet</td>
+                    <td colspan="7" class="text-center opacity-60">No events yet</td>
                   </tr>
                 </tbody>
               </table>
@@ -136,18 +104,13 @@
           </div>
         </div>
 
-        <!-- Preferences Card -->
+        <!-- Preferences Card (no stream label) -->
         <div class="card bg-base-200 shadow-sm break-inside-avoid mb-4 w-full">
           <div class="card-body p-3 md:p-4">
             <details open class="collapse">
               <summary id="prefs" class="collapse-title text-base font-semibold">Preferences</summary>
               <div class="collapse-content p-0">
                 <div class="grid md:grid-cols-2 gap-4 p-3 rounded-box bg-base-300/50">
-                  <label class="form-control">
-                    <div class="label"><span class="label-text">Stream label (name shown in Stremio)</span></div>
-                    <input v-model="streamLabel" class="input input-bordered" placeholder="! SeedSphere" />
-                    <p class="text-xs opacity-70 mt-1">Tip: a leading "!" makes it sort first in Stremio.</p>
-                  </label>
                   <div class="flex items-center justify-between">
                     <div class="flex items-center gap-2">
                       <div class="badge badge-info">Proxy</div>
@@ -462,23 +425,7 @@
           </div>
         </div>
 
-        <!-- Manifest URL Card -->
-        <div class="card bg-base-200 shadow-sm break-inside-avoid mb-4 w-full">
-          <div class="card-body p-3 md:p-4">
-            <details open class="collapse">
-              <summary class="collapse-title text-base font-semibold">Manifest URL</summary>
-              <div class="collapse-content p-0">
-                <div class="space-y-2">
-                  <code class="block p-2 rounded-box border border-base-300 bg-base-300/60 overflow-x-auto">{{ manifestHttp }}</code>
-                  <div class="flex gap-2">
-                    <button class="btn btn-sm" type="button" @click="copy(manifestHttp)">Copy</button>
-                    <a class="btn btn-sm btn-outline" :href="manifestHttp" target="_blank" rel="noopener">Open</a>
-                  </div>
-                </div>
-              </div>
-            </details>
-          </div>
-        </div>
+        
 
         <!-- Tracker Sources Card -->
         <div class="card bg-base-200 shadow-sm break-inside-avoid mb-4 w-full">
@@ -642,7 +589,7 @@
                       </button>
                     </div>
                     <ul class="menu bg-base-300/50 rounded-box">
-                      <li v-for="(b, i) in recentBoosts" :key="i"><span>{{ fmtTime(b.ts || Date.now()) }} — {{ b.type }} ({{ b.healthy }}/{{ b.total }})</span></li>
+                      <li v-for="(b, i) in recentBoosts" :key="i"><span>{{ fmtTime(b.ts || Date.now()) }} — {{ b.type }} — {{ b.title }} ({{ b.healthy }}/{{ b.total }})</span></li>
                       <li v-if="recentBoosts.length === 0" class="opacity-60"><span>No recent items</span></li>
                     </ul>
                   </div>
@@ -790,7 +737,7 @@ async function regeneratePairCode() {
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5"><path d="M12 4.5a1 1 0 011 1V11h5.5a1 1 0 010 2H13v5.5a1 1 0 01-2 0V13H5.5a1 1 0 010-2H11V5.5a1 1 0 011-1z"/></svg>
                   </button>
                 </div>
-                <div>
+                <div class="overflow-x-auto">
                   <table class="table table-zebra table-sm">
                     <thead>
                       <tr><th class="w-10">#</th><th>Tracker URL</th><th class="w-28">Actions</th></tr>
@@ -879,6 +826,7 @@ async function regeneratePairCode() {
 
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
+import { gardener } from '../lib/gardener'
 
 const boosts = ref([])
 const sseStatus = ref('waiting') // waiting | ok | warn | error
@@ -1116,11 +1064,37 @@ onBeforeUnmount(() => { try { es && es.close() } catch (_) {}; try { esSweep && 
 
 // Sweep & Validate tools
 const origin = typeof window !== 'undefined' ? window.location.origin : ''
-const manifestHttp = computed(() => `${origin}/manifest.json`)
+const manifestHttp = computed(() => {
+  try {
+    const u = new URL('/manifest.json', origin || 'http://localhost')
+    const gid = gardener.getGardenerId()
+    if (gid) u.searchParams.set('gardener_id', gid)
+    return u.toString()
+  } catch (_) { return `${origin}/manifest.json` }
+})
 // Version-aware stremio deep link; fallback to plain protocol if no version
 const latestVersion = ref('')
 const seenVersion = ref('')
-const showUpdateBanner = computed(() => !!latestVersion.value && latestVersion.value !== seenVersion.value)
+function cmpSemver(a, b) {
+  try {
+    const pa = String(a || '').split('.')
+    const pb = String(b || '').split('.')
+    for (let i = 0; i < 3; i++) {
+      const na = parseInt(pa[i] || '0', 10)
+      const nb = parseInt(pb[i] || '0', 10)
+      if (Number.isNaN(na) || Number.isNaN(nb)) break
+      if (na > nb) return 1
+      if (na < nb) return -1
+    }
+    return 0
+  } catch (_) { return 0 }
+}
+// Show only when server version is strictly greater than last seen
+const showUpdateBanner = computed(() => {
+  if (!latestVersion.value) return false
+  if (!seenVersion.value) return false
+  return cmpSemver(latestVersion.value, seenVersion.value) > 0
+})
 const manifestProtocol = computed(() => {
   const url = encodeURIComponent(manifestHttp.value)
   const v = latestVersion.value
@@ -1131,7 +1105,6 @@ const manifestProtocol = computed(() => {
 const url = ref('')
 const variant = ref('all')
 const mode = ref('basic')
-const streamLabel = ref('! SeedSphere')
 const limitEnabled = ref(false)
 const limit = ref(0)
 const full = ref(false)
@@ -1547,7 +1520,6 @@ async function copyShareLink() {
       u.searchParams.set('variant', variant.value)
     }
     u.searchParams.set('mode', mode.value)
-    if (streamLabel.value) u.searchParams.set('stream_label', streamLabel.value)
   if (limitEnabled.value) {
     u.searchParams.set('limit', String(limit.value))
     u.searchParams.set('limit_enable', '1')
@@ -1639,6 +1611,13 @@ onMounted(async () => {
     if (data && typeof data.version === 'string') {
       latestVersion.value = data.version
       try { localStorage.setItem('seedsphere.version_latest', data.version) } catch (_) {}
+      // Initialize seen version on first load to avoid false-positive banner
+      try {
+        if (!seenVersion.value) {
+          localStorage.setItem('seedsphere.version_seen', data.version)
+          seenVersion.value = data.version
+        }
+      } catch (_) {}
     }
   } catch (_) {}
 })
@@ -1780,7 +1759,6 @@ onMounted(() => {
       if (saved.variant) variant.value = saved.variant
       if (typeof saved.url === 'string') url.value = saved.url
       if (saved.mode) mode.value = saved.mode
-      if (typeof saved.streamLabel === 'string') streamLabel.value = saved.streamLabel
       if (typeof saved.limitEnabled === 'boolean') limitEnabled.value = saved.limitEnabled
       if (typeof saved.limit === 'number') limit.value = saved.limit
       if (typeof saved.full === 'boolean') full.value = saved.full
@@ -1801,13 +1779,12 @@ onMounted(() => {
   } catch (_) {}
 })
 
-watch([variant, url, mode, streamLabel, limitEnabled, limit, full, allowlist, blocklist, lastPreset], () => {
+watch([variant, url, mode, limitEnabled, limit, full, allowlist, blocklist, lastPreset], () => {
   try {
     localStorage.setItem('seedsphere.configure', JSON.stringify({
       variant: variant.value,
       url: url.value,
       mode: mode.value,
-      streamLabel: streamLabel.value,
       limitEnabled: !!limitEnabled.value,
       limit: Number(limit.value) || 0,
       full: !!full.value,

@@ -1,6 +1,7 @@
 const { normalizeMagnet, appendTrackers, buildMagnet } = require('./magnet.cjs')
 const { parseReleaseInfo } = require('./parse.cjs')
 const { enhanceDescription } = require('./ai_descriptions.cjs')
+const boosts = require('./boosts.cjs')
 
 // Simple in-memory cache: key -> { ts, ttl, streams }
 const CACHE = new Map()
@@ -125,7 +126,7 @@ async function filterAvailableProviders(providers, timeoutMs = 800) {
   return tests.map(t => (t.status === 'fulfilled' ? t.value : null)).filter(Boolean)
 }
 
-async function aggregateStreams({ type, id, providers, trackers, bingeGroup = 'seedsphere-optimized', cacheTtlMs = DEFAULT_TTL_MS, labelName = '! SeedSphere', descAppendOriginal = false, descRequireDetails = true, aiConfig = { enabled: false } }) {
+async function aggregateStreams({ type, id, providers, trackers, trackersTotal = null, mode = 'basic', maxTrackers = 0, bingeGroup = 'seedsphere-optimized', cacheTtlMs = DEFAULT_TTL_MS, labelName = 'SeedSphere', descAppendOriginal = false, descRequireDetails = true, aiConfig = { enabled: false } }) {
   const key = `agg:${providers.map(p => p.name || 'N').join(',')}:${type}:${id}`
   const cached = getCache(key)
   if (cached) return cached
@@ -144,7 +145,10 @@ async function aggregateStreams({ type, id, providers, trackers, bingeGroup = 's
   if (collected.length === 0) return []
 
   const merged = dedupeStreams(collected)
-  const trackersList = Array.isArray(trackers) ? trackers : []
+  const trackersAll = Array.isArray(trackers) ? trackers : []
+  // Cap trackers per magnet to avoid excessively long URLs in players
+  const cap = (Number.isFinite(maxTrackers) && maxTrackers > 0) ? Math.floor(maxTrackers) : 10
+  const trackersList = cap > 0 ? trackersAll.slice(0, cap) : trackersAll
 
   const final = []
   for (const s of merged) {
@@ -159,6 +163,13 @@ async function aggregateStreams({ type, id, providers, trackers, bingeGroup = 's
       continue
     }
     const trAdded = trackersList.length
+    // Determine infoHash for robustness (some players prefer it)
+    let infoHash = ''
+    if (s.infoHash) infoHash = String(s.infoHash).toLowerCase()
+    else if (magnet) {
+      const m = magnet.match(/xt=urn:btih:([a-fA-F0-9]{40}|[a-zA-Z0-9]{32})/)
+      if (m && m[1]) infoHash = m[1].toLowerCase()
+    }
     // Build enhanced description
     let description = buildDescriptionMultiline(magnet, s.title || s.name, s.provider, trAdded, s, { descAppendOriginal, descRequireDetails })
     // Optionally enhance via AI
@@ -181,12 +192,32 @@ async function aggregateStreams({ type, id, providers, trackers, bingeGroup = 's
       // Move extra details into a rich, multiline description
       description,
       url: magnet,
+      ...(infoHash ? { infoHash } : {}),
+      ...(typeof s.fileIdx === 'number' ? { fileIdx: s.fileIdx } : {}),
       behaviorHints: {
         ...(s.behaviorHints || {}),
         bingeGroup,
       },
     })
   }
+  // Emit enriched boost event with a representative title for Configure UI
+  try {
+    if (final.length > 0) {
+      const representativeTitle = final[0]?.title || ''
+      const source = 'aggregate: ' + providers.map(p => p.name || 'Upstream').join(', ')
+      boosts.push({
+        mode: String(mode || 'basic').toLowerCase(),
+        limit: Number.isFinite(maxTrackers) ? Number(maxTrackers) : 0,
+        healthy: Array.isArray(trackers) ? trackers.length : 0,
+        total: Number.isFinite(trackersTotal) ? Number(trackersTotal) : (Array.isArray(trackers) ? trackers.length : 0),
+        source,
+        type: String(type || ''),
+        id: String(id || ''),
+        title: representativeTitle,
+      })
+    }
+  } catch (_) { /* ignore boost errors */ }
+
   setCache(key, final, cacheTtlMs)
   return final
 }

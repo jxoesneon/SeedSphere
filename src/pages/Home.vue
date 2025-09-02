@@ -4,7 +4,7 @@
       
 
       <div v-if="showUpdateBanner" class="alert alert-info mb-4" role="status">
-        <span>A new version is available ({{ remoteVersion }}). Click Install/Update to refresh in Stremio.</span>
+        <span>Update available: SeedSphere v{{ latestVersion }} is available.</span>
         <button class="btn btn-sm" @click="dismissUpdate">Dismiss</button>
       </div>
 
@@ -22,6 +22,7 @@
           </ul>
           <div class="mt-4 flex flex-wrap gap-2">
             <a class="btn btn-primary" :href="manifestProtocol">Install / Update in Stremio</a>
+            <a class="btn btn-secondary" :href="manifestExperimentalProtocol" title="Installs experimental manifest with non-official fields">Experimental Install</a>
             <button class="btn" type="button" @click="openStremio">Open Stremio</button>
             <button class="btn" type="button" @click="copyInstall">Copy Install Link</button>
             <button v-if="canInstallPwa" class="btn" type="button" @click="installPwa">Install App</button>
@@ -45,7 +46,7 @@
           </div>
 
           <!-- Install via QR header and toggle button -->
-          <div class="mt-6 flex items-center gap-2">
+          <div class="mt-6 flex flex-wrap items-center gap-2">
             <h3 class="text-lg font-semibold">Install via QR code</h3>
             <button class="btn btn-ghost btn-sm" type="button" @click="toggleQr" :aria-label="showQr ? 'Hide QR' : 'Show QR'">
               <svg v-if="showQr" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
@@ -60,7 +61,7 @@
           </div>
 
           <div v-if="showQr" class="mt-4">
-            <img :src="qrSrc" alt="QR to install/refresh addon in Stremio" class="w-64 h-64" />
+            <img :src="qrSrc" alt="QR to install/refresh addon in Stremio" class="w-full max-w-xs h-auto" />
             <div class="muted text-sm mt-1">Scan on mobile to open the manifest in Stremio</div>
           </div>
         </div>
@@ -71,13 +72,60 @@
 
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
+import { gardener } from '../lib/gardener'
 
 const origin = typeof window !== 'undefined' ? window.location.origin : ''
-const manifestHttp = computed(() => `${origin}/manifest.json`)
-const manifestProtocol = computed(() => `stremio://${encodeURIComponent(manifestHttp.value)}`)
+const manifestHttp = computed(() => {
+  try {
+    const u = new URL('/manifest.json', origin || 'http://localhost')
+    const gid = gardener.getGardenerId()
+    if (gid) u.searchParams.set('gardener_id', gid)
+    return u.toString()
+  } catch (_) { return `${origin}/manifest.json` }
+})
+// Per Stremio deep link docs: replace https?:// with stremio:// (do NOT URI-encode the URL)
+// Also prefer 127.0.0.1 over localhost for local installs (HTTPS exception applies to 127.0.0.1)
+function toStremioProtocol(uStr) {
+  try {
+    const u = new URL(uStr)
+    if (u.hostname === 'localhost') u.hostname = '127.0.0.1'
+    return u.toString().replace(/^https?:\/\//, 'stremio://')
+  } catch (_) {
+    return uStr.replace('localhost', '127.0.0.1').replace(/^https?:\/\//, 'stremio://')
+  }
+}
+const manifestProtocol = computed(() => toStremioProtocol(manifestHttp.value))
+const manifestExperimentalHttp = computed(() => {
+  try {
+    const u = new URL('/manifest.experiment.json', origin || 'http://localhost')
+    const gid = gardener.getGardenerId()
+    if (gid) u.searchParams.set('gardener_id', gid)
+    return u.toString()
+  } catch (_) { return `${origin}/manifest.experiment.json` }
+})
+const manifestExperimentalProtocol = computed(() => toStremioProtocol(manifestExperimentalHttp.value))
 
-const remoteVersion = ref('')
-const showUpdateBanner = ref(false)
+const latestVersion = ref('')
+const seenVersion = ref('')
+function cmpSemver(a, b) {
+  try {
+    const pa = String(a || '').split('.')
+    const pb = String(b || '').split('.')
+    for (let i = 0; i < 3; i++) {
+      const na = parseInt(pa[i] || '0', 10)
+      const nb = parseInt(pb[i] || '0', 10)
+      if (Number.isNaN(na) || Number.isNaN(nb)) break
+      if (na > nb) return 1
+      if (na < nb) return -1
+    }
+    return 0
+  } catch (_) { return 0 }
+}
+const showUpdateBanner = computed(() => {
+  if (!latestVersion.value) return false
+  if (!seenVersion.value) return false
+  return cmpSemver(latestVersion.value, seenVersion.value) > 0
+})
 const showQr = ref(true)
 const canInstallPwa = ref(false)
 const deferredPrompt = ref(null)
@@ -116,7 +164,7 @@ const installTips = computed(() => {
 })
 
 const qrSrc = computed(() => {
-  const data = encodeURIComponent(manifestHttp.value)
+  const data = encodeURIComponent(manifestProtocol.value)
   // Use a lightweight external QR generator
   return `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${data}`
 })
@@ -157,8 +205,10 @@ function toggleTheme() {
 }
 
 function dismissUpdate() {
-  localStorage.setItem('seedsphere-dismissed-version', remoteVersion.value || '')
-  showUpdateBanner.value = false
+  try {
+    if (latestVersion.value) localStorage.setItem('seedsphere.version_seen', latestVersion.value)
+    seenVersion.value = latestVersion.value
+  } catch (_) {}
 }
 
 onMounted(async () => {
@@ -171,16 +221,20 @@ onMounted(async () => {
   window.addEventListener('beforeinstallprompt', onBip)
 
   try {
+    // Load last seen
+    try { seenVersion.value = localStorage.getItem('seedsphere.version_seen') || '' } catch (_) {}
     const res = await fetch(manifestHttp.value, { cache: 'no-store' })
     if (res.ok) {
       const m = await res.json()
-      remoteVersion.value = (m && m.version) || ''
-      const dismissed = localStorage.getItem('seedsphere-dismissed-version') || ''
-      const lastSeen = localStorage.getItem('seedsphere-last-seen-version') || ''
-      if (remoteVersion.value && remoteVersion.value !== dismissed && remoteVersion.value !== lastSeen) {
-        showUpdateBanner.value = true
-        localStorage.setItem('seedsphere-last-seen-version', remoteVersion.value)
-      }
+      latestVersion.value = (m && m.version) || ''
+      try { if (latestVersion.value) localStorage.setItem('seedsphere.version_latest', latestVersion.value) } catch (_) {}
+      // Initialize seen on first load to avoid false-positive banner
+      try {
+        if (!seenVersion.value && latestVersion.value) {
+          localStorage.setItem('seedsphere.version_seen', latestVersion.value)
+          seenVersion.value = latestVersion.value
+        }
+      } catch (_) {}
     }
   } catch (_) { /* ignore */ }
 

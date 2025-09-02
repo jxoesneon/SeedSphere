@@ -93,9 +93,39 @@ function migrate() {
       payload_json BLOB,
       created_at INTEGER NOT NULL,
       expires_at INTEGER NOT NULL,
-      hits INTEGER DEFAULT 0
+      hits INTEGER DEFAULT 0,
+      last_write_at INTEGER
     );
     CREATE INDEX IF NOT EXISTS cache_expires ON cache(expires_at);
+    -- Linking model (bootstrap in absence of migrations files)
+    CREATE TABLE IF NOT EXISTS gardeners (
+      gardener_id TEXT PRIMARY KEY,
+      user_id TEXT,
+      platform TEXT,
+      created_at INTEGER NOT NULL,
+      last_seen INTEGER
+    );
+    CREATE TABLE IF NOT EXISTS seedlings (
+      seedling_id TEXT PRIMARY KEY,
+      user_id TEXT,
+      created_at INTEGER NOT NULL,
+      last_seen INTEGER
+    );
+    CREATE TABLE IF NOT EXISTS bindings (
+      seedling_id TEXT NOT NULL,
+      gardener_id TEXT NOT NULL,
+      secret TEXT NOT NULL,
+      created_at INTEGER NOT NULL,
+      PRIMARY KEY (seedling_id, gardener_id)
+    );
+    CREATE INDEX IF NOT EXISTS bindings_g ON bindings(gardener_id);
+    CREATE INDEX IF NOT EXISTS bindings_s ON bindings(seedling_id);
+    CREATE TABLE IF NOT EXISTS link_tokens (
+      token TEXT PRIMARY KEY,
+      gardener_id TEXT NOT NULL,
+      expires_at INTEGER NOT NULL,
+      created_at INTEGER NOT NULL
+    );
     CREATE TABLE IF NOT EXISTS audit (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       event TEXT NOT NULL,
@@ -243,6 +273,92 @@ function setCacheRow(cache_key, payloadObj, ttlMs) {
     .run(cache_key, payload_json, now, exp, cache_key)
 }
 
+// Enforce weekly write cap: at most one write per (key) per 7 days
+function setCacheRowWeeklyCapped(cache_key, payloadObj, ttlMs) {
+  const now = Date.now()
+  const row = db.prepare('SELECT last_write_at FROM cache WHERE cache_key = ?').get(cache_key)
+  const weekMs = 7 * 24 * 60 * 60_000
+  if (row && row.last_write_at && (now - row.last_write_at) < weekMs) return false
+  const exp = now + Math.max(60_000, Number(ttlMs) || 7 * 24 * 60 * 60_000)
+  const payload_json = Buffer.from(JSON.stringify(payloadObj))
+  db.prepare('INSERT INTO cache (cache_key, payload_json, created_at, expires_at, hits, last_write_at) VALUES (?, ?, ?, ?, 0, ?) ON CONFLICT(cache_key) DO UPDATE SET payload_json=excluded.payload_json, expires_at=excluded.expires_at, last_write_at=excluded.last_write_at')
+    .run(cache_key, payload_json, now, exp, now)
+  return true
+}
+
+// Linking helpers
+function upsertGardener(gardener_id, platform = null) {
+  const now = Date.now()
+  db.prepare(`INSERT INTO gardeners (gardener_id, user_id, platform, created_at, last_seen)
+              VALUES (?, NULL, ?, ?, ?)
+              ON CONFLICT(gardener_id) DO UPDATE SET platform = COALESCE(excluded.platform, gardeners.platform), last_seen = excluded.last_seen`).run(gardener_id, platform, now, now)
+  return db.prepare('SELECT gardener_id, user_id, platform, created_at, last_seen FROM gardeners WHERE gardener_id = ?').get(gardener_id)
+}
+
+function touchGardener(gardener_id) {
+  const now = Date.now()
+  db.prepare('UPDATE gardeners SET last_seen = ? WHERE gardener_id = ?').run(now, gardener_id)
+}
+
+function upsertSeedling(seedling_id) {
+  const now = Date.now()
+  db.prepare(`INSERT INTO seedlings (seedling_id, user_id, created_at, last_seen)
+              VALUES (?, NULL, ?, ?)
+              ON CONFLICT(seedling_id) DO UPDATE SET last_seen = excluded.last_seen`).run(seedling_id, now, now)
+  return db.prepare('SELECT seedling_id, user_id, created_at, last_seen FROM seedlings WHERE seedling_id = ?').get(seedling_id)
+}
+
+function listBindingsByGardener(gardener_id) {
+  return db.prepare('SELECT seedling_id, gardener_id, secret, created_at FROM bindings WHERE gardener_id = ? ORDER BY created_at DESC').all(gardener_id)
+}
+
+function listBindingsBySeedling(seedling_id) {
+  return db.prepare('SELECT seedling_id, gardener_id, secret, created_at FROM bindings WHERE seedling_id = ? ORDER BY created_at DESC').all(seedling_id)
+}
+
+function createBinding(gardener_id, seedling_id, secret) {
+  const now = Date.now()
+  db.prepare('INSERT OR REPLACE INTO bindings (seedling_id, gardener_id, secret, created_at) VALUES (?, ?, ?, ?)').run(seedling_id, gardener_id, secret, now)
+}
+
+function deleteBinding(gardener_id, seedling_id) {
+  db.prepare('DELETE FROM bindings WHERE gardener_id = ? AND seedling_id = ?').run(gardener_id, seedling_id)
+}
+
+function countBindingsForGardener(gardener_id) {
+  const r = db.prepare('SELECT COUNT(*) AS c FROM bindings WHERE gardener_id = ?').get(gardener_id)
+  return (r && r.c) || 0
+}
+
+function countBindingsForSeedling(seedling_id) {
+  const r = db.prepare('SELECT COUNT(*) AS c FROM bindings WHERE seedling_id = ?').get(seedling_id)
+  return (r && r.c) || 0
+}
+
+function createLinkToken(token, gardener_id, ttlMs) {
+  const now = Date.now()
+  const exp = now + Math.max(60_000, ttlMs || 10 * 60_000)
+  db.prepare('INSERT OR REPLACE INTO link_tokens (token, gardener_id, expires_at, created_at) VALUES (?, ?, ?, ?)').run(token, gardener_id, exp, now)
+  return { token, gardener_id, expires_at: exp }
+}
+
+function getLinkToken(token) {
+  const row = db.prepare('SELECT token, gardener_id, expires_at, created_at FROM link_tokens WHERE token = ?').get(token)
+  if (!row) return null
+  if (row.expires_at < Date.now()) return null
+  return row
+}
+
+function deleteLinkToken(token) {
+  try { db.prepare('DELETE FROM link_tokens WHERE token = ?').run(token) } catch (_) {}
+}
+
+function getBindingSecret(gardener_id, seedling_id) {
+  if (!gardener_id || !seedling_id) return null
+  const row = db.prepare('SELECT secret FROM bindings WHERE gardener_id = ? AND seedling_id = ?').get(gardener_id, seedling_id)
+  return row ? row.secret : null
+}
+
 // Audit log
 function writeAudit(event, metaObj) {
   const at = Date.now()
@@ -271,6 +387,21 @@ module.exports = {
   touchRoom,
   getCacheRow,
   setCacheRow,
+  setCacheRowWeeklyCapped,
   writeAudit,
   getLatestLinkedPairingByInstall,
+  // linking
+  upsertGardener,
+  touchGardener,
+  upsertSeedling,
+  listBindingsByGardener,
+  listBindingsBySeedling,
+  createBinding,
+  deleteBinding,
+  countBindingsForGardener,
+  countBindingsForSeedling,
+  createLinkToken,
+  getLinkToken,
+  deleteLinkToken,
+  getBindingSecret,
 }
