@@ -43,4 +43,10 @@ function subscribe(fn) {
   return () => listeners.delete(fn)
 }
 
-module.exports = { push, recent, subscribe }
+// Test-only helper for isolation
+function __resetForTests() {
+  try { items.length = 0 } catch (_) {}
+  try { listeners.clear() } catch (_) {}
+}
+
+module.exports = { push, recent, subscribe, __resetForTests }

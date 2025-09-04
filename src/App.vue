@@ -27,6 +27,7 @@
           <RouterLink to="/" class="btn btn-ghost btn-sm">Home</RouterLink>
           <RouterLink to="/configure" class="btn btn-ghost btn-sm">Configure</RouterLink>
           <RouterLink to="/pair" class="btn btn-ghost btn-sm">Pair</RouterLink>
+          <RouterLink to="/activity" class="btn btn-ghost btn-sm">Activity</RouterLink>
           <a class="btn btn-ghost btn-sm" :href="manifestUrl" target="_blank" rel="noopener">Manifest</a>
           <RouterLink v-if="isDev" to="/executor" class="btn btn-ghost btn-sm">Executor</RouterLink>
           <span v-if="gardenerId" class="badge badge-outline badge-sm" :title="`gardener_id: ${gardenerId}`">G: {{ gardenerId }}</span>
@@ -111,9 +112,147 @@ function applyTheme(t) {
   theme.value = safe
 }
 
+// Detect Chromium-based browsers (Chrome, Edge, Brave, etc.)
+function isChromium() {
+  try {
+    const ua = navigator.userAgent || ''
+    const brands = (navigator.userAgentData && Array.isArray(navigator.userAgentData.brands)) ? navigator.userAgentData.brands.map(b => b.brand).join(' ') : ''
+    const s = `${ua} ${brands}`
+    return /Chrome|Chromium|Edg\//.test(s) && !/Firefox|Safari\//.test(s)
+  } catch (_) { return false }
+}
+
+// Minimal, theme-friendly floating Ko-fi fallback button (used only on Chromium)
+function addKofiFallbackButton() {
+  try {
+    if (document.querySelector('[data-kofi="fallback"]')) return
+    const a = document.createElement('a')
+    a.href = 'https://ko-fi.com/jxoesneon'
+    a.target = '_blank'
+    a.rel = 'noopener'
+    a.textContent = 'Support me'
+    a.setAttribute('aria-label', 'Support me on Ko-fi')
+    a.setAttribute('data-kofi', 'fallback')
+    Object.assign(a.style, {
+      position: 'fixed', left: '16px', bottom: '16px', zIndex: '2147483000',
+      background: '#00b9fe', color: '#fff', padding: '8px 12px',
+      borderRadius: '9999px', fontWeight: '600', boxShadow: '0 4px 14px rgba(0,0,0,0.25)',
+      display: 'inline-flex', alignItems: 'center', gap: '6px', textDecoration: 'none',
+      lineHeight: '1', fontSize: '13px'
+    })
+    document.body.appendChild(a)
+  } catch (_) {}
+}
+
+// Ko-fi overlay: force transparent backgrounds to avoid white blocks in dark theme
+function injectKofiOverlayOverrides() {
+  try {
+    // 1) Inject style once
+    if (!document.querySelector('style[data-kofi="overlay-override"]')) {
+      const css = `
+[id^="kofi-widget-overlay-"] {
+  color-scheme: normal !important;
+  isolation: isolate !important;
+  will-change: transform, opacity !important;
+  transform: translateZ(0) !important;
+  backface-visibility: hidden !important;
+  z-index: 2147483000 !important;
+}
+[id^="kofi-widget-overlay-"] .floatingchat-container-wrap,
+[id^="kofi-widget-overlay-"] .floatingchat-container-wrap-mobi,
+[id^="kofi-widget-overlay-"] .floating-chat-kofi-popup-iframe,
+[id^="kofi-widget-overlay-"] .floating-chat-kofi-popup-iframe-mobi,
+[id^="kofi-widget-overlay-"] .floating-chat-kofi-popup-iframe-notice,
+[id^="kofi-widget-overlay-"] .floating-chat-kofi-popup-iframe-closer,
+[id^="kofi-widget-overlay-"] .floating-chat-kofi-popup-iframe-container,
+[id^="kofi-widget-overlay-"] .floating-chat-kofi-popup-iframe-container-mobi,
+[id^="kofi-widget-overlay-"] .floatingchat-container-wrap::before,
+[id^="kofi-widget-overlay-"] .floatingchat-container-wrap::after,
+[id^="kofi-widget-overlay-"] .floatingchat-container-wrap-mobi::before,
+[id^="kofi-widget-overlay-"] .floatingchat-container-wrap-mobi::after,
+[id^="kofi-widget-overlay-"] .floating-chat-kofi-popup-iframe::before,
+[id^="kofi-widget-overlay-"] .floating-chat-kofi-popup-iframe::after,
+[id^="kofi-widget-overlay-"] .floating-chat-kofi-popup-iframe-mobi::before,
+[id^="kofi-widget-overlay-"] .floating-chat-kofi-popup-iframe-mobi::after {
+  background: transparent !important;
+  box-shadow: none !important;
+  border: none !important;
+  outline: none !important;
+  filter: none !important;
+}
+[id^="kofi-widget-overlay-"] a.kfds-text-is-link-dark { color: currentColor !important; }
+[id^="kofi-widget-overlay-"] iframe {
+  color-scheme: normal !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  border: 0 !important;
+  outline: 0 !important;
+  mix-blend-mode: normal !important;
+  will-change: transform, opacity !important;
+  transform: translateZ(0) !important;
+  backface-visibility: hidden !important;
+}
+[id^="kofi-widget-overlay-"] .floatingchat-container-wrap,
+[id^="kofi-widget-overlay-"] .floatingchat-container-wrap-mobi {
+  overflow: visible !important;
+  opacity: 1 !important;
+}
+[id^="kofi-widget-overlay-"] iframe.floatingchat-container,
+[id^="kofi-widget-overlay-"] iframe.floatingchat-container-mobi {
+  overflow: visible !important;
+}
+`
+      const st = document.createElement('style')
+      st.type = 'text/css'
+      st.setAttribute('data-kofi', 'overlay-override')
+      st.appendChild(document.createTextNode(css))
+      document.head.appendChild(st)
+    }
+    // 2) Also directly style iframes in case Chrome paints white by default
+    const tweak = () => {
+      try {
+        document
+          .querySelectorAll('[id^="kofi-widget-overlay-"] iframe')
+          .forEach((f) => {
+            f.style.background = 'transparent'
+            f.style.boxShadow = 'none'
+            f.style.border = '0'
+            f.style.outline = '0'
+            try { f.setAttribute('allowtransparency', 'true') } catch (_) {}
+          })
+      } catch (_) {}
+    }
+    tweak()
+    try { setTimeout(tweak, 150) } catch (_) {}
+
+    // 3) Fade wrappers in after iframe load to prevent initial white flash in Chrome
+    const fadeIn = () => {
+      try {
+        document
+          .querySelectorAll('[id^="kofi-widget-overlay-"] .floatingchat-container-wrap, [id^="kofi-widget-overlay-"] .floatingchat-container-wrap-mobi')
+          .forEach((el) => {
+            try { el.style.setProperty('opacity', '1', 'important') } catch (_) { el.style.opacity = '1' }
+          })
+      } catch (_) {}
+    }
+    try {
+      document
+        .querySelectorAll('[id^="kofi-widget-overlay-"] iframe')
+        .forEach((f) => { f.addEventListener('load', fadeIn, { once: true }) })
+    } catch (_) {}
+    // Redundant fallbacks in case the load event fires before listeners attach
+    try { setTimeout(fadeIn, 0) } catch (_) {}
+    try { setTimeout(fadeIn, 600) } catch (_) {}
+    try { setTimeout(fadeIn, 1500) } catch (_) {}
+  } catch (_) {}
+}
+
 onMounted(() => {
   // Initialize auth session state and handle login=ok
   auth.initAuth()
+
+  // Ensure Ko-fi override CSS is present ASAP to prevent any initial white flash
+  try { injectKofiOverlayOverrides() } catch (_) {}
 
   try {
     const saved = localStorage.getItem('theme')
@@ -142,6 +281,8 @@ onMounted(() => {
             'floating-chat.donateButton.text-color': '#fff',
           })
         } catch (_) {}
+        // Ensure our overrides are applied after the Ko-fi CSS
+        injectKofiOverlayOverrides()
         return true
       }
       return false
@@ -151,10 +292,10 @@ onMounted(() => {
       s.src = 'https://storage.ko-fi.com/cdn/scripts/overlay-widget.js'
       s.async = true
       s.setAttribute('data-kofi', 'overlay')
-      s.onload = () => { ensure() }
+      s.onload = () => { try { ensure() } finally { injectKofiOverlayOverrides() } }
       document.head.appendChild(s)
     } else {
-      ensure()
+      ensure(); injectKofiOverlayOverrides()
     }
   } catch (_) {}
 

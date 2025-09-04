@@ -7,7 +7,7 @@
     "dev": "cross-env NODE_ENV=development node server/index.js",
     "build": "vite build",
     "preview": "cross-env NODE_ENV=production node server/index.js",
-    "test": "node --test server/lib/__tests__/normalize.test.cjs",
+    "test": "cross-env SEEDSPHERE_DISABLE_PREFETCH=1 SEEDSPHERE_DISABLE_VITE=1 node --test",
     "parity": "node scripts/parity-check.js"
   },
   "dependencies": {
@@ -17,6 +17,7 @@
     "express": "^4.19.2",
     "jsonwebtoken": "^9.0.2",
     "libsodium-wrappers": "^0.7.15",
+    "bencode": "^4.0.0",
     "nanoid": "^5.1.5",
     "nodemailer": "^7.0.5",
     "openid-client": "^6.7.1",

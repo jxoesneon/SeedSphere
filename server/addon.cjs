@@ -152,6 +152,64 @@ const manifest = {
             "title": "AI user id (opaque)",
             "default": ""
         },
+        {
+            "key": "probe_providers",
+            "type": "select",
+            "title": "Probe provider responsiveness",
+            "default": "off",
+            "options": [ { "value": "off", "label": "Off" }, { "value": "on", "label": "On" } ]
+        },
+        {
+            "key": "probe_timeout_ms",
+            "type": "number",
+            "title": "Probe timeout (ms)",
+            "default": 500
+        },
+        {
+            "key": "provider_fetch_timeout_ms",
+            "type": "number",
+            "title": "Provider fetch timeout (ms)",
+            "default": 3000
+        },
+        {
+            "key": "sort_order",
+            "type": "select",
+            "title": "Sorting: direction",
+            "default": "desc",
+            "options": [ { "value": "desc", "label": "Descending" }, { "value": "asc", "label": "Ascending" } ]
+        },
+        {
+            "key": "sort_fields",
+            "type": "text",
+            "title": "Sorting: fields order (comma-separated)",
+            "default": "resolution,peers,language"
+        },
+        {
+            "key": "swarm_enabled",
+            "type": "select",
+            "title": "Swarm scraping",
+            "default": "off",
+            "options": [ { "value": "off", "label": "Off" }, { "value": "on", "label": "On" } ]
+        },
+        {
+            "key": "swarm_top_n",
+            "type": "number",
+            "title": "Swarm scraping: top N items",
+            "default": 2
+        },
+        {
+            "key": "swarm_missing_only",
+            "type": "select",
+            "title": "Swarm: enrich only when upstream lacks seeds/peers",
+            "default": "on",
+            "options": [ { "value": "on", "label": "On" }, { "value": "off", "label": "Off" } ]
+        },
+        {
+            "key": "swarm_timeout_ms",
+            "type": "number",
+            "title": "Swarm timeout (ms)",
+            "default": 800
+        },
 		{
 			"key": "providers_torrentio",
 			"type": "select",
@@ -391,35 +449,96 @@ builder.defineStreamHandler(async (args, cb) => {
   const autoProxy = String(cfg.auto_proxy || 'on').toLowerCase() !== 'off'
   if (autoProxy) {
     try {
-      // Select providers based on config toggles
+      // Provider prioritization and capping (env-based)
+      const limitDefault = Number(process.env.PROVIDERS_LIMIT_DEFAULT || '6')
+      const limitMovie = Number(process.env.PROVIDERS_LIMIT_MOVIE || '')
+      const limitSeries = Number(process.env.PROVIDERS_LIMIT_SERIES || '')
+      const getLimit = (t) => {
+        let n = limitDefault
+        if (t === 'movie' && Number.isFinite(limitMovie)) n = limitMovie
+        if (t === 'series' && Number.isFinite(limitSeries)) n = limitSeries
+        if (!Number.isFinite(n) || n <= 0) n = 6
+        return Math.max(1, Math.min(20, Math.floor(n)))
+      }
+      const limit = getLimit(type)
+
+      // Build prioritized list per type, honoring config toggles
+      const mods = { torrentio, yts, eztv, nyaa, x1337, piratebay, torrentgalaxy, torlock, magnetdl, anidex, tokyotosho, zooqle, rutor }
+      const toggleOn = (key) => String(cfg[key] || 'on').toLowerCase() !== 'off'
+      const order = (type === 'movie')
+        ? ['torrentio','yts','x1337','piratebay','torrentgalaxy','torlock','magnetdl','zooqle','rutor','nyaa','anidex','tokyotosho']
+        : ['torrentio','eztv','x1337','piratebay','torrentgalaxy','torlock','magnetdl','rutor','nyaa','anidex','tokyotosho','zooqle']
+      const mapKeyForName = {
+        torrentio: 'providers_torrentio',
+        yts: 'providers_yts',
+        eztv: 'providers_eztv',
+        nyaa: 'providers_nyaa',
+        x1337: 'providers_1337x',
+        piratebay: 'providers_piratebay',
+        torrentgalaxy: 'providers_torrentgalaxy',
+        torlock: 'providers_torlock',
+        magnetdl: 'providers_magnetdl',
+        anidex: 'providers_anidex',
+        tokyotosho: 'providers_tokyotosho',
+        zooqle: 'providers_zooqle',
+        rutor: 'providers_rutor',
+      }
       const providers = []
-      const torrentioOn = String(cfg.providers_torrentio || 'on').toLowerCase() !== 'off'
-      if (torrentioOn) providers.push(torrentio)
-      const ytsOn = String(cfg.providers_yts || 'on').toLowerCase() !== 'off'
-      if (ytsOn) providers.push(yts)
-      const eztvOn = String(cfg.providers_eztv || 'on').toLowerCase() !== 'off'
-      if (eztvOn) providers.push(eztv)
-      const nyaaOn = String(cfg.providers_nyaa || 'on').toLowerCase() !== 'off'
-      if (nyaaOn) providers.push(nyaa)
-      const x1337On = String(cfg.providers_1337x || 'on').toLowerCase() !== 'off'
-      if (x1337On) providers.push(x1337)
-      const pirateOn = String(cfg.providers_piratebay || 'on').toLowerCase() !== 'off'
-      if (pirateOn) providers.push(piratebay)
-      const tgxOn = String(cfg.providers_torrentgalaxy || 'on').toLowerCase() !== 'off'
-      if (tgxOn) providers.push(torrentgalaxy)
-      const torlockOn = String(cfg.providers_torlock || 'on').toLowerCase() !== 'off'
-      if (torlockOn) providers.push(torlock)
-      const magnetdlOn = String(cfg.providers_magnetdl || 'on').toLowerCase() !== 'off'
-      if (magnetdlOn) providers.push(magnetdl)
-      const anidexOn = String(cfg.providers_anidex || 'on').toLowerCase() !== 'off'
-      if (anidexOn) providers.push(anidex)
-      const tokyotoshoOn = String(cfg.providers_tokyotosho || 'on').toLowerCase() !== 'off'
-      if (tokyotoshoOn) providers.push(tokyotosho)
-      const zooqleOn = String(cfg.providers_zooqle || 'on').toLowerCase() !== 'off'
-      if (zooqleOn) providers.push(zooqle)
-      const rutorOn = String(cfg.providers_rutor || 'on').toLowerCase() !== 'off'
-      if (rutorOn) providers.push(rutor)
-      const streams = await aggregateStreams({ type, id, providers, trackers: effective, trackersTotal: trackers.length, mode, maxTrackers, bingeGroup: 'seedsphere-optimized', labelName, descAppendOriginal, descRequireDetails, aiConfig })
+      for (const name of order) {
+        const mod = mods[name]
+        const key = mapKeyForName[name]
+        if (!mod || !toggleOn(key)) continue
+        // Avoid mismatched specializations
+        if (type === 'series' && name === 'yts') continue
+        if (type === 'movie' && name === 'eztv') continue
+        providers.push(mod)
+        if (providers.length >= limit) break
+      }
+
+      // Aggregate with optional probe + swarm options (cfg overrides env)
+      const probeProviders = String((cfg.probe_providers ?? process.env.PROBE_PROVIDERS ?? 'off')).toLowerCase()
+      const probeTimeoutMs = Math.max(200, Number(cfg.probe_timeout_ms ?? process.env.PROBE_TIMEOUT_MS ?? 500))
+      const providerFetchTimeoutMs = Math.max(800, Number(cfg.provider_fetch_timeout_ms ?? process.env.PROVIDER_FETCH_TIMEOUT_MS ?? 3000))
+      // Sorting preferences
+      const allowedSortFields = ['resolution','peers','language','size','codec','source','hdr','audio']
+      const sortOrder = (String(cfg.sort_order || 'desc').toLowerCase() === 'asc') ? 'asc' : 'desc'
+      let sortFields = String(cfg.sort_fields || 'resolution,peers,language')
+        .split(',')
+        .map((s) => s && String(s).trim().toLowerCase())
+        .filter(Boolean)
+        .filter((s, i, arr) => arr.indexOf(s) === i)
+        .filter((s) => allowedSortFields.includes(s))
+      if (!Array.isArray(sortFields) || sortFields.length === 0) sortFields = ['resolution','peers','language']
+      const swarmEnabled = (cfg.swarm_enabled !== undefined)
+        ? (String(cfg.swarm_enabled).toLowerCase() === 'on')
+        : /^(1|true|on)$/i.test(String(process.env.SWARM_ENABLED || ''))
+      const swarmTopN = Number.isFinite(Number(cfg.swarm_top_n))
+        ? Number(cfg.swarm_top_n)
+        : (Number.isFinite(Number(process.env.SWARM_TOP_N || '')) ? Number(process.env.SWARM_TOP_N) : 2)
+      const swarmMissingOnly = (cfg.swarm_missing_only !== undefined)
+        ? (String(cfg.swarm_missing_only).toLowerCase() === 'on')
+        : (!process.env.SWARM_MISSING_ONLY || /^(1|true|on)$/i.test(String(process.env.SWARM_MISSING_ONLY || '')))
+      const swarmTimeoutMs = Math.max(400, Number(cfg.swarm_timeout_ms ?? process.env.SWARM_TIMEOUT_MS ?? 800))
+
+      const streams = await aggregateStreams({
+        type,
+        id,
+        providers,
+        trackers: effective,
+        trackersTotal: trackers.length,
+        mode,
+        maxTrackers,
+        bingeGroup: 'seedsphere-optimized',
+        labelName,
+        descAppendOriginal,
+        descRequireDetails,
+        aiConfig,
+        probeProviders,
+        probeTimeoutMs,
+        providerFetchTimeoutMs,
+        swarm: { enabled: swarmEnabled, topN: swarmTopN, timeoutMs: swarmTimeoutMs, missingOnly: swarmMissingOnly },
+        sort: { order: sortOrder, fields: sortFields },
+      })
       if (Array.isArray(streams) && streams.length > 0) {
         return cb(null, { streams })
       }
@@ -428,16 +547,18 @@ builder.defineStreamHandler(async (args, cb) => {
     }
   }
 
-  // Demo stream for a known IMDb id
+  // Demo stream for a known IMDb id (note: fake infoHash, non-playable)
   if ((type === "movie" || type === "series") && id === "tt1254207") {
     const infoHash = "0000000000000000000000000000000000000000"
-    const trParams = effective.map((t) => `tr=${encodeURIComponent(t)}`).join("&")
-    const magnet = `magnet:?xt=urn:btih:${infoHash}${trParams ? "&" + trParams : ""}`
+    const sources = effective
+      .filter((t) => /^(?:https?:\/\/|udp:\/\/)/i.test(String(t)))
+      .map((t) => `tracker:${t}`)
 
     const stream = {
       name: `${labelName}`,
-      title: `Demo magnet with ${effective.length} trackers`,
-      url: magnet,
+      title: `Demo torrent with ${effective.length} trackers`,
+      infoHash,
+      ...(sources && sources.length ? { sources } : {}),
       behaviorHints: {
         bingeGroup: "seedsphere-trackers",
       },

@@ -1,17 +1,24 @@
 const { normalizeMagnet, appendTrackers, buildMagnet } = require('./magnet.cjs')
 const { parseReleaseInfo } = require('./parse.cjs')
 const { enhanceDescription } = require('./ai_descriptions.cjs')
+const { scrapeSwarm } = require('./swarm.cjs')
 const boosts = require('./boosts.cjs')
 
 // Simple in-memory cache: key -> { ts, ttl, streams }
 const CACHE = new Map()
 const DEFAULT_TTL_MS = 90 * 1000
+const STALE_TTL_MS = 10 * 60 * 1000 // allow serving stale results up to 10 minutes
 
-function getCache(key) {
+function getCache(key, allowStale = false) {
   const e = CACHE.get(key)
   if (!e) return null
-  if (Date.now() - e.ts > (e.ttl || DEFAULT_TTL_MS)) { CACHE.delete(key); return null }
-  return e.streams
+  const age = Date.now() - e.ts
+  const ttl = e.ttl || DEFAULT_TTL_MS
+  if (age <= ttl) return e.streams // fresh
+  if (allowStale && age <= ttl + STALE_TTL_MS) return e.streams // stale acceptable
+  // too old
+  CACHE.delete(key)
+  return null
 }
 
 function parseSeriesId(rawId) {
@@ -109,6 +116,19 @@ function buildDescriptionMultiline(magnetUrl, fallbackTitle, providerName, track
   else lines.push(`⚡ SeedSphere optimized`)
   if (providerName) lines.push(`📦 Provider: ${providerName}`)
 
+  // Series: add Season/Episode lines when available
+  try {
+    const metaType = opts && opts.meta && String(opts.meta.type || '').toLowerCase()
+    const metaId = opts && opts.meta && String(opts.meta.id || '')
+    if (metaType === 'series') {
+      const seFromId = parseSeriesId(metaId)
+      const seFromTitle = seFromId ? null : extractSeasonEpisode(fallbackTitle)
+      const se = seFromId || seFromTitle
+      if (se && Number.isFinite(se.season)) lines.push(`📅 Season: ${se.season}`)
+      if (se && Number.isFinite(se.episode)) lines.push(`🎬 Episode: ${se.episode}`)
+    }
+  } catch (_) { /* ignore */ }
+
   // Second block: technicals (each field on its own line)
   if (info.source) lines.push(`🧩 Source: ${info.source}`)
   if (info.codec) lines.push(`🎞️ Codec: ${info.codec}`)
@@ -176,13 +196,23 @@ async function filterAvailableProviders(providers, timeoutMs = 800) {
   return tests.map(t => (t.status === 'fulfilled' ? t.value : null)).filter(Boolean)
 }
 
-async function aggregateStreams({ type, id, providers, trackers, trackersTotal = null, mode = 'basic', maxTrackers = 0, bingeGroup = 'seedsphere-optimized', cacheTtlMs = DEFAULT_TTL_MS, labelName = 'SeedSphere', descAppendOriginal = false, descRequireDetails = true, aiConfig = { enabled: false } }) {
-  const key = `agg:${providers.map(p => p.name || 'N').join(',')}:${type}:${id}`
-  const cached = getCache(key)
+async function aggregateStreams({ type, id, providers, trackers, trackersTotal = null, mode = 'basic', maxTrackers = 0, bingeGroup = 'seedsphere-optimized', cacheTtlMs = DEFAULT_TTL_MS, labelName = 'SeedSphere', descAppendOriginal = false, descRequireDetails = true, aiConfig = { enabled: false }, probeProviders = 'off', probeTimeoutMs = 500, providerFetchTimeoutMs = 3000, swarm = { enabled: false, topN: 2, timeoutMs: 800, missingOnly: true }, sort = { order: 'desc', fields: ['resolution','peers','language'] } }) {
+  // Normalize sort config
+  const sortOrder = (sort && String(sort.order || 'desc').toLowerCase() === 'asc') ? 'asc' : 'desc'
+  const sortFields = Array.isArray(sort && sort.fields) && (sort.fields.length > 0)
+    ? sort.fields.map((s) => String(s || '').toLowerCase())
+    : ['resolution','peers','language']
+
+  const key = `agg:${providers.map(p => p.name || 'N').join(',')}:${type}:${id}:sort:${sortOrder}:${sortFields.join(',')}`
+  const cached = getCache(key, true)
   if (cached) return cached
 
-  const available = await filterAvailableProviders(providers)
-  const results = await Promise.allSettled(available.map(p => p.fetchStreams(type, id)))
+  const doProbe = (String(probeProviders || 'off').toLowerCase() === 'on') || (probeProviders === true)
+  const available = doProbe ? await filterAvailableProviders(providers, probeTimeoutMs) : providers
+  const results = await Promise.allSettled(available.map((p) => {
+    try { return p.fetchStreams(type, id, providerFetchTimeoutMs) }
+    catch (_) { return Promise.resolve({ ok: false, streams: [] }) }
+  }))
   const collected = []
   for (const r of results) {
     if (r.status !== 'fulfilled') continue
@@ -196,12 +226,19 @@ async function aggregateStreams({ type, id, providers, trackers, trackersTotal =
 
   const merged = dedupeStreams(collected)
   const trackersAll = Array.isArray(trackers) ? trackers : []
-  // Cap trackers per magnet to avoid excessively long URLs in players
-  const cap = (Number.isFinite(maxTrackers) && maxTrackers > 0) ? Math.floor(maxTrackers) : 10
+  // Use all trackers by default; allow optional cap via maxTrackers > 0
+  const cap = (Number.isFinite(maxTrackers) && maxTrackers > 0) ? Math.floor(maxTrackers) : trackersAll.length
   const trackersList = cap > 0 ? trackersAll.slice(0, cap) : trackersAll
 
-  const final = []
-  for (const s of merged) {
+  const items = []
+  const swarmCfg = swarm || {}
+  const swarmEnabled = !!swarmCfg.enabled
+  const swarmTopN = Number.isFinite(swarmCfg.topN) ? Math.max(0, swarmCfg.topN) : 0
+  const swarmTimeout = Number(swarmCfg.timeoutMs) || 800
+  const swarmMissingOnly = ('missingOnly' in swarmCfg) ? !!swarmCfg.missingOnly : true
+
+  for (let idx = 0; idx < merged.length; idx++) {
+    const s = merged[idx]
     let magnet = ''
     if (s.url && String(s.url).startsWith('magnet:?')) {
       const before = s.url
@@ -220,8 +257,32 @@ async function aggregateStreams({ type, id, providers, trackers, trackersTotal =
       const m = magnet.match(/xt=urn:btih:([a-fA-F0-9]{40}|[a-zA-Z0-9]{32})/)
       if (m && m[1]) infoHash = m[1].toLowerCase()
     }
-    // Build enhanced description
-    let description = buildDescriptionMultiline(magnet, s.title || s.name, s.provider, trAdded, s, { descAppendOriginal, descRequireDetails })
+    // Build sources array from supported tracker schemes
+    const sources = trackersList
+      .filter((t) => /^(?:https?:\/\/|udp:\/\/)/i.test(String(t)))
+      .map((t) => `tracker:${t}`)
+    // Optionally enrich upstream with real swarm stats (best-effort)
+    let enriched = s
+    try {
+      if (
+        swarmEnabled && (swarmTopN <= 0 || idx < swarmTopN) &&
+        infoHash && sources && sources.length &&
+        (!swarmMissingOnly || (!Number(enriched.seeds) && !Number(enriched.leechers) && !Number(enriched.peers) && !Number(enriched.seeders)))
+      ) {
+        const stats = await scrapeSwarm(infoHash, sources, swarmTimeout)
+        if (stats && stats.ok) {
+          const seedsNum = Number(stats.seeds)
+          const leechNum = Number(stats.leechers)
+          if (Number.isFinite(seedsNum) || Number.isFinite(leechNum)) {
+            enriched = { ...s }
+            if (Number.isFinite(seedsNum)) { enriched.seeds = seedsNum; enriched.seeders = seedsNum }
+            if (Number.isFinite(leechNum)) { enriched.leechers = leechNum; enriched.peers = leechNum }
+          }
+        }
+      }
+    } catch (_) { /* ignore swarm errors */ }
+    // Build enhanced description (using enriched values when available)
+    let description = buildDescriptionMultiline(magnet, s.title || s.name, s.provider, trAdded, enriched, { descAppendOriginal, descRequireDetails, meta: { type, id } })
     // Optionally enhance via AI
     let aiUsed = false
     if (aiConfig && aiConfig.enabled) {
@@ -235,21 +296,133 @@ async function aggregateStreams({ type, id, providers, trackers, trackersTotal =
     if (aiUsed) {
       description = (description ? description + '\n\n' : '') + '🧠 AI enhanced'
     }
-    final.push({
-      name: labelName || '! SeedSphere',
-      // Keep the original upstream title for Stremio UI
-      title: s.title || s.name,
-      // Move extra details into a rich, multiline description
-      description,
-      url: magnet,
-      ...(infoHash ? { infoHash } : {}),
-      ...(typeof s.fileIdx === 'number' ? { fileIdx: s.fileIdx } : {}),
-      behaviorHints: {
-        ...(s.behaviorHints || {}),
-        bingeGroup,
+    // Collect sorting metadata
+    const rInfo = parseReleaseInfo(magnet, s.title || s.name)
+    const resolutionToken = rInfo && rInfo.resolution ? String(rInfo.resolution) : ''
+    const resolutionScore = (() => {
+      const m = resolutionToken.match(/(\d{3,4})p/i)
+      if (m) return Number(m[1])
+      const low = resolutionToken.toLowerCase()
+      if (low.includes('4k') || low.includes('uhd')) return 2160
+      return 0
+    })()
+    const seedsNum = Number(enriched && (enriched.seeds ?? enriched.seeders ?? enriched.peers ?? enriched.leechers))
+    const peersScore = Number.isFinite(seedsNum) ? seedsNum : -1
+    const langsArr = []
+    try {
+      if (Array.isArray(enriched && enriched.languages)) langsArr.push(...enriched.languages)
+    } catch (_) { /* ignore */ }
+    try {
+      if (Array.isArray(rInfo && rInfo.languages)) langsArr.push(...rInfo.languages)
+    } catch (_) { /* ignore */ }
+    const primaryLang = (langsArr.find(Boolean) || '').toString().toLowerCase()
+
+    // Additional sorting metadata
+    const sizeScore = (() => {
+      const n = Number((enriched && enriched.sizeBytes) || (rInfo && rInfo.sizeBytes))
+      return Number.isFinite(n) ? n : -1
+    })()
+    const codecScore = (() => {
+      const raw = (rInfo && rInfo.codec ? String(rInfo.codec) : '').toLowerCase()
+      // Higher is better
+      if (!raw) return -1
+      if (/(av1)/i.test(raw)) return 6
+      if (/(hevc|x265|h\.?265)/i.test(raw)) return 5
+      if (/(x264|h\.?264)/i.test(raw)) return 4
+      if (/(vp9)/i.test(raw)) return 3
+      if (/(mpeg-?4)/i.test(raw)) return 2
+      return 0
+    })()
+    const sourceScore = (() => {
+      const src = (rInfo && rInfo.source ? String(rInfo.source) : '').toUpperCase()
+      // Normalize common tokens from parse: WEBDL, WEBRIP, BLURAY, BDRIP, HDTV, DVDRIP, CAM, TS
+      if (!src) return -1
+      if (/BLURAY|BDRIP/.test(src)) return 6
+      if (/WEBDL/.test(src)) return 5
+      if (/WEBRIP/.test(src)) return 4
+      if (/HDRIP/.test(src)) return 3
+      if (/HDTV/.test(src)) return 2
+      if (/DVDRIP/.test(src)) return 1
+      if (/CAM|TS/.test(src)) return 0
+      return 0
+    })()
+    const hdrScore = (() => {
+      const hdr = (rInfo && rInfo.hdr ? String(rInfo.hdr) : '').toUpperCase()
+      if (!hdr) return 0
+      if (/DOLBY\s?VISION|\bDV\b/.test(hdr)) return 3
+      if (/HDR10\+/.test(hdr)) return 2
+      if (/HDR10|\bHDR\b/.test(hdr)) return 1
+      return 1
+    })()
+    const audioScore = (() => {
+      const a = (rInfo && rInfo.audio ? String(rInfo.audio) : '').toUpperCase()
+      if (!a) return -1
+      if (/ATMOS|TRUEHD/.test(a)) return 6
+      if (/DTS-?HD|DTS\s?MA/.test(a)) return 5
+      if (/DTS/.test(a)) return 4
+      if (/E-?AC-?3|DDP/.test(a)) return 3
+      if (/AC3/.test(a)) return 2
+      if (/AAC/.test(a)) return 1
+      return 0
+    })()
+
+    items.push({
+      out: {
+        name: labelName || '! SeedSphere',
+        // Keep the original upstream title for Stremio UI
+        title: s.title || s.name,
+        // Move extra details into a rich, multiline description
+        description,
+        ...(infoHash ? { infoHash } : {}),
+        ...(typeof s.fileIdx === 'number' ? { fileIdx: s.fileIdx } : {}),
+        ...(sources && sources.length ? { sources } : {}),
+        behaviorHints: {
+          ...(s.behaviorHints || {}),
+          bingeGroup,
+        },
       },
+      meta: {
+        resolution: resolutionScore,
+        peers: peersScore,
+        language: primaryLang,
+        size: sizeScore,
+        codec: codecScore,
+        source: sourceScore,
+        hdr: hdrScore,
+        audio: audioScore,
+      }
     })
   }
+  // Apply sorting according to preferences
+  const fieldsToUse = sortFields.filter((f) => ['resolution','peers','language','size','codec','source','hdr','audio'].includes(f))
+  const factor = (sortOrder === 'asc') ? 1 : -1
+  items.sort((a, b) => {
+    for (const f of fieldsToUse) {
+      const av = a.meta[f]
+      const bv = b.meta[f]
+      if (f === 'language') {
+        const as = (av || '').toString()
+        const bs = (bv || '').toString()
+        if (!as && !bs) continue
+        if (!as && bs) return 1
+        if (as && !bs) return -1
+        const cmp = as.localeCompare(bs)
+        if (cmp !== 0) return factor * cmp
+      } else {
+        const na = Number(av)
+        const nb = Number(bv)
+        const aValid = Number.isFinite(na)
+        const bValid = Number.isFinite(nb)
+        if (!aValid && !bValid) continue
+        if (!aValid && bValid) return 1
+        if (aValid && !bValid) return -1
+        if (na !== nb) return factor * (na - nb)
+      }
+    }
+    return 0
+  })
+
+  const final = items.map((it) => it.out)
   // Emit enriched boost event with a representative title for Configure UI
   try {
     if (final.length > 0) {

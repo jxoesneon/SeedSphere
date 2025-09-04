@@ -70,11 +70,22 @@ const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 
 const isProd = process.env.NODE_ENV === 'production'
-const port = Number(process.env.PORT) || 8080
+// Port is determined inside createServer to allow tests to override
 
-async function createServer() {
+export async function createServer(opts = {}) {
   const app = express()
   const httpServer = http.createServer(app)
+
+  // Compute effective listen port (supports 0 and explicit overrides)
+  let listenPort
+  if (opts && Object.prototype.hasOwnProperty.call(opts, 'port')) {
+    listenPort = Number(opts.port)
+  } else if (process.env.PORT !== undefined) {
+    listenPort = Number(process.env.PORT)
+  } else {
+    listenPort = 8080
+  }
+  if (!Number.isFinite(listenPort)) listenPort = 8080
 
   // CORS — permissive for private testing; audit every CORS request
   app.use((req, res, next) => {
@@ -88,6 +99,17 @@ async function createServer() {
       // Optional: do not set Allow-Credentials to keep wildcard compatibility
       try { writeAudit('cors', { ip: req.ip, origin, method: req.method, path: req.originalUrl || req.url }) } catch (_) {}
       if (req.method === 'OPTIONS') return res.sendStatus(204)
+    } catch (_) { /* ignore */ }
+    next()
+  })
+
+  // Activity tracker to prioritize real addon requests over background prefetch
+  let lastActiveTs = Date.now()
+  const touchActive = () => { lastActiveTs = Date.now() }
+  app.use((req, _res, next) => {
+    try {
+      const p = req.path || ''
+      if (p.startsWith('/stream') || p.startsWith('/api')) touchActive()
     } catch (_) { /* ignore */ }
     next()
   })
@@ -940,6 +962,12 @@ async function createServer() {
   })
 
   // Mount Stremio SDK router (serves /stream/*); our manifest override stays above
+  // Log incoming stream requests for observability
+  app.use('/stream', (req, _res, next) => {
+    try { console.log('[stream] incoming', { path: req.originalUrl || req.url, ua: req.headers['user-agent'] || '' }) } catch (_) {}
+    touchActive()
+    next()
+  })
   app.use(addonInterface.getRouter())
 
   // --- Stream bridge ---
@@ -1043,12 +1071,12 @@ async function createServer() {
   }
 
   // In development, mount Vite after the API routes so /api and SSE endpoints are handled by Express first.
-  if (!isProd) {
+  if (!isProd && !opts.disableVite && !process.env.SEEDSPHERE_DISABLE_VITE) {
     const { createServer: createViteServer } = await import('vite')
     const vite = await createViteServer({
       server: {
         middlewareMode: true,
-        hmr: { server: httpServer, port, clientPort: port },
+        hmr: { server: httpServer, port: listenPort, clientPort: listenPort },
       },
       appType: 'custom',
     })
@@ -1097,16 +1125,107 @@ async function createServer() {
     })
   }
 
+  // --- Background prefetch of popular titles to warm cache ---
+  if (!process.env.SEEDSPHERE_DISABLE_PREFETCH && !opts.disablePrefetch) {
+    try {
+      const PREFETCH_INTERVAL_MS = Math.max(60_000, Number(process.env.PREFETCH_INTERVAL_MS || 5 * 60_000))
+      const PREFETCH_TIMEOUT_MS = Math.max(3000, Number(process.env.PREFETCH_TIMEOUT_MS || 8000))
+      const PREFETCH_CACHE_TTL_MS = Math.max(120_000, Number(process.env.PREFETCH_CACHE_TTL_MS || 6 * 60 * 60_000))
+      const PROVIDER_FETCH_TIMEOUT_MS = Math.max(800, Number(process.env.PROVIDER_FETCH_TIMEOUT_MS || 3000))
+      const POP_MOVIES = String(process.env.PREFETCH_MOVIES || 'tt1375666,tt0816692,tt0133093')
+        .split(',').map((s) => s.trim()).filter(Boolean)
+      const POP_SERIES = String(process.env.PREFETCH_SERIES || 'tt0944947,tt0903747,tt2861424')
+        .split(',').map((s) => s.trim()).filter(Boolean)
+
+      const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
+
+      async function warmOne({ type, id }) {
+        try {
+          // If recent activity, yield to prioritize real requests
+          if (Date.now() - lastActiveTs < 1500) {
+            await sleep(750)
+          }
+          // Trackers config (reuse server-side execution logic defaults)
+          const variant = String(process.env.TRACKERS_VARIANT || 'all').toLowerCase()
+          const trackersUrl = VARIANT_URLS[variant] || DEFAULT_TRACKERS_URL
+          let trackers = []
+          try { trackers = await fetchTrackers(trackersUrl) } catch (_) { trackers = [] }
+          const mode = 'off'
+          const maxTrackers = 0 // unlimited by default
+          let effective = trackers
+          if (mode !== 'off') {
+            try { effective = await filterByHealth(trackers, mode, maxTrackers) } catch (_) { effective = trackers }
+          } else {
+            effective = maxTrackers > 0 ? trackers.slice(0, maxTrackers) : trackers
+          }
+
+          // Providers (all enabled by default)
+          const providers = [
+            torrentio, yts, eztv, nyaa, x1337, piratebay,
+            torrentgalaxy, torlock, magnetdl, anidex, tokyotosho, zooqle, rutor,
+          ]
+
+          // Call aggregate with timeout budget; result is cached internally
+          const task = aggregateStreams({
+            type,
+            id,
+            providers,
+            trackers: effective,
+            trackersTotal: trackers.length,
+            mode,
+            maxTrackers,
+            cacheTtlMs: PREFETCH_CACHE_TTL_MS,
+            bingeGroup: 'seedsphere-optimized',
+            labelName: 'SeedSphere',
+            descAppendOriginal: false,
+            descRequireDetails: true,
+            aiConfig: { enabled: false },
+            providerFetchTimeoutMs: PROVIDER_FETCH_TIMEOUT_MS,
+          })
+          await Promise.race([
+            task,
+            new Promise((_, rej) => setTimeout(() => rej(new Error('prefetch_timeout')), PREFETCH_TIMEOUT_MS)),
+          ])
+        } catch (_) { /* ignore prefetch errors */ }
+      }
+
+      async function prefetchPopular() {
+        // Skip prefetch entirely if there was recent user activity
+        if (Date.now() - lastActiveTs < 1000) return
+        const jobs = []
+        for (const id of POP_MOVIES) jobs.push(warmOne({ type: 'movie', id }))
+        for (const id of POP_SERIES) jobs.push(warmOne({ type: 'series', id }))
+        // Run with limited concurrency to avoid spikes
+        const CONCURRENCY = 1
+        let i = 0
+        async function next() {
+          if (i >= jobs.length) return
+          const idx = i++
+          try { await jobs[idx] } catch (_) {}
+          return next()
+        }
+        const runners = Array.from({ length: Math.min(CONCURRENCY, jobs.length) }, () => next())
+        await Promise.allSettled(runners)
+      }
+
+      // Initial warm shortly after start, then on interval
+      setTimeout(() => { prefetchPopular().catch(() => {}) }, 2000)
+      setInterval(() => { prefetchPopular().catch(() => {}) }, PREFETCH_INTERVAL_MS)
+    } catch (_) { /* ignore scheduler errors */ }
+  }
+
   return new Promise((resolve) => {
-    httpServer.listen(port, () => {
-      console.log(`Server listening on http://localhost:${port}`)
+    httpServer.listen(listenPort, () => {
+      console.log(`Server listening on http://localhost:${listenPort}`)
       resolve(httpServer)
     })
   })
 }
 
-createServer()
-  .catch((err) => {
-    console.error(err)
-    process.exit(1)
-  })
+if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  createServer()
+    .catch((err) => {
+      console.error(err)
+      process.exit(1)
+    })
+}

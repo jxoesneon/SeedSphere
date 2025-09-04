@@ -30,6 +30,7 @@
         <a class="btn btn-xs" href="#upstream">Upstream</a>
         <a class="btn btn-xs" href="#prefs">Prefs</a>
         <a class="btn btn-xs" href="#sources">Sources</a>
+        <a class="btn btn-xs" href="#sort">Sort</a>
         <a class="btn btn-xs" href="#opt">Optimization</a>
         <a class="btn btn-xs" href="#sweep">Sweep</a>
         <a class="btn btn-xs" href="#lists">Allow/Block</a>
@@ -505,6 +506,60 @@
           </div>
         </div>
 
+        <!-- Stream Sorting Card -->
+        <div class="card bg-base-200 shadow-sm break-inside-avoid mb-4 w-full">
+          <div class="card-body p-3 md:p-4">
+            <details open class="collapse">
+              <summary id="sort" class="collapse-title text-base font-semibold">Stream Sorting</summary>
+              <div class="collapse-content p-0">
+                <div class="grid gap-3 p-3 rounded-box bg-base-300/50">
+                  <div class="flex items-center justify-between">
+                    <div class="label"><span class="label-text">Order</span></div>
+                    <button class="btn btn-sm" type="button" @click="toggleSortOrder">
+                      {{ sortOrder === 'asc' ? 'Ascending' : 'Descending' }}
+                    </button>
+                  </div>
+                  <div class="text-xs opacity-70">Drag to reorder priority. Allowed: resolution, peers, language, size, codec, source, hdr, audio.</div>
+                  <ul class="menu bg-base-200 rounded-box">
+                    <li v-for="(f, idx) in sortFields" :key="f"
+                        draggable="true"
+                        @dragstart="(e) => onSortDragStart(idx, e)"
+                        @dragover="(e) => onSortDragOver(idx, e)"
+                        @drop="(e) => onSortDrop(idx, e)">
+                      <a class="flex items-center gap-2">
+                        <span class="opacity-60 select-none cursor-grab active:cursor-grabbing" aria-hidden="true" title="Drag to reorder">⋮⋮</span>
+                        <span>{{ f }}</span>
+                      </a>
+                    </li>
+                  </ul>
+                  <div class="flex gap-2">
+                    <button class="btn btn-ghost btn-sm" type="button" @click="resetSort">Reset</button>
+                  </div>
+
+                  <!-- Toggleable chips for adding/removing sort criteria -->
+                  <div class="grid gap-2">
+                    <div class="label"><span class="label-text">Add/remove criteria</span></div>
+                    <div class="flex flex-wrap gap-2">
+                      <button
+                        v-for="name in ALLOWED_SORT_FIELDS"
+                        :key="`sort-chip-`+name"
+                        class="btn btn-xs"
+                        :class="isSortFieldSelected(name) ? 'btn-primary' : 'btn-outline'"
+                        type="button"
+                        @click="toggleSortField(name)"
+                      >{{ name }}</button>
+                    </div>
+                    <div class="flex gap-2">
+                      <button class="btn btn-ghost btn-xs" type="button" @click="selectAllSortFields">Select all</button>
+                      <button class="btn btn-ghost btn-xs" type="button" @click="clearAllSortFields">Clear</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </details>
+          </div>
+        </div>
+
         <!-- Optimization Card -->
         <div class="card bg-base-200 shadow-sm break-inside-avoid mb-4 w-full">
           <div class="card-body p-3 md:p-4">
@@ -542,6 +597,42 @@
                       </div>
                     </div>
                   </label>
+                  <!-- Provider probe & timeouts -->
+                  <div class="grid md:grid-cols-2 gap-4">
+                    <label class="label cursor-pointer gap-2">
+                      <span class="label-text">Probe upstream providers</span>
+                      <input type="checkbox" class="toggle" v-model="probeProviders" />
+                    </label>
+                    <label class="form-control">
+                      <div class="label"><span class="label-text">Probe timeout (ms)</span></div>
+                      <input v-model.number="probeTimeoutMs" type="number" min="0" class="input input-bordered" />
+                    </label>
+                    <label class="form-control md:col-span-2">
+                      <div class="label"><span class="label-text">Provider fetch timeout (ms)</span></div>
+                      <input v-model.number="providerFetchTimeoutMs" type="number" min="0" class="input input-bordered" />
+                    </label>
+                  </div>
+                  <div class="divider"></div>
+                  <!-- Swarm scraping -->
+                  <label class="label cursor-pointer gap-2">
+                    <span class="label-text">Enable swarm scraping</span>
+                    <input type="checkbox" class="toggle" v-model="swarmEnabled" />
+                  </label>
+                  <div v-if="swarmEnabled" class="grid md:grid-cols-3 gap-4">
+                    <label class="form-control">
+                      <div class="label"><span class="label-text">Swarm top N</span></div>
+                      <input v-model.number="swarmTopN" type="number" min="0" class="input input-bordered" />
+                      <p class="text-xs opacity-70 mt-1">0 = unlimited</p>
+                    </label>
+                    <label class="label cursor-pointer gap-2">
+                      <span class="label-text">Missing only</span>
+                      <input type="checkbox" class="toggle" v-model="swarmMissingOnly" />
+                    </label>
+                    <label class="form-control">
+                      <div class="label"><span class="label-text">Swarm timeout (ms)</span></div>
+                      <input v-model.number="swarmTimeoutMs" type="number" min="0" class="input input-bordered" />
+                    </label>
+                  </div>
                 </div>
 
                 <div>
@@ -1062,6 +1153,78 @@ function fmtTime(ts) {
 onMounted(connectSse)
 onBeforeUnmount(() => { try { es && es.close() } catch (_) {}; try { esSweep && esSweep.close() } catch (_) {} })
 
+// Optimization settings: probe/swarm/timeout (frontend mirrors addon config)
+// Defaults align with backend: probe off, timeouts as per aggregate.cjs, swarm disabled
+const probeProviders = ref(false)
+const probeTimeoutMs = ref(500)
+const providerFetchTimeoutMs = ref(3000)
+const swarmEnabled = ref(false)
+const swarmTopN = ref(2)
+const swarmMissingOnly = ref(true)
+const swarmTimeoutMs = ref(800)
+// Sorting preferences (frontend mirrors addon config)
+const sortFields = ref(['resolution','peers','language'])
+const sortOrder = ref('desc')
+const dragIdx = ref(-1)
+function onSortDragStart(idx, e) { try { dragIdx.value = idx; e.dataTransfer && (e.dataTransfer.effectAllowed = 'move') } catch (_) {} }
+function onSortDragOver(_idx, e) { try { e.preventDefault(); e.dataTransfer && (e.dataTransfer.dropEffect = 'move') } catch (_) {} }
+function onSortDrop(idx, e) {
+  try { e.preventDefault() } catch (_) {}
+  const from = dragIdx.value
+  dragIdx.value = -1
+  if (from === idx || from < 0) return
+  const arr = sortFields.value.slice()
+  const [item] = arr.splice(from, 1)
+  arr.splice(idx, 0, item)
+  sortFields.value = arr
+}
+function toggleSortOrder() { sortOrder.value = (sortOrder.value === 'asc') ? 'desc' : 'asc' }
+function resetSort() { sortFields.value = ['resolution','peers','language']; sortOrder.value = 'desc' }
+
+// Allowed sort fields and localStorage keys
+const ALLOWED_SORT_FIELDS = Object.freeze(['resolution','peers','language','size','codec','source','hdr','audio'])
+const LS_SORT_FIELDS = 'seedsphere.sort.fields'
+const LS_SORT_ORDER = 'seedsphere.sort.order'
+
+function isSortFieldSelected(name) { return sortFields.value.includes(name) }
+function toggleSortField(name) {
+  if (!ALLOWED_SORT_FIELDS.includes(name)) return
+  if (isSortFieldSelected(name)) {
+    sortFields.value = sortFields.value.filter(f => f !== name)
+  } else {
+    sortFields.value = [...sortFields.value, name]
+  }
+}
+function selectAllSortFields() { sortFields.value = ALLOWED_SORT_FIELDS.slice() }
+function clearAllSortFields() { sortFields.value = [] }
+
+// Load persisted sorting preferences
+onMounted(() => {
+  try {
+    const savedFields = JSON.parse(localStorage.getItem(LS_SORT_FIELDS) || 'null')
+    if (Array.isArray(savedFields)) {
+      const filtered = savedFields.filter((x) => ALLOWED_SORT_FIELDS.includes(x))
+      const dedup = Array.from(new Set(filtered))
+      sortFields.value = dedup
+    }
+  } catch (_) {}
+  try {
+    const savedOrder = localStorage.getItem(LS_SORT_ORDER)
+    if (savedOrder === 'asc' || savedOrder === 'desc') sortOrder.value = savedOrder
+  } catch (_) {}
+})
+
+// Persist sorting preferences
+watch(sortFields, (arr) => {
+  try {
+    localStorage.setItem(LS_SORT_FIELDS, JSON.stringify(arr.filter((x) => ALLOWED_SORT_FIELDS.includes(x))))
+    queueSettingsSavedToast()
+  } catch (_) {}
+}, { deep: true })
+watch(sortOrder, (o) => {
+  try { localStorage.setItem(LS_SORT_ORDER, o); queueSettingsSavedToast() } catch (_) {}
+})
+
 // Sweep & Validate tools
 const origin = typeof window !== 'undefined' ? window.location.origin : ''
 const manifestHttp = computed(() => {
@@ -1069,6 +1232,17 @@ const manifestHttp = computed(() => {
     const u = new URL('/manifest.json', origin || 'http://localhost')
     const gid = gardener.getGardenerId()
     if (gid) u.searchParams.set('gardener_id', gid)
+    // Probe / timeouts / swarm params propagated to backend via manifest
+    u.searchParams.set('probe_providers', probeProviders.value ? 'on' : 'off')
+    u.searchParams.set('probe_timeout_ms', String(probeTimeoutMs.value || 0))
+    u.searchParams.set('provider_fetch_timeout_ms', String(providerFetchTimeoutMs.value || 0))
+    u.searchParams.set('swarm_enabled', swarmEnabled.value ? 'on' : 'off')
+    u.searchParams.set('swarm_top_n', String(swarmTopN.value || 0))
+    u.searchParams.set('swarm_missing_only', swarmMissingOnly.value ? 'on' : 'off')
+    u.searchParams.set('swarm_timeout_ms', String(swarmTimeoutMs.value || 0))
+    // Sorting params propagated to backend via manifest
+    u.searchParams.set('sort_order', sortOrder.value)
+    u.searchParams.set('sort_fields', sortFields.value.join(','))
     return u.toString()
   } catch (_) { return `${origin}/manifest.json` }
 })
@@ -1216,6 +1390,7 @@ watch([aiApiKey, aiBaseUrl, aiAzureApiVersion], () => {
       aiBaseUrl: aiBaseUrl.value,
       aiAzureApiVersion: aiAzureApiVersion.value,
     }))
+    queueSettingsSavedToast()
   } catch (_) {}
 }, { deep: true })
 
@@ -1242,6 +1417,7 @@ watch([aiEnabled, aiProvider, aiModel, aiTimeoutMs, aiCacheTtlMs], () => {
       aiTimeoutMs: Number(aiTimeoutMs.value) || 0,
       aiCacheTtlMs: Number(aiCacheTtlMs.value) || 0,
     }))
+    queueSettingsSavedToast()
   } catch (_) {}
 }, { deep: true })
 
@@ -1268,6 +1444,17 @@ function showToast(msg, type = 'info', ms = 1500) {
   if (toastTimer) clearTimeout(toastTimer)
   toastTimer = setTimeout(() => { toastMsg.value = '' }, ms)
 }
+
+// Debounced settings-saved toast (suppressed until initial hydration completes)
+const settingsHydrated = ref(false)
+let settingsSavedToastTimer = null
+function queueSettingsSavedToast(delayMs = 5000) {
+  if (!settingsHydrated.value) return
+  try { if (settingsSavedToastTimer) clearTimeout(settingsSavedToastTimer) } catch (_) {}
+  settingsSavedToastTimer = setTimeout(() => { showToast('Settings saved', 'success') }, delayMs)
+}
+onMounted(() => { try { setTimeout(() => { settingsHydrated.value = true }, 0) } catch (_) {} })
+onBeforeUnmount(() => { try { settingsSavedToastTimer && clearTimeout(settingsSavedToastTimer) } catch (_) {} })
 
 function copy(text) {
   try { navigator.clipboard.writeText(text); showToast('Copied', 'success') } catch (_) { showToast('Copy failed', 'error') }
@@ -1542,6 +1729,17 @@ async function copyShareLink() {
   u.searchParams.set('ai_model', aiModel.value)
   u.searchParams.set('ai_timeout_ms', String(aiTimeoutMs.value))
   u.searchParams.set('ai_cache_ttl_ms', String(aiCacheTtlMs.value))
+  // Probe / timeouts / swarm
+  u.searchParams.set('probe_providers', probeProviders.value ? 'on' : 'off')
+  u.searchParams.set('probe_timeout_ms', String(probeTimeoutMs.value || 0))
+  u.searchParams.set('provider_fetch_timeout_ms', String(providerFetchTimeoutMs.value || 0))
+  u.searchParams.set('swarm_enabled', swarmEnabled.value ? 'on' : 'off')
+  u.searchParams.set('swarm_top_n', String(swarmTopN.value || 0))
+  u.searchParams.set('swarm_missing_only', swarmMissingOnly.value ? 'on' : 'off')
+  u.searchParams.set('swarm_timeout_ms', String(swarmTimeoutMs.value || 0))
+  // Sorting
+  u.searchParams.set('sort_order', sortOrder.value)
+  u.searchParams.set('sort_fields', sortFields.value.join(','))
   // Include ai_user_id when logged in
   if (sessionUserId.value) u.searchParams.set('ai_user_id', sessionUserId.value)
   if (full.value) u.searchParams.set('full', '1')
@@ -1688,7 +1886,7 @@ function saveManual() {
     }
   }
   manualSaved.value = rows
-  try { localStorage.setItem(LS_KEY, JSON.stringify(rows)) } catch {}
+  try { localStorage.setItem(LS_KEY, JSON.stringify(rows)); queueSettingsSavedToast() } catch {}
 }
 
 function mergeManualFrom(list) {
@@ -1766,6 +1964,26 @@ onMounted(() => {
       if (typeof saved.allowlist === 'string') allowlist.value = saved.allowlist
       if (typeof saved.blocklist === 'string') blocklist.value = saved.blocklist
       if (typeof saved.lastPreset === 'string') lastPreset.value = saved.lastPreset
+      if (typeof saved.probeProviders === 'boolean') probeProviders.value = saved.probeProviders
+      if (typeof saved.probeTimeoutMs === 'number') probeTimeoutMs.value = saved.probeTimeoutMs
+      if (typeof saved.providerFetchTimeoutMs === 'number') providerFetchTimeoutMs.value = saved.providerFetchTimeoutMs
+      if (typeof saved.swarmEnabled === 'boolean') swarmEnabled.value = saved.swarmEnabled
+      if (typeof saved.swarmTopN === 'number') swarmTopN.value = saved.swarmTopN
+      if (typeof saved.swarmMissingOnly === 'boolean') swarmMissingOnly.value = saved.swarmMissingOnly
+      if (typeof saved.swarmTimeoutMs === 'number') swarmTimeoutMs.value = saved.swarmTimeoutMs
+      // Sorting restore
+      try {
+        if (Array.isArray(saved.sortFields)) {
+          const allowed = ['resolution','peers','language']
+          const dedup = saved.sortFields.map((s) => String(s || '').toLowerCase().trim()).filter(Boolean)
+            .filter((s, i, arr) => arr.indexOf(s) === i)
+            .filter((s) => allowed.includes(s))
+          if (dedup.length) sortFields.value = dedup
+        }
+        if (typeof saved.sortOrder === 'string') {
+          sortOrder.value = (String(saved.sortOrder).toLowerCase() === 'asc') ? 'asc' : 'desc'
+        }
+      } catch (_) {}
     }
   } catch (_) {}
 
@@ -1779,7 +1997,7 @@ onMounted(() => {
   } catch (_) {}
 })
 
-watch([variant, url, mode, limitEnabled, limit, full, allowlist, blocklist, lastPreset], () => {
+watch([variant, url, mode, limitEnabled, limit, full, allowlist, blocklist, lastPreset, probeProviders, probeTimeoutMs, providerFetchTimeoutMs, swarmEnabled, swarmTopN, swarmMissingOnly, swarmTimeoutMs, sortFields, sortOrder], () => {
   try {
     localStorage.setItem('seedsphere.configure', JSON.stringify({
       variant: variant.value,
@@ -1792,7 +2010,17 @@ watch([variant, url, mode, limitEnabled, limit, full, allowlist, blocklist, last
       allowlist: allowlist.value,
       blocklist: blocklist.value,
       lastPreset: lastPreset.value,
+      probeProviders: !!probeProviders.value,
+      probeTimeoutMs: Number(probeTimeoutMs.value) || 0,
+      providerFetchTimeoutMs: Number(providerFetchTimeoutMs.value) || 0,
+      swarmEnabled: !!swarmEnabled.value,
+      swarmTopN: Number(swarmTopN.value) || 0,
+      swarmMissingOnly: !!swarmMissingOnly.value,
+      swarmTimeoutMs: Number(swarmTimeoutMs.value) || 0,
+      sortFields: Array.isArray(sortFields.value) ? sortFields.value.slice() : ['resolution','peers','language'],
+      sortOrder: sortOrder.value,
     }))
+    queueSettingsSavedToast()
   } catch (_) {}
 }, { deep: true })
 
@@ -1803,6 +2031,7 @@ watch([manualStrict, manualMergeMode, manualAutoSave], () => {
       manualMergeMode: manualMergeMode.value,
       manualAutoSave: !!manualAutoSave.value,
     }))
+    queueSettingsSavedToast()
   } catch (_) {}
 })
 
@@ -1917,7 +2146,7 @@ function isProviderEnabled(name) {
 
 function toggleProvider(name, enabled) {
   providersEnabled.value = { ...providersEnabled.value, [name]: !!enabled }
-  try { localStorage.setItem(LS_PROVIDERS_KEY, JSON.stringify(providersEnabled.value)) } catch (_) {}
+  try { localStorage.setItem(LS_PROVIDERS_KEY, JSON.stringify(providersEnabled.value)); queueSettingsSavedToast() } catch (_) {}
 }
 
 // Credentialed providers (local-only)
@@ -1940,6 +2169,7 @@ function loadCredentialed() {
 function saveCredentialed() {
   try { localStorage.setItem(LS_CRED_ENABLED, JSON.stringify(credentialedEnabled.value)) } catch (_) {}
   try { localStorage.setItem(LS_CRED_DATA, JSON.stringify(credentialedData.value)) } catch (_) {}
+  queueSettingsSavedToast()
 }
 
 function setCredentialedEnabled(name, enabled) {

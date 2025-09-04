@@ -62,6 +62,40 @@ SeedSphere is composed of three parts:
 
 - See docs/openapi.yaml for the latest Greenhouse API (link-token endpoints, SSE rooms, stream bridge, signing headers).
 
+## Stremio stream formatting
+
+- __Torrent streams must use `infoHash`__.
+  - Optional: `fileIdx` (if not set, Stremio auto-selects the largest file).
+  - Optional: `sources`: array of tracker endpoints in the form `tracker:<protocol>://host:port` where protocol is `http`, `https`, or `udp`.
+  - Do __not__ set `url` to a magnet. Using a magnet in `url` can trigger playback errors in some Stremio clients.
+  - Optional: `behaviorHints.bingeGroup` to support auto-selecting the same group for next episodes.
+  - Optional: `description` for rich multiline info (resolution, codec, HDR, audio, group, seeds/peers, size, languages, and for series: Season/Episode lines).
+
+- __Direct streams__ may use `url` (mp4 over https) with `behaviorHints.notWebReady` when appropriate.
+
+- __Where implemented__:
+  - `server/lib/aggregate.cjs`: builds final torrent streams with `{ infoHash, fileIdx?, sources?, behaviorHints }` and omits `url` for torrents.
+  - `server/addon.cjs`: demo stream uses `{ infoHash, sources }` for consistency.
+
+- __Example__
+
+```json
+{
+  "name": "! SeedSphere",
+  "title": "Sample 1080p",
+  "description": "🎬 WEB • x265 • HDR10\n🔊 5.1 • EN\n📦 2.1 GiB\n🌱 120 • 👥 40\n🗣️ EN\n📺 Season 01\n🎞️ Episode 05",
+  "infoHash": "0123456789abcdef0123456789abcdef01234567",
+  "fileIdx": 1,
+  "sources": [
+    "tracker:https://tracker.example.org:443/announce",
+    "tracker:udp://tracker.openbittorrent.com:80/announce"
+  ],
+  "behaviorHints": {
+    "bingeGroup": "seedsphere-optimized"
+  }
+}
+```
+
 ## Terminology
 
 - Greenhouse = backend bridge and registry
