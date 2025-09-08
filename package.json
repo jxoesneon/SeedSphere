@@ -34,7 +34,7 @@
     "nanoid": "^5.1.5",
     "nodemailer": "^7.0.5",
     "openid-client": "^6.7.1",
-    "stremio-addon-sdk": "^0.7.1",
+    "stremio-addon-sdk": "^1.6.10",
     "uuid": "^11.1.0",
     "vue": "^3.4.38",
     "vue-router": "^4.5.1"
