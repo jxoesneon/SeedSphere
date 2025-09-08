@@ -2,11 +2,39 @@
 
 [![Latest Release](https://img.shields.io/github/v/release/jxoesneon/SeedSphere?display_name=release)](https://github.com/jxoesneon/SeedSphere/releases/latest)
 [![Release Workflow](https://github.com/jxoesneon/SeedSphere/actions/workflows/release.yml/badge.svg)](https://github.com/jxoesneon/SeedSphere/actions/workflows/release.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 
 ## Quick links
 
 - Latest Release: [github.com/jxoesneon/SeedSphere/releases/latest](https://github.com/jxoesneon/SeedSphere/releases/latest)
 - Changelog: [CHANGELOG.md](https://github.com/jxoesneon/SeedSphere/blob/main/CHANGELOG.md)
+
+![SeedSphere banner](public/assets/background-1024.jpg)
+
+## Install
+
+- Addon (Stremio): open the SeedSphere page and click Install
+  - Production: [https://seedsphere.fly.dev](https://seedsphere.fly.dev)
+  - Dev-gated install UI in `Home.vue` appears only with the `?dev=1` query.
+
+## Quick start (development)
+
+```sh
+npm install
+npm run dev
+```
+
+- Build production assets: `npm run build`
+- Preview production server: `npm run preview`
+- Run tests: `npm test`
+
+## Docs
+
+- Configure UI Canon: [`docs/CONFIGURE_UI_CANON.md`](docs/CONFIGURE_UI_CANON.md)
+- Greenhouse API: [`docs/openapi.yaml`](docs/openapi.yaml)
+
+## Project overview
 
 SeedSphere is composed of three parts:
 
@@ -65,6 +93,16 @@ SeedSphere is composed of three parts:
 
 - Stremio deep link (example)
   - stremio://seedsphere.fly.dev/manifest.json?gardener_id=... or with a link token during first install.
+
+## Community & Support
+
+- Code of Conduct: [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md)
+- Contributing Guide: [`CONTRIBUTING.md`](CONTRIBUTING.md)
+- Security Policy: [`SECURITY.md`](SECURITY.md)
+
+## License
+
+This project is licensed under the [MIT License](LICENSE).
 
 ## API
 

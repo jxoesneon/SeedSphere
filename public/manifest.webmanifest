@@ -1,7 +1,7 @@
 {
-  "name": "Gardener",
-  "short_name": "Gardener",
-  "description": "Gardener PWA: pair with Seedling and execute tasks from Greenhouse.",
+  "name": "SeedSphere",
+  "short_name": "SeedSphere",
+  "description": "SeedSphere PWA: pair your Seedling, configure providers, and optimize streams.",
   "start_url": "/configure",
   "scope": "/",
   "display": "standalone",
@@ -10,15 +10,15 @@
   "icons": [
     {
       "src": "/assets/icon.png",
-      "sizes": "192x192",
+      "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/assets/icon.png",
-      "sizes": "512x512",
+      "src": "/assets/icon-256.png",
+      "sizes": "256x256",
       "type": "image/png",
-      "purpose": "any"
+      "purpose": "any maskable"
     }
   ],
   "categories": ["utilities", "productivity"],
