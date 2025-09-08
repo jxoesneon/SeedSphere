@@ -1,6 +1,7 @@
 # SeedSphere
 
 [![Latest Release](https://img.shields.io/github/v/release/jxoesneon/SeedSphere?display_name=release)](https://github.com/jxoesneon/SeedSphere/releases/latest)
+[![CI](https://github.com/jxoesneon/SeedSphere/actions/workflows/ci.yml/badge.svg)](https://github.com/jxoesneon/SeedSphere/actions/workflows/ci.yml)
 [![Release Workflow](https://github.com/jxoesneon/SeedSphere/actions/workflows/release.yml/badge.svg)](https://github.com/jxoesneon/SeedSphere/actions/workflows/release.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)

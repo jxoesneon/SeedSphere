@@ -3,6 +3,12 @@
   "private": true,
   "version": "1.0.0",
   "type": "module",
+  "description": "SeedSphere — Gardener PWA, Greenhouse backend, and Seedling addon.",
+  "repository": { "type": "git", "url": "https://github.com/jxoesneon/SeedSphere.git" },
+  "homepage": "https://github.com/jxoesneon/SeedSphere",
+  "bugs": { "url": "https://github.com/jxoesneon/SeedSphere/issues" },
+  "license": "MIT",
+  "engines": { "node": ">=22" },
   "scripts": {
     "dev": "cross-env NODE_ENV=development node server/index.js",
     "build": "vite build",

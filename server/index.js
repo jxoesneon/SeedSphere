@@ -117,6 +117,12 @@ export async function createServer(opts = {}) {
           "frame-src https://ko-fi.com https://storage.ko-fi.com"
         ].join('; ')
         res.setHeader('Content-Security-Policy', csp)
+        // Additional hardening headers
+        res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload')
+        res.setHeader('X-Content-Type-Options', 'nosniff')
+        res.setHeader('Referrer-Policy', 'no-referrer')
+        res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=(), payment=(), fullscreen=(self)')
+        res.setHeader('X-Frame-Options', 'DENY')
       } catch (_) { /* ignore */ }
       next()
     })
