@@ -1,5 +1,13 @@
 # SeedSphere
 
+[![Latest Release](https://img.shields.io/github/v/release/jxoesneon/SeedSphere?display_name=release)](https://github.com/jxoesneon/SeedSphere/releases/latest)
+[![Release Workflow](https://github.com/jxoesneon/SeedSphere/actions/workflows/release.yml/badge.svg)](https://github.com/jxoesneon/SeedSphere/actions/workflows/release.yml)
+
+## Quick links
+
+- Latest Release: [github.com/jxoesneon/SeedSphere/releases/latest](https://github.com/jxoesneon/SeedSphere/releases/latest)
+- Changelog: [CHANGELOG.md](https://github.com/jxoesneon/SeedSphere/blob/main/CHANGELOG.md)
+
 SeedSphere is composed of three parts:
 
 - Greenhouse (backend): HTTP API, SSE rooms, link-token binding, stream bridge, rate limits, cache.
@@ -46,8 +54,8 @@ SeedSphere is composed of three parts:
 ## Dev vs Prod configuration
 
 - Addon base URL
-  - Production: https://seedsphere.fly.dev (set via CI variable; used in landing deep links).
-  - Development: http://127.0.0.1:8080 or http://localhost:8080.
+  - Production: [https://seedsphere.fly.dev](https://seedsphere.fly.dev) (set via CI variable; used in landing deep links).
+  - Development: [http://127.0.0.1:8080](http://127.0.0.1:8080) or [http://localhost:8080](http://localhost:8080).
 
 - Local development
   - Build and run server in Docker:
