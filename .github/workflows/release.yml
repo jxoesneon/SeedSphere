@@ -1,0 +1,29 @@
+name: Create GitHub Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag to release (e.g., v1.0.0)"
+        required: true
+      title:
+        description: "Release title"
+        required: true
+      body:
+        description: "Release notes (markdown)"
+        required: true
+
+jobs:
+  create-release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.event.inputs.tag }}
+          name: ${{ github.event.inputs.title }}
+          body: ${{ github.event.inputs.body }}
+          draft: false
+          prerelease: false
