@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+# SeedSphere respects your privacy; we do not track users server-side.
