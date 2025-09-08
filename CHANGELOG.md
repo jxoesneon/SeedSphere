@@ -4,6 +4,17 @@ All notable changes to this project will be documented in this file.
 
 The format is based on Keep a Changelog, and this project adheres to semantic versioning.
 
+## [1.1.0] - Unreleased
+
+### Planned
+
+- Overhaul authentication system:
+  - Unify provider flows (Google, Magic Link; optional additional providers).
+  - Harden session cookies (HttpOnly, Secure, SameSite=Lax), CSRF/state, and rate limits.
+  - Normalize server endpoints under `/api/auth/*` and improve session reporting.
+  - Migrations for user storage and linking to gardener/seedling where applicable.
+  - Frontend: route guards, clearer account UI, resilient login feedback.
+
 ## [1.0.1] - 2025-09-08
 
 ### Added
