@@ -1411,7 +1411,13 @@ export async function createServer(opts = {}) {
 
   return new Promise((resolve) => {
     httpServer.listen(listenPort, () => {
-      console.log(`Server listening on http://localhost:${listenPort}`)
+      try {
+        const addr = httpServer.address()
+        const actualPort = (addr && typeof addr === 'object') ? addr.port : listenPort
+        if (process.env.NO_SERVER_LOG !== '1') {
+          console.log(`Server listening on http://localhost:${actualPort}`)
+        }
+      } catch (_) { /* ignore logging errors */ }
       resolve(httpServer)
     })
   })

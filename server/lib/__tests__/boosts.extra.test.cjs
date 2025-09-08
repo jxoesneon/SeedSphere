@@ -9,24 +9,6 @@ const boosts = require('../boosts.cjs')
 async function startServer() {
   const { createServer } = await import('../../index.js')
   const server = await createServer({ port: 0, disableVite: true, disablePrefetch: true })
-
-// recent endpoint returns max 20 items, latest-first ordering
-test('recent endpoint cap=20 and latest-first ordering', async () => {
-  boosts.__resetForTests()
-  for (let i = 0; i < 25; i++) boosts.push({ id: `http-${i}`, type: 'movie' })
-  const { server, baseURL } = await startServer()
-  try {
-    const r = await httpGet(`${baseURL}/api/boosts/recent`)
-    assert.equal(r.statusCode, 200)
-    assert.equal(r.body.ok, true)
-    const items = r.body.items || []
-    assert.equal(items.length, 20)
-    assert.equal(items[0].id, 'http-24')
-    assert.equal(items.at(-1).id, 'http-5')
-  } finally {
-    await new Promise((r) => server.close(r))
-  }
-})
   const addr = server.address()
   const baseURL = `http://127.0.0.1:${addr.port}`
   return { server, baseURL }
@@ -72,6 +54,24 @@ function httpGet(url) {
     }).on('error', reject)
   })
 }
+
+// recent endpoint returns max 20 items, latest-first ordering
+test('recent endpoint cap=20 and latest-first ordering', async () => {
+  boosts.__resetForTests()
+  for (let i = 0; i < 25; i++) boosts.push({ id: `http-${i}`, type: 'movie' })
+  const { server, baseURL } = await startServer()
+  try {
+    const r = await httpGet(`${baseURL}/api/boosts/recent`)
+    assert.equal(r.statusCode, 200)
+    assert.equal(r.body.ok, true)
+    const items = r.body.items || []
+    assert.equal(items.length, 20)
+    assert.equal(items[0].id, 'http-24')
+    assert.equal(items.at(-1).id, 'http-5')
+  } finally {
+    await new Promise((r) => server.close(r))
+  }
+})
 
 // Snapshot should contain items pushed before connection
 test('SSE snapshot includes pre-pushed boost', async () => {

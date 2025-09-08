@@ -7,6 +7,7 @@ The format is based on Keep a Changelog, and this project adheres to semantic ve
 ## [1.0.0] - 2025-09-07
 
 ### Added
+
 - Ko‑fi integration:
   - Programmatic overlay load with theme-friendly overrides and fade-in.
   - Persistent, draggable fallback button; position saved to localStorage.
@@ -17,6 +18,7 @@ The format is based on Keep a Changelog, and this project adheres to semantic ve
   - `.with-nav-offset` and `.with-tabs-offset` for top toasts positioned under sticky bars.
 
 ### Changed
+
 - Configure page layout polish in `src/pages/Configure.vue`:
   - Optimization card stacked layout for all controls; increased spacing for readability.
   - Swarm scraping and probe/timeouts sections converted to single-column stacks.
@@ -26,9 +28,11 @@ The format is based on Keep a Changelog, and this project adheres to semantic ve
 - `Home.vue` install UI gated by `?dev=1` (dev-only variant controls hidden otherwise).
 
 ### Security
+
 - Added production `Content-Security-Policy` in `server/index.js` to allow Ko‑fi overlay and app assets while keeping defaults restrictive.
 
 ### Maintenance
+
 - Ignored local SQLite databases under `server/data/`.
 - Removed duplicate `src/pages/Configure copy.vue`.
 - Ignored backup `node_modules/` and `package-lock.json` to reduce Dependabot noise.
