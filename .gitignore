@@ -4,6 +4,12 @@ node_modules/
 dist/
 .vite/
 .DS_Store
+
+# Backup assets: do not track vendored modules or lockfiles
+backup/**/node_modules/
+backup/**/package-lock.json
+
+# Other
 .env
 .env.local
 *.log

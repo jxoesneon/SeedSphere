@@ -103,6 +103,25 @@ export async function createServer(opts = {}) {
     next()
   })
 
+  // Content Security Policy: allow app assets and Ko‑fi overlay (production only)
+  if (isProd) {
+    app.use((req, res, next) => {
+      try {
+        const csp = [
+          "default-src 'self'",
+          "script-src 'self' 'unsafe-inline' https://storage.ko-fi.com https://ko-fi.com",
+          "style-src 'self' 'unsafe-inline' https:",
+          "img-src 'self' data: https:",
+          "font-src 'self' data: https:",
+          "connect-src 'self' https: wss:",
+          "frame-src https://ko-fi.com https://storage.ko-fi.com"
+        ].join('; ')
+        res.setHeader('Content-Security-Policy', csp)
+      } catch (_) { /* ignore */ }
+      next()
+    })
+  }
+
   // Activity tracker to prioritize real addon requests over background prefetch
   let lastActiveTs = Date.now()
   const touchActive = () => { lastActiveTs = Date.now() }
