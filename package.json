@@ -31,7 +31,7 @@
     "@vitejs/plugin-vue": "^6.0.0",
     "autoprefixer": "^10.4.20",
     "cross-env": "^7.0.3",
-    "daisyui": "^4.12.10",
+    "daisyui": "^5.0.0",
     "postcss": "^8.4.47",
     "tailwindcss": "^4.0.0",
     "vite": "^7.1.3"

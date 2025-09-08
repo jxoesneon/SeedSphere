@@ -1,16 +1,30 @@
 <template>
-  <main class="min-h-screen bg-base-100 text-base-content">
-    <div class="container mx-auto p-6 space-y-4">
-      <div class="flex flex-wrap items-center justify-between gap-2">
-        <h1 id="install" class="text-2xl font-bold">Configure SeedSphere</h1>
-        <div class="flex flex-wrap items-center gap-2">
-          <a class="btn btn-primary btn-sm" :href="manifestProtocol">Install / Update</a>
-          <RouterLink class="btn btn-ghost btn-sm" to="/">Home</RouterLink>
+  <main class="configure-page min-h-screen bg-base-100 text-base-content">
+    <div class="w-full max-w-none p-6 space-y-4">
+      <!-- Hero header -->
+      <section id="install" class="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary/15 via-base-200 to-secondary/10 border border-base-300/50 shadow" role="region" aria-labelledby="cfg-title">
+        <div class="p-6 md:p-10">
+          <h1 id="cfg-title" class="text-3xl md:text-4xl font-extrabold tracking-tight">Configure SeedSphere</h1>
+          <p class="mt-2 text-base md:text-lg opacity-80 max-w-prose">Tune preferences, providers, AI descriptions, and advanced options. Everything is fully responsive and theme-aware.</p>
+          <div class="mt-4 flex flex-wrap gap-2">
+            <a
+              class="btn btn-primary btn-sm md:btn-md tooltip"
+              :href="manifestProtocol"
+              :title="'Install or update the SeedSphere addon'"
+              data-tip="Install or update the SeedSphere addon"
+            >Install / Update</a>
+            <RouterLink
+              class="btn btn-ghost btn-sm md:btn-md tooltip"
+              to="/"
+              :title="'Back to Home'"
+              data-tip="Back to Home"
+            >Home</RouterLink>
+          </div>
         </div>
-      </div>
+      </section>
 
       <!-- Toast notifications -->
-      <div v-if="toastMsg" class="toast toast-top toast-end z-20">
+      <div v-if="toastMsg" class="toast toast-top toast-end with-nav-offset z-20">
         <div class="alert" :class="toastType">{{ toastMsg }}</div>
       </div>
 
@@ -19,28 +33,32 @@
         <span class="font-semibold">Update available:</span>
         <span class="ml-2">SeedSphere v{{ latestVersion }} is available.</span>
         <div class="ml-auto flex gap-2">
-          <a class="btn btn-sm" :href="manifestProtocol">Install</a>
-          <button class="btn btn-ghost btn-sm" type="button" @click="dismissUpdate">Dismiss</button>
+          <a class="btn btn-sm tooltip" :href="manifestProtocol" :title="'Install the latest version'" data-tip="Install the latest version">Install</a>
+          <button class="btn btn-ghost btn-sm tooltip" type="button" @click="dismissUpdate" :title="'Dismiss this notice'" data-tip="Dismiss this notice">Dismiss</button>
         </div>
       </div>
 
-      <!-- Quick Navigation -->
-      <div class="flex flex-wrap gap-2 sticky top-0 z-10 bg-base-100/80 backdrop-blur supports-[backdrop-filter]:bg-base-100/60 py-2">
-        <a class="btn btn-xs" href="#install">Install</a>
-        <a class="btn btn-xs" href="#upstream">Upstream</a>
-        <a class="btn btn-xs" href="#prefs">Prefs</a>
-        <a class="btn btn-xs" href="#sources">Sources</a>
-        <a class="btn btn-xs" href="#sort">Sort</a>
-        <a class="btn btn-xs" href="#opt">Optimization</a>
-        <a class="btn btn-xs" href="#sweep">Sweep</a>
-        <a class="btn btn-xs" href="#lists">Allow/Block</a>
-        <a class="btn btn-xs" href="#telemetry">Telemetry</a>
-      </div>
+      <!-- Quick Navigation (tabs) -->
+      <nav ref="tabsNav" class="sticky top-16 z-30 pb-1 nav-auto-hide" :class="{ 'sticky-active': tabsStickyActive, 'revealed': tabsReveal }" @mouseenter="revealTabs" @mouseleave="queueHideTabs">
+        <div class="w-full overflow-x-auto">
+          <div class="flex gap-2">
+            <a class="btn btn-outline btn-sm rounded-full whitespace-nowrap tooltip" href="#install" @click.prevent="scrollToAnchor('install')" data-tip="Jump to Install">Install</a>
+            <a class="btn btn-outline btn-sm rounded-full whitespace-nowrap tooltip" href="#prefs" @click.prevent="scrollToAnchor('prefs')" data-tip="Jump to Upstream (now in Preferences)">Upstream</a>
+            <a class="btn btn-outline btn-sm rounded-full whitespace-nowrap tooltip" href="#prefs" @click.prevent="scrollToAnchor('prefs')" data-tip="Jump to Preferences">Prefs</a>
+            <a class="btn btn-outline btn-sm rounded-full whitespace-nowrap tooltip" href="#sources" @click.prevent="scrollToAnchor('sources')" data-tip="Jump to Tracker Sources">Sources</a>
+            <a class="btn btn-outline btn-sm rounded-full whitespace-nowrap tooltip" href="#sort" @click.prevent="scrollToAnchor('sort')" data-tip="Jump to Stream Sorting">Sort</a>
+            <a class="btn btn-outline btn-sm rounded-full whitespace-nowrap tooltip" href="#opt" @click.prevent="scrollToAnchor('opt')" data-tip="Jump to Optimization">Optimization</a>
+            <a class="btn btn-outline btn-sm rounded-full whitespace-nowrap tooltip" href="#sweep" @click.prevent="scrollToAnchor('sweep')" data-tip="Jump to Sweep">Sweep</a>
+            <a class="btn btn-outline btn-sm rounded-full whitespace-nowrap tooltip" href="#lists" @click.prevent="scrollToAnchor('lists')" data-tip="Jump to Allow / Block">Allow/Block</a>
+            <a class="btn btn-outline btn-sm rounded-full whitespace-nowrap tooltip" href="#telemetry" @click.prevent="scrollToAnchor('telemetry')" data-tip="Jump to Telemetry">Telemetry</a>
+          </div>
+        </div>
+      </nav>
 
-      <div class="columns-1 md:columns-2 gap-x-4">
+      <div class="grid app-grid grid-cols-1 md:grid-cols-12">
         <!-- Recent Boosts -->
-        <div class="card bg-base-200 shadow-sm break-inside-avoid mb-4 w-full">
-          <div class="card-body p-3 md:p-4">
+        <div class="card bg-base-200 shadow-sm break-inside-avoid mb-4 w-full md:col-span-12">
+          <div class="card-body">
             <div class="flex items-center gap-2">
               <h2 id="telemetry" class="card-title">Recent Boosts</h2>
               <span class="inline-block w-2.5 h-2.5 rounded-full"
@@ -54,7 +72,7 @@
               ></span>
             </div>
             <p class="text-xs opacity-70">Listening to <code>/api/boosts/events</code></p>
-            <div class="overflow-x-auto rounded-box bg-base-300/50 p-2">
+            <div class="overflow-x-auto rounded-box bg-base-300/50 p-3" data-ui-tier="basic">
               <table class="table table-zebra table-sm">
                 <thead>
                   <tr>
@@ -86,13 +104,13 @@
           </div>
         </div>
 
-        <!-- Upstream Proxy (own card, collapsible) -->
-        <div class="card bg-base-200 shadow-sm break-inside-avoid mb-4 w-full">
-          <div class="card-body p-3 md:p-4">
+        <!-- Upstream Proxy (moved under Preferences; card hidden) -->
+        <div v-if="false" class="card bg-base-200 shadow-sm break-inside-avoid mb-4 w-full md:col-span-3">
+          <div class="card-body">
             <details open class="collapse">
               <summary id="upstream" class="collapse-title text-base font-semibold">Upstream Proxy</summary>
               <div class="collapse-content p-0">
-                <div class="p-3 rounded-box bg-base-300/50 space-y-2">
+                <div class="p-3 rounded-box bg-base-300/50 space-y-2" data-ui-tier="basic">
                   <div class="flex items-center gap-2">
                     <div class="badge badge-info">Proxy</div>
                     <span class="text-sm opacity-80">Upstream auto‑proxy</span>
@@ -105,61 +123,110 @@
           </div>
         </div>
 
-        <!-- Preferences Card (no stream label) -->
-        <div class="card bg-base-200 shadow-sm break-inside-avoid mb-4 w-full">
-          <div class="card-body p-3 md:p-4">
+        <!-- Preferences Card (includes Upstream Proxy status/explanation) -->
+        <div class="card bg-base-200 shadow-sm break-inside-avoid mb-4 w-full md:col-span-3">
+          <div class="card-body">
             <details open class="collapse">
               <summary id="prefs" class="collapse-title text-base font-semibold">Preferences</summary>
               <div class="collapse-content p-0">
-                <div class="grid md:grid-cols-2 gap-4 p-3 rounded-box bg-base-300/50">
-                  <div class="flex items-center justify-between">
+                <div class="grid md:grid-cols-2 gap-4 p-3 rounded-box bg-base-300/50" data-ui-tier="basic">
+                  <div class="grid grid-cols-1 gap-2">
                     <div class="flex items-center gap-2">
                       <div class="badge badge-info">Proxy</div>
                       <span class="text-sm opacity-80">Upstream auto‑proxy</span>
                     </div>
-                    <label class="label cursor-pointer gap-2">
-                      <span class="label-text text-sm">Enable</span>
-                      <input type="checkbox" class="toggle" v-model="autoProxy" />
-                    </label>
+                    <div class="form-control tooltip tooltip-left" :title="'Toggle upstream auto-proxy'" data-tip="Toggle upstream auto-proxy">
+                      <input
+                        type="checkbox"
+                        class="toggle toggle-success"
+                        v-model="autoProxy"
+                        aria-label="Upstream auto-proxy"
+                        :title="'Toggle upstream auto-proxy'"
+                        data-tip="Toggle upstream auto-proxy"
+                      />
+                    </div>
                   </div>
                 </div>
-              </div>
-            </details>
-          </div>
-        </div>
-
-        <!-- Description Settings Card -->
-        <div class="card bg-base-200 shadow-sm break-inside-avoid mb-4 w-full">
-          <div class="card-body p-3 md:p-4">
-            <details open class="collapse">
-              <summary class="collapse-title text-base font-semibold">Descriptions</summary>
-              <div class="collapse-content p-0">
-                <div class="grid md:grid-cols-2 gap-4 p-3 rounded-box bg-base-300/50">
-                  <label class="label cursor-pointer gap-2">
-                    <span class="label-text">Append original provider description</span>
-                    <input type="checkbox" class="toggle" v-model="descAppendOriginal" />
-                  </label>
-                  <label class="label cursor-pointer gap-2">
-                    <span class="label-text">Use original description when no details parsed</span>
-                    <input type="checkbox" class="toggle" v-model="descRequireDetails" />
-                  </label>
+                <!-- Upstream Proxy status/explanation (no duplicate chip) -->
+                <div class="mt-2 p-3 rounded-box bg-base-300/50 space-y-2" data-ui-tier="basic">
+                  <p class="text-sm">Status: <b :class="autoProxy ? 'text-success' : 'text-error'">{{ autoProxy ? 'Enabled' : 'Disabled' }}</b>.</p>
+                  <p class="text-xs opacity-70">When enabled, SeedSphere queries available upstream providers server‑side, augments their magnets with an optimized trackers list, and returns the result as its own streams in Stremio.</p>
                 </div>
               </div>
             </details>
           </div>
         </div>
 
-        <!-- AI Descriptions Card -->
-        <div class="card bg-base-200 shadow-sm break-inside-avoid mb-4 w-full" ref="aiCard">
-          <div class="card-body p-3 md:p-4 relative">
+        <!-- Description Settings Card (with AI Advanced section) -->
+        <div class="card bg-base-200 shadow-sm break-inside-avoid mb-4 w-full md:col-span-3">
+          <div class="card-body">
+            <details open class="collapse" ref="descriptionsCard">
+              <summary class="collapse-title text-base font-semibold">Descriptions</summary>
+              <div class="collapse-content p-0">
+                <div class="grid grid-cols-1 gap-3 p-3 rounded-box bg-base-300/50" data-ui-tier="basic">
+                  <div class="form-control tooltip" :title="'Append provider-provided description after AI text'" data-tip="Append original provider description">
+                    <div class="text-sm opacity-80">Append original provider description</div>
+                    <input type="checkbox" class="toggle toggle-success mt-1" v-model="descAppendOriginal" aria-label="Append original provider description" :title="'Append original provider description'" data-tip="Append original provider description" />
+                  </div>
+                  <div class="form-control tooltip" :title="'Fallback to original description when details could not be parsed'" data-tip="Fallback to original description if parsing fails">
+                    <div class="text-sm opacity-80">Use original description when no details parsed</div>
+                    <input type="checkbox" class="toggle toggle-success mt-1" v-model="descRequireDetails" aria-label="Use original description when no details parsed" :title="'Use original description when no details parsed'" data-tip="Use original description when no details parsed" />
+                  </div>
+                </div>
+                <!-- Now with AI pill to reveal Advanced AI controls -->
+                <div class="flex justify-end p-3">
+                  <button class="btn btn-xs btn-accent rounded-full tooltip" type="button" @click="openAiSection" data-tip="Explore AI-powered descriptions">Now with AI</button>
+                </div>
+                <details class="collapse p-3" data-ui-tier="advanced" :open="aiAdvancedOpen" @toggle="aiAdvancedOpen = $event.target.open" ref="descriptionsAi">
+                  <summary class="collapse-title p-0 text-sm font-semibold">Advanced: AI descriptions</summary>
+                  <div class="collapse-content p-0 mt-2 grid grid-cols-1 gap-3">
+                    <div class="form-control tooltip" :title="'Enable AI-generated and enhanced stream descriptions'" data-tip="Enable AI enhanced descriptions">
+                      <div class="text-sm opacity-80">Enable AI enhanced descriptions</div>
+                      <input type="checkbox" class="toggle toggle-success mt-1" :checked="aiEnabled" @change="onToggleAi($event)" aria-label="Enable AI enhanced descriptions" />
+                    </div>
+                    <label class="form-control tooltip" :title="'Choose the AI provider service'" data-tip="AI provider">
+                      <div class="label"><span class="label-text">Provider</span></div>
+                      <select v-model="aiProvider" class="select select-bordered" @change="onProviderChange">
+                        <option v-for="opt in AI_PROVIDER_OPTIONS" :key="opt" :value="opt">{{ opt }}</option>
+                      </select>
+                    </label>
+                    <label class="form-control tooltip" v-if="aiProvider !== 'azure'" data-tip="Select the AI model for the chosen provider">
+                      <div class="label"><span class="label-text">Model</span></div>
+                      <select v-model="aiModel" class="select select-bordered">
+                        <option v-for="m in availableAiModels" :key="m" :value="m">{{ m }}</option>
+                      </select>
+                    </label>
+                    <label class="form-control" v-else>
+                      <div class="label"><span class="label-text">Deployment name (Azure)</span></div>
+                      <input v-model="aiModel" class="input input-bordered tooltip" placeholder="e.g. gpt-4o-prod" data-tip="Azure OpenAI uses deployment names instead of model IDs" />
+                    </label>
+                    <div class="md:col-span-2">
+                      <div class="alert alert-warning" v-if="!hasServerKey(aiProvider)">
+                        <span>No server key is saved for <b class="uppercase">{{ aiProvider }}</b>. Manage it below.</span>
+                        <div class="ml-auto">
+                          <button class="btn btn-sm tooltip" type="button" @click="goManageKeysFor(aiProvider)" data-tip="Open server key management for this provider">Manage keys</button>
+                        </div>
+                      </div>
+                      <div class="text-xs opacity-70">Requires a saved server key for the selected provider. You can override defaults below.</div>
+                    </div>
+                  </div>
+                </details>
+              </div>
+            </details>
+          </div>
+        </div>
+
+        <!-- AI Descriptions Card (hidden; use Descriptions > Advanced: AI instead) -->
+        <div v-if="false" class="card bg-base-200 shadow-sm break-inside-avoid mb-4 w-full md:col-span-6" ref="aiCard">
+          <div class="card-body relative">
             <details open class="collapse">
               <summary class="collapse-title text-base font-semibold">AI Descriptions</summary>
               <div class="collapse-content p-0">
-                <div class="grid gap-4 p-3 rounded-box bg-base-300/50">
-                  <label class="label cursor-pointer gap-2">
-                    <span class="label-text">Enable AI enhanced descriptions</span>
-                    <input type="checkbox" class="toggle" :checked="aiEnabled" @change="onToggleAi($event)" />
-                  </label>
+                <div class="grid gap-4 p-3 rounded-box bg-base-300/50" data-ui-tier="basic">
+                  <div class="form-control tooltip" :title="'Enable AI-generated and enhanced stream descriptions'" data-tip="Enable AI enhanced descriptions">
+                    <div class="text-sm opacity-80">Enable AI enhanced descriptions</div>
+                    <input type="checkbox" class="toggle toggle-success mt-1" :checked="aiEnabled" @change="onToggleAi($event)" aria-label="Enable AI enhanced descriptions" />
+                  </div>
 
                   <div class="text-xs opacity-70 -mt-2">Requires a saved server key for the selected provider. You can override defaults below.</div>
 
@@ -168,15 +235,15 @@
                     <div class="grid gap-2">
                       <div class="label"><span class="label-text">Mode presets</span></div>
                       <div class="flex flex-wrap gap-3">
-                        <label class="inline-flex items-center gap-2">
+                        <label class="inline-flex items-center gap-2 tooltip" :title="'Fastest responses, concise content'" data-tip="Fast: fastest responses, concise">
                           <input type="radio" class="radio" value="fast" v-model="presetMode" @change="applyAiPreset" />
                           <span>Fast</span>
                         </label>
-                        <label class="inline-flex items-center gap-2">
+                        <label class="inline-flex items-center gap-2 tooltip" :title="'Balanced cost, speed, and quality'" data-tip="Balanced: cost, speed, quality">
                           <input type="radio" class="radio" value="balanced" v-model="presetMode" @change="applyAiPreset" />
                           <span>Balanced</span>
                         </label>
-                        <label class="inline-flex items-center gap-2">
+                        <label class="inline-flex items-center gap-2 tooltip" :title="'Richer content, slower and costlier'" data-tip="Rich: detailed, slower">
                           <input type="radio" class="radio" value="rich" v-model="presetMode" @change="applyAiPreset" />
                           <span>Rich</span>
                         </label>
@@ -186,7 +253,7 @@
 
                     <div class="grid md:grid-cols-2 gap-4">
                       <!-- Provider -->
-                      <label class="form-control">
+                      <label class="form-control tooltip" :title="'Choose the AI provider service'" data-tip="AI provider">
                         <div class="label"><span class="label-text">Provider</span></div>
                         <select v-model="aiProvider" class="select select-bordered" @change="onProviderChange">
                           <option v-for="opt in AI_PROVIDER_OPTIONS" :key="opt" :value="opt">{{ opt }}</option>
@@ -194,7 +261,7 @@
                       </label>
 
                       <!-- Model / Deployment -->
-                      <label class="form-control" v-if="aiProvider !== 'azure'">
+                      <label class="form-control tooltip" v-if="aiProvider !== 'azure'" data-tip="Select the AI model for the chosen provider">
                         <div class="label"><span class="label-text">Model</span></div>
                         <select v-model="aiModel" class="select select-bordered">
                           <option v-for="m in availableAiModels" :key="m" :value="m">{{ m }}</option>
@@ -205,7 +272,7 @@
                       </label>
                       <label class="form-control" v-else>
                         <div class="label"><span class="label-text">Deployment name (Azure)</span></div>
-                        <input v-model="aiModel" class="input input-bordered" placeholder="e.g. gpt-4o-prod" />
+                        <input v-model="aiModel" class="input input-bordered tooltip" placeholder="e.g. gpt-4o-prod" data-tip="Azure OpenAI uses deployment names instead of model IDs" />
                         <p class="text-xs opacity-70 mt-1">Azure uses deployment names instead of model ids.</p>
                       </label>
                     </div>
@@ -214,27 +281,27 @@
                     <div v-if="!hasServerKey(aiProvider)" class="alert alert-warning">
                       <span>No server key is saved for <b class="uppercase">{{ aiProvider }}</b>. Manage it below.</span>
                       <div class="ml-auto">
-                        <button class="btn btn-sm" type="button" @click="goManageKeysFor(aiProvider)">Manage keys</button>
+                        <button class="btn btn-sm tooltip" type="button" @click="goManageKeysFor(aiProvider)" data-tip="Open server key management for this provider">Manage keys</button>
                       </div>
                     </div>
 
                     <!-- Advanced performance -->
-                    <details class="collapse">
+                    <details class="collapse" data-ui-tier="advanced">
                       <summary class="collapse-title p-0 text-sm font-semibold">Advanced</summary>
                       <div class="collapse-content p-0 mt-2 grid md:grid-cols-2 gap-4">
                         <label class="form-control">
                           <div class="label"><span class="label-text">Timeout (ms)</span></div>
-                          <input v-model.number="aiTimeoutMs" type="number" min="0" class="input input-bordered" />
+                          <input v-model.number="aiTimeoutMs" type="number" min="0" class="input input-bordered tooltip" data-tip="Maximum time to wait for AI response (milliseconds)" />
                         </label>
                         <label class="form-control">
                           <div class="label"><span class="label-text">Cache TTL (ms)</span></div>
-                          <input v-model.number="aiCacheTtlMs" type="number" min="0" class="input input-bordered" />
+                          <input v-model.number="aiCacheTtlMs" type="number" min="0" class="input input-bordered tooltip" data-tip="How long to cache AI results (milliseconds)" />
                         </label>
                       </div>
                     </details>
                   </div>
                 </div>
-                <p class="text-xs opacity-70 px-3 pb-3">AI requires sign‑in and a provider key saved on the server.</p>
+                <p class="text-xs opacity-70 p-3">AI requires sign‑in and a provider key saved on the server.</p>
 
                 <!-- Login blur overlay -->
                 <div v-if="showLoginOverlay" class="absolute inset-0 bg-base-100/70 backdrop-blur-sm flex items-center justify-center rounded-box">
@@ -244,35 +311,35 @@
                       <p class="text-sm opacity-80">We store provider keys securely on your account. Please sign in to continue.</p>
                       <div class="flex flex-col gap-2">
                         <div class="join">
-                          <input v-model="magicEmail" type="email" placeholder="you@example.com" class="input input-bordered join-item" />
-                          <button class="btn btn-primary join-item" type="button" @click="startMagicLink">Email me a sign-in link</button>
+                          <input v-model="magicEmail" type="email" placeholder="you@example.com" class="input input-bordered join-item tooltip" data-tip="Enter your email to receive a login link" />
+                          <button class="btn btn-primary join-item tooltip" type="button" @click="startMagicLink" data-tip="Send a magic sign-in link to your email">Email me a sign-in link</button>
                         </div>
-                        <a class="btn" href="/api/auth/google/start">Sign in with Google</a>
-                        <button class="btn btn-ghost" type="button" @click="showLoginOverlay = false">Dismiss</button>
+                        <a class="btn tooltip" href="/api/auth/google/start" data-tip="Continue with Google">Sign in with Google</a>
+                        <button class="btn btn-ghost tooltip" type="button" @click="showLoginOverlay = false" data-tip="Dismiss and continue without signing in">Dismiss</button>
                       </div>
                     </div>
                   </div>
                 </div>
 
                 <!-- Account & AI Keys (server-side) -->
-                <div class="px-3 pb-4 space-y-3" ref="keysSection">
+                <div class="p-3 space-y-3" ref="keysSection" data-ui-tier="basic">
                   <div class="flex items-center justify-between">
                     <div class="text-sm">Status: <b>{{ sessionUserId ? 'Signed in' : 'Signed out' }}</b></div>
                     <div class="flex flex-wrap gap-2 items-center">
                       <template v-if="!sessionUserId">
                         <div class="join">
-                          <input v-model="magicEmail" type="email" placeholder="you@example.com" class="input input-bordered input-sm join-item" />
-                          <button class="btn btn-sm join-item" type="button" @click="startMagicLink">Magic link</button>
+                          <input v-model="magicEmail" type="email" placeholder="you@example.com" class="input input-bordered input-sm join-item tooltip" data-tip="Your email to receive a magic link" />
+                          <button class="btn btn-sm join-item tooltip" type="button" @click="startMagicLink" data-tip="Send a magic sign-in link">Magic link</button>
                         </div>
-                        <a class="btn btn-sm" href="/api/auth/google/start">Google</a>
+                        <a class="btn btn-sm tooltip" href="/api/auth/google/start" data-tip="Continue with Google">Google</a>
                       </template>
-                      <button v-else class="btn btn-ghost btn-sm" @click="logout">Logout</button>
+                      <button v-else class="btn btn-ghost btn-sm tooltip" @click="logout" data-tip="Sign out">Logout</button>
                     </div>
                   </div>
 
                   <div class="divider">AI Keys (server)</div>
                   <div class="grid md:grid-cols-4 gap-2 items-end">
-                    <label class="form-control">
+                    <label class="form-control tooltip" data-tip="Select which provider to save a server key for">
                       <div class="label"><span class="label-text">Provider</span></div>
                       <select v-model="srvProvider" class="select select-bordered select-sm">
                         <option v-for="opt in AI_PROVIDER_OPTIONS" :key="`srv-${opt}`" :value="opt">{{ opt }}</option>
@@ -282,7 +349,7 @@
                       <div class="label"><span class="label-text">API key (server)</span></div>
                       <input ref="srvApiKeyInput" v-model="srvApiKey" type="password" class="input input-bordered input-sm" placeholder="Stored encrypted on server" />
                     </label>
-                    <button class="btn btn-sm" type="button" :disabled="!sessionUserId" @click="saveKeyServer">Save</button>
+                    <button class="btn btn-sm tooltip" type="button" :disabled="!sessionUserId" @click="saveKeyServer" data-tip="Save encrypted server key">Save</button>
                   </div>
 
                   <div>
@@ -293,7 +360,7 @@
                         <tbody>
                           <tr v-for="it in srvKeys" :key="it.provider">
                             <td class="uppercase">{{ it.provider }}</td>
-                            <td class="text-right"><button class="btn btn-ghost btn-xs" @click="deleteKeyServer(it.provider)">Delete</button></td>
+                            <td class="text-right"><button class="btn btn-ghost btn-xs tooltip" @click="deleteKeyServer(it.provider)" data-tip="Delete saved key">Delete</button></td>
                           </tr>
                           <tr v-if="srvKeys.length === 0">
                             <td colspan="2" class="opacity-60">None</td>
@@ -309,38 +376,37 @@
         </div>
 
         <!-- Credentialed Providers (Local Only) -->
-        <div class="card bg-base-200 shadow-sm break-inside-avoid mb-4 w-full">
-          <div class="card-body p-3 md:p-4">
+        <div class="card bg-base-200 shadow-sm break-inside-avoid mb-4 w-full md:col-span-6">
+          <div class="card-body">
             <details open class="collapse">
               <summary class="collapse-title text-base font-semibold">Credentialed Providers (Local)</summary>
               <div class="collapse-content p-0">
-                <div class="p-3 rounded-box bg-base-300/50 space-y-3">
+                <div class="p-3 rounded-box bg-base-300/50 space-y-3" data-ui-tier="basic">
                   <div class="flex items-center justify-between">
                     <div class="flex items-center gap-2">
                       <div class="badge badge-warning">Local</div>
                       <span class="text-sm opacity-80">Torznab (Jackett / Prowlarr)</span>
                     </div>
-                    <label class="label cursor-pointer gap-2">
-                      <span class="label-text text-sm">Enable</span>
-                      <input type="checkbox" class="toggle" :checked="credentialedEnabled.Torznab" @change="setCredentialedEnabled('Torznab', $event.target.checked)" />
-                    </label>
+                    <div class="form-control tooltip" data-tip="Enable Torznab locally" :title="'Enable Torznab locally'">
+                      <input type="checkbox" class="toggle toggle-success" :checked="credentialedEnabled.Torznab" @change="setCredentialedEnabled('Torznab', $event.target.checked)" aria-label="Enable Torznab locally" />
+                    </div>
                   </div>
                   <p class="text-xs opacity-70">Credentials are stored only in your browser (localStorage). They are not sent to the server and are excluded from share links.</p>
                   <div v-if="credentialedEnabled.Torznab" class="space-y-2">
                     <div class="flex justify-between items-center">
                       <div class="badge badge-info">Endpoints</div>
-                      <button class="btn btn-xs" type="button" @click="addTorznabEndpoint">Add endpoint</button>
+                      <button class="btn btn-xs tooltip" type="button" @click="addTorznabEndpoint" data-tip="Add a new Torznab endpoint">Add endpoint</button>
                     </div>
                     <div v-if="!credentialedData.Torznab || credentialedData.Torznab.length === 0" class="text-sm opacity-60">No endpoints configured.</div>
-                    <div v-for="(ep, i) in credentialedData.Torznab" :key="'torznab-'+i" class="p-2 rounded-box bg-base-200/60 space-y-2">
+                    <div v-for="(ep, i) in credentialedData.Torznab" :key="'torznab-'+i" class="p-3 rounded-box bg-base-200/60 space-y-2">
                       <div class="grid md:grid-cols-2 gap-2">
-                        <label class="form-control">
+                        <label class="form-control tooltip" data-tip="The full Torznab API URL for your indexer">
                           <div class="label"><span class="label-text">URL</span></div>
-                          <input :value="ep.url" @input="updateTorznabEndpoint(i, 'url', $event.target.value)" type="url" placeholder="http://localhost:9117/api/v2.0/indexers/all/results/torznab/" class="input input-bordered" />
+                          <input :value="ep.url" @input="updateTorznabEndpoint(i, 'url', $event.target.value)" type="url" placeholder="http://localhost:9117/api/v2.0/indexers/all/results/torznab/" class="input input-bordered tooltip" data-tip="Torznab API URL" />
                         </label>
-                        <label class="form-control">
+                        <label class="form-control tooltip" data-tip="API key from your Torznab indexer (kept locally)">
                           <div class="label"><span class="label-text">API Key</span></div>
-                          <input :value="ep.apiKey" @input="updateTorznabEndpoint(i, 'apiKey', $event.target.value)" type="password" placeholder="••••••" class="input input-bordered" />
+                          <input :value="ep.apiKey" @input="updateTorznabEndpoint(i, 'apiKey', $event.target.value)" type="password" placeholder="••••••" class="input input-bordered tooltip" data-tip="Torznab API key" />
                         </label>
                       </div>
                       <div class="flex items-center justify-between gap-2">
@@ -351,24 +417,23 @@
                           <span v-else>Not tested</span>
                         </div>
                         <div class="flex items-center gap-2">
-                          <button class="btn btn-xs" type="button" @click="testTorznabEndpoint(i)" :disabled="torznabTests[i]?.status === 'testing'">Test</button>
-                          <button class="btn btn-ghost btn-xs" type="button" @click="removeTorznabEndpoint(i)">Remove</button>
+                          <button class="btn btn-xs tooltip" type="button" @click="testTorznabEndpoint(i)" :disabled="torznabTests[i]?.status === 'testing'" data-tip="Test endpoint connectivity">Test</button>
+                          <button class="btn btn-ghost btn-xs tooltip" type="button" @click="removeTorznabEndpoint(i)" data-tip="Remove this endpoint">Remove</button>
                         </div>
                       </div>
                     </div>
                   </div>
 
-                  <div class="divider my-1"></div>
+                  <div class="divider my-2"></div>
 
                   <div class="flex items-center justify-between">
                     <div class="flex items-center gap-2">
                       <div class="badge badge-warning">Local</div>
                       <span class="text-sm opacity-80">Real-Debrid</span>
                     </div>
-                    <label class="label cursor-pointer gap-2">
-                      <span class="label-text text-sm">Enable</span>
-                      <input type="checkbox" class="toggle" :checked="credentialedEnabled.RealDebrid" @change="setCredentialedEnabled('RealDebrid', $event.target.checked)" />
-                    </label>
+                    <div class="form-control tooltip" data-tip="Enable Real-Debrid locally" :title="'Enable Real-Debrid locally'">
+                      <input type="checkbox" class="toggle toggle-success" :checked="credentialedEnabled.RealDebrid" @change="setCredentialedEnabled('RealDebrid', $event.target.checked)" aria-label="Enable Real-Debrid locally" />
+                    </div>
                   </div>
                   <div v-if="credentialedEnabled.RealDebrid" class="space-y-2">
                     <label class="form-control">
@@ -377,17 +442,16 @@
                     </label>
                   </div>
 
-                  <div class="divider my-1"></div>
+                  <div class="divider my-2"></div>
 
                   <div class="flex items-center justify-between">
                     <div class="flex items-center gap-2">
                       <div class="badge badge-warning">Local</div>
                       <span class="text-sm opacity-80">AllDebrid</span>
                     </div>
-                    <label class="label cursor-pointer gap-2">
-                      <span class="label-text text-sm">Enable</span>
-                      <input type="checkbox" class="toggle" :checked="credentialedEnabled.AllDebrid" @change="setCredentialedEnabled('AllDebrid', $event.target.checked)" />
-                    </label>
+                    <div class="form-control tooltip" data-tip="Enable AllDebrid locally" :title="'Enable AllDebrid locally'">
+                      <input type="checkbox" class="toggle toggle-success" :checked="credentialedEnabled.AllDebrid" @change="setCredentialedEnabled('AllDebrid', $event.target.checked)" aria-label="Enable AllDebrid locally" />
+                    </div>
                   </div>
                   <div v-if="credentialedEnabled.AllDebrid" class="space-y-2">
                     <label class="form-control">
@@ -396,17 +460,16 @@
                     </label>
                   </div>
 
-                  <div class="divider my-1"></div>
+                  <div class="divider my-2"></div>
 
                   <div class="flex items-center justify-between">
                     <div class="flex items-center gap-2">
                       <div class="badge badge-warning">Local</div>
                       <span class="text-sm opacity-80">Orion</span>
                     </div>
-                    <label class="label cursor-pointer gap-2">
-                      <span class="label-text text-sm">Enable</span>
-                      <input type="checkbox" class="toggle" :checked="credentialedEnabled.Orion" @change="setCredentialedEnabled('Orion', $event.target.checked)" />
-                    </label>
+                    <div class="form-control tooltip" data-tip="Enable Orion locally" :title="'Enable Orion locally'">
+                      <input type="checkbox" class="toggle toggle-success" :checked="credentialedEnabled.Orion" @change="setCredentialedEnabled('Orion', $event.target.checked)" aria-label="Enable Orion locally" />
+                    </div>
                   </div>
                   <div v-if="credentialedEnabled.Orion" class="space-y-2">
                     <div class="grid md:grid-cols-2 gap-2">
@@ -429,41 +492,43 @@
         
 
         <!-- Tracker Sources Card -->
-        <div class="card bg-base-200 shadow-sm break-inside-avoid mb-4 w-full">
-          <div class="card-body p-3 md:p-4">
+        <div class="card bg-base-200 shadow-sm break-inside-avoid mb-4 w-full md:col-span-6">
+          <div class="card-body">
             <details open class="collapse">
               <summary id="sources" class="collapse-title text-base font-semibold">Tracker Sources</summary>
               <div class="collapse-content p-0">
-                <div class="grid md:grid-cols-2 gap-4">
-                  <label class="form-control">
-                    <div class="label"><span class="label-text">Variant</span></div>
-                    <select v-model="variant" class="select select-bordered">
-                      <option value="all">All trackers (default)</option>
-                      <option value="best">Best curated trackers</option>
-                      <option value="all_udp">All UDP trackers</option>
-                      <option value="all_http">All HTTP trackers</option>
-                      <option value="all_https">All HTTPS trackers</option>
-                      <option value="all_ws">All WebSocket trackers</option>
-                      <option value="all_i2p">All I2P trackers</option>
-                      <option value="all_ip">All trackers (IP only)</option>
-                      <option value="best_ip">Best trackers (IP only)</option>
-                    </select>
-                  </label>
+                <div class="p-3 rounded-box bg-base-300/50" data-ui-tier="basic">
+                  <div class="grid md:grid-cols-2 gap-4">
+                    <label class="form-control">
+                      <div class="label"><span class="label-text">Variant</span></div>
+                      <select v-model="variant" class="select select-bordered tooltip" :title="'Choose built-in tracker list variant'" data-tip="Choose built-in tracker list variant">
+                        <option value="all">All trackers (default)</option>
+                        <option value="best">Best curated trackers</option>
+                        <option value="all_udp">All UDP trackers</option>
+                        <option value="all_http">All HTTP trackers</option>
+                        <option value="all_https">All HTTPS trackers</option>
+                        <option value="all_ws">All WebSocket trackers</option>
+                        <option value="all_i2p">All I2P trackers</option>
+                        <option value="all_ip">All trackers (IP only)</option>
+                        <option value="best_ip">Best trackers (IP only)</option>
+                      </select>
+                    </label>
 
-                  <label class="form-control">
-                    <div class="label"><span class="label-text">Custom trackers URL (overrides variant)</span></div>
-                    <div class="flex gap-2">
-                      <input v-model="url" class="input input-bordered flex-1" type="url" placeholder="https://.../trackers.txt" />
-                      <button class="btn" type="button" @click="runValidate" :disabled="busy">Validate</button>
-                    </div>
-                    <div v-if="validateMsg" class="alert mt-2" :class="validateOk ? 'alert-success' : 'alert-error'">{{ validateMsg }}</div>
-                  </label>
-                </div>
-                <div class="flex flex-wrap gap-2 mt-3">
-                  <button class="btn" type="button" @click="applyPreset('default')">Preset: Default</button>
-                  <button class="btn" type="button" @click="applyPreset('minimal')">Preset: Minimal</button>
-                  <button class="btn" type="button" @click="applyPreset('aggressive')">Preset: Aggressive</button>
-                  <button class="btn" type="button" @click="copyShareLink">Copy share link</button>
+                    <label class="form-control">
+                      <div class="label"><span class="label-text">Custom trackers URL (overrides variant)</span></div>
+                      <div class="flex gap-2">
+                        <input v-model="url" class="input input-bordered flex-1 tooltip" type="url" placeholder="https://.../trackers.txt" :title="'Optional: a custom trackers list URL. Overrides the selected variant.'" data-tip="Optional: custom trackers URL (overrides variant)" />
+                        <button class="btn tooltip" type="button" @click="runValidate" :disabled="busy" :title="'Validate that the URL is reachable and text-based'" data-tip="Validate the provided URL">Validate</button>
+                      </div>
+                      <div v-if="validateMsg" class="alert mt-2" :class="validateOk ? 'alert-success' : 'alert-error'">{{ validateMsg }}</div>
+                    </label>
+                  </div>
+                  <div class="flex flex-wrap gap-2 mt-3">
+                    <button class="btn tooltip" type="button" @click="applyPreset('default')" data-tip="Apply the default sources preset" :title="'Apply the default sources preset'">Preset: Default</button>
+                    <button class="btn tooltip" type="button" @click="applyPreset('minimal')" data-tip="Apply a minimal, fast preset" :title="'Apply a minimal, fast preset'">Preset: Minimal</button>
+                    <button class="btn tooltip" type="button" @click="applyPreset('aggressive')" data-tip="Apply an aggressive, thorough preset" :title="'Apply an aggressive, thorough preset'">Preset: Aggressive</button>
+                    <button class="btn tooltip" type="button" @click="copyShareLink" data-tip="Copy a shareable link with current settings" :title="'Copy a shareable link with current settings'">Copy share link</button>
+                  </div>
                 </div>
               </div>
             </details>
@@ -471,32 +536,50 @@
         </div>
 
         <!-- Detected Providers Card -->
-        <div class="card bg-base-200 shadow-sm break-inside-avoid mb-4 w-full">
-          <div class="card-body p-3 md:p-4">
+        <div class="card bg-base-200 shadow-sm break-inside-avoid mb-4 w-full md:col-span-6">
+          <div class="card-body">
             <details open class="collapse">
               <summary class="collapse-title text-base font-semibold">Detected Providers</summary>
               <div class="collapse-content p-0">
-                <div class="p-3 rounded-box bg-base-300/50 space-y-2">
+                <div class="p-3 rounded-box bg-base-300/50 space-y-2" data-ui-tier="basic">
                   <div class="flex items-center justify-between">
                     <div class="flex items-center gap-2">
                       <div class="badge badge-info">Providers</div>
                       <span class="text-sm opacity-80">Detected upstreams</span>
                     </div>
-                    <button class="btn btn-xs" type="button" @click="detectProviders" :disabled="busyProviders">Refresh</button>
+                    <button
+                      class="btn btn-xs tooltip tooltip-left"
+                      type="button"
+                      @click="detectProviders"
+                      :disabled="busyProviders"
+                      :title="'Re-probe upstream providers and update availability'"
+                      data-tip="Re-probe upstream providers and update availability"
+                    >
+                      Refresh
+                    </button>
                   </div>
                   <div v-if="providers.length === 0" class="text-sm opacity-60">No providers detected yet.</div>
                   <div v-else class="text-sm">
                     <template v-for="(grp, gi) in groupedProviders" :key="gi">
-                      <div class="divider" v-if="grp.items.length">{{ grp.title }}</div>
-                      <ul v-if="grp.items.length">
-                        <li v-for="p in grp.items" :key="p.name" class="flex items-center justify-between gap-3">
-                          <label class="label cursor-pointer gap-2 m-0 p-0">
-                            <input type="checkbox" class="toggle toggle-xs" :checked="isProviderEnabled(p.name)" @change="toggleProvider(p.name, $event.target.checked)"/>
+                      <div class="divider tooltip" v-if="grp.items.length" :data-tip="`${grp.title} providers`">{{ grp.title }} ({{ grp.items.length }})</div>
+                      <div v-if="grp.items.length" class="flex flex-wrap gap-2">
+                        <button
+                          v-for="p in grp.items"
+                          :key="p.name"
+                          type="button"
+                          class="btn btn-xs rounded-full tooltip tooltip-bottom"
+                          :class="isProviderEnabled(p.name) ? 'btn-primary' : 'btn-outline'"
+                          :title="providerTooltipDetailed(p)"
+                          :data-tip="providerTooltipDetailed(p)"
+                          :aria-pressed="isProviderEnabled(p.name) ? 'true' : 'false'"
+                          @click="toggleProvider(p.name, !isProviderEnabled(p.name))"
+                        >
+                          <span class="inline-flex items-center gap-2">
+                            <span class="w-2 h-2 rounded-full" :class="p.ok ? 'bg-green-400' : 'bg-red-400'"></span>
                             <span>{{ p.name }}</span>
-                          </label>
-                          <span :title="providerTooltip(p)" :class="p.ok ? 'text-success' : 'text-error'">{{ p.ok ? `OK (${p.ms} ms)` : 'Unavailable' }}</span>
-                        </li>
-                      </ul>
+                          </span>
+                        </button>
+                      </div>
                     </template>
                   </div>
                   <p class="text-xs opacity-60">Server endpoint: <code>/api/providers/detect</code></p>
@@ -507,15 +590,15 @@
         </div>
 
         <!-- Stream Sorting Card -->
-        <div class="card bg-base-200 shadow-sm break-inside-avoid mb-4 w-full">
-          <div class="card-body p-3 md:p-4">
+        <div class="card bg-base-200 shadow-sm break-inside-avoid mb-4 w-full md:col-span-6">
+          <div class="card-body">
             <details open class="collapse">
               <summary id="sort" class="collapse-title text-base font-semibold">Stream Sorting</summary>
               <div class="collapse-content p-0">
-                <div class="grid gap-3 p-3 rounded-box bg-base-300/50">
+                <div class="grid gap-3 p-3 rounded-box bg-base-300/50" data-ui-tier="basic">
                   <div class="flex items-center justify-between">
                     <div class="label"><span class="label-text">Order</span></div>
-                    <button class="btn btn-sm" type="button" @click="toggleSortOrder">
+                    <button class="btn btn-sm tooltip" type="button" @click="toggleSortOrder" :title="'Switch between ascending and descending order'" data-tip="Toggle order">
                       {{ sortOrder === 'asc' ? 'Ascending' : 'Descending' }}
                     </button>
                   </div>
@@ -533,7 +616,7 @@
                     </li>
                   </ul>
                   <div class="flex gap-2">
-                    <button class="btn btn-ghost btn-sm" type="button" @click="resetSort">Reset</button>
+                    <button class="btn btn-ghost btn-sm tooltip" type="button" @click="resetSort" :title="'Restore default sorting priority'" data-tip="Reset to defaults">Reset</button>
                   </div>
 
                   <!-- Toggleable chips for adding/removing sort criteria -->
@@ -543,15 +626,17 @@
                       <button
                         v-for="name in ALLOWED_SORT_FIELDS"
                         :key="`sort-chip-`+name"
-                        class="btn btn-xs"
+                        class="btn btn-xs tooltip"
                         :class="isSortFieldSelected(name) ? 'btn-primary' : 'btn-outline'"
+                        :title="(isSortFieldSelected(name) ? 'Remove ' : 'Add ') + name + ' criterion'"
+                        :data-tip="(isSortFieldSelected(name) ? 'Remove ' : 'Add ') + name"
                         type="button"
                         @click="toggleSortField(name)"
                       >{{ name }}</button>
                     </div>
                     <div class="flex gap-2">
-                      <button class="btn btn-ghost btn-xs" type="button" @click="selectAllSortFields">Select all</button>
-                      <button class="btn btn-ghost btn-xs" type="button" @click="clearAllSortFields">Clear</button>
+                      <button class="btn btn-ghost btn-xs tooltip" type="button" @click="selectAllSortFields" data-tip="Select all available criteria" :title="'Select all available criteria'">Select all</button>
+                      <button class="btn btn-ghost btn-xs tooltip" type="button" @click="clearAllSortFields" data-tip="Remove all criteria" :title="'Remove all criteria'">Clear</button>
                     </div>
                   </div>
                 </div>
@@ -561,13 +646,13 @@
         </div>
 
         <!-- Optimization Card -->
-        <div class="card bg-base-200 shadow-sm break-inside-avoid mb-4 w-full">
-          <div class="card-body p-3 md:p-4">
+        <div class="card bg-base-200 shadow-sm break-inside-avoid mb-4 w-full md:col-span-6">
+          <div class="card-body">
             <details open class="collapse">
               <summary id="opt" class="collapse-title text-base font-semibold">Optimization</summary>
               <div class="collapse-content p-0">
-                <div class="grid grid-cols-1 gap-2">
-                  <label class="form-control">
+                <div class="grid grid-cols-1 gap-4 p-4 rounded-box bg-base-300/50" data-ui-tier="basic">
+                  <label class="form-control tooltip" :title="'How aggressively to validate trackers'" data-tip="Validation intensity">
                     <div class="label"><span class="label-text">Validation mode</span></div>
                     <select v-model="mode" class="select select-bordered">
                       <option value="off">Off (fastest)</option>
@@ -576,11 +661,9 @@
                     </select>
                     <p class="text-xs opacity-70 mt-1">Basic removes clearly dead trackers using light checks and a cache. Aggressive may be slower and noisier.</p>
                   </label>
-                  <label class="form-control">
+                  <label class="form-control tooltip" :title="'Check and display the server-side health cache'" data-tip="Check health cache">
                     <div class="label"><span class="label-text">Tracker health cache</span></div>
-                    <div class="flex gap-2">
-                      <button class="btn" type="button" @click="checkHealth" :disabled="busyHealth">Check health</button>
-                    </div>
+                    <button class="btn tooltip w-fit" type="button" @click="checkHealth" :disabled="busyHealth" :title="'Query server for cached tracker health'" data-tip="Check health">Check health</button>
                     <div v-if="healthData" class="mt-2 p-3 rounded-box bg-base-300/50 text-sm">
                       <div class="flex flex-wrap gap-2 items-center">
                         <div class="badge badge-info">Health</div>
@@ -589,63 +672,64 @@
                         <div>Unhealthy: <b>{{ (healthData.unhealthy || 0) }}</b></div>
                         <div>Updated: <b>{{ fmtTime(healthData.updated_ts || Date.now()) }}</b></div>
                       </div>
-                      <div class="mt-2">
-                        <button class="btn btn-xs btn-ghost" type="button" @click="showAdvancedHealth = !showAdvancedHealth">Advanced</button>
-                        <div v-if="showAdvancedHealth" class="mt-2 flex gap-2">
-                          <button class="btn btn-xs btn-outline" type="button" @click="copyHealthDiagnostics">Copy diagnostics</button>
+                      <details class="collapse mt-2" data-ui-tier="advanced" :open="showAdvancedHealth" @toggle="showAdvancedHealth = $event.target.open">
+                        <summary class="collapse-title p-0 text-sm font-semibold">Advanced diagnostics</summary>
+                        <div class="collapse-content p-0 mt-2">
+                          <div class="divider my-2"></div>
+                          <div class="flex gap-2">
+                            <button class="btn btn-xs btn-outline tooltip" type="button" @click="copyHealthDiagnostics" data-tip="Copy diagnostic JSON to clipboard">Copy diagnostics</button>
+                          </div>
                         </div>
-                      </div>
+                      </details>
                     </div>
                   </label>
                   <!-- Provider probe & timeouts -->
-                  <div class="grid md:grid-cols-2 gap-4">
-                    <label class="label cursor-pointer gap-2">
-                      <span class="label-text">Probe upstream providers</span>
-                      <input type="checkbox" class="toggle" v-model="probeProviders" />
-                    </label>
-                    <label class="form-control">
+                  <div class="grid grid-cols-1 gap-4">
+                    <div class="form-control tooltip" :title="'Continuously probe upstream providers from the server'" data-tip="Probe upstream providers">
+                      <div class="text-sm opacity-80">Probe upstream providers</div>
+                      <input type="checkbox" class="toggle toggle-success mt-1" v-model="probeProviders" aria-label="Probe upstream providers" />
+                    </div>
+                    <label class="form-control tooltip" :title="'Maximum time to wait for provider probes (milliseconds)'" data-tip="Probe timeout (ms)">
                       <div class="label"><span class="label-text">Probe timeout (ms)</span></div>
                       <input v-model.number="probeTimeoutMs" type="number" min="0" class="input input-bordered" />
                     </label>
-                    <label class="form-control md:col-span-2">
+                    <label class="form-control tooltip" :title="'Timeout for fetching streams from enabled providers (milliseconds)'" data-tip="Provider fetch timeout (ms)">
                       <div class="label"><span class="label-text">Provider fetch timeout (ms)</span></div>
                       <input v-model.number="providerFetchTimeoutMs" type="number" min="0" class="input input-bordered" />
                     </label>
                   </div>
                   <div class="divider"></div>
                   <!-- Swarm scraping -->
-                  <label class="label cursor-pointer gap-2">
-                    <span class="label-text">Enable swarm scraping</span>
-                    <input type="checkbox" class="toggle" v-model="swarmEnabled" />
-                  </label>
-                  <div v-if="swarmEnabled" class="grid md:grid-cols-3 gap-4">
-                    <label class="form-control">
+                  <div class="form-control tooltip" :title="'Enable experimental swarm scraping for richer data'" data-tip="Enable swarm scraping">
+                    <div class="text-sm opacity-80">Enable swarm scraping</div>
+                    <input type="checkbox" class="toggle toggle-success mt-1" v-model="swarmEnabled" aria-label="Enable swarm scraping" />
+                  </div>
+                  <div v-if="swarmEnabled" class="grid grid-cols-1 gap-4">
+                    <label class="form-control tooltip" :title="'Limit the number of swarm results to consider'" data-tip="Limit top N">
                       <div class="label"><span class="label-text">Swarm top N</span></div>
                       <input v-model.number="swarmTopN" type="number" min="0" class="input input-bordered" />
                       <p class="text-xs opacity-70 mt-1">0 = unlimited</p>
                     </label>
-                    <label class="label cursor-pointer gap-2">
-                      <span class="label-text">Missing only</span>
-                      <input type="checkbox" class="toggle" v-model="swarmMissingOnly" />
-                    </label>
-                    <label class="form-control">
+                    <div class="form-control tooltip" :title="'Only scrape when data is missing'" data-tip="Missing only">
+                      <div class="text-sm opacity-80">Missing only</div>
+                      <input type="checkbox" class="toggle toggle-success mt-1" v-model="swarmMissingOnly" aria-label="Missing only" />
+                    </div>
+                    <label class="form-control tooltip" :title="'Maximum scraping time per item (milliseconds)'" data-tip="Swarm timeout (ms)">
                       <div class="label"><span class="label-text">Swarm timeout (ms)</span></div>
                       <input v-model.number="swarmTimeoutMs" type="number" min="0" class="input input-bordered" />
                     </label>
                   </div>
                 </div>
 
-                <div>
+                <div class="form-control space-y-2">
                   <div class="label"><span class="label-text">Quick sweep (current list)</span></div>
-                  <div class="flex gap-2 items-center">
-                    <button class="btn" type="button" @click="quickSweep" :disabled="busy">Run quick sweep</button>
-                    <div v-if="quickRunning" class="flex-1">
-                      <div class="w-full h-2 rounded bg-base-300 overflow-hidden">
-                        <div class="h-2 bg-primary animate-pulse w-1/3"></div>
-                      </div>
+                  <button class="btn tooltip w-fit" type="button" @click="quickSweep" :disabled="busy" data-tip="Quickly validate the current tracker list">Run quick sweep</button>
+                  <div v-if="quickRunning" class="mt-2">
+                    <div class="w-full h-2 rounded bg-base-300 overflow-hidden">
+                      <div class="h-2 bg-primary animate-pulse w-1/3"></div>
                     </div>
                   </div>
-                  <div v-if="quickData" class="mt-2 p-3 rounded-box bg-base-300/50 text-sm">
+                  <div v-if="quickData" class="mt-3 p-3 rounded-box bg-base-300/50 text-sm">
                     <div class="flex flex-wrap items-center gap-2">
                       <div class="badge badge-success">Result</div>
                       <div>Total: <b>{{ quickData.total || 0 }}</b></div>
@@ -653,12 +737,15 @@
                       <div>Mode: <code>{{ quickData.mode || 'n/a' }}</code></div>
                       <div>Limit: <code>{{ (quickData.limit || 0) > 0 ? quickData.limit : 'Unlimited' }}</code></div>
                     </div>
-                    <div class="mt-2">
-                      <button class="btn btn-xs btn-ghost" type="button" @click="showAdvancedQuick = !showAdvancedQuick">Advanced</button>
-                      <div v-if="showAdvancedQuick" class="mt-2 flex gap-2">
-                        <button class="btn btn-xs btn-outline" type="button" @click="copyQuickDiagnostics">Copy diagnostics</button>
+                    <details class="collapse mt-2" data-ui-tier="advanced" :open="showAdvancedQuick" @toggle="showAdvancedQuick = $event.target.open">
+                      <summary class="collapse-title p-0 text-sm font-semibold">Advanced diagnostics</summary>
+                      <div class="collapse-content p-0 mt-2">
+                        <div class="divider my-2"></div>
+                        <div class="flex gap-2">
+                          <button class="btn btn-xs btn-outline tooltip" type="button" @click="copyQuickDiagnostics" data-tip="Copy quick sweep diagnostics JSON">Copy diagnostics</button>
+                        </div>
                       </div>
-                    </div>
+                    </details>
                   </div>
                   <p class="text-xs opacity-70 mt-1">Uses the Custom URL if provided; otherwise uses the selected Variant. Defaults to unlimited; enable limit to cap results.</p>
                 </div>
@@ -673,7 +760,7 @@
                   <div>
                     <div class="flex items-center justify-between">
                       <div class="label"><span class="label-text">Recent boosts</span></div>
-                      <button class="btn btn-sm" type="button" @click="loadRecentBoosts" aria-label="Refresh recent boosts">
+                      <button class="btn btn-sm tooltip" type="button" @click="loadRecentBoosts" aria-label="Refresh recent boosts" data-tip="Refresh recent boosts list" :title="'Refresh recent boosts list'">
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-4 h-4">
                           <path fill-rule="evenodd" d="M12 4a8 8 0 106.32 12.906.75.75 0 011.06 1.06A9.5 9.5 0 1112 2.5v1.75a.75.75 0 001.5 0V2.5A9.5 9.5 0 1121.38 7.47a.75.75 0 01-1.26.82A8 8 0 0012 4z" clip-rule="evenodd" />
                         </svg>
@@ -691,16 +778,17 @@
         </div>
 
         <!-- Sweep Tools Card -->
-        <div class="card bg-base-200 shadow-sm break-inside-avoid mb-4 w-full">
-          <div class="card-body p-3 md:p-4">
+        <div class="card bg-base-200 shadow-sm break-inside-avoid mb-4 w-full md:col-span-6">
+          <div class="card-body">
             <details open class="collapse">
               <summary id="sweep" class="collapse-title text-base font-semibold">Sweep Tools</summary>
-              <div class="collapse-content space-y-3">
+              <div class="collapse-content space-y-3" data-ui-tier="basic">
+                <p class="text-sm opacity-80">Sweep downloads a candidate tracker list, validates it, and prepares a merged list you can export or merge into your manual trackers. Quick sweep is faster but less exhaustive.</p>
                 <div class="flex flex-wrap gap-2">
-                  <button class="btn btn-primary" @click="runSweep" :disabled="busy">Sweep</button>
-                  <button class="btn" @click="runValidate" :disabled="busy">Validate</button>
-                  <button class="btn" @click="quickSweep" :disabled="busy">Quick sweep</button>
-                  <button v-if="quickList.length" class="btn btn-outline" type="button" @click="downloadMerged">Download merged (.txt)</button>
+                  <button class="btn btn-primary tooltip" @click="runSweep" :disabled="busy" data-tip="Run a full sweep of the tracker list">Sweep</button>
+                  <button class="btn tooltip" @click="runValidate" :disabled="busy" data-tip="Validate the current list URL or variant">Validate</button>
+                  <button class="btn tooltip" @click="quickSweep" :disabled="busy" data-tip="Run a faster, limited sweep">Quick sweep</button>
+                  <button v-if="quickList.length" class="btn btn-outline tooltip" type="button" @click="downloadMerged" data-tip="Download the merged list as a .txt file">Download merged (.txt)</button>
                 </div>
                 <div v-if="validateMsg" class="alert mt-2" :class="validateOk ? 'alert-success' : 'alert-error'">{{ validateMsg }}</div>
                 <div v-if="error" class="alert alert-error">{{ error }}</div>
@@ -710,44 +798,7 @@
                       <div class="badge badge-info">Sweep</div>
                       <div class="text-sm">
                         Progress: <strong>{{ sweepProgress.processed }}</strong> / {{ sweepProgress.total }}
-
-async function fetchPairStatus() {
-  if (!installId.value) return
-  try {
-    const u = new URL('/api/pair/status', window.location.origin)
-    u.searchParams.set('install_id', installId.value)
-    const r = await fetch(u.toString(), { cache: 'no-store' })
-    if (!r.ok) return
-    const j = await r.json()
-    if (j && j.ok) {
-      if (j.paired && j.device_id) {
-        deviceId.value = j.device_id
-        pairingMsg.value = 'Paired successfully.'
-      }
-    }
-  } catch (_) { /* ignore */ }
-}
-
-async function regeneratePairCode() {
-  if (!installId.value) return
-  try {
-    const res = await fetch('/api/pair/start', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ install_id: installId.value }),
-    })
-    if (!res.ok) throw new Error(`HTTP ${res.status}`)
-    const j = await res.json()
-    if (j && j.pair_code) {
-      pairCode.value = j.pair_code
-      try { localStorage.setItem('seedsphere.pair_code', j.pair_code) } catch (_) {}
-      pairingMsg.value = 'New pair code generated.'
-      showToast('Pair code regenerated', 'success')
-    }
-  } catch (e) {
-    showToast(e?.message || 'Failed to regenerate', 'error')
-  }
-}
+ 
                         — Healthy so far: <strong>{{ sweepProgress.healthy }}</strong>
                         — Mode: <code>{{ mode }}</code>
                       </div>
@@ -770,8 +821,8 @@ async function regeneratePairCode() {
                   </div>
                   <div v-if="!sweepStreaming && sweepStats" class="flex flex-wrap items-center gap-2">
                     <div class="text-sm">Merged ({{ manualMergeMode }}): <strong>{{ sweepStats.merged }}</strong> trackers</div>
-                    <button class="btn btn-xs btn-outline" type="button" @click="downloadSweepMerged">Download merged (.txt)</button>
-                    <button class="btn btn-xs btn-outline" type="button" @click="downloadFiltered" v-if="filteredSweepList.length">Download filtered (.txt)</button>
+                    <button class="btn btn-xs btn-outline tooltip" type="button" @click="downloadSweepMerged" data-tip="Download the merged sweep results as .txt">Download merged (.txt)</button>
+                    <button class="btn btn-xs btn-outline tooltip" type="button" @click="downloadFiltered" v-if="filteredSweepList.length" data-tip="Download the filtered list as .txt">Download filtered (.txt)</button>
                   </div>
                 </div>
                 <!-- Filtered preview from last sweep -->
@@ -779,8 +830,8 @@ async function regeneratePairCode() {
                   <div class="flex flex-wrap items-center gap-2">
                     <div class="badge badge-info">Filtered preview</div>
                     <div class="text-sm">{{ filteredSweepList.length }} / {{ lastSweepList.length }} trackers after allow/block</div>
-                    <button class="btn btn-xs btn-outline" type="button" @click="copyFiltered">Copy filtered</button>
-                    <button class="btn btn-xs btn-outline" type="button" @click="downloadFiltered">Download filtered (.txt)</button>
+                    <button class="btn btn-xs btn-outline tooltip" type="button" @click="copyFiltered" data-tip="Copy filtered list to clipboard">Copy filtered</button>
+                    <button class="btn btn-xs btn-outline tooltip" type="button" @click="downloadFiltered" data-tip="Download the filtered list as .txt">Download filtered (.txt)</button>
                   </div>
                   <pre class="mt-2 text-xs whitespace-pre-wrap">{{ filteredSweepList.slice(0, 200).join('\n') }}<span v-if="filteredSweepList.length > 200">\n... (truncated)</span></pre>
                 </div>
@@ -790,23 +841,25 @@ async function regeneratePairCode() {
         </div>
 
         <!-- Allow / Block Lists Card -->
-        <div class="card bg-base-200 shadow-sm break-inside-avoid mb-4 w-full">
-          <div class="card-body p-3 md:p-4">
+        <div class="card bg-base-200 shadow-sm break-inside-avoid mb-4 w-full md:col-span-6">
+          <div class="card-body">
             <details open class="collapse">
               <summary id="lists" class="collapse-title text-base font-semibold">Allow / Block Lists</summary>
               <div class="collapse-content">
-                <div class="grid md:grid-cols-2 gap-4">
-                  <label class="form-control">
+                <div class="grid md:grid-cols-2 gap-4" data-ui-tier="basic">
+                  <label class="form-control tooltip" data-tip="Domains or tracker URLs to prioritize (one per line)">
                     <div class="label"><span class="label-text">Allowlist (prioritize)</span></div>
-                    <textarea v-model="allowlist" class="textarea textarea-bordered h-auto min-h-28 resize-y" placeholder="one.domain.com\nhttps://tracker.example:443/announce"></textarea>
+                    <textarea v-model="allowlist" class="textarea textarea-bordered h-auto min-h-28 resize-y tooltip" placeholder="one.domain.com\nhttps://tracker.example:443/announce" data-tip="One entry per line"></textarea>
+                    <div class="text-xs opacity-70 mt-1">{{ allowCount }} entries</div>
                   </label>
-                  <label class="form-control">
+                  <label class="form-control tooltip" data-tip="Domains or tracker URLs to exclude (one per line)">
                     <div class="label"><span class="label-text">Blocklist (exclude)</span></div>
-                    <textarea v-model="blocklist" class="textarea textarea-bordered h-auto min-h-28 resize-y" placeholder="bad.tracker.tld\nudp://1.2.3.4:6969"></textarea>
+                    <textarea v-model="blocklist" class="textarea textarea-bordered h-auto min-h-28 resize-y tooltip" placeholder="bad.tracker.tld\nudp://1.2.3.4:6969" data-tip="One entry per line"></textarea>
+                    <div class="text-xs opacity-70 mt-1">{{ blockCount }} entries</div>
                   </label>
                 </div>
                 <div class="mt-2">
-                  <button class="btn btn-sm" type="button" @click="applyAllowBlockNow">Apply</button>
+                  <button class="btn btn-sm tooltip" type="button" @click="applyAllowBlockNow" data-tip="Apply allow/block filters to the last sweep preview">Apply</button>
                 </div>
               </div>
             </details>
@@ -814,21 +867,21 @@ async function regeneratePairCode() {
         </div>
 
         <!-- Manual Trackers Card -->
-        <div class="card bg-base-200 shadow-sm break-inside-avoid mb-4 w-full">
-          <div class="card-body p-3 md:p-4">
+        <div class="card bg-base-200 shadow-sm break-inside-avoid mb-4 w-full md:col-span-6">
+          <div class="card-body">
             <details open class="collapse">
               <summary class="collapse-title text-base font-semibold">Manual Trackers</summary>
               <div class="collapse-content space-y-3">
-                <div class="flex items-end gap-2">
-                  <label class="form-control flex-1">
+                <div class="grid md:grid-cols-2 gap-2 items-end" data-ui-tier="basic">
+                  <label class="form-control tooltip" data-tip="Add a tracker URL to the list">
                     <div class="label"><span class="label-text">Add a tracker</span></div>
-                    <input v-model="manualNew" class="input input-bordered" placeholder="udp://host:port or https://.../announce" />
+                    <input v-model="manualNew" class="input input-bordered tooltip" placeholder="udp://host:port or https://.../announce" data-tip="Enter a UDP/HTTP(S) tracker URL" />
                   </label>
-                  <button class="btn" type="button" @click="addManualRow" aria-label="Add">
+                  <button class="btn tooltip" type="button" @click="addManualRow" aria-label="Add" data-tip="Append the tracker above to the list">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5"><path d="M12 4.5a1 1 0 011 1V11h5.5a1 1 0 010 2H13v5.5a1 1 0 01-2 0V13H5.5a1 1 0 010-2H11V5.5a1 1 0 011-1z"/></svg>
                   </button>
                 </div>
-                <div class="overflow-x-auto">
+                <div class="overflow-x-auto" data-ui-tier="basic" ref="manualTable">
                   <table class="table table-zebra table-sm">
                     <thead>
                       <tr><th class="w-10">#</th><th>Tracker URL</th><th class="w-28">Actions</th></tr>
@@ -837,10 +890,10 @@ async function regeneratePairCode() {
                       <tr v-for="(row, i) in manualStaged" :key="i">
                         <td class="text-xs opacity-70">{{ i + 1 }}</td>
                         <td>
-                          <input v-model="manualStaged[i]" class="input input-bordered input-sm w-full" :class="{ 'input-error': row && !isValidTracker(row) && manualStrict }" />
+                          <input v-model="manualStaged[i]" class="input input-bordered input-sm w-full tooltip" :class="{ 'input-error': row && !isValidTracker(row) && manualStrict }" data-tip="Edit tracker URL" />
                         </td>
                         <td>
-                          <button class="btn btn-ghost btn-xs" type="button" @click="removeManualRow(i)" aria-label="Remove">
+                          <button class="btn btn-ghost btn-xs tooltip" type="button" @click="removeManualRow(i)" aria-label="Remove" data-tip="Remove this tracker from the list">
                             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-4 h-4"><path d="M9 3.75A1.75 1.75 0 0110.75 2h2.5A1.75 1.75 0 0115 3.75V5h4.25a.75.75 0 010 1.5H4.75a.75.75 0 010-1.5H9V3.75zM6.75 7.5h10.5l-.69 11.042a2.25 2.25 0 01-2.245 2.083H9.685a2.25 2.25 0 01-2.245-2.082L6.75 7.5z"/></svg>
                           </button>
                         </td>
@@ -849,37 +902,59 @@ async function regeneratePairCode() {
                     </tbody>
                   </table>
                 </div>
-                <div class="grid items-end gap-3 md:grid-cols-3">
-                  <label class="label cursor-pointer gap-2">
-                    <span class="label-text">Strict validation</span>
-                    <input type="checkbox" class="toggle" v-model="manualStrict" />
-                  </label>
-                  <label class="form-control max-w-56">
-                    <div class="label"><span class="label-text">Sweep merge</span></div>
-                    <select v-model="manualMergeMode" class="select select-bordered select-sm">
-                      <option value="append">Append</option>
-                      <option value="replace">Replace</option>
-                    </select>
-                  </label>
-                  <label class="label cursor-pointer gap-2">
-                    <span class="label-text">Auto-save after sweep</span>
-                    <input type="checkbox" class="toggle" v-model="manualAutoSave" />
-                  </label>
+                <div class="divider my-2">Auto Trackers (detected)</div>
+                <div class="overflow-x-auto rounded-box bg-base-300/40">
+                  <table class="table table-sm">
+                    <thead><tr><th>#</th><th>Tracker URL</th><th class="w-28 text-right">Actions</th></tr></thead>
+                    <tbody>
+                      <tr v-for="(row, i) in quickList" :key="`auto-${i}`" @dblclick="convertAutoToManual(row)">
+                        <td class="text-xs opacity-70">{{ i + 1 }}</td>
+                        <td class="truncate">{{ row }}</td>
+                        <td class="text-right">
+                          <button class="btn btn-ghost btn-xs tooltip" type="button" @click="convertAutoToManual(row)" data-tip="Copy this tracker into Manual to edit">Convert to manual</button>
+                        </td>
+                      </tr>
+                      <tr v-if="quickList.length === 0"><td colspan="3" class="opacity-60">No detected auto trackers yet</td></tr>
+                    </tbody>
+                  </table>
                 </div>
-                <div class="flex flex-wrap gap-2">
-                  <button class="btn btn-outline" type="button" @click="importManual" aria-label="Import">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-4 h-4"><path d="M12 3a1 1 0 011 1v8l3.293-3.293a1 1 0 111.414 1.414l-5 5a1 1 0 01-1.414 0l-5-5A1 1 0 116.707 8.707L10 12V4a1 1 0 011-1z"/></svg>
-                    <span class="ml-1">Import</span>
-                  </button>
-                  <button class="btn btn-outline" type="button" @click="exportManual" aria-label="Export">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-4 h-4"><path d="M12 21a1 1 0 01-1-1v-8L7.707 15.293a1 1 0 01-1.414-1.414l5-5a1 1 0 011.414 0l5 5a1 1 0 11-1.414 1.414L13 12v8a1 1 0 01-1 1z"/></svg>
-                    <span class="ml-1">Export</span>
-                  </button>
-                </div>
-                <div class="mt-2 flex flex-wrap gap-2">
-                  <button class="btn btn-primary" type="button" @click="saveManual">Save</button>
-                  <button class="btn" type="button" @click="revertManual">Revert</button>
-                  <button class="btn btn-ghost" type="button" @click="cancelManual">Cancel</button>
+                <details class="collapse" data-ui-tier="advanced">
+                  <summary class="collapse-title p-0 text-sm font-semibold">Advanced</summary>
+                  <div class="collapse-content p-0 mt-2">
+                    <div class="divider my-2"></div>
+                    <div class="grid items-end gap-3 md:grid-cols-3">
+                      <div class="form-control tooltip" data-tip="Flag invalid URLs and prevent saving when enabled" :title="'Flag invalid URLs and prevent saving when enabled'">
+                        <div class="text-sm opacity-80">Strict validation</div>
+                        <input type="checkbox" class="toggle toggle-success mt-1" v-model="manualStrict" aria-label="Strict validation" />
+                      </div>
+                      <label class="form-control max-w-56 tooltip" data-tip="How to merge quick sweep results into the list">
+                        <div class="label"><span class="label-text">Sweep merge</span></div>
+                        <select v-model="manualMergeMode" class="select select-bordered select-sm">
+                          <option value="append">Append</option>
+                          <option value="replace">Replace</option>
+                        </select>
+                      </label>
+                      <div class="form-control tooltip" data-tip="Automatically save changes after a quick sweep completes" :title="'Automatically save changes after a quick sweep completes'">
+                        <div class="text-sm opacity-80">Auto-save after sweep</div>
+                        <input type="checkbox" class="toggle toggle-success mt-1" v-model="manualAutoSave" aria-label="Auto-save after sweep" />
+                      </div>
+                    </div>
+                    <div class="mt-3 flex flex-wrap gap-2">
+                      <button class="btn btn-outline tooltip" type="button" @click="importManual" aria-label="Import" data-tip="Import trackers from a file (.txt)">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-4 h-4"><path d="M12 3a1 1 0 011 1v8l3.293-3.293a1 1 0 111.414 1.414l-5 5a1 1 0 01-1.414 0l-5-5A1 1 0 116.707 8.707L10 12V4a1 1 0 011-1z"/></svg>
+                        <span class="ml-1">Import</span>
+                      </button>
+                      <button class="btn btn-outline tooltip" type="button" @click="exportManual" aria-label="Export" data-tip="Export current trackers to a .txt file">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-4 h-4"><path d="M12 21a1 1 0 01-1-1v-8L7.707 15.293a1 1 0 01-1.414-1.414l5-5a1 1 0 011.414 0l5 5a1 1 0 11-1.414 1.414L13 12v8a1 1 0 01-1 1z"/></svg>
+                        <span class="ml-1">Export</span>
+                      </button>
+                    </div>
+                  </div>
+                </details>
+                <div class="mt-2 flex flex-wrap gap-2" data-ui-tier="basic">
+                  <button class="btn btn-primary tooltip" type="button" @click="saveManual" data-tip="Save manual trackers to your settings">Save</button>
+                  <button class="btn tooltip" type="button" @click="revertManual" data-tip="Revert changes to last saved state">Revert</button>
+                  <button class="btn btn-ghost tooltip" type="button" @click="cancelManual" data-tip="Cancel editing and close">Cancel</button>
                 </div>
               </div>
             </details>
@@ -887,7 +962,7 @@ async function regeneratePairCode() {
         </div>
 
         <!-- Steps and About -->
-        <div class="grid gap-6 md:grid-cols-2">
+        <div class="grid gap-6 md:grid-cols-2 md:col-span-12">
           <div class="card bg-base-200 shadow">
             <div class="card-body">
               <h3 class="card-title">Use in Stremio</h3>
@@ -925,6 +1000,68 @@ let es = null
 let esSweep = null
 const sweepStreaming = ref(false)
 const sweepProgress = ref({ processed: 0, healthy: 0, total: 0 })
+
+// Sticky quick tabs: auto-hide when sticky, reveal on hover near top
+const tabsNav = ref(null)
+const tabsStickyActive = ref(false)
+const tabsReveal = ref(false)
+let tabsHideTimer = null
+
+function isCoarsePointer() {
+  try { return window.matchMedia && window.matchMedia('(pointer: coarse)').matches } catch (_) { return false }
+}
+
+function getStickyTopPx() {
+  try { return parseInt(getComputedStyle(tabsNav.value).top, 10) || 16 } catch (_) { return 16 }
+}
+function getHoverThresholdPx() {
+  const top = getStickyTopPx()
+  const h = (tabsNav.value && tabsNav.value.offsetHeight) ? tabsNav.value.offsetHeight : 40
+  return top + Math.min(64, h + 8)
+}
+function updateTabsSticky() {
+  try {
+    const el = tabsNav.value
+    if (!el) return
+    if (isCoarsePointer()) { tabsStickyActive.value = false; tabsReveal.value = true; return }
+    const top = getStickyTopPx()
+    const rect = el.getBoundingClientRect()
+    const sticky = rect.top <= (top + 1)
+    tabsStickyActive.value = sticky
+    if (!sticky) { tabsReveal.value = false }
+  } catch (_) {}
+}
+function revealTabs() {
+  tabsReveal.value = true
+  try { tabsHideTimer && clearTimeout(tabsHideTimer) } catch (_) {}
+  tabsHideTimer = null
+}
+function queueHideTabs() {
+  try { tabsHideTimer && clearTimeout(tabsHideTimer) } catch (_) {}
+  tabsHideTimer = setTimeout(() => { if (tabsStickyActive.value) tabsReveal.value = false }, 1200)
+}
+function onMouseMoveNearTop(e) {
+  if (!tabsStickyActive.value) return
+  try {
+    const thr = getHoverThresholdPx()
+    if (e.clientY <= thr) revealTabs()
+    else queueHideTabs()
+  } catch (_) {}
+}
+
+// Attach listeners for sticky detection and hover reveal
+onMounted(() => {
+  try { updateTabsSticky() } catch (_) {}
+  try { window.addEventListener('scroll', updateTabsSticky, { passive: true }) } catch (_) {}
+  try { window.addEventListener('resize', updateTabsSticky, { passive: true }) } catch (_) {}
+  try { window.addEventListener('mousemove', onMouseMoveNearTop, { passive: true }) } catch (_) {}
+})
+
+onBeforeUnmount(() => {
+  try { window.removeEventListener('scroll', updateTabsSticky) } catch (_) {}
+  try { window.removeEventListener('resize', updateTabsSticky) } catch (_) {}
+  try { window.removeEventListener('mousemove', onMouseMoveNearTop) } catch (_) {}
+})
 
 // Pairing state
 const installId = ref('')
@@ -968,12 +1105,101 @@ async function ensurePairing() {
   }
 }
 
+async function fetchPairStatus() {
+  if (!installId.value) return
+  try {
+    const u = new URL('/api/pair/status', window.location.origin)
+    u.searchParams.set('install_id', installId.value)
+    const r = await fetch(u.toString(), { cache: 'no-store' })
+    if (!r.ok) return
+    const j = await r.json()
+    if (j && j.ok) {
+      if (j.paired && j.device_id) {
+        deviceId.value = j.device_id
+        pairingMsg.value = 'Paired successfully.'
+      }
+    }
+  } catch (_) { /* ignore */ }
+}
+
+async function regeneratePairCode() {
+  if (!installId.value) return
+  try {
+    const res = await fetch('/api/pair/start', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ install_id: installId.value }),
+    })
+    if (!res.ok) throw new Error(`HTTP ${res.status}`)
+    const j = await res.json()
+    if (j && j.pair_code) {
+      pairCode.value = j.pair_code
+      try { localStorage.setItem('seedsphere.pair_code', j.pair_code) } catch (_) {}
+      pairingMsg.value = 'New pair code generated.'
+      showToast('Pair code regenerated', 'success')
+    }
+  } catch (e) {
+    showToast(e?.message || 'Failed to regenerate', 'error')
+  }
+}
+
 // --- AI gating helpers & UI refs ---
 const showLoginOverlay = ref(false)
 const presetMode = ref('balanced')
 const aiCard = ref(null)
 const keysSection = ref(null)
 const srvApiKeyInput = ref(null)
+// Descriptions card + AI advanced subsection
+const descriptionsCard = ref(null)
+const descriptionsAi = ref(null)
+const aiAdvancedOpen = ref(false)
+
+function openAiSection() {
+  try {
+    aiAdvancedOpen.value = true
+    nextTick(() => { try { scrollToRef(descriptionsAi) } catch (_) {} })
+  } catch (_) {}
+}
+
+// Sticky header/tabs aware scrolling
+function getStickyOffsetPx() {
+  try {
+    const header = document.querySelector('.navbar.sticky')
+    const tabs = document.querySelector('main.configure-page nav.sticky')
+    const hb = header ? header.getBoundingClientRect().height : 0
+    const tb = tabs ? tabs.getBoundingClientRect().height : 0
+    return Math.round(hb + tb + 8) // small breathing room
+  } catch (_) { return 112 }
+}
+
+function scrollToAnchor(id) {
+  try {
+    const base = document.getElementById(id)
+    // For the hero section, prefer the inner title to avoid large inner padding
+    const el = (id === 'install' ? (document.getElementById('cfg-title') || base) : base)
+    if (!el) return
+    const top = (el.getBoundingClientRect().top + window.scrollY) - getStickyOffsetPx()
+    window.scrollTo({ top, behavior: 'smooth' })
+    // Correct any residual delta after layout settles
+    requestAnimationFrame(() => {
+      const delta = el.getBoundingClientRect().top - getStickyOffsetPx()
+      if (Math.abs(delta) > 2) try { window.scrollBy({ top: delta, behavior: 'auto' }) } catch (_) {}
+    })
+  } catch (_) {}
+}
+
+function scrollToRef(r) {
+  try {
+    const el = r && r.value ? r.value : null
+    if (!el) return
+    const top = (el.getBoundingClientRect().top + window.scrollY) - getStickyOffsetPx()
+    window.scrollTo({ top, behavior: 'smooth' })
+    requestAnimationFrame(() => {
+      const delta = el.getBoundingClientRect().top - getStickyOffsetPx()
+      if (Math.abs(delta) > 2) try { window.scrollBy({ top: delta, behavior: 'auto' }) } catch (_) {}
+    })
+  } catch (_) {}
+}
 
 function hasServerKey(provider) {
   try {
@@ -984,10 +1210,42 @@ function hasServerKey(provider) {
 
 async function goManageKeysFor(provider) {
   try { srvProvider.value = provider } catch (_) {}
+  // Ensure the Descriptions → Advanced (AI) section is opened so keys UI is visible
+  try { aiAdvancedOpen.value = true } catch (_) {}
+  // Ensure the outer Descriptions card is expanded
+  try { if (descriptionsCard?.value && !descriptionsCard.value.open) descriptionsCard.value.open = true } catch (_) {}
   try { await nextTick() } catch (_) {}
+  // If signed out, show login overlay to unblock keys management
+  if (!sessionUserId.value) {
+    try { showLoginOverlay.value = true } catch (_) {}
+    try { keysSection?.value?.scrollIntoView({ behavior: 'smooth', block: 'start' }) } catch (_) {}
+    try {
+      // focus the email input inside overlay if present
+      const el = document.querySelector('input[type="email"]')
+      el && el.focus && el.focus()
+    } catch (_) {}
+    return
+  }
+  // Signed in: jump to keys section and focus input
   try { keysSection?.value?.scrollIntoView({ behavior: 'smooth', block: 'start' }) } catch (_) {}
-  // focus input a bit later so scroll can start
-  try { setTimeout(() => { try { srvApiKeyInput?.value?.focus() } catch (_) {} }, 400) } catch (_) {}
+  try { srvApiKeyInput?.value?.focus() } catch (_) {}
+}
+
+// Convert an auto-detected tracker into a manual entry and focus it
+const manualTable = ref(null)
+async function convertAutoToManual(row) {
+  try {
+    const v = String(row || '').trim()
+    if (!v) return
+    if (!manualStaged.value.includes(v)) manualStaged.value.push(v)
+    await nextTick()
+    // Scroll manual table into view and focus the last input
+    try { manualTable?.value?.scrollIntoView({ behavior: 'smooth', block: 'nearest' }) } catch (_) {}
+    try {
+      const inputs = manualTable?.value?.querySelectorAll('input') || []
+      if (inputs && inputs.length) inputs[inputs.length - 1].focus()
+    } catch (_) {}
+  } catch (_) {}
 }
 
 function onToggleAi(e) {
@@ -1046,6 +1304,10 @@ async function fetchSession() {
     const data = await res.json()
     const uid = data && data.user && data.user.id ? String(data.user.id) : ''
     sessionUserId.value = uid
+    // Only fetch server keys when signed in to avoid 401 noise
+    if (uid) {
+      try { await refreshSrvKeys() } catch (_) {}
+    }
   } catch (_) { /* ignore */ }
 }
 onMounted(() => {
@@ -1054,6 +1316,16 @@ onMounted(() => {
   try {
     fetchPairStatus()
     pairStatusTimer = setInterval(fetchPairStatus, 15000)
+  } catch (_) {}
+})
+
+// Auto-populate Auto Trackers with a one-time quick sweep on first load
+onMounted(() => {
+  try {
+    if (!Array.isArray(quickList.value) || quickList.value.length === 0) {
+      // Defer to allow initial UI to mount cleanly
+      setTimeout(() => { try { quickSweep() } catch (_) {} }, 0)
+    }
   } catch (_) {}
 })
 
@@ -1124,12 +1396,14 @@ async function logout() {
     const res = await fetch('/api/auth/logout', { method: 'POST' })
     if (!res.ok) throw new Error(`HTTP ${res.status}`)
     sessionUserId.value = ''
-    await refreshSrvKeys()
+    // Clear local keys state; avoid calling server when signed out
+    srvKeys.value = []
     showToast('Signed out', 'success')
   } catch (e) { showToast(`Logout failed: ${e?.message || 'error'}`, 'error') }
 }
 
-onMounted(() => { refreshSrvKeys() })
+// Avoid calling keys endpoint when not signed-in
+onMounted(() => { if (sessionUserId.value) refreshSrvKeys() })
 
 function connectSse() {
   try {
@@ -1290,6 +1564,12 @@ const validateOk = ref(false)
 
 const allowlist = ref('')
 const blocklist = ref('')
+
+function countLines(s) {
+  try { return String(s || '').split(/\r?\n/).map((t) => t.trim()).filter(Boolean).length } catch { return 0 }
+}
+const allowCount = computed(() => countLines(allowlist.value))
+const blockCount = computed(() => countLines(blocklist.value))
 
 const busyHealth = ref(false)
 const healthMsg = ref('')
@@ -2137,6 +2417,18 @@ function providerTooltip(p) {
   const ts = providersFetchedAt.value ? fmtTime(providersFetchedAt.value) : 'n/a'
   const ms = (p && typeof p.ms === 'number') ? `${p.ms} ms` : 'n/a'
   return `Probed: ${ts} • Response: ${ms}`
+}
+
+function providerTooltipDetailed(p) {
+  try {
+    const name = p?.name || 'Provider'
+    const ts = providersFetchedAt.value ? fmtTime(providersFetchedAt.value) : 'n/a'
+    const status = (p && p.ok) ? (typeof p.ms === 'number' ? `OK (${p.ms} ms)` : 'OK') : 'Unavailable'
+    const state = isProviderEnabled(name) ? 'Enabled' : 'Disabled'
+    return `${name}: ${status} • ${state} • Probed ${ts} • Click to toggle`
+  } catch (_) {
+    return 'Provider • Click to toggle'
+  }
 }
 
 function isProviderEnabled(name) {

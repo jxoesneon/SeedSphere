@@ -3,6 +3,7 @@
 # --- Builder stage: install dev deps and build client ---
 FROM node:22-alpine AS builder
 WORKDIR /app
+RUN apk add --no-cache python3 make g++
 
 # Install all deps to allow building
 COPY package.json package-lock.json ./
@@ -19,6 +20,7 @@ FROM node:22-alpine AS runner
 WORKDIR /app
 ENV NODE_ENV=production
 ENV npm_config_legacy_peer_deps=true
+RUN apk add --no-cache python3 make g++
 
 # Install only production dependencies
 COPY package.json package-lock.json ./

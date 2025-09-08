@@ -1,12 +1,56 @@
-/* Tailwind v4 layers must be imported before other at-rules */
-@import "tailwindcss/base";
-@import "tailwindcss/components";
-@import "tailwindcss/utilities";
+/* Tailwind v4 import */
+@import "tailwindcss";
 
 /* DaisyUI plugin for Tailwind v4 */
 /* stylelint-disable at-rule-no-unknown */
 @plugin "daisyui";
 /* stylelint-enable at-rule-no-unknown */
+
+/* Centralized spacing tokens */
+:root {
+  --nav-height: 4rem;        /* sticky navbar height */
+  --space-card-x: 1rem;      /* horizontal padding inside cards */
+  --space-card-y: 1rem;      /* vertical padding inside cards */
+  --space-card-title: 0.5rem;/* gap below card titles */
+  --space-section-gap: 2rem; /* vertical gap between major sections */
+  --space-grid-gap: 1.5rem;  /* default gap for feature/stat grids */
+}
+@media (min-width: 768px) {
+  :root {
+    --space-card-x: 1.25rem;
+    --space-card-y: 1.25rem;
+    --space-section-gap: 2rem;
+    --space-grid-gap: 1.5rem;
+  }
+}
+
+/* Base spacing for DaisyUI cards */
+.card .card-body {
+  padding: var(--space-card-y) var(--space-card-x);
+}
+.card .card-body .card-title {
+  margin-bottom: var(--space-card-title);
+}
+
+/* Helper utilities to standardize section and grid spacing */
+.page-section { margin-top: var(--space-section-gap); }
+.app-grid { gap: var(--space-grid-gap); }
+
+/* Smooth scrolling and anchor offset for sticky header/tabs */
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 7.5rem; /* navbar + tabs total height (approx) */
+}
+
+/* Ensure in-card anchors (e.g., <summary id="..." class="collapse-title">) offset below sticky bars */
+.collapse-title {
+  scroll-margin-top: 7.5rem;
+}
+
+/* Offset top toasts so they don't appear behind the sticky navbar */
+.toast.toast-top.with-nav-offset { top: calc(var(--nav-height) + 0.5rem) !important; }
+/* Offset for navbar + sticky tabs; keep in sync with html.scroll-padding-top and anchor scroll-margin-top (7.5rem) */
+.toast.toast-top.with-tabs-offset { top: calc(7.5rem + 0.5rem) !important; }
 
 /* Global backdrop gradient (from backup Configure page) */
 .backdrop {
@@ -17,4 +61,51 @@
               linear-gradient(180deg, #0b1220 0%, #0b1220 100%);
   pointer-events: none;
   z-index: 0;
+}
+
+/* Global tooltip behavior: delay display until 4s of hover */
+/* Works with DaisyUI v5 tooltips using ::before/::after pseudo-elements */
+.tooltip[data-tip]::before,
+.tooltip[data-tip]::after {
+  transition-property: opacity, transform;
+  transition-duration: .15s;
+  transition-timing-function: ease;
+  transition-delay: 4s !important; /* show after 4 seconds */
+}
+
+/* On non-hover state, ensure no delay is queued so hiding is immediate */
+.tooltip[data-tip]:not(:hover)::before,
+.tooltip[data-tip]:not(:hover)::after {
+  transition-delay: 0s !important; /* hide immediately */
+}
+
+/* Prevent anchor jumps from landing under the sticky navbar/tabs */
+#install,
+#upstream,
+#prefs,
+#sources,
+#sort,
+#opt,
+#sweep,
+#lists,
+#telemetry {
+  scroll-margin-top: 7.5rem; /* navbar (~4rem) + tabs height + breathing room */
+}
+
+/* Sticky tabs: auto-hide when sticky; reveal on hover/nearby */
+.nav-auto-hide {
+  transition: transform .2s ease, opacity .2s ease;
+  will-change: transform, opacity;
+}
+.nav-auto-hide.sticky-active {
+  transform: translateY(calc(-100% - 6px));
+  opacity: 0;
+  pointer-events: none;
+  padding-top: .5rem; /* add breathing room above tabs only when sticky is active */
+}
+.nav-auto-hide.sticky-active.revealed {
+  transform: translateY(0);
+  opacity: 1;
+  pointer-events: auto;
+  padding-top: .5rem; /* keep the same spacing when revealed */
 }

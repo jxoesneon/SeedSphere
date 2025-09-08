@@ -1,7 +1,7 @@
 <template>
   <div class="relative" @keydown.esc="closeAll">
     <!-- Account/Login button -->
-    <button class="btn btn-sm" @click="toggleMenu" :aria-expanded="open ? 'true' : 'false'">
+    <button class="btn btn-sm tooltip" data-tip="Sign in or manage account" @click="toggleMenu" :aria-expanded="open ? 'true' : 'false'">
       <span v-if="!user">Login</span>
       <span v-else class="inline-flex items-center gap-2">
         <span class="i-ph-user-circle text-xl" aria-hidden="true"></span>
@@ -11,8 +11,8 @@
 
     <!-- Dropdown when logged in -->
     <div v-if="open && user" class="menu menu-sm dropdown-content mt-2 p-2 shadow bg-base-200 rounded-box absolute right-0 z-20 w-48">
-      <button class="btn btn-ghost btn-sm justify-start" @click="goConfigure">Manage account</button>
-      <button class="btn btn-ghost btn-sm justify-start" @click="doLogout">Log out</button>
+      <button class="btn btn-ghost btn-sm justify-start tooltip" data-tip="Open account settings" @click="goConfigure">Manage account</button>
+      <button class="btn btn-ghost btn-sm justify-start tooltip" data-tip="Sign out of SeedSphere" @click="doLogout">Log out</button>
     </div>
 
     <!-- Modal for login methods -->
@@ -27,8 +27,8 @@
         <div class="card bg-base-200 mb-4">
           <div class="card-body p-3 gap-2">
             <div class="text-sm">Magic link</div>
-            <input v-model="email" type="email" class="input input-bordered input-sm w-full" placeholder="you@example.com" />
-            <button class="btn btn-sm" :disabled="sending" @click="sendMagic">
+            <input v-model="email" type="email" class="input input-bordered input-sm w-full tooltip" placeholder="you@example.com" data-tip="Email address to receive sign-in link" />
+            <button class="btn btn-sm tooltip" :disabled="sending" data-tip="Send a one-time sign-in link" @click="sendMagic">
               <span v-if="!sending">Send link</span>
               <span v-else class="loading loading-spinner loading-sm"></span>
             </button>
@@ -41,14 +41,14 @@
 
         <!-- Provider buttons, one per line -->
         <div class="flex flex-col gap-2 mt-2">
-          <button class="btn btn-outline justify-start" @click="start('google')">
+          <button class="btn btn-outline justify-start tooltip" data-tip="Continue with Google" @click="start('google')">
             <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" class="h-5 w-5 mr-2" />
             Continue with Google
           </button>
         </div>
 
         <div class="modal-action">
-          <button class="btn" @click="closeModal">Close</button>
+          <button class="btn tooltip" data-tip="Close and return" @click="closeModal">Close</button>
         </div>
       </div>
       <form method="dialog" class="modal-backdrop" @click="closeModal">

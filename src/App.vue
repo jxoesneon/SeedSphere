@@ -2,12 +2,12 @@
   <div class="min-h-screen bg-base-100 text-base-content relative">
     <!-- Global backdrop gradient -->
     <div class="backdrop" aria-hidden="true"></div>
-    <div class="navbar bg-base-200">
-      <div class="container mx-auto px-4 grid grid-cols-2 md:grid-cols-3 items-center">
+    <div class="navbar sticky top-0 z-40 bg-base-100/80 backdrop-blur supports-[backdrop-filter]:bg-base-100/60 border-b border-base-300/50">
+      <div class="container mx-auto px-4 flex items-center justify-between gap-2 whitespace-nowrap">
         <!-- Left: Brand -->
         <div class="flex items-center gap-2 justify-start">
-          <RouterLink to="/" class="flex items-center gap-2 text-lg font-semibold">
-            <img src="/assets/icon.png" alt="SeedSphere" class="h-6 w-6" />
+          <RouterLink to="/" class="flex items-center gap-2 text-lg font-semibold tooltip" data-tip="Home">
+            <img src="/assets/icon-256.png" alt="SeedSphere logo" class="h-6 w-6" />
             <span>SeedSphere</span>
           </RouterLink>
         </div>
@@ -22,16 +22,15 @@
           </div>
         </div>
 
-        <!-- Right: Nav + Theme + Account -->
-        <div class="flex flex-wrap items-center gap-2 justify-end">
-          <RouterLink to="/" class="btn btn-ghost btn-sm">Home</RouterLink>
-          <RouterLink to="/configure" class="btn btn-ghost btn-sm">Configure</RouterLink>
-          <RouterLink to="/pair" class="btn btn-ghost btn-sm">Pair</RouterLink>
-          <RouterLink to="/activity" class="btn btn-ghost btn-sm">Activity</RouterLink>
-          <a class="btn btn-ghost btn-sm" :href="manifestUrl" target="_blank" rel="noopener">Manifest</a>
-          <RouterLink v-if="isDev" to="/executor" class="btn btn-ghost btn-sm">Executor</RouterLink>
-          <span v-if="gardenerId" class="badge badge-outline badge-sm" :title="`gardener_id: ${gardenerId}`">G: {{ gardenerId }}</span>
-          <div class="form-control">
+        <!-- Right: Nav + Theme + Account (desktop) -->
+        <div class="hidden md:flex items-center gap-2 justify-end whitespace-nowrap">
+          <RouterLink to="/" class="tooltip" data-tip="Home" :class="navLinkClasses('/')">Home</RouterLink>
+          <RouterLink to="/configure" class="tooltip" data-tip="Configure addon" :class="navLinkClasses('/configure')">Configure</RouterLink>
+          <RouterLink to="/pair" class="tooltip" data-tip="Pair a device" :class="navLinkClasses('/pair')">Pair</RouterLink>
+          <RouterLink to="/activity" class="tooltip" data-tip="View activity" :class="navLinkClasses('/activity')">Activity</RouterLink>
+          <a class="btn btn-ghost btn-sm rounded-full tooltip" data-tip="Open manifest JSON" :href="manifestUrl" target="_blank" rel="noopener">Manifest</a>
+          <RouterLink v-if="isDev" to="/executor" class="tooltip" data-tip="Developer executor" :class="navLinkClasses('/executor')">Executor</RouterLink>
+          <div class="form-control tooltip" data-tip="Change theme">
             <label class="label cursor-pointer gap-2">
               <span class="label-text">Theme</span>
               <select class="select select-bordered select-sm" v-model="theme" @change="applyTheme(theme)">
@@ -41,7 +40,49 @@
               </select>
             </label>
           </div>
-          <AccountMenu />
+          <div class="tooltip" data-tip="Account and authentication">
+            <AccountMenu />
+          </div>
+        </div>
+
+        <!-- Right: Mobile hamburger -->
+        <div class="flex items-center justify-end md:hidden relative">
+          <button class="btn btn-ghost btn-sm tooltip" data-tip="Toggle menu" type="button" @click="toggleMobileMenu" :aria-expanded="showMobileMenu ? 'true' : 'false'" aria-controls="mobile-nav">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+            </svg>
+            <span class="sr-only">Toggle navigation</span>
+          </button>
+          <!-- Backdrop -->
+          <div v-if="showMobileMenu" class="fixed inset-0 bg-base-300/30 backdrop-blur-sm z-40" @click="closeMobileMenu"></div>
+          <!-- Dropdown menu -->
+          <div
+            v-if="showMobileMenu"
+            id="mobile-nav"
+            class="absolute right-0 top-10 w-72 rounded-2xl bg-base-100/90 border border-base-300/50 shadow-lg p-2 z-50 backdrop-blur supports-[backdrop-filter]:bg-base-100/70">
+            <div class="flex flex-col gap-1">
+              <RouterLink @click="closeMobileMenu" to="/" class="btn btn-ghost btn-sm rounded-full justify-start" title="Home">Home</RouterLink>
+              <RouterLink @click="closeMobileMenu" to="/configure" class="btn btn-ghost btn-sm rounded-full justify-start" title="Configure addon">Configure</RouterLink>
+              <RouterLink @click="closeMobileMenu" to="/pair" class="btn btn-ghost btn-sm rounded-full justify-start" title="Pair a device">Pair</RouterLink>
+              <RouterLink @click="closeMobileMenu" to="/activity" class="btn btn-ghost btn-sm rounded-full justify-start" title="View activity">Activity</RouterLink>
+              <a @click="closeMobileMenu" class="btn btn-ghost btn-sm rounded-full justify-start" :href="manifestUrl" target="_blank" rel="noopener" title="Open manifest JSON">Manifest</a>
+              <RouterLink v-if="isDev" @click="closeMobileMenu" to="/executor" class="btn btn-ghost btn-sm rounded-full justify-start" title="Developer executor">Executor</RouterLink>
+              <div class="divider my-2"></div>
+              <div class="flex items-center justify-between gap-2 px-1">
+                <span class="text-sm">Theme</span>
+                <select class="select select-bordered select-sm" v-model="theme" @change="applyTheme(theme)" title="Change theme">
+                  <option value="seedsphere">Seedsphere</option>
+                  <option value="light">Light</option>
+                  <option value="dark">Dark</option>
+                </select>
+              </div>
+              <div class="mt-1">
+                <div title="Account and authentication">
+                  <AccountMenu />
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -54,6 +95,7 @@
 
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
+import { useRoute } from 'vue-router'
 import AccountMenu from './components/AccountMenu.vue'
 import { auth } from './lib/auth'
 import DevDrawer from './components/DevDrawer.vue'
@@ -64,6 +106,20 @@ const ALLOWED_THEMES = ['seedsphere', 'light', 'dark']
 const isDev = ref(false)
 const serverOnline = ref(false)
 let pingTimer = null
+// Feature flag: enable Ko‑fi overlay; we will load it programmatically on load
+const ENABLE_KOFI_OVERLAY = true
+// Mobile nav state
+const showMobileMenu = ref(false)
+function toggleMobileMenu() { showMobileMenu.value = !showMobileMenu.value }
+function closeMobileMenu() { showMobileMenu.value = false }
+const route = useRoute()
+function navLinkClasses(path) {
+  try {
+    return 'btn btn-ghost btn-sm rounded-full' + (route.path === path ? ' btn-active' : '')
+  } catch (_) {
+    return 'btn btn-ghost btn-sm rounded-full'
+  }
+}
 const urlParams = new URLSearchParams(typeof window !== 'undefined' ? window.location.search : '')
 const pwaOverride = urlParams.get('pwa') // '1' to force on, '0' to force off
 const isStandalone = computed(() => {
@@ -122,25 +178,116 @@ function isChromium() {
   } catch (_) { return false }
 }
 
-// Minimal, theme-friendly floating Ko-fi fallback button (used only on Chromium)
+// Minimal, theme-friendly floating Ko‑fi fallback button
+// Always visible, draggable horizontally across the viewport, never dismissible
 function addKofiFallbackButton() {
   try {
     if (document.querySelector('[data-kofi="fallback"]')) return
+
+    const posKey = 'kofi.xp' // horizontal position as 0..1
+    const readXP = () => {
+      try { const v = parseFloat(localStorage.getItem(posKey) || '0'); return isNaN(v) ? 0 : Math.min(1, Math.max(0, v)) } catch (_) { return 0 }
+    }
+    const writeXP = (xp) => { try { localStorage.setItem(posKey, String(Math.min(1, Math.max(0, xp)))) } catch (_) {} }
+
     const a = document.createElement('a')
     a.href = 'https://ko-fi.com/jxoesneon'
     a.target = '_blank'
     a.rel = 'noopener'
-    a.textContent = 'Support me'
     a.setAttribute('aria-label', 'Support me on Ko-fi')
     a.setAttribute('data-kofi', 'fallback')
+    a.setAttribute('draggable', 'false')
     Object.assign(a.style, {
-      position: 'fixed', left: '16px', bottom: '16px', zIndex: '2147483000',
+      position: 'fixed', bottom: '16px', zIndex: '2147483000',
       background: '#00b9fe', color: '#fff', padding: '8px 12px',
       borderRadius: '9999px', fontWeight: '600', boxShadow: '0 4px 14px rgba(0,0,0,0.25)',
       display: 'inline-flex', alignItems: 'center', gap: '6px', textDecoration: 'none',
-      lineHeight: '1', fontSize: '13px'
+      lineHeight: '1', fontSize: '13px', cursor: 'grab', userSelect: 'none', touchAction: 'none',
+      left: '16px'
     })
+
+    // Icon + label
+    const icon = document.createElement('span')
+    icon.setAttribute('aria-hidden', 'true')
+    icon.style.display = 'inline-flex'
+    icon.style.alignItems = 'center'
+    icon.style.justifyContent = 'center'
+    icon.style.width = '16px'
+    icon.style.height = '16px'
+    icon.innerHTML = `
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="currentColor" role="img">
+        <path d="M6 4a1 1 0 00-1 1v6a5 5 0 005 5h3a5 5 0 005-5V9h1.5a2.5 2.5 0 010 5H18v-2h1.5a.5.5 0 000-1H18V5a1 1 0 00-1-1H6zm1 2h9v5a3 3 0 01-3 3H10a3 3 0 01-3-3V6z"/>
+        <path d="M7 18h10a1 1 0 110 2H7a1 1 0 110-2z"/>
+      </svg>`
+    const text = document.createElement('span')
+    text.textContent = 'Support me'
+    a.appendChild(icon)
+    a.appendChild(text)
     document.body.appendChild(a)
+
+    // Position by XP once width is known
+    const applyXP = (xp) => {
+      try {
+        const vw = window.innerWidth || 0
+        const margin = 16
+        const width = a.offsetWidth || 140
+        const maxLeft = Math.max(margin, vw - width - margin)
+        const left = Math.round(margin + xp * (maxLeft - margin))
+        a.style.left = `${left}px`
+        a.style.right = ''
+      } catch (_) {}
+    }
+    requestAnimationFrame(() => applyXP(readXP()))
+
+    // Drag logic
+    let dragging = false
+    let startX = 0
+    let startLeft = 16
+    let moved = false
+    const onPointerDown = (e) => {
+      try { a.setPointerCapture && a.setPointerCapture(e.pointerId) } catch (_) {}
+      dragging = true
+      moved = false
+      startX = e.clientX
+      startLeft = parseInt(a.style.left || '16', 10) || 16
+      a.style.cursor = 'grabbing'
+    }
+    const onPointerMove = (e) => {
+      if (!dragging) return
+      const dx = e.clientX - startX
+      if (Math.abs(dx) > 3) moved = true
+      const vw = window.innerWidth || 0
+      const width = a.offsetWidth || 140
+      const margin = 16
+      const minLeft = margin
+      const maxLeft = Math.max(minLeft, vw - width - margin)
+      const next = Math.min(maxLeft, Math.max(minLeft, startLeft + dx))
+      a.style.left = `${next}px`
+      a.style.right = ''
+    }
+    const onPointerUp = (e) => {
+      if (!dragging) return
+      dragging = false
+      a.style.cursor = 'grab'
+      const left = parseInt(a.style.left || '16', 10) || 16
+      const vw = window.innerWidth || 0
+      const width = a.offsetWidth || 140
+      const margin = 16
+      const minLeft = margin
+      const maxLeft = Math.max(minLeft, vw - width - margin)
+      const xp = (left - margin) / Math.max(1, (maxLeft - margin))
+      writeXP(xp)
+      if (moved) {
+        e.preventDefault && e.preventDefault()
+        e.stopPropagation && e.stopPropagation()
+      }
+      try { a.releasePointerCapture && a.releasePointerCapture(e.pointerId) } catch (_) {}
+    }
+    a.addEventListener('pointerdown', onPointerDown)
+    window.addEventListener('pointermove', onPointerMove)
+    window.addEventListener('pointerup', onPointerUp)
+    const onResize = () => applyXP(readXP())
+    window.addEventListener('resize', onResize)
   } catch (_) {}
 }
 
@@ -268,34 +415,66 @@ onMounted(() => {
     isDev.value = Boolean(hasQueryDev || hasHashDev)
   } catch (_) { isDev.value = false }
 
-  // Ko‑fi overlay widget (match backup configure page)
+  // Ko‑fi overlay widget: programmatic load (equivalent to placing script before </body>)
   try {
-    const existing = document.querySelector('script[data-kofi="overlay"]')
-    const ensure = () => {
-      if (window.kofiWidgetOverlay && typeof window.kofiWidgetOverlay.draw === 'function') {
-        try {
-          window.kofiWidgetOverlay.draw('jxoesneon', {
-            type: 'floating-chat',
-            'floating-chat.donateButton.text': 'Support me',
-            'floating-chat.donateButton.background-color': '#00b9fe',
-            'floating-chat.donateButton.text-color': '#fff',
-          })
-        } catch (_) {}
-        // Ensure our overrides are applied after the Ko-fi CSS
-        injectKofiOverlayOverrides()
-        return true
+    if (ENABLE_KOFI_OVERLAY) {
+      const existing = document.querySelector('script[data-kofi="overlay"]')
+      let overlayReady = false
+      const ensure = () => {
+        if (window.kofiWidgetOverlay && typeof window.kofiWidgetOverlay.draw === 'function') {
+          try {
+            window.kofiWidgetOverlay.draw('jxoesneon', {
+              type: 'floating-chat',
+              'floating-chat.donateButton.text': 'Support me',
+              'floating-chat.donateButton.background-color': '#00b9fe',
+              'floating-chat.donateButton.text-color': '#fff',
+            })
+          } catch (_) {}
+          // Ensure our overrides are applied after the Ko-fi CSS
+          injectKofiOverlayOverrides()
+          overlayReady = true
+          // Remove fallback if it exists to avoid duplication
+          try { const fb = document.querySelector('[data-kofi="fallback"]'); if (fb && fb.parentNode) fb.parentNode.removeChild(fb) } catch (_) {}
+          return true
+        }
+        return false
       }
-      return false
-    }
-    if (!existing) {
-      const s = document.createElement('script')
-      s.src = 'https://storage.ko-fi.com/cdn/scripts/overlay-widget.js'
-      s.async = true
-      s.setAttribute('data-kofi', 'overlay')
-      s.onload = () => { try { ensure() } finally { injectKofiOverlayOverrides() } }
-      document.head.appendChild(s)
+      const loader = () => {
+        if (!existing) {
+          const s = document.createElement('script')
+          s.src = 'https://storage.ko-fi.com/cdn/scripts/overlay-widget.js'
+          s.async = true
+          s.setAttribute('data-kofi', 'overlay')
+          s.onload = () => { try { ensure() } finally { injectKofiOverlayOverrides() } }
+          document.body.appendChild(s)
+        } else {
+          ensure(); injectKofiOverlayOverrides()
+        }
+      }
+      if (document.readyState === 'complete') loader()
+      else {
+        let t
+        try { t = setTimeout(loader, 0) } catch (_) {}
+        try { window.addEventListener('load', () => { try { t && clearTimeout(t) } catch (_) {}; loader() }, { once: true }) } catch (_) { loader() }
+      }
+      // Fallback if overlay doesn't become ready within 5 seconds
+      try {
+        setTimeout(() => {
+          if (!overlayReady) {
+            try { addKofiFallbackButton() } catch (_) {}
+          }
+        }, 5000)
+      } catch (_) {}
     } else {
-      ensure(); injectKofiOverlayOverrides()
+      // Fallback button: always ensure visibility. If page not fully loaded, show by load or after 5s max
+      const show = () => { try { addKofiFallbackButton() } catch (_) {} }
+      if (document.readyState === 'complete') {
+        show()
+      } else {
+        let t
+        try { t = setTimeout(show, 5000) } catch (_) {}
+        try { window.addEventListener('load', () => { try { t && clearTimeout(t) } catch (_) {}; show() }, { once: true }) } catch (_) { show() }
+      }
     }
   } catch (_) {}
 
@@ -321,8 +500,10 @@ onMounted(() => {
     for (const m of modes) {
       try { report[m] = window.matchMedia(`(display-mode: ${m})`).matches } catch { report[m] = 'n/a' }
     }
-    // eslint-disable-next-line no-console
-    console.log('[PWA] display-mode detection', { report, iosStandalone: (typeof window.navigator !== 'undefined' && 'standalone' in window.navigator) ? window.navigator.standalone : 'n/a', pwaOverride })
+    if (isDev.value) {
+      // eslint-disable-next-line no-console
+      console.log('[PWA] display-mode detection', { report, iosStandalone: (typeof window.navigator !== 'undefined' && 'standalone' in window.navigator) ? window.navigator.standalone : 'n/a', pwaOverride })
+    }
   } catch (_) {}
   try {
     fetch(manifestUrl.value, { cache: 'no-store' })

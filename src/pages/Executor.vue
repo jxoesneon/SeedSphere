@@ -25,12 +25,12 @@ async function run() {
   <div class="container mx-auto p-4">
     <h1 class="text-2xl font-semibold mb-4">Executor</h1>
     <div class="flex flex-wrap gap-2 mb-3">
-      <select v-model="type" class="select select-bordered">
+      <select v-model="type" class="select select-bordered tooltip" data-tip="Select content type">
         <option value="movie">movie</option>
         <option value="series">series</option>
       </select>
-      <input v-model="id" class="input input-bordered flex-1 min-w-[12rem]" placeholder="IMDb id (e.g., tt1254207)" />
-      <button class="btn btn-primary" @click="run">Run</button>
+      <input v-model="id" class="input input-bordered flex-1 min-w-[12rem] tooltip" placeholder="IMDb id (e.g., tt1254207)" data-tip="Media identifier (e.g., IMDb id)" />
+      <button class="btn btn-primary tooltip" data-tip="Execute request with current inputs" @click="run">Run</button>
     </div>
     <div v-if="error" class="text-error mb-2">{{ error }}</div>
     <pre v-if="result" class="bg-base-200 p-3 rounded text-xs overflow-auto max-w-full">{{ result }}</pre>

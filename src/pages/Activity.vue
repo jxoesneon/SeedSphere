@@ -4,12 +4,12 @@
     <div class="flex flex-wrap items-center justify-between gap-3">
       <div class="flex items-center gap-3">
         <h1 class="text-2xl font-semibold">Activity</h1>
-        <span class="badge" :class="sseConnected ? 'badge-success' : 'badge-error'">SSE {{ sseConnected ? 'Connected' : 'Disconnected' }}</span>
+        <span class="badge" :class="sseConnected ? 'badge-success' : 'badge-error'" :title="sseConnected ? 'SSE connection established' : 'SSE disconnected'">SSE {{ sseConnected ? 'Connected' : 'Disconnected' }}</span>
         <span class="badge badge-outline" :title="`gardener_id: ${gardenerId}`">G: {{ gardenerId }}</span>
       </div>
       <div class="flex items-center gap-2">
-        <a class="btn btn-outline btn-sm" :href="roomEventsUrl" target="_blank" rel="noopener">Open SSE Stream</a>
-        <button v-if="isDev" class="btn btn-primary btn-sm" @click="requestTestTask" :disabled="requesting">
+        <a class="btn btn-outline btn-sm tooltip" :href="roomEventsUrl" target="_blank" rel="noopener" data-tip="Open live SSE stream in a new tab">Open SSE Stream</a>
+        <button v-if="isDev" class="btn btn-primary btn-sm tooltip" @click="requestTestTask" :disabled="requesting" :title="'Issue a test normalization task'" data-tip="Issue a test task">
           {{ requesting ? 'Sending…' : 'Issue Test Task' }}
         </button>
       </div>
@@ -20,28 +20,28 @@
       <div class="card bg-base-200">
         <div class="card-body">
           <div class="text-sm opacity-70">Linked Seedlings</div>
-          <div class="text-2xl font-semibold">{{ linkedSeedlings.length }}</div>
+          <div class="text-2xl font-semibold" title="Total linked seedlings">{{ linkedSeedlings.length }}</div>
           <div class="text-xs break-all" v-if="linkedSeedlings.length">{{ linkedSeedlings.join(', ') }}</div>
         </div>
       </div>
       <div class="card bg-base-200">
         <div class="card-body">
           <div class="text-sm opacity-70">Last Heartbeat</div>
-          <div class="text-2xl font-semibold">{{ lastHeartbeatLabel }}</div>
+          <div class="text-2xl font-semibold" title="Time since last heartbeat">{{ lastHeartbeatLabel }}</div>
           <div class="text-xs">{{ lastHeartbeatAt ? new Date(lastHeartbeatAt).toLocaleString() : '—' }}</div>
         </div>
       </div>
       <div class="card bg-base-200">
         <div class="card-body">
           <div class="text-sm opacity-70">Server</div>
-          <div class="text-2xl font-semibold">v{{ serverVersion || '—' }}</div>
+          <div class="text-2xl font-semibold" title="Server version">v{{ serverVersion || '—' }}</div>
           <div class="text-xs">Uptime: {{ uptimeLabel }}</div>
         </div>
       </div>
       <div class="card bg-base-200">
         <div class="card-body">
           <div class="text-sm opacity-70">Trackers Health</div>
-          <div class="text-2xl font-semibold">{{ trackersHealthy }}/{{ trackersTotal }}</div>
+          <div class="text-2xl font-semibold" title="Healthy / Total trackers">{{ trackersHealthy }}/{{ trackersTotal }}</div>
           <div class="text-xs">mode: {{ trackersMode }}</div>
         </div>
       </div>
@@ -53,7 +53,7 @@
         <div class="card-body">
           <div class="flex items-center justify-between">
             <h2 class="card-title">Heartbeats (last 30m)</h2>
-            <span class="badge">{{ heartbeats.length }}</span>
+            <span class="badge" title="Total heartbeats in window">{{ heartbeats.length }}</span>
           </div>
           <div class="chart" role="img" aria-label="Heartbeat chart">
             <div v-for="(v, i) in hbBuckets" :key="i" class="bar" :style="{ height: `${Math.min(100, v * 20)}%` }" :title="`${v} at ${bucketLabel(i)}`" />
@@ -64,7 +64,7 @@
         <div class="card-body">
           <div class="flex items-center justify-between">
             <h2 class="card-title">Tasks (last 30m)</h2>
-            <span class="badge">{{ tasks.length }}</span>
+            <span class="badge" title="Total tasks in window">{{ tasks.length }}</span>
           </div>
           <div class="chart" role="img" aria-label="Tasks chart">
             <div v-for="(v, i) in taskBuckets" :key="i" class="bar bar-secondary" :style="{ height: `${Math.min(100, v * 20)}%` }" :title="`${v} at ${bucketLabel(i)}`" />
@@ -75,7 +75,7 @@
         <div class="card-body">
           <div class="flex items-center justify-between">
             <h2 class="card-title">Results (last 30m)</h2>
-            <span class="badge">{{ results.length }}</span>
+            <span class="badge" title="Total results in window">{{ results.length }}</span>
           </div>
           <div class="chart" role="img" aria-label="Results chart">
             <div v-for="(v, i) in resultBuckets" :key="i" class="bar bar-accent" :style="{ height: `${Math.min(100, v * 20)}%` }" :title="`${v} at ${bucketLabel(i)}`" />
@@ -139,7 +139,7 @@
       <div class="card-body">
         <div class="flex items-center justify-between">
           <h2 class="card-title">Event Log</h2>
-          <button class="btn btn-ghost btn-sm" @click="clearLog" :disabled="!eventsLog.length">Clear</button>
+          <button class="btn btn-ghost btn-sm tooltip" @click="clearLog" :disabled="!eventsLog.length" data-tip="Clear the in-memory log">Clear</button>
         </div>
         <div class="max-h-[360px] overflow-auto font-mono text-xs">
           <div v-for="(e, i) in eventsLog" :key="i" class="whitespace-pre-wrap break-words">

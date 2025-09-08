@@ -1,46 +1,20 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en" data-theme="dark">
   <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SeedSphere</title>
-    <link rel="manifest" href="/manifest.webmanifest" />
-    <meta name="theme-color" content="#0b0d12" />
+    <link rel="manifest" href="/manifest.webmanifest">
+    <meta name="theme-color" content="#0b0d12">
+    <!-- Modern PWA meta -->
+    <meta name="mobile-web-app-capable" content="yes">
     <!-- iOS PWA meta -->
-    <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    <meta name="apple-mobile-web-app-title" content="Gardener" />
-    <link rel="apple-touch-icon" href="/assets/icon.png" />
-    <!-- Tailwind Play CDN config: safelist classes used by Vue components -->
-    <script>
-      window.tailwind = {
-        safelist: [
-          // DaisyUI components
-          { pattern: /^(btn|btn-ghost|btn-primary|card|alert|table|toggle|badge)$/ },
-          { pattern: /^(input|input-bordered|select|select-bordered)$/ },
-          { pattern: /^(navbar|menu|form-control|label|label-text|prose)$/ },
-          // Layout/utilities
-          { pattern: /^(container|grid|md:grid-cols-2|flex|items-center|justify-between)$/ },
-          { pattern: /^(gap-\d+|p-\d+|px-\d+|py-\d+|m-\d+|mx-\d+|my-\d+)$/ },
-          { pattern: /^min-h-screen$/ },
-          { pattern: /^max-w-\[.*\]$/ },
-          { pattern: /^truncate$/ },
-          // Typography and color tokens
-          { pattern: /^(text-(xs|sm|base|lg|xl|2xl|3xl)|font-(bold|semibold))$/ },
-          { pattern: /^(bg-(base-100|base-200|base-300|primary|secondary|accent))$/ },
-          { pattern: /^(text-(base-content|primary|secondary|accent))$/ },
-          { pattern: /^opacity-\d+$/ },
-          // DaisyUI color state classes
-          { pattern: /^(alert-(info|error|success|warning))$/ },
-        ],
-      }
-    </script>
-    <!-- TailwindCSS CDN -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- DaisyUI CDN (full build) -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/daisyui@4.12.24/dist/full.min.css" />
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Gardener">
+    <link rel="apple-touch-icon" href="/assets/icon.png">
     <!-- Custom Seedsphere theme variables (overrides) -->
-    <link rel="stylesheet" href="/assets/seedsphere.css" />
+    <link rel="stylesheet" href="/assets/seedsphere.css">
   </head>
   <body>
     <div id="app"></div>

@@ -859,6 +859,8 @@ export async function createServer(opts = {}) {
       // We inject dynamic fields below; any existing signature would be invalid.
       // Strip stremioAddonsConfig so Stremio does not attempt to verify a stale signature.
       try { delete manifest.stremioAddonsConfig } catch (_) { /* ignore */ }
+      // Force absolute endpoint to root to avoid path-relative /stream under subpaths
+      try { if (origin) manifest.endpoint = origin } catch (_) { /* ignore */ }
 
       // Ensure a per-client seedling_id (persisted in cookie)
       let seedling_id = ''
@@ -891,11 +893,146 @@ export async function createServer(opts = {}) {
 
   // Experimental manifest with additional non-official fields
   // Note: We deliberately strip stremioAddonsConfig since payload is dynamic.
-  app.get(['/manifest.experiment.json', '/manifest.experiment'], (req, res) => {
+  app.get([
+    '/manifest.experiment.json',
+    '/manifest.experiment',
+    // New aliases so Stremio parses actual manifest.json filenames
+    '/manifest.variant.experiment/manifest.json',
+    '/manifest.variant.experiment/manifest'
+  ], (req, res) => {
     try { console.log('[manifest.experiment] request', { ip: req.ip, ua: req.headers['user-agent'], q: req.query }) } catch (_) {}
     try {
+      // If opened in a browser/webview (Accept includes text/html), redirect to /configure
+      const accept = String(req.headers.accept || '').toLowerCase()
+      if (accept.includes('text/html')) {
+        let seedling_id = ''
+        try { seedling_id = String(req.cookies.seedling_id || '').trim() } catch (_) {}
+        if (!seedling_id) {
+          try { seedling_id = nanoid(); res.cookie('seedling_id', seedling_id, { maxAge: 365 * 24 * 60 * 60 * 1000, sameSite: 'lax', secure: isProd, httpOnly: false, path: '/' }) } catch (_) {}
+        }
+        const gardener_id = String(req.query.gardener_id || '').trim()
+        const baseOrigin = (() => {
+          try {
+            const proto = (req.headers['x-forwarded-proto'] || req.protocol || 'http').toString()
+            let host = (req.headers['x-forwarded-host'] || req.headers.host || 'localhost').toString()
+            host = host.replace(/^localhost(?::|$)/, (m) => m.replace('localhost', '127.0.0.1'))
+            return `${proto}://${host}`
+          } catch (_) { return '' }
+        })()
+        const params = new URLSearchParams()
+        if (gardener_id) params.set('gardener_id', gardener_id)
+        if (seedling_id) params.set('seedling_id', seedling_id)
+        const qs = params.toString()
+        const target = `${baseOrigin}/configure${qs ? ('?' + qs) : ''}`
+        return res.redirect(302, target)
+      }
       const base = addonInterface && addonInterface.manifest ? addonInterface.manifest : (addonInterface && addonInterface.manifestRef ? addonInterface.manifestRef : null)
       const manifest = base ? { ...base } : {}
+      const gardener_id = String(req.query.gardener_id || '').trim()
+
+      // Determine absolute origin for asset URLs
+      const origin = (() => {
+        try {
+          const proto = (req.headers['x-forwarded-proto'] || req.protocol || 'http').toString()
+          let host = (req.headers['x-forwarded-host'] || req.headers.host || 'localhost').toString()
+          // Normalize localhost to 127.0.0.1 for Stremio local addon allowance
+          host = host.replace(/^localhost(?::|$)/, (m) => m.replace('localhost', '127.0.0.1'))
+          return `${proto}://${host}`
+        } catch (_) { return '' }
+      })()
+
+      // We inject dynamic fields; any existing signature would be invalid. Strip it.
+      try { delete manifest.stremioAddonsConfig } catch (_) { /* ignore */ }
+      // Force absolute endpoint to root to avoid path-relative /stream under subpaths
+      try { if (origin) manifest.endpoint = origin } catch (_) { /* ignore */ }
+
+      // Ensure a per-client seedling_id (persisted in cookie)
+      let seedling_id = ''
+      try { seedling_id = String(req.cookies.seedling_id || '').trim() } catch (_) {}
+      if (!seedling_id) {
+        try {
+          seedling_id = nanoid()
+          // 1 year, Lax, secure in prod
+          res.cookie('seedling_id', seedling_id, { maxAge: 365 * 24 * 60 * 60 * 1000, sameSite: 'lax', secure: isProd, httpOnly: false, path: '/' })
+        } catch (_) { /* ignore cookie set errors */ }
+      }
+
+      // Inject dynamic fields for experiment channel
+      manifest.seedsphere = { ...(manifest.seedsphere || {}), original_gardener_id: gardener_id, seedling_id, channel: 'experiment' }
+
+      // Choose asset base to avoid mixed-content on web.strem.io (HTTPS)
+      const reqOrigin2 = String(req.headers.origin || '')
+      const isWebStremio2 = reqOrigin2 === 'https://web.strem.io' || reqOrigin2 === 'https://web.stremio.com'
+      const assetBase = isWebStremio2 ? 'https://seedsphere.fly.dev' : origin
+      if (assetBase) {
+        manifest.logo = `${assetBase}/assets/icon-256.png`
+        manifest.background = `${assetBase}/assets/background-1024.jpg`
+      }
+
+      // Endpoint is explicitly set to the absolute origin above
+
+      // Experimental unofficial fields
+      manifest.dontAnnounce = true
+      manifest.listedOn = ["desktop", "web", "android"]
+      manifest.isFree = true
+      manifest.suggested = ["com.stremio.opensubtitlesv3"]
+      manifest.searchDebounce = 300
+      manifest.countrySpecific = false
+      manifest.zipSpecific = false
+      manifest.countrySpecificStreams = false
+
+      // Behavior hints suitable for experiments (ensure configurable remains true)
+      manifest.behaviorHints = Object.assign({}, manifest.behaviorHints || {}, {
+        configurable: true,
+      })
+
+      res.setHeader('Cache-Control', 'public, max-age=60, stale-while-revalidate=300')
+      return res.json(manifest)
+    } catch (e) {
+      return res.status(500).json({ error: e.message })
+    }
+  })
+
+  // Parameterized manifest variants: add exactly one experimental/unofficial field at a time
+  // Available keys: endpoint, dontAnnounce, listedOn, isFree, suggested, searchDebounce, countrySpecific, zipSpecific, countrySpecificStreams
+  app.get([
+    // New preferred patterns: directory with actual filename manifest.json
+    '/manifest.variant.:key/manifest.json',
+    '/manifest.variant.:key/manifest',
+    // Backward compatibility
+    '/manifest.variant/:key.json',
+    '/manifest.variant/:key'
+  ], (req, res) => {
+    try { console.log('[manifest.variant] request', { key: req.params.key, ip: req.ip, ua: req.headers['user-agent'], q: req.query }) } catch (_) {}
+    try {
+      // If opened in a browser/webview (Accept includes text/html), redirect to /configure
+      const accept = String(req.headers.accept || '').toLowerCase()
+      if (accept.includes('text/html')) {
+        let seedling_id = ''
+        try { seedling_id = String(req.cookies.seedling_id || '').trim() } catch (_) {}
+        if (!seedling_id) {
+          try { seedling_id = nanoid(); res.cookie('seedling_id', seedling_id, { maxAge: 365 * 24 * 60 * 60 * 1000, sameSite: 'lax', secure: isProd, httpOnly: false, path: '/' }) } catch (_) {}
+        }
+        const gardener_id = String(req.query.gardener_id || '').trim()
+        const baseOrigin = (() => {
+          try {
+            const proto = (req.headers['x-forwarded-proto'] || req.protocol || 'http').toString()
+            let host = (req.headers['x-forwarded-host'] || req.headers.host || 'localhost').toString()
+            host = host.replace(/^localhost(?::|$)/, (m) => m.replace('localhost', '127.0.0.1'))
+            return `${proto}://${host}`
+          } catch (_) { return '' }
+        })()
+        const params = new URLSearchParams()
+        if (gardener_id) params.set('gardener_id', gardener_id)
+        if (seedling_id) params.set('seedling_id', seedling_id)
+        const qs = params.toString()
+        const target = `${baseOrigin}/configure${qs ? ('?' + qs) : ''}`
+        return res.redirect(302, target)
+      }
+      const base = addonInterface && addonInterface.manifest ? addonInterface.manifest : (addonInterface && addonInterface.manifestRef ? addonInterface.manifestRef : null)
+      const manifest = base ? { ...base } : {}
+      const rawKey = String(req.params.key || '').trim()
+      const key = rawKey.toLowerCase()
       const gardener_id = String(req.query.gardener_id || '').trim()
 
       // Determine absolute origin for asset URLs
@@ -920,39 +1057,58 @@ export async function createServer(opts = {}) {
           seedling_id = nanoid()
           // 1 year, Lax, secure in prod
           res.cookie('seedling_id', seedling_id, { maxAge: 365 * 24 * 60 * 60 * 1000, sameSite: 'lax', secure: isProd, httpOnly: false, path: '/' })
-        } catch (_) { /* ignore cookie set errors */ }
+        } catch (_) { /* ignore */ }
       }
 
       // Inject dynamic fields
-      manifest.seedsphere = { ...(manifest.seedsphere || {}), original_gardener_id: gardener_id, seedling_id, channel: 'experiment' }
+      manifest.seedsphere = { ...(manifest.seedsphere || {}), original_gardener_id: gardener_id, seedling_id, channel: `variant:${key}` }
+
       // Choose asset base to avoid mixed-content on web.strem.io (HTTPS)
-      const reqOrigin2 = String(req.headers.origin || '')
-      const isWebStremio2 = reqOrigin2 === 'https://web.strem.io' || reqOrigin2 === 'https://web.stremio.com'
-      const assetBase2 = isWebStremio2 ? 'https://seedsphere.fly.dev' : origin
-      if (assetBase2) {
-        manifest.logo = `${assetBase2}/assets/icon-256.png`
-        manifest.background = `${assetBase2}/assets/background-1024.jpg`
+      const reqOrigin3 = String(req.headers.origin || '')
+      const isWebStremio3 = reqOrigin3 === 'https://web.strem.io' || reqOrigin3 === 'https://web.stremio.com'
+      const assetBase3 = isWebStremio3 ? 'https://seedsphere.fly.dev' : origin
+      if (assetBase3) {
+        manifest.logo = `${assetBase3}/assets/icon-256.png`
+        manifest.background = `${assetBase3}/assets/background-1024.jpg`
       }
 
-      // Experimental, non-official or rarely used optional fields suitable for project
-      // These are hints for clients and for future distribution contexts.
-      const endpointUrl = `${origin}/manifest.experiment.json` // public URL to this manifest
-      Object.assign(manifest, {
-        endpoint: endpointUrl,
-        dontAnnounce: true,
-        listedOn: ["desktop", "web", "android"],
-        isFree: true,
-        suggested: ["com.stremio.opensubtitlesv3"],
-        searchDebounce: 300,
-        countrySpecific: false,
-        zipSpecific: false,
-        countrySpecificStreams: false,
-      })
+      // Endpoint is explicitly set to the absolute origin above
 
-      // Behavior hints suitable for experiments (ensure configurable remains true)
-      manifest.behaviorHints = Object.assign({}, manifest.behaviorHints || {}, {
-        configurable: true,
-      })
+      // Apply exactly one experimental field according to :key
+      switch (key) {
+        case 'endpoint':
+          break
+        case 'dontannounce':
+          manifest.dontAnnounce = true
+          break
+        case 'listedon':
+          manifest.listedOn = ["desktop", "web", "android"]
+          break
+        case 'isfree':
+          manifest.isFree = true
+          break
+        case 'suggested':
+          manifest.suggested = ["com.stremio.opensubtitlesv3"]
+          break
+        case 'searchdebounce':
+          manifest.searchDebounce = 300
+          break
+        case 'countryspecific':
+          manifest.countrySpecific = true
+          break
+        case 'zipspecific':
+          manifest.zipSpecific = true
+          break
+        case 'countryspecificstreams':
+          manifest.countrySpecificStreams = true
+          break
+        default:
+          // If unknown key, keep base manifest (no extra fields)
+          break
+      }
+
+      // Behavior hints: ensure configurable remains true for all variants
+      manifest.behaviorHints = Object.assign({}, manifest.behaviorHints || {}, { configurable: true })
 
       res.setHeader('Cache-Control', 'public, max-age=60, stale-while-revalidate=300')
       return res.json(manifest)
@@ -973,6 +1129,20 @@ export async function createServer(opts = {}) {
   // --- Stream bridge ---
   app.post('/api/stream/:type/:id', async (req, res) => {
     if (!rateLimit(`stream:${req.ip}`, 120, 60_000)) return res.status(429).json({ ok: false, error: 'rate_limited' })
+    // Diagnostic logging to compare base vs experiment stream requests
+    try {
+      console.log('[api.stream] incoming', {
+        ip: req.ip,
+        ua: req.headers['user-agent'] || '',
+        origin: req.headers.origin || '',
+        referer: req.headers.referer || '',
+        g: String(req.get('X-SeedSphere-G') || ''),
+        seedling: String(req.get('X-SeedSphere-Id') || ''),
+        hasSig: Boolean(req.get('X-SeedSphere-Sig') || ''),
+        type: String(req.params.type || ''),
+        id: String(req.params.id || ''),
+      })
+    } catch (_) { /* ignore log errors */ }
     try {
       const gardener_id = String(req.get('X-SeedSphere-G') || '').trim()
       const seedling_id = String(req.get('X-SeedSphere-Id') || '').trim()
