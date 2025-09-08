@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="dark">
+<html lang="en" data-theme="seedsphere">
   <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -9,6 +9,11 @@
     <meta name="theme-color" content="#0b0d12">
     <link rel="canonical" href="https://seedsphere.fly.dev/">
     <link rel="icon" type="image/png" href="/assets/icon-256.png" sizes="256x256">
+
+    <!-- Early theme bootstrap: sets data-theme from localStorage before CSS loads -->
+    <script src="/assets/theme-boot.js"></script>
+    <!-- Minimal pre-style to avoid gray/white flash before main CSS -->
+    <link rel="stylesheet" href="/assets/prestyle.css">
 
     <!-- Open Graph -->
     <meta property="og:type" content="website">
@@ -35,6 +40,7 @@
     <link rel="stylesheet" href="/assets/seedsphere.css">
   </head>
   <body>
+    <a href="#main-content" class="skip-link">Skip to content</a>
     <div id="app"></div>
     <script type="module" src="/src/main.js"></script>
   </body>

@@ -109,3 +109,61 @@ html {
   pointer-events: auto;
   padding-top: .5rem; /* keep the same spacing when revealed */
 }
+
+/* Skip link for keyboard/remote users */
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  top: auto;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}
+.skip-link:focus,
+.skip-link:focus-visible {
+  position: fixed;
+  left: 1rem;
+  top: 1rem;
+  width: auto;
+  height: auto;
+  padding: .5rem .75rem;
+  border-radius: .5rem;
+  background: #111827; /* slate-900 */
+  color: #fff;
+  outline: 2px solid #93c5fd; /* blue-300 */
+  z-index: 10000;
+}
+
+/* Stronger, consistent focus ring */
+:root { --focus-ring-color: #60a5fa; /* blue-400 */ }
+:focus-visible {
+  outline: 2px solid var(--focus-ring-color);
+  outline-offset: 2px;
+}
+.btn:focus-visible,
+a:focus-visible,
+select:focus-visible,
+input:focus-visible,
+.badge:focus-visible,
+.navbar a:focus-visible,
+.navbar button:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--focus-ring-color) 50%, transparent);
+}
+
+/* TV/remote (coarse input) adjustments */
+html[data-input='coarse'] {
+  scroll-behavior: auto; /* reduce animation on remotes */
+}
+html[data-input='coarse'] .btn,
+html[data-input='coarse'] .select,
+html[data-input='coarse'] .input {
+  min-height: 2.75rem; /* larger hit targets */
+}
+html[data-input='coarse'] .navbar {
+  font-size: 1.0625rem; /* slightly larger nav text */
+}
+/* Hide hover-only tooltips on coarse devices */
+html[data-input='coarse'] .tooltip[data-tip]::before,
+html[data-input='coarse'] .tooltip[data-tip]::after {
+  display: none !important;
+}

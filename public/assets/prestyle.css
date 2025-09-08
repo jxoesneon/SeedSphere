@@ -1,0 +1,4 @@
+/* Minimal pre-style to avoid gray/white flash before main CSS loads */
+html, body { background-color: #0b0d12; color: #e5e7eb; }
+/* Ensure app container inherits early colors */
+#app { background-color: transparent; }

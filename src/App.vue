@@ -1,12 +1,12 @@
 <template>
-  <div class="min-h-screen bg-base-100 text-base-content relative">
+  <div id="main-content" class="min-h-screen bg-base-100 text-base-content relative">
     <!-- Global backdrop gradient -->
     <div class="backdrop" aria-hidden="true"></div>
     <div class="navbar sticky top-0 z-40 bg-base-100/80 backdrop-blur supports-[backdrop-filter]:bg-base-100/60 border-b border-base-300/50">
       <div class="container mx-auto px-4 flex items-center justify-between gap-2 whitespace-nowrap">
         <!-- Left: Brand -->
         <div class="flex items-center gap-2 justify-start">
-          <RouterLink to="/" class="flex items-center gap-2 text-lg font-semibold tooltip" data-tip="Home">
+          <RouterLink ref="homeNavLink" to="/" class="flex items-center gap-2 text-lg font-semibold tooltip" data-tip="Home">
             <img src="/assets/icon-256.png" alt="SeedSphere logo" class="h-6 w-6" />
             <span>SeedSphere</span>
           </RouterLink>
@@ -102,6 +102,7 @@ import DevDrawer from './components/DevDrawer.vue'
 import { gardener } from './lib/gardener'
 
 const theme = ref('seedsphere')
+const homeNavLink = ref(null)
 const ALLOWED_THEMES = ['seedsphere', 'light', 'dark']
 const isDev = ref(false)
 const serverOnline = ref(false)
@@ -406,6 +407,18 @@ onMounted(() => {
     if (saved) theme.value = sanitizeTheme(saved)
   } catch (_) {}
   applyTheme(theme.value)
+  // Improve TV/remote navigation: set initial focus to Home link on coarse pointers
+  try {
+    const isCoarse = document?.documentElement?.getAttribute('data-input') === 'coarse'
+    if (isCoarse) {
+      const el = (homeNavLink?.value && (homeNavLink.value.$el || homeNavLink.value)) || null
+      if (el && typeof el.focus === 'function') el.focus()
+      else {
+        const a = document.querySelector('a[title="Home"], a[data-tip="Home"], a[href="/"]')
+        if (a && typeof a.focus === 'function') a.focus()
+      }
+    }
+  } catch (_) {}
 
   // Enable DevDrawer only when URL contains ?dev=1 (supports query or hash params)
   try {
