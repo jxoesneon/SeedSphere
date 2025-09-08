@@ -26,8 +26,29 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Parity check
-        run: npm run parity
-
       - name: Build
         run: npm run build
+
+      - name: Start server (preview)
+        run: |
+          NO_SERVER_LOG=1 SEEDSPHERE_DISABLE_PREFETCH=1 SEEDSPHERE_DISABLE_VITE=1 NODE_ENV=production node server/index.js &
+          echo $! > server.pid
+
+      - name: Wait for health
+        run: |
+          for i in {1..30}; do
+            if curl -sf http://127.0.0.1:8080/health >/dev/null; then
+              echo "Server is up"; exit 0; fi
+            sleep 1
+          done
+          echo "Server did not become ready in time"; exit 1
+
+      - name: Parity check (against localhost)
+        env:
+          BASE_URL: http://127.0.0.1:8080
+        run: node scripts/parity-check.js
+
+      - name: Stop server
+        if: always()
+        run: |
+          if [ -f server.pid ]; then kill $(cat server.pid) || true; fi
