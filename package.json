@@ -28,7 +28,7 @@
     "bencode": "^4.0.0",
     "better-sqlite3": "^12.2.0",
     "cookie-parser": "^1.4.7",
-    "express": "^4.19.2",
+    "express": "^5.1.0",
     "jsonwebtoken": "^9.0.2",
     "libsodium-wrappers": "^0.7.15",
     "nanoid": "^5.1.5",
