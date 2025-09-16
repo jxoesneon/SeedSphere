@@ -228,7 +228,7 @@ function addKofiFallbackButton() {
     a.setAttribute('data-kofi', 'fallback')
     a.setAttribute('draggable', 'false')
     Object.assign(a.style, {
-      position: 'fixed', bottom: '16px', zIndex: '2147483000',
+      position: 'fixed', bottom: 'calc(env(safe-area-inset-bottom, 0px) + 16px)', zIndex: '2147483000',
       background: '#00b9fe', color: '#fff', padding: '8px 12px',
       borderRadius: '9999px', fontWeight: '600', boxShadow: '0 4px 14px rgba(0,0,0,0.25)',
       display: 'inline-flex', alignItems: 'center', gap: '6px', textDecoration: 'none',

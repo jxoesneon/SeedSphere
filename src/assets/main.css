@@ -39,18 +39,19 @@
 /* Smooth scrolling and anchor offset for sticky header/tabs */
 html {
   scroll-behavior: smooth;
-  scroll-padding-top: 7.5rem; /* navbar + tabs total height (approx) */
+  /* Use measured navbar height from App.vue (--nav-h) plus breathing room for tabs */
+  scroll-padding-top: calc(var(--nav-h, 56px) + 3rem);
 }
 
 /* Ensure in-card anchors (e.g., <summary id="..." class="collapse-title">) offset below sticky bars */
 .collapse-title {
-  scroll-margin-top: 7.5rem;
+  scroll-margin-top: calc(var(--nav-h, 56px) + 3rem);
 }
 
 /* Offset top toasts so they don't appear behind the sticky navbar */
-.toast.toast-top.with-nav-offset { top: calc(var(--nav-height) + 0.5rem) !important; }
-/* Offset for navbar + sticky tabs; keep in sync with html.scroll-padding-top and anchor scroll-margin-top (7.5rem) */
-.toast.toast-top.with-tabs-offset { top: calc(7.5rem + 0.5rem) !important; }
+.toast.toast-top.with-nav-offset { top: calc(var(--nav-h, 56px) + 0.5rem) !important; }
+/* Offset for navbar + sticky tabs; keep in sync with html.scroll-padding-top */
+.toast.toast-top.with-tabs-offset { top: calc(var(--nav-h, 56px) + 3rem + 0.5rem) !important; }
 
 /* Global backdrop gradient (from backup Configure page) */
 .backdrop {
@@ -89,7 +90,8 @@ html {
 #sweep,
 #lists,
 #telemetry {
-  scroll-margin-top: 7.5rem; /* navbar (~4rem) + tabs height + breathing room */
+  /* navbar (~--nav-h) + tabs height + breathing room */
+  scroll-margin-top: calc(var(--nav-h, 56px) + 3rem);
 }
 
 /* Sticky tabs: auto-hide when sticky; reveal on hover/nearby */
@@ -166,4 +168,23 @@ html[data-input='coarse'] .navbar {
 html[data-input='coarse'] .tooltip[data-tip]::before,
 html[data-input='coarse'] .tooltip[data-tip]::after {
   display: none !important;
+}
+
+/* Safe-area utilities for devices with notches (iOS) */
+.safe-bottom { bottom: calc(env(safe-area-inset-bottom, 0) + 0.75rem) !important; }
+.safe-top { top: calc(env(safe-area-inset-top, 0) + 0.75rem) !important; }
+.safe-left { left: calc(env(safe-area-inset-left, 0) + 0.75rem) !important; }
+.safe-right { right: calc(env(safe-area-inset-right, 0) + 0.75rem) !important; }
+
+/* Dev drawer ergonomics */
+.drawer-handle {
+  width: 44px;
+  height: 4px;
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--focus-ring-color) 50%, transparent);
+}
+
+/* Scrolling area helper for drawer content */
+.dev-drawer-scroll {
+  -webkit-overflow-scrolling: touch;
 }

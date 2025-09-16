@@ -4,22 +4,27 @@
 
     <!-- Drawer -->
     <div
-      class="pointer-events-auto mx-auto max-w-5xl transition-transform duration-200"
+      class="pointer-events-auto mx-auto max-w-screen-md md:max-w-5xl transition-transform duration-200 px-2"
       :class="open ? 'translate-y-0' : 'translate-y-[calc(100%_-_0.5rem)]'"
+      role="dialog"
+      aria-modal="false"
+      aria-label="Developer drawer"
     >
-      <div class="rounded-t-xl border border-base-300 bg-base-200 shadow-lg overflow-hidden">
+      <div class="rounded-t-xl border border-base-300 bg-base-200 shadow-lg overflow-auto dev-drawer-scroll max-h-[85vh]">
         <div class="flex items-center justify-between px-3 py-2 bg-base-300">
           <div class="font-semibold text-sm">Dev Drawer</div>
           <div class="flex flex-wrap items-center gap-2">
             <span class="badge badge-ghost text-xs">env: {{ env }}</span>
             <button class="btn btn-ghost btn-xs" @click="refresh">Refresh</button>
           </div>
-        
+        </div>
+        <div class="flex justify-center py-2" aria-hidden="true">
+          <span class="drawer-handle"></span>
+        </div>
         <!-- Rolling logs -->
         <div class="px-3 pb-3 text-sm">
           <div class="font-medium mb-1">Rolling logs</div>
           <LogsViewer :snapshot="300" />
-        </div>
         </div>
         <div class="p-3 grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
           <!-- Auth state -->
@@ -91,7 +96,7 @@
     </div>
 
     <!-- Fallback floating button (bottom-right) -->
-    <div class="pointer-events-auto fixed bottom-3 right-3">
+    <div class="pointer-events-auto fixed bottom-3 right-3 safe-bottom safe-right">
       <button class="btn btn-sm btn-warning shadow" @click="toggle" aria-label="Toggle Dev Drawer (fallback)">
         {{ open ? 'Close Dev' : 'Dev' }}
       </button>
@@ -104,7 +109,7 @@ import { ref, onMounted, computed, onBeforeUnmount } from 'vue'
 import { auth } from '../lib/auth'
 import LogsViewer from './LogsViewer.vue'
 
-const open = ref(true)
+const open = ref(false)
 const env = import.meta.env.MODE || (import.meta.env.DEV ? 'development' : 'production')
 const cookies = ref('')
 const sessionApi = ref(null)

@@ -44,7 +44,7 @@
           <div class="flex items-center justify-center">
             <Transition name="scale-fade">
               <div v-if="showQr" id="qr-panel" ref="qrPanelEl" tabindex="-1" role="region" aria-labelledby="qr-toggle" class="p-3 rounded-box bg-base-100/70 border border-base-300/50 shadow">
-                <img :src="qrSrc" alt="QR to install SeedSphere addon in Stremio" class="w-full max-w-xs h-auto" />
+                <img :src="qrSrc" alt="QR to install SeedSphere addon in Stremio" class="w-full max-w-xs h-auto" loading="lazy" decoding="async" fetchpriority="low" />
                 <div class="muted text-sm mt-1 text-center">Scan on mobile to open the manifest in Stremio</div>
               </div>
               <div v-else class="w-full max-w-sm">
@@ -320,7 +320,7 @@ const showUpdateBanner = computed(() => {
   if (!seenVersion.value) return false
   return cmpSemver(latestVersion.value, seenVersion.value) > 0
 })
-const showQr = ref(true)
+const showQr = ref(false)
 
 // Platform detection
 const ua = (typeof navigator !== 'undefined' ? navigator.userAgent : '')

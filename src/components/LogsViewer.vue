@@ -1,36 +1,36 @@
 <template>
   <div class="space-y-2">
     <div class="flex flex-wrap items-end gap-2">
-      <div class="form-control w-40">
+      <div class="form-control w-full sm:w-40">
         <label class="label py-1"><span class="label-text text-xs">Type</span></label>
         <input v-model="filters.type" class="input input-bordered input-xs" placeholder="e.g. stream_result" />
       </div>
-      <div class="form-control w-40">
+      <div class="form-control w-full sm:w-40">
         <label class="label py-1"><span class="label-text text-xs">Component</span></label>
         <input v-model="filters.component" class="input input-bordered input-xs" placeholder="addon|manifest|..." />
       </div>
-      <div class="form-control w-52">
+      <div class="form-control w-full sm:w-52">
         <label class="label py-1"><span class="label-text text-xs">User ID</span></label>
         <input v-model="filters.user_id" class="input input-bordered input-xs font-mono" placeholder="user id" />
       </div>
-      <div class="form-control w-52">
+      <div class="form-control w-full sm:w-52">
         <label class="label py-1"><span class="label-text text-xs">Gardener ID</span></label>
         <input v-model="filters.gardener_id" class="input input-bordered input-xs font-mono" placeholder="g-..." />
       </div>
-      <div class="form-control w-52">
+      <div class="form-control w-full sm:w-52">
         <label class="label py-1"><span class="label-text text-xs">Seedling ID</span></label>
         <input v-model="filters.seedling_id" class="input input-bordered input-xs font-mono" placeholder="..." />
       </div>
-      <div class="flex items-center gap-2 ml-auto">
+      <div class="flex items-center gap-2 ml-auto w-full sm:w-auto justify-end mt-2 sm:mt-0">
         <button class="btn btn-xs" @click="reconnect">Reconnect</button>
         <button class="btn btn-ghost btn-xs" @click="toggle">{{ connected ? 'Pause' : 'Resume' }}</button>
         <button class="btn btn-ghost btn-xs" @click="exportJson">Export</button>
         <button class="btn btn-ghost btn-xs" @click="clearLocal">Clear</button>
       </div>
     </div>
-    <div class="max-h-64 overflow-auto rounded border border-base-300 bg-base-100" ref="scroller">
+    <div class="max-h-[50vh] sm:max-h-64 md:max-h-80 overflow-auto rounded border border-base-300 bg-base-100" ref="scroller">
       <div v-if="items.length === 0" class="p-2 text-xs opacity-70">No logs yet</div>
-      <ul v-else class="divide-y divide-base-200">
+      <ul v-else class="divide-y divide-base-200" aria-live="polite">
         <li v-for="(it, idx) in items" :key="idx" class="p-2 text-xs">
           <div class="flex items-center gap-2">
             <span class="opacity-60 font-mono">{{ ts(it.ts) }}</span>
