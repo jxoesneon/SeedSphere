@@ -33,3 +33,62 @@
   --tab-border: 1px;
   --tab-radius: 0.5rem;
 }
+
+/* Accessibility: show skip link only on keyboard focus */
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  top: auto;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}
+.skip-link:focus {
+  left: 1rem;
+  top: 1rem;
+  width: auto;
+  height: auto;
+  padding: 0.5rem 0.75rem;
+  background-color: oklch(var(--b3));
+  color: oklch(var(--bc));
+  border-radius: 0.375rem;
+  outline: 2px solid oklch(var(--a));
+  z-index: 50;
+}
+
+/* Global: ensure top-positioned toasts clear the sticky navbar */
+.toast.toast-top {
+  top: calc(var(--nav-h, 0px) + 1rem);
+}
+
+/* Tables: normalize header/body alignment */
+table.table {
+  table-layout: auto;
+  width: 100%;
+}
+table.table thead th {
+  white-space: nowrap;
+  vertical-align: middle;
+  padding-left: 0.75rem;
+  padding-right: 0.75rem;
+  font-weight: 600;
+  text-align: left;
+}
+table.table tbody td {
+  vertical-align: middle;
+  padding-left: 0.75rem;
+  padding-right: 0.75rem;
+}
+
+/* Compact ID column: minimal padding, hug-content width */
+table.table .col-id {
+  padding-left: 0.25rem;
+  padding-right: 0.25rem;
+  white-space: nowrap;
+}
+
+/* Admin: enforce fixed layout so colgroup widths are respected */
+table.admin-table {
+  table-layout: fixed !important;
+  width: 100%;
+}

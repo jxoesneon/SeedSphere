@@ -126,7 +126,7 @@ async function doLogout() {
 
 function goConfigure() {
   open.value = false
-  router.push('/configure')
+  router.push('/account')
 }
 
 onMounted(() => {

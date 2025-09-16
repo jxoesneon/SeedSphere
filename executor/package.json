@@ -1,0 +1,19 @@
+{
+  "name": "gardener-executor",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "gardener": "src/index.js"
+  },
+  "description": "SeedSphere Gardener Executor CLI: registers with backend and links to seedlings.",
+  "scripts": {
+    "start": "node src/index.js start",
+    "register": "node src/index.js register",
+    "status": "node src/index.js status"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "license": "MIT"
+}

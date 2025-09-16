@@ -4,7 +4,26 @@
       <!-- Hero header -->
       <section id="install" class="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary/15 via-base-200 to-secondary/10 border border-base-300/50 shadow" role="region" aria-labelledby="cfg-title">
         <div class="p-6 md:p-10">
-          <h1 id="cfg-title" class="text-3xl md:text-4xl font-extrabold tracking-tight">Configure SeedSphere</h1>
+          <div class="flex items-center gap-3 flex-wrap">
+            <h1 id="cfg-title" class="text-3xl md:text-4xl font-extrabold tracking-tight">Configure SeedSphere</h1>
+            <span v-if="hasSeedlingContext" class="badge badge-outline badge-sm font-mono" :title="`Seedling context: ${seedlingId}`">Seedling {{ seedlingId }}</span>
+            <span
+              v-if="hasSeedlingContext"
+              class="badge badge-outline badge-sm font-mono tooltip flex items-center gap-1"
+              :class="{ 'cursor-pointer': !gardenerId }"
+              :data-tip="gardenerTooltip"
+              :title="gardenerTooltip"
+              role="button"
+              tabindex="0"
+              @click="onGardenerBadgeClick"
+              @keydown.enter.prevent="onGardenerBadgeClick"
+              @keydown.space.prevent="onGardenerBadgeClick"
+            >
+              <span class="inline-block w-2 h-2 rounded-full" :class="gardenerDotClass" aria-hidden="true"></span>
+              <template v-if="gardenerId">Gardener {{ gardenerId }}</template>
+              <template v-else>Open Gardener</template>
+            </span>
+          </div>
           <p class="mt-2 text-base md:text-lg opacity-80 max-w-prose">Tune preferences, providers, AI descriptions, and advanced options. Everything is fully responsive and theme-aware.</p>
           <div class="mt-4 flex flex-wrap gap-2">
             <a
@@ -13,6 +32,21 @@
               :title="'Install or update the SeedSphere addon'"
               data-tip="Install or update the SeedSphere addon"
             >Install / Update</a>
+            <a
+              class="btn btn-outline btn-sm md:btn-md tooltip"
+              :href="manifestHttp"
+              target="_blank"
+              rel="noopener"
+              :title="'Open manifest.json in a new tab'"
+              data-tip="Open manifest.json"
+            >View Manifest</a>
+            <button
+              class="btn btn-ghost btn-sm md:btn-md tooltip"
+              type="button"
+              @click="copyManifest"
+              :title="'Copy the manifest URL to clipboard'"
+              data-tip="Copy manifest URL"
+            >Copy Manifest URL</button>
             <RouterLink
               class="btn btn-ghost btn-sm md:btn-md tooltip"
               to="/"
@@ -38,6 +72,43 @@
         </div>
       </div>
 
+      <!-- Fallback Diagnostics -->
+      <div class="card bg-base-200 shadow-sm break-inside-avoid mb-4 w-full md:col-span-12">
+        <div class="card-body">
+          <div class="flex items-center gap-2">
+            <h2 class="card-title">Why no streams? (Diagnostics)</h2>
+            <button class="btn btn-xs btn-outline" type="button" @click="fetchFallbackDiagnostics" :disabled="diagBusy">Refresh</button>
+          </div>
+          <p class="text-xs opacity-70">Shows recent informative fallback reasons emitted by the server for your installation.</p>
+          <div class="overflow-x-auto rounded-box bg-base-300/50 p-3" data-ui-tier="basic">
+            <table class="table table-zebra table-sm">
+              <thead>
+                <tr>
+                  <th>Time</th>
+                  <th>Reason</th>
+                  <th>Where</th>
+                  <th>Seedling</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="(it, idx) in diagItems" :key="idx">
+                  <td>{{ fmtTime(it.at || Date.now()) }}</td>
+                  <td>{{ it.reason }}</td>
+                  <td>{{ it.where }}</td>
+                  <td class="truncate max-w-[14rem]" :title="it.seedling_id">{{ it.seedling_id }}</td>
+                </tr>
+                <tr v-if="!diagBusy && diagItems.length === 0">
+                  <td colspan="4" class="text-center opacity-60">No recent fallback events</td>
+                </tr>
+                <tr v-if="diagBusy">
+                  <td colspan="4" class="text-center opacity-60">Loading…</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
       <!-- Quick Navigation (tabs) -->
       <nav ref="tabsNav" class="sticky top-16 z-30 pb-1 nav-auto-hide" :class="{ 'sticky-active': tabsStickyActive, 'revealed': tabsReveal }" @mouseenter="revealTabs" @mouseleave="queueHideTabs">
         <div class="w-full overflow-x-auto">
@@ -56,7 +127,7 @@
       </nav>
 
       <div class="grid app-grid grid-cols-1 md:grid-cols-12">
-        <!-- Recent Boosts -->
+        <!-- Recent Boosts (scoped to seedling when in context) -->
         <div class="card bg-base-200 shadow-sm break-inside-avoid mb-4 w-full md:col-span-12">
           <div class="card-body">
             <div class="flex items-center gap-2">
@@ -135,7 +206,7 @@
                       <div class="badge badge-info">Proxy</div>
                       <span class="text-sm opacity-80">Upstream auto‑proxy</span>
                     </div>
-                    <div class="form-control tooltip tooltip-left" :title="'Toggle upstream auto-proxy'" data-tip="Toggle upstream auto-proxy">
+                    <div class="form-control tooltip" :title="'Toggle upstream auto-proxy'" data-tip="Toggle upstream auto-proxy">
                       <input
                         type="checkbox"
                         class="toggle toggle-success"
@@ -488,8 +559,6 @@
             </details>
           </div>
         </div>
-
-        
 
         <!-- Tracker Sources Card -->
         <div class="card bg-base-200 shadow-sm break-inside-avoid mb-4 w-full md:col-span-6">
@@ -988,11 +1057,87 @@
     </div>
     </div>
   </main>
+
 </template>
 
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
+import { auth } from '../lib/auth'
 import { gardener } from '../lib/gardener'
+
+// Router and seedling context (must be defined before any usage in this module)
+const route = useRoute()
+const seedlingId = computed(() => {
+  try {
+    const pid = String(route.params?.seedling_id || '')
+    if (pid) return pid
+    const qid = String(route.query?.sid || '')
+    return qid
+  } catch (_) { return '' }
+})
+
+const gardenerDotClass = computed(() => {
+  try {
+    if (!gardenerId.value) return 'bg-red-500'
+    const s = Number((gardenerHealth.value && gardenerHealth.value.score) || 0)
+    if (s >= 70) return 'bg-green-500'
+    if (s >= 40) return 'bg-yellow-500'
+    return 'bg-red-500'
+  } catch (_) { return 'bg-blue-500' }
+})
+
+function openGardener() {
+  try { window.open('/gardener/', '_blank', 'noopener') } catch (_) {
+    try { window.location.href = '/gardener/' } catch (_) {}
+  }
+}
+function onGardenerBadgeClick() {
+  try { if (!gardenerId.value) openGardener() } catch (_) {}
+}
+const skParam = computed(() => {
+  try {
+    const psk = String(route.params?.sk || '')
+    if (psk) return psk
+    const qsk = String(route.query?.sk || '')
+    return qsk
+  } catch (_) { return '' }
+})
+const hasSeedlingContext = computed(() => Boolean(seedlingId.value && skParam.value))
+
+
+// Currently linked gardener for this seedling (display-only)
+const gardenerId = ref('')
+const gardenerHealth = ref(null)
+const gardenerTooltip = computed(() => {
+  try {
+    if (!gardenerId.value) return 'No active gardener — click to open'
+    const h = gardenerHealth.value || {}
+    const parts = [
+      `ID: ${gardenerId.value}`,
+      (h.score != null ? `Score: ${h.score}` : null),
+      (h.queue != null ? `Queue: ${h.queue}` : null),
+      (h.s1m != null ? `Suc/min: ${h.s1m}` : null),
+      (h.f1m != null ? `Fail/min: ${h.f1m}` : null),
+    ].filter(Boolean)
+    return parts.join(' • ')
+  } catch (_) { return `ID: ${gardenerId.value}` }
+})
+
+async function fetchGardenerForSeedling() {
+  try {
+    const sid = seedlingId.value
+    if (!sid) { gardenerId.value = ''; gardenerHealth.value = null; return }
+    const r = await fetch(`/api/seedlings/${encodeURIComponent(sid)}/gardener`, {
+      headers: { 'Accept': 'application/json' }, cache: 'no-store'
+    })
+    const j = await r.json().catch(() => ({}))
+    if (!r.ok || (j && j.ok === false)) { gardenerId.value = ''; gardenerHealth.value = null; return }
+    gardenerId.value = String(j && (j.gardener_id || ''))
+    gardenerHealth.value = (j && j.health) || null
+  } catch (_) { gardenerId.value = ''; gardenerHealth.value = null }
+}
+
 
 const boosts = ref([])
 const sseStatus = ref('waiting') // waiting | ok | warn | error
@@ -1408,10 +1553,15 @@ onMounted(() => { if (sessionUserId.value) refreshSrvKeys() })
 function connectSse() {
   try {
     sseStatus.value = 'waiting'
-    es = new EventSource('/api/boosts/events')
+    const sid = seedlingId.value
+    const url = (hasSeedlingContext.value && sid)
+      ? `/api/seedlings/${encodeURIComponent(sid)}/events`
+      : '/api/boosts/events'
+    if (es) { try { es.close() } catch (_) {} es = null }
+    es = new EventSource(url)
     es.onopen = () => { sseStatus.value = 'ok' }
     es.addEventListener('snapshot', (e) => {
-      try { const data = JSON.parse(e.data); boosts.value = data.items || []; sseStatus.value = 'ok' } catch (_) { sseStatus.value = 'warn' }
+      try { const data = JSON.parse(e.data); boosts.value = data.items || []; sseStatus.value = 'ok' } catch (_) { sseStatus.value = 'error' }
     })
     es.addEventListener('boost', (e) => {
       try { const it = JSON.parse(e.data); boosts.value = [it, ...boosts.value].slice(0, 200); sseStatus.value = 'ok' } catch (_) { sseStatus.value = 'warn' }
@@ -1425,6 +1575,12 @@ function fmtTime(ts) {
 }
 
 onMounted(connectSse)
+onMounted(() => { try { fetchGardenerForSeedling() } catch (_) {} })
+watch([hasSeedlingContext, seedlingId], () => {
+  try { connectSse() } catch (_) {}
+})
+watch([seedlingId], () => { try { fetchGardenerForSeedling() } catch (_) {} })
+// Removed auto-linking of Gardener; server dynamically selects backend
 onBeforeUnmount(() => { try { es && es.close() } catch (_) {}; try { esSweep && esSweep.close() } catch (_) {} })
 
 // Optimization settings: probe/swarm/timeout (frontend mirrors addon config)
@@ -1503,9 +1659,8 @@ watch(sortOrder, (o) => {
 const origin = typeof window !== 'undefined' ? window.location.origin : ''
 const manifestHttp = computed(() => {
   try {
-    const u = new URL('/manifest.json', origin || 'http://localhost')
-    const gid = gardener.getGardenerId()
-    if (gid) u.searchParams.set('gardener_id', gid)
+    const basePath = (seedlingId.value && skParam.value) ? `/s/${seedlingId.value}/${skParam.value}/manifest.json` : '/manifest.json'
+    const u = new URL(basePath, origin || 'http://localhost')
     // Probe / timeouts / swarm params propagated to backend via manifest
     u.searchParams.set('probe_providers', probeProviders.value ? 'on' : 'off')
     u.searchParams.set('probe_timeout_ms', String(probeTimeoutMs.value || 0))
@@ -1549,6 +1704,21 @@ const manifestProtocol = computed(() => {
   if (v) return `stremio://addon-install?url=${url}&version=${encodeURIComponent(v)}`
   return `stremio://${url}`
 })
+
+// seedlingId, skParam, and hasSeedlingContext are defined at the top of the script
+
+async function copyManifest() {
+  try {
+    await navigator.clipboard.writeText(String(manifestHttp.value || ''))
+    toastType.value = 'alert-success'
+    toastMsg.value = 'Manifest URL copied'
+    setTimeout(() => { toastMsg.value = '' }, 2000)
+  } catch (_) {
+    toastType.value = 'alert-error'
+    toastMsg.value = 'Could not copy URL'
+    setTimeout(() => { toastMsg.value = '' }, 2000)
+  }
+}
 
 const url = ref('')
 const variant = ref('all')
@@ -2539,6 +2709,33 @@ onMounted(() => {
 })
 
 onMounted(() => { loadCredentialed() })
+
+// Fallback diagnostics state and fetch
+const diagItems = ref([])
+const diagBusy = ref(false)
+async function fetchFallbackDiagnostics() {
+  diagBusy.value = true
+  try {
+    const gid = gardener.getGardenerId()
+    const params = new URLSearchParams()
+    if (seedlingId.value) params.set('seedling_id', seedlingId.value)
+    if (gid) params.set('gardener_id', gid)
+    params.set('limit', '10')
+    params.set('minutes', '1440')
+    const res = await fetch(`/api/diagnostics/fallbacks?${params.toString()}`, { method: 'GET', headers: { 'Accept': 'application/json' } })
+    const data = await res.json().catch(() => ({}))
+    diagItems.value = Array.isArray(data?.items) ? data.items : []
+  } catch (_) {
+    diagItems.value = []
+  } finally { diagBusy.value = false }
+}
+
+onMounted(() => {
+  try {
+    const gid = gardener.getGardenerId()
+    if (gid || seedlingId.value) fetchFallbackDiagnostics()
+  } catch (_) {}
+})
 
 </script>
 

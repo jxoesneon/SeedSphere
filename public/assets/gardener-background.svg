@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Simplified undraw-style illustration placeholder (license-friendly custom) -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" role="img" aria-label="Gardener splash">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0ea5e9"/>
+      <stop offset="100%" stop-color="#7c3aed"/>
+    </linearGradient>
+  </defs>
+  <rect width="640" height="360" fill="url(#g)"/>
+  <g transform="translate(0,8)">
+    <circle cx="520" cy="64" r="6" fill="#fff" opacity="0.6"/>
+    <circle cx="580" cy="40" r="4" fill="#fff" opacity="0.5"/>
+    <circle cx="600" cy="90" r="3" fill="#fff" opacity="0.5"/>
+  </g>
+  
+</svg>

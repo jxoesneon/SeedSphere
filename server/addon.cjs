@@ -4,7 +4,7 @@ const pkg = require('../package.json')
 const { isTrackerUrl, unique, filterByHealth } = require("./lib/health.cjs")
 const { setLastFetch } = require("./lib/trackers_meta.cjs")
 const boosts = require("./lib/boosts.cjs")
-const { aggregateStreams } = require('./lib/aggregate.cjs')
+const { aggregateStreams, buildInformativeStream } = require('./lib/aggregate.cjs')
 const torrentio = require('./providers/torrentio.cjs')
 const yts = require('./providers/yts.cjs')
 const eztv = require('./providers/eztv.cjs')
@@ -344,6 +344,26 @@ const manifest = {
 	]
 }
 const builder = addonBuilder(manifest)
+const rolllog = require('./lib/rolllog.cjs')
+const reqctx = require('./lib/reqctx.cjs')
+const PROCESS_START_TS = Date.now()
+// Admin settings integration
+const { getCacheRow } = require('./lib/db.cjs')
+const ADMIN_SETTINGS_KEY = 'admin:settings'
+let adminSettingsCache = { ts: 0, settings: {} }
+function loadAdminSettings() {
+  try {
+    const now = Date.now()
+    if (now - adminSettingsCache.ts < 60_000) return adminSettingsCache.settings
+    const row = getCacheRow(ADMIN_SETTINGS_KEY)
+    let s = {}
+    if (row && row.payload_json) {
+      try { s = JSON.parse(Buffer.from(row.payload_json).toString('utf8')) } catch (_) { s = {} }
+    }
+    adminSettingsCache = { ts: now, settings: s || {} }
+    return adminSettingsCache.settings
+  } catch (_) { return {} }
+}
 // Expose manifest reference for dynamic handlers without duplicating it
 builder.manifestRef = manifest
 
@@ -409,9 +429,12 @@ Promise.allSettled(Object.values(VARIANT_URLS).map((u) => fetchTrackers(u))).the
 builder.defineStreamHandler(async (args, cb) => {
   try {
   const { type, id, extra } = args || {}
-  console.log("request for streams:", type, id)
+  try {
+    const seedling_id = (function(){ try { return reqctx.getSeedlingId() } catch (_) { return '' } })()
+    rolllog.log('stream_request', { component: 'addon', type, id, seedling_id, extra: extra || {} })
+  } catch (_) { /* ignore */ }
   // Determine effective URL based on user config (SDK provides extra)
-  const cfg = extra || {}
+  const cfg = Object.assign({}, loadAdminSettings(), extra || {})
   const selectedVariant = (cfg.variant || VARIANT).toLowerCase()
   const labelName = 'SeedSphere'
   const descAppendOriginal = String(cfg.desc_append_original || 'off').toLowerCase() === 'on'
@@ -425,6 +448,7 @@ builder.defineStreamHandler(async (args, cb) => {
     userId: String(cfg.ai_user_id || ''),
   }
   const selectedUrl = (cfg.trackers_url && cfg.trackers_url.trim()) || VARIANT_URLS[selectedVariant] || DEFAULT_TRACKERS_URL
+  try { const seedling_id = (function(){ try { return reqctx.getSeedlingId() } catch (_) { return '' } })(); rolllog.log('stream_debug', { component: 'addon', stage: 'cfg', type, id, seedling_id, selectedVariant, selectedUrl }) } catch (_) {}
 
   let trackers = []
   try {
@@ -432,6 +456,7 @@ builder.defineStreamHandler(async (args, cb) => {
   } catch (e) {
     console.warn("Falling back to empty trackers due to fetch error:", e.message)
   }
+  try { const seedling_id = (function(){ try { return reqctx.getSeedlingId() } catch (_) { return '' } })(); rolllog.log('stream_debug', { component: 'addon', stage: 'trackers_fetched', type, id, seedling_id, trackersCount: Array.isArray(trackers) ? trackers.length : 0 }) } catch (_) {}
 
   // Apply health filtering and limits
   const mode = (cfg.validation_mode || "basic").toLowerCase()
@@ -444,9 +469,15 @@ builder.defineStreamHandler(async (args, cb) => {
     console.warn("Health filtering failed:", e.message)
     effective = maxTrackers > 0 ? trackers.slice(0, maxTrackers) : trackers
   }
+  try { const seedling_id = (function(){ try { return reqctx.getSeedlingId() } catch (_) { return '' } })(); rolllog.log('stream_debug', { component: 'addon', stage: 'health_filtered', type, id, seedling_id, effectiveCount: Array.isArray(effective) ? effective.length : 0 }) } catch (_) {}
 
   // Aggregate upstream streams and augment with optimized trackers (if enabled)
+  const probeMode = String(cfg.probe_providers || 'off').toLowerCase()
+  const autoActive = (probeMode === 'auto') && ((Date.now() - PROCESS_START_TS) < 5 * 60_000)
+  const doProbe = (probeMode === 'on') || autoActive
+  const probeTimeout = Math.max(200, Number(cfg.probe_timeout_ms || 500))
   const autoProxy = String(cfg.auto_proxy || 'on').toLowerCase() !== 'off'
+  try { const seedling_id = (function(){ try { return reqctx.getSeedlingId() } catch (_) { return '' } })(); rolllog.log('stream_debug', { component: 'addon', stage: 'auto_proxy', type, id, seedling_id, autoProxy }) } catch (_) {}
   if (autoProxy) {
     try {
       // Provider prioritization and capping (env-based)
@@ -494,6 +525,7 @@ builder.defineStreamHandler(async (args, cb) => {
         providers.push(mod)
         if (providers.length >= limit) break
       }
+      try { const seedling_id = (function(){ try { return reqctx.getSeedlingId() } catch (_) { return '' } })(); rolllog.log('stream_debug', { component: 'addon', stage: 'providers_built', type, id, seedling_id, providers: providers.map(p => p && p.name).filter(Boolean) }) } catch (_) {}
 
       // Aggregate with optional probe + swarm options (cfg overrides env)
       const probeProviders = String((cfg.probe_providers ?? process.env.PROBE_PROVIDERS ?? 'off')).toLowerCase()
@@ -520,7 +552,26 @@ builder.defineStreamHandler(async (args, cb) => {
         : (!process.env.SWARM_MISSING_ONLY || /^(1|true|on)$/i.test(String(process.env.SWARM_MISSING_ONLY || '')))
       const swarmTimeoutMs = Math.max(400, Number(cfg.swarm_timeout_ms ?? process.env.SWARM_TIMEOUT_MS ?? 800))
 
-      const streams = await aggregateStreams({
+      // EARLY DEMO: Return a guaranteed demo stream for tt1254207 before aggregation
+      if ((type === 'movie' || type === 'series') && id === 'tt1254207') {
+        const infoHash = '0000000000000000000000000000000000000000'
+        const sources = effective
+          .filter((t) => /^(?:https?:\/\/|udp:\/\/)/i.test(String(t)))
+          .map((t) => `tracker:${t}`)
+        const stream = {
+          name: `${labelName}`,
+          title: `Demo torrent with ${effective.length} trackers`,
+          infoHash,
+          ...(sources && sources.length ? { sources } : {}),
+          behaviorHints: { bingeGroup: 'seedsphere-trackers' },
+        }
+        try { const seedling_id = (function(){ try { return reqctx.getSeedlingId() } catch (_) { return '' } })(); rolllog.log('stream_result', { component: 'addon', type, id, seedling_id, count: 1, demo: true }) } catch (_) {}
+        return cb(null, { streams: [stream] })
+      }
+
+      const GLOBAL_TIMEOUT_MS = Math.max(1000, Number(cfg.global_timeout_ms || process.env.GLOBAL_TIMEOUT_MS || 6000))
+      try { const seedling_id = (function(){ try { return reqctx.getSeedlingId() } catch (_) { return '' } })(); rolllog.log('stream_debug', { component: 'addon', stage: 'agg_start', type, id, seedling_id, GLOBAL_TIMEOUT_MS, probeProviders, probeTimeoutMs, providerFetchTimeoutMs }) } catch (_) {}
+      const aggTask = aggregateStreams({
         type,
         id,
         providers,
@@ -539,36 +590,67 @@ builder.defineStreamHandler(async (args, cb) => {
         swarm: { enabled: swarmEnabled, topN: swarmTopN, timeoutMs: swarmTimeoutMs, missingOnly: swarmMissingOnly },
         sort: { order: sortOrder, fields: sortFields },
       })
-      if (Array.isArray(streams) && streams.length > 0) {
-        return cb(null, { streams })
+      let streams
+      try {
+        streams = await Promise.race([
+          aggTask,
+          new Promise((_, rej) => setTimeout(() => rej(new Error('global_timeout')), GLOBAL_TIMEOUT_MS)),
+        ])
+      } catch (e) {
+        if (String(e && e.message) === 'global_timeout') {
+          try {
+            const info = buildInformativeStream({ reason: 'global_timeout', details: { note: `Timed out after ${GLOBAL_TIMEOUT_MS} ms.` }, labelName: 'SeedSphere', configureUrl: '/configure' })
+            try { const seedling_id = (function(){ try { return reqctx.getSeedlingId() } catch (_) { return '' } })(); rolllog.log('stream_result', { component: 'addon', type, id, seedling_id, count: 1, fallback: 'global_timeout' }) } catch (_) {}
+            return cb(null, { streams: [info] })
+          } catch (_) {
+            // fall back to minimal below
+          }
+        }
+        throw e
       }
+      // aggregateStreams now guarantees a fallback informative stream when upstream returns none
+      try { const seedling_id = (function(){ try { return reqctx.getSeedlingId() } catch (_) { return '' } })(); rolllog.log('stream_result', { component: 'addon', type, id, seedling_id, count: Array.isArray(streams) ? streams.length : 0 }) } catch (_) {}
+      if (Array.isArray(streams) && streams.length >= 1) return cb(null, { streams })
     } catch (e) {
       console.warn('Aggregation failed:', e && e.message ? e.message : String(e))
+      try {
+        const info = buildInformativeStream({ reason: 'providers_request_failed', details: { note: 'Aggregation failed unexpectedly.' }, labelName: 'SeedSphere', configureUrl: '/configure' })
+        try { const seedling_id = (function(){ try { return reqctx.getSeedlingId() } catch (_) { return '' } })(); rolllog.log('stream_result', { component: 'addon', type, id, seedling_id, count: 1, fallback: 'providers_request_failed' }) } catch (_) {}
+        return cb(null, { streams: [info] })
+      } catch (_) { /* fall through to final */ }
     }
   }
 
-  // Demo stream for a known IMDb id (note: fake infoHash, non-playable)
-  if ((type === "movie" || type === "series") && id === "tt1254207") {
-    const infoHash = "0000000000000000000000000000000000000000"
-    const sources = effective
-      .filter((t) => /^(?:https?:\/\/|udp:\/\/)/i.test(String(t)))
-      .map((t) => `tracker:${t}`)
+  // (moved) demo block handled above before aggregation
 
-    const stream = {
-      name: `${labelName}`,
-      title: `Demo torrent with ${effective.length} trackers`,
-      infoHash,
-      ...(sources && sources.length ? { sources } : {}),
-      behaviorHints: {
-        bingeGroup: "seedsphere-trackers",
-      },
+  // As a last resort, emit an informative stream
+  try {
+    const info = buildInformativeStream({ reason: 'no_results', details: { note: 'No results.' }, labelName: 'SeedSphere', configureUrl: '/configure' })
+    try { const seedling_id = (function(){ try { return reqctx.getSeedlingId() } catch (_) { return '' } })(); rolllog.log('stream_result', { component: 'addon', type, id, seedling_id, count: 1, fallback: 'no_results' }) } catch (_) {}
+    return cb(null, { streams: [info] })
+  } catch (_) {
+    // Minimal hard fallback (cannot throw): ensure Stremio shows something
+    const minimal = {
+      name: 'SeedSphere',
+      title: 'SeedSphere — Something went wrong',
+      description: 'Reason: Unknown error\nAction: Open Configure to review providers and preferences.\nConfigure: /configure',
+      infoHash: '0000000000000000000000000000000000000000',
+      behaviorHints: { bingeGroup: 'seedsphere-info', notWebReady: true },
     }
-    return cb(null, { streams: [stream] })
+    try {
+      const seedling_id = (function(){ try { return reqctx.getSeedlingId() } catch (_) { return '' } })();
+      rolllog.log('stream_result', { component: 'addon', type, id, seedling_id, count: 1, fallback: 'minimal' })
+    } catch (_) {}
+    return cb(null, { streams: [minimal] })
   }
-
-  return cb(null, { streams: [] })
   } catch (e) {
-    try { return cb(null, { streams: [] }) } catch (_) { /* ignore */ }
+    try {
+      const seedling_id = (function(){ try { return reqctx.getSeedlingId() } catch (_) { return '' } })();
+      rolllog.log('stream_error', { component: 'addon', error: e && e.message ? e.message : String(e), type, id, seedling_id })
+      const info = buildInformativeStream({ reason: 'providers_request_failed', details: { note: 'Internal error occurred while aggregating providers.' }, labelName: 'SeedSphere', configureUrl: '/configure' })
+      rolllog.log('stream_result', { component: 'addon', type, id, seedling_id, count: 1, fallback: 'providers_request_failed' })
+      return cb(null, { streams: [info] })
+    } catch (_) { /* ignore */ }
   }
 })
 

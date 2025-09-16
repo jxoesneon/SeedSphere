@@ -1,0 +1,106 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - link "Skip to content" [ref=e2] [cursor=pointer]:
+    - /url: "#main-content"
+  - generic [ref=e4]:
+    - generic [ref=e6]:
+      - link "Home SeedSphere logo SeedSphere" [ref=e8] [cursor=pointer]:
+        - /url: /
+        - text: Home
+        - img "SeedSphere logo" [ref=e9] [cursor=pointer]
+        - generic [ref=e10] [cursor=pointer]: SeedSphere
+      - generic [ref=e11]:
+        - link "Home Home" [ref=e12] [cursor=pointer]:
+          - /url: /
+        - link "Open manifest JSON Manifest" [ref=e13] [cursor=pointer]:
+          - /url: http://127.0.0.1:8080/manifest.json?gardener_id=g-b4812e6d163d4e84
+        - generic [ref=e14]:
+          - text: Change theme
+          - generic [ref=e15] [cursor=pointer]:
+            - img [ref=e17] [cursor=pointer]
+            - generic [ref=e19] [cursor=pointer]: Theme
+            - combobox "Theme" [ref=e20]:
+              - option "Seedsphere" [selected]
+              - option "Light"
+              - option "Dark"
+        - generic [ref=e21]:
+          - text: Account and authentication
+          - button "Sign in or manage account dev+e2e@example.com" [ref=e23] [cursor=pointer]:
+            - text: Sign in or manage account
+            - generic [ref=e25] [cursor=pointer]: dev+e2e@example.com
+      - text: Toggle menu
+    - main [ref=e26]:
+      - generic [ref=e27]:
+        - generic [ref=e28]:
+          - heading "Account" [level=1] [ref=e29]
+          - paragraph [ref=e30]: Manage your profile, session, and seedlings.
+        - generic [ref=e31]:
+          - generic [ref=e33]:
+            - heading "Profile" [level=2] [ref=e34]
+            - generic [ref=e35]:
+              - generic [ref=e36]:
+                - generic [ref=e37]: "User ID:"
+                - code [ref=e38]: magic:dev+e2e@example.com
+              - generic [ref=e39]:
+                - generic [ref=e40]: "Email:"
+                - generic [ref=e41]: dev+e2e@example.com
+              - generic [ref=e42]:
+                - generic [ref=e43]: "Provider:"
+                - generic [ref=e44]: magic
+            - generic [ref=e45]:
+              - button "Refresh session" [ref=e46] [cursor=pointer]
+              - button "Sign out" [ref=e47] [cursor=pointer]
+          - generic [ref=e49]:
+            - heading "Seedlings" [level=2] [ref=e50]
+            - paragraph [ref=e51]: Mint a new per-install identity and get its ready-to-use Stremio URL.
+            - button "Mint seedling" [ref=e53] [cursor=pointer]
+            - heading "My seedlings" [level=3] [ref=e55]
+            - generic [ref=e56]: Could not load seedlings.
+            - table [ref=e58]:
+              - rowgroup [ref=e59]:
+                - row "Install ID Status Created Last seen" [ref=e60]:
+                  - cell "Install ID" [ref=e61]
+                  - cell "Status" [ref=e62]
+                  - cell "Created" [ref=e63]
+                  - cell "Last seen" [ref=e64]
+                  - cell [ref=e65]
+              - rowgroup [ref=e66]:
+                - row "No seedlings yet." [ref=e67]:
+                  - cell "No seedlings yet." [ref=e68]
+            - generic [ref=e69]:
+              - generic [ref=e70]:
+                - button "Prev" [disabled]
+                - button "Page 1 / 1" [disabled]
+                - button "Next" [disabled]
+              - button "Refresh" [ref=e72] [cursor=pointer]
+          - generic [ref=e74]:
+            - heading "Security & Privacy" [level=2] [ref=e75]
+            - list [ref=e76]:
+              - listitem [ref=e77]: Your website session is stored in a secure, HTTP-only cookie with SameSite=Lax.
+              - listitem [ref=e78]: Seedlings use a per-install secret in the URL path; secrets are stored hashed with per-seedling salt.
+              - listitem [ref=e79]: Sensitive path segments are masked in logs; rate limits protect sensitive endpoints.
+            - generic [ref=e80]:
+              - link "Privacy" [ref=e81] [cursor=pointer]:
+                - /url: /privacy
+              - link "Terms" [ref=e82] [cursor=pointer]:
+                - /url: /terms
+    - contentinfo [ref=e83]:
+      - generic [ref=e84]:
+        - generic [ref=e85]:
+          - img "SeedSphere logo" [ref=e86]
+          - generic [ref=e87]: © 2025 SeedSphere
+        - navigation [ref=e88]:
+          - link "Privacy" [ref=e89] [cursor=pointer]:
+            - /url: /privacy
+          - link "Terms" [ref=e90] [cursor=pointer]:
+            - /url: /terms
+  - generic:
+    - iframe [ref=e92]:
+      - generic [ref=f1e2] [cursor=pointer]:
+        - img [ref=f1e3] [cursor=pointer]
+        - generic [ref=f1e4] [cursor=pointer]: Support me
+    - img [ref=e95] [cursor=pointer]
+    - img [ref=e100] [cursor=pointer]
+```

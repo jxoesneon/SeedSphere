@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>SeedSphere – Error</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/assets/error.css" />
+  </head>
+  <body>
+    <main class="wrap">
+      <section class="card">
+        <div class="head">
+          <span id="code" class="badge">unknown_error</span>
+          <h1 id="title">Something went wrong</h1>
+        </div>
+        <p id="desc" class="muted">We could not complete this action. Follow the steps or use the quick links below.</p>
+
+        <div class="grid">
+          <div class="box">
+            <h2>Recommended actions</h2>
+            <ul id="actions" class="list"></ul>
+          </div>
+          <div class="box">
+            <h2>Quick links</h2>
+            <div class="links">
+              <a class="btn" href="/#/start" id="startLink">Open Start</a>
+              <a class="btn" href="/#/account" id="accountLink">Open Account</a>
+            </div>
+          </div>
+        </div>
+
+        <details class="note">
+          <summary>Technical details</summary>
+          <pre id="details" class="pre"></pre>
+        </details>
+
+        <p class="foot">
+          Having trouble? Reach out via the README contact channels.
+        </p>
+      </section>
+    </main>
+    <script src="/assets/error.js"></script>
+  </body>
+</html>

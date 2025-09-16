@@ -39,7 +39,11 @@ async function fetchStreams(type, id, timeoutMs = 5000) {
   const info = await fetchTitle(type, id)
   if (!info || !info.title) return { ok: true, provider: NAME, streams: [] }
   try {
-    const q = encodeURIComponent(`${info.title}`)
+    // Derive season/episode tokens from id when present
+    const se = (() => { const m = String(id || '').match(/:(\d+):(\d+)$/); return m ? { s: m[1], e: m[2] } : null })()
+    const seToken = se ? ` S${String(se.s).padStart(2,'0')}E${String(se.e).padStart(2,'0')}` : ''
+    const withYear = (type === 'movie' && info.year) ? ` ${info.year}` : ''
+    const q = encodeURIComponent(`${info.title}${withYear}${seToken}`.trim())
     const url = `${BASE}/search/${q}/1/99/0` // order by seeds, page 1
     const res = await axios.get(url, { timeout: timeoutMs, validateStatus: () => true })
     const html = (res && res.data) ? String(res.data) : ''
@@ -58,7 +62,7 @@ async function fetchStreams(type, id, timeoutMs = 5000) {
     }))
     return { ok: true, provider: NAME, streams }
   } catch (e) {
-    return { ok: false, error: e && e.message ? e.message : 'request_failed' }
+    return { ok: false, provider: NAME, streams: [], error: e && e.message ? e.message : 'request_failed' }
   }
 }
 

@@ -1,0 +1,27 @@
+{
+  "id": "/gardener",
+  "name": "SeedSphere Gardener",
+  "short_name": "Gardener",
+  "description": "SeedSphere Gardener executor PWA for device registration and linking.",
+  "start_url": "/gardener/",
+  "scope": "/gardener/",
+  "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
+  "orientation": "any",
+  "launch_handler": { "client_mode": "focus-existing" },
+  "theme_color": "#0b0d12",
+  "background_color": "#0b0d12",
+  "shortcuts": [
+    {
+      "name": "Status",
+      "short_name": "Status",
+      "url": "/gardener/#status",
+      "icons": [
+        { "src": "/assets/icon-256.png", "sizes": "256x256", "type": "image/png" }
+      ]
+    }
+  ],
+  "icons": [
+    { "src": "/assets/icon-256.png", "sizes": "256x256", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

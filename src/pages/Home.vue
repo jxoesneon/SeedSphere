@@ -22,14 +22,12 @@
             </p>
             <div class="mt-5 flex flex-wrap gap-2">
               <a v-if="isDevMode" class="btn btn-primary btn-lg" :href="manifestProtocol">Install / Update in Stremio</a>
-              <a v-else class="btn btn-primary btn-lg" :href="baseManifestProtocol">Install in Stremio</a>
-              <RouterLink to="/configure" class="btn btn-ghost btn-lg">Configure</RouterLink>
+              <button v-else class="btn btn-primary btn-lg" type="button" @click="installSeedling">Install in Stremio</button>
+              <RouterLink to="/start" class="btn btn-ghost btn-lg">Start</RouterLink>
               <button class="btn btn-ghost btn-lg" type="button" @click="openStremio">Open Stremio</button>
               <button class="btn btn-outline btn-lg" type="button" @click="copyInstall">Copy Install Link</button>
             </div>
-            <div class="mt-3 text-sm">
-              <RouterLink to="/activity" class="link link-hover">See recent activity →</RouterLink>
-            </div>
+            <!-- Activity deep-link disabled in auth v2 overhaul -->
             <div class="mt-4 flex items-center gap-2">
               <label for="qr-toggle" class="text-sm opacity-80">Install via QR</label>
               <button id="qr-toggle" ref="qrToggleEl" class="btn btn-ghost btn-sm" type="button" @click="toggleQr" :aria-pressed="showQr ? 'true' : 'false'" :aria-expanded="showQr ? 'true' : 'false'" aria-controls="qr-panel" :aria-label="showQr ? 'Hide QR' : 'Show QR'">
@@ -140,25 +138,13 @@
               <option v-for="opt in variantOptions" :key="opt.key" :value="opt.key">{{ opt.label }}</option>
             </select>
             <a v-if="isDevMode" class="btn btn-primary" :href="manifestProtocol">Install / Update in Stremio</a>
-            <a v-if="!isDevMode" class="btn btn-primary" :href="baseManifestProtocol">Install in Stremio</a>
+            <button v-if="!isDevMode" class="btn btn-primary" type="button" @click="installSeedling">Install in Stremio</button>
             <button class="btn" type="button" @click="openStremio">Open Stremio</button>
             <button class="btn" type="button" @click="copyInstall">Copy Install Link</button>
-            <button v-if="canInstallPwa" class="btn" type="button" @click="installPwa">Install App</button>
             <a class="btn" href="/api/boosts/recent" target="_blank" rel="noopener">Recent boosts (JSON)</a>
             <a class="btn" href="/api/trackers/health" target="_blank" rel="noopener">Health stats (JSON)</a>
           </div>
           
-          <!-- Platform-specific install instructions -->
-          <div class="p-3 rounded-box bg-base-200/70">
-            <div class="flex items-center gap-2">
-              <div class="badge badge-info">Install Gardener</div>
-              <span class="text-sm opacity-80">Based on your device/browser</span>
-            </div>
-            <ul class="list-disc pl-6 mt-2 text-sm">
-              <li v-for="(msg, i) in installTips" :key="i">{{ msg }}</li>
-            </ul>
-            <div v-if="isStandalone" class="alert alert-success mt-2 text-sm">Gardener is installed. You can launch it from your apps/dock.</div>
-          </div>
           <div class="text-sm opacity-70">
             <div>Manifest URL ({{ effectiveManifestVariantLabel }}): <code>{{ effectiveManifestHttp }}</code></div>
           </div>
@@ -178,8 +164,12 @@
 
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
-import { gardener } from '../lib/gardener'
+import { useRouter } from 'vue-router'
 import BoostsTicker from '../components/BoostsTicker.vue'
+import { auth } from '../lib/auth'
+import { gardener } from '../lib/gardener'
+
+const router = useRouter()
 
 const origin = typeof window !== 'undefined' ? window.location.origin : ''
 const manifestVariant = ref('base')
@@ -205,6 +195,21 @@ const manifestVariantLabel = computed(() => {
 const gardenerId = computed(() => {
   try { return gardener.getGardenerId() || '' } catch (_) { return '' }
 })
+
+async function installSeedling() {
+  try {
+    if (!auth.state.user) { router.push('/start'); return }
+    const res = await fetch('/api/seedlings', { method: 'POST', credentials: 'include' })
+    if (!res.ok) return
+    const j = await res.json()
+    if (j && j.ok && j.stremioUrl) {
+      window.location.href = j.stremioUrl
+    } else if (j && j.manifestUrl) {
+      // Fallback
+      window.location.href = toStremioProtocol(j.manifestUrl)
+    }
+  } catch (_) { /* ignore */ }
+}
 
 // Helper to fetch and persist latest version for update banner
 async function fetchLatestVersion() {
@@ -316,8 +321,6 @@ const showUpdateBanner = computed(() => {
   return cmpSemver(latestVersion.value, seenVersion.value) > 0
 })
 const showQr = ref(true)
-const canInstallPwa = ref(false)
-const deferredPrompt = ref(null)
 
 // Platform detection
 const ua = (typeof navigator !== 'undefined' ? navigator.userAgent : '')
@@ -327,30 +330,7 @@ const isEdge = computed(() => /Edg\//.test(ua))
 const isChrome = computed(() => /Chrome\//.test(ua) && !isEdge.value)
 const isSafari = computed(() => /Safari\//.test(ua) && !isChrome.value && !isEdge.value)
 const isMac = computed(() => /Macintosh|MacIntel/.test(ua))
-const isStandalone = computed(() => {
-  try {
-    return (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || (window.navigator && window.navigator.standalone)
-  } catch (_) { return false }
-})
-
-const installTips = computed(() => {
-  const tips = []
-  if (isStandalone.value) return tips
-  if (isIOS.value) {
-    tips.push('iOS Safari: tap Share, then "Add to Home Screen" to install Gardener.')
-  } else if (isAndroid.value) {
-    tips.push('Android Chrome/Edge: use the browser menu and tap "Install app" to install Gardener.')
-    if (canInstallPwa.value) tips.push('Or tap the "Install App" button above when it appears.')
-  } else if (isMac.value && isSafari.value) {
-    tips.push('macOS Safari: use File → Add to Dock to install Gardener (Safari 17+).')
-  } else if (isChrome.value || isEdge.value) {
-    tips.push('Desktop Chrome/Edge: click the install icon in the address bar, or Menu → Install "Gardener".')
-    if (canInstallPwa.value) tips.push('Or click the "Install App" button above.')
-  } else {
-    tips.push('Your browser may support installing this app. Look for an Install option in the browser menu.')
-  }
-  return tips
-})
+const isStandalone = computed(() => false)
 
 const qrSrc = computed(() => {
   const data = encodeURIComponent(manifestProtocol.value)
@@ -415,13 +395,6 @@ function dismissUpdate() {
 }
 
 onMounted(async () => {
-  // Handle PWA install prompt availability
-  const onBip = (e) => {
-    e.preventDefault()
-    deferredPrompt.value = e
-    canInstallPwa.value = true
-  }
-  window.addEventListener('beforeinstallprompt', onBip)
 
   // Load last seen and initial latest version
   try { seenVersion.value = localStorage.getItem('seedsphere.version_seen') || '' } catch (_) {}
@@ -444,24 +417,12 @@ onMounted(async () => {
   await fetchHealthStats()
   healthInterval = setInterval(fetchHealthStats, 30_000)
 
-  // Cleanup listener when component unmounts
-  onBeforeUnmount(() => {
-    window.removeEventListener('beforeinstallprompt', onBip)
-    try { if (healthInterval) clearInterval(healthInterval) } catch (_) {}
-  })
 })
 
-async function installPwa() {
-  try {
-    if (!deferredPrompt.value) return
-    deferredPrompt.value.prompt()
-    const { outcome } = await deferredPrompt.value.userChoice
-    if (outcome === 'accepted') {
-      canInstallPwa.value = false
-      deferredPrompt.value = null
-    }
-  } catch (_) { /* ignore */ }
-}
+// Cleanup timers when component unmounts (must be top-level)
+onBeforeUnmount(() => {
+  try { if (healthInterval) clearInterval(healthInterval) } catch (_) {}
+})
 </script>
 
 <style scoped>

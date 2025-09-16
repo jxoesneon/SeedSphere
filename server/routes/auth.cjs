@@ -29,6 +29,23 @@ function baseUrl(req) {
   return `${proto}://${host}`
 }
 
+function isHtml(req) {
+  try { return String(req.headers.accept || '').toLowerCase().includes('text/html') } catch { return false }
+}
+
+function redirectToError(req, res, code, extras = {}) {
+  try {
+    const base = baseUrl(req)
+    const params = new URLSearchParams({ code: String(code || 'unknown_error') })
+    for (const [k, v] of Object.entries(extras || {})) {
+      if (v !== undefined && v !== null && String(v) !== '') params.set(k, String(v))
+    }
+    return res.redirect(302, `${base}/error?${params.toString()}`)
+  } catch (e) {
+    return res.status(500).send('error_redirect_failed')
+  }
+}
+
 // Session check
 router.get('/session', (req, res) => {
   try {
@@ -108,7 +125,7 @@ router.post('/magic/start', async (req, res) => {
   try {
     const email = String(req.body?.email || '').trim().toLowerCase()
     if (!email || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return res.status(400).json({ ok: false, error: 'invalid_email' })
-    const secret = process.env.AUTH_JWT_SECRET || ''
+    const secret = process.env.AUTH_JWT_SECRET || (process.env.NODE_ENV === 'production' ? '' : 'dev-secret')
     if (!secret) return res.status(500).json({ ok: false, error: 'server_not_configured' })
     const jti = uuidv4()
     const token = jwt.sign({ sub: email, jti, typ: 'magic' }, secret, { issuer: 'seedsphere', audience: 'auth', expiresIn: '15m' })
@@ -179,19 +196,28 @@ router.post('/magic/start', async (req, res) => {
 router.get('/magic/callback', (req, res) => {
   try {
     const token = String(req.query.token || '')
-    const secret = process.env.AUTH_JWT_SECRET || ''
-    if (!secret) return res.status(500).send('server_not_configured')
+    const secret = process.env.AUTH_JWT_SECRET || (process.env.NODE_ENV === 'production' ? '' : 'dev-secret')
+    if (!secret) {
+      if (isHtml(req)) return redirectToError(req, res, 'server_not_configured')
+      return res.status(500).send('server_not_configured')
+    }
     const payload = jwt.verify(token, secret, { issuer: 'seedsphere', audience: 'auth' })
     const email = String(payload?.sub || '')
-    if (!email) return res.status(400).send('invalid_token')
+    if (!email) {
+      if (isHtml(req)) return redirectToError(req, res, 'invalid_token')
+      return res.status(400).send('invalid_token')
+    }
     const userId = `magic:${email}`
     try { console.info('[magic] callback', { email, jti: payload?.jti || null, iat: payload?.iat || null, exp: payload?.exp || null }) } catch (_) {}
     upsertUser({ id: userId, provider: 'magic', email })
     issueSession(res, userId)
-    // Redirect back to Configure page
-    const redirect = `${baseUrl(req)}/#/configure?login=ok`
+    // Redirect to Start onboarding
+    const redirect = `${baseUrl(req)}/#/start?login=ok`
     return res.redirect(302, redirect)
-  } catch (e) { return res.status(400).send('invalid_or_expired') }
+  } catch (e) {
+    if (isHtml(req)) return redirectToError(req, res, 'invalid_or_expired')
+    return res.status(400).send('invalid_or_expired')
+  }
 })
 
 // Dev helper: expose the last magic email sent
@@ -212,6 +238,21 @@ router.get('/magic/status', (req, res) => {
   try {
     const info = getMailerInfo()
     return res.json({ ok: true, mailer: info })
+  } catch (e) { return res.status(500).json({ ok: false, error: e.message }) }
+})
+
+// Dev-only helper: generate a Magic Link callback URL (no email is sent)
+router.get('/dev/magic', (req, res) => {
+  try {
+    if (String(process.env.NODE_ENV) === 'production') return res.status(404).json({ ok: false, error: 'not_found' })
+    const email = String(req.query.email || 'dev+e2e@example.com').trim().toLowerCase()
+    if (!email || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return res.status(400).json({ ok: false, error: 'invalid_email' })
+    const secret = process.env.AUTH_JWT_SECRET || 'dev-secret'
+    const jti = uuidv4()
+    const token = jwt.sign({ sub: email, jti, typ: 'magic' }, secret, { issuer: 'seedsphere', audience: 'auth', expiresIn: '15m' })
+    const link = `${baseUrl(req)}/api/auth/magic/callback?token=${encodeURIComponent(token)}`
+    try { addEvent({ provider: 'magic', stage: 'dev_link', request: { email }, link: '[redacted]' }) } catch (_) {}
+    return res.json({ ok: true, link })
   } catch (e) { return res.status(500).json({ ok: false, error: e.message }) }
 })
 
@@ -240,6 +281,14 @@ async function getGoogleClient() {
 router.get('/google/start', async (req, res) => {
   try {
     const redirectUri = `${baseUrl(req)}/api/auth/google/callback`
+    // Ensure configuration is present before proceeding
+    const clientId = String(process.env.GOOGLE_CLIENT_ID || '')
+    const clientSecret = String(process.env.GOOGLE_CLIENT_SECRET || '')
+    if (!clientId || !clientSecret) {
+      try { addEvent({ provider: 'google', stage: 'start_error', error: 'missing_client_id_or_secret', request: { redirect_uri: redirectUri } }) } catch (_) {}
+      if (isHtml(req)) return redirectToError(req, res, 'google_not_configured')
+      return res.status(500).send('google_not_configured')
+    }
     const { randomPKCECodeVerifier, calculatePKCECodeChallenge } = await getOidc()
     const code_verifier = randomPKCECodeVerifier()
     const code_challenge = await calculatePKCECodeChallenge(code_verifier)
@@ -253,7 +302,7 @@ router.get('/google/start', async (req, res) => {
     })
     res.setHeader('Set-Cookie', ck)
     const params = new URLSearchParams({
-      client_id: String(process.env.GOOGLE_CLIENT_ID || ''),
+      client_id: clientId,
       redirect_uri: redirectUri,
       response_type: 'code',
       scope: 'openid email profile',
@@ -270,22 +319,42 @@ router.get('/google/start', async (req, res) => {
     const msg = (e && (e.stack || e.message || String(e))) || 'unknown_error'
     try { console.error('[auth] google_start_failed:', msg) } catch (_) {}
     try { addEvent({ provider: 'google', stage: 'start_error', error: msg }) } catch (_) {}
+    if (isHtml(req)) return redirectToError(req, res, 'oauth_error', { detail: msg })
     return res.status(500).send(`google_start_failed: ${msg}`)
   }
+})
+
+// Google OAuth configuration status (non-sensitive)
+router.get('/google/status', (req, res) => {
+  try {
+    const redirectUri = `${baseUrl(req)}/api/auth/google/callback`
+    const clientId = String(process.env.GOOGLE_CLIENT_ID || '')
+    const clientSecret = String(process.env.GOOGLE_CLIENT_SECRET || '')
+    return res.json({ ok: true, configured: Boolean(clientId && clientSecret), client_id_present: Boolean(clientId), redirect_uri: redirectUri })
+  } catch (e) { return res.status(500).json({ ok: false, error: e.message }) }
 })
 
 router.get('/google/callback', async (req, res) => {
   try {
     const code = String((req.query && req.query.code) || '')
-    if (!code) return res.status(400).send('missing_code')
+    if (!code) {
+      if (isHtml(req)) return redirectToError(req, res, 'missing_code')
+      return res.status(400).send('missing_code')
+    }
     const redirectUri = `${baseUrl(req)}/api/auth/google/callback`
     const parsed = cookie.parse(req.headers.cookie || '')
     const code_verifier = parsed.g_verifier
-    if (!code_verifier) return res.status(400).send('missing_verifier')
+    if (!code_verifier) {
+      if (isHtml(req)) return redirectToError(req, res, 'missing_verifier')
+      return res.status(400).send('missing_verifier')
+    }
 
     const client_id = String(process.env.GOOGLE_CLIENT_ID || '')
     const client_secret = String(process.env.GOOGLE_CLIENT_SECRET || '')
-    if (!client_id || !client_secret) return res.status(500).send('google_not_configured')
+    if (!client_id || !client_secret) {
+      if (isHtml(req)) return redirectToError(req, res, 'google_not_configured')
+      return res.status(500).send('google_not_configured')
+    }
 
     // Exchange code for tokens
     const axios = require('axios')
@@ -302,14 +371,20 @@ router.get('/google/callback', async (req, res) => {
       timeout: 12000,
     })
     const { id_token } = tok.data || {}
-    if (!id_token) return res.status(500).send('missing_id_token')
+    if (!id_token) {
+      if (isHtml(req)) return redirectToError(req, res, 'missing_id_token')
+      return res.status(500).send('missing_id_token')
+    }
 
     // Decode id_token to get user info (signature verification omitted for local flow)
     const parts = String(id_token).split('.')
     const payload = parts[1] ? JSON.parse(Buffer.from(parts[1], 'base64').toString('utf8')) : {}
     const sub = String(payload.sub || '')
     const email = String(payload.email || '')
-    if (!sub) return res.status(500).send('invalid_token')
+    if (!sub) {
+      if (isHtml(req)) return redirectToError(req, res, 'invalid_token')
+      return res.status(500).send('invalid_token')
+    }
 
     const userId = `google:${sub}`
     try { addEvent({ provider: 'google', stage: 'callback', token: { id_token: '[redacted]' }, claims: { sub, email }, userId }) } catch (_) {}
@@ -322,11 +397,12 @@ router.get('/google/callback', async (req, res) => {
       const arr = prev ? (Array.isArray(prev) ? prev.concat([del]) : [prev, del]) : [del]
       res.setHeader('Set-Cookie', arr)
     } catch (_) {}
-    return res.redirect(302, `${baseUrl(req)}/#/configure?login=ok`)
+    return res.redirect(302, `${baseUrl(req)}/#/start?login=ok`)
   } catch (e) {
     const msg = (e && (e.stack || e.message || String(e))) || 'unknown_error'
     try { console.error('[auth] google_callback_failed:', msg) } catch (_) {}
     try { addEvent({ provider: 'google', stage: 'callback_error', error: msg }) } catch (_) {}
+    if (isHtml(req)) return redirectToError(req, res, 'oauth_error', { detail: msg })
     return res.status(500).send(`google_callback_failed: ${msg}`)
   }
 })

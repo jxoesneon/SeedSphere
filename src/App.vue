@@ -1,8 +1,8 @@
 <template>
-  <div id="main-content" class="min-h-screen bg-base-100 text-base-content relative">
-    <!-- Global backdrop gradient -->
-    <div class="backdrop" aria-hidden="true"></div>
-    <div class="navbar sticky top-0 z-40 bg-base-100/80 backdrop-blur supports-[backdrop-filter]:bg-base-100/60 border-b border-base-300/50">
+  <div id="main-content" class="min-h-screen text-base-content relative" :class="isGardenerRoute ? 'bg-transparent' : 'bg-base-100'">
+    <!-- Global backdrop gradient (hidden on Gardener route) -->
+    <div v-if="!isGardenerRoute" class="backdrop" aria-hidden="true"></div>
+    <div v-if="!isGardenerRoute" ref="mainNavbar" class="navbar sticky top-0 z-40 bg-base-100/80 backdrop-blur supports-[backdrop-filter]:bg-base-100/60 border-b border-base-300/50">
       <div class="container mx-auto px-4 flex items-center justify-between gap-2 whitespace-nowrap">
         <!-- Left: Brand -->
         <div class="flex items-center gap-2 justify-start">
@@ -13,7 +13,7 @@
         </div>
 
         <!-- Center: Gardener connection pill (PWA only) -->
-        <div class="hidden md:flex justify-center" v-if="isStandalone">
+        <div class="hidden md:flex justify-center" v-if="isStandalone && !isGardenerRoute">
           <div class="tooltip tooltip-bottom" :data-tip="seedlingTooltip">
             <div class="badge gap-2" :class="serverOnline ? 'badge-success' : 'badge-error'">
               <span class="inline-block h-2 w-2 rounded-full" :class="serverOnline ? 'bg-green-400' : 'bg-red-400'"></span>
@@ -23,16 +23,19 @@
         </div>
 
         <!-- Right: Nav + Theme + Account (desktop) -->
-        <div class="hidden md:flex items-center gap-2 justify-end whitespace-nowrap">
+        <div class="hidden md:flex items-center gap-2 justify-end whitespace-nowrap" v-if="!isGardenerRoute">
           <RouterLink to="/" class="tooltip" data-tip="Home" :class="navLinkClasses('/')">Home</RouterLink>
-          <RouterLink to="/configure" class="tooltip" data-tip="Configure addon" :class="navLinkClasses('/configure')">Configure</RouterLink>
-          <RouterLink to="/pair" class="tooltip" data-tip="Pair a device" :class="navLinkClasses('/pair')">Pair</RouterLink>
-          <RouterLink to="/activity" class="tooltip" data-tip="View activity" :class="navLinkClasses('/activity')">Activity</RouterLink>
           <a class="btn btn-ghost btn-sm rounded-full tooltip" data-tip="Open manifest JSON" :href="manifestUrl" target="_blank" rel="noopener">Manifest</a>
           <RouterLink v-if="isDev" to="/executor" class="tooltip" data-tip="Developer executor" :class="navLinkClasses('/executor')">Executor</RouterLink>
           <div class="form-control tooltip" data-tip="Change theme">
-            <label class="label cursor-pointer gap-2">
-              <span class="label-text">Theme</span>
+            <label class="label cursor-pointer gap-2 items-center">
+              <span class="label-text inline-flex items-center" aria-hidden="true">
+                <!-- HeroIcons outline palette icon -->
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M21 12a9 9 0 10-9 9c.69 0 1.25-.56 1.25-1.25S12.69 18.5 12 18.5a6.5 6.5 0 116.5-6.5c0 .69.56 1.25 1.25 1.25S21 12.69 21 12z" />
+                </svg>
+              </span>
+              <span class="sr-only">Theme</span>
               <select class="select select-bordered select-sm" v-model="theme" @change="applyTheme(theme)">
                 <option value="seedsphere">Seedsphere</option>
                 <option value="light">Light</option>
@@ -46,7 +49,7 @@
         </div>
 
         <!-- Right: Mobile hamburger -->
-        <div class="flex items-center justify-end md:hidden relative">
+        <div v-if="!isGardenerRoute" class="flex items-center justify-end md:hidden relative">
           <button class="btn btn-ghost btn-sm tooltip" data-tip="Toggle menu" type="button" @click="toggleMobileMenu" :aria-expanded="showMobileMenu ? 'true' : 'false'" aria-controls="mobile-nav">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
               <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
@@ -62,14 +65,16 @@
             class="absolute right-0 top-10 w-72 rounded-2xl bg-base-100/90 border border-base-300/50 shadow-lg p-2 z-50 backdrop-blur supports-[backdrop-filter]:bg-base-100/70">
             <div class="flex flex-col gap-1">
               <RouterLink @click="closeMobileMenu" to="/" class="btn btn-ghost btn-sm rounded-full justify-start" title="Home">Home</RouterLink>
-              <RouterLink @click="closeMobileMenu" to="/configure" class="btn btn-ghost btn-sm rounded-full justify-start" title="Configure addon">Configure</RouterLink>
-              <RouterLink @click="closeMobileMenu" to="/pair" class="btn btn-ghost btn-sm rounded-full justify-start" title="Pair a device">Pair</RouterLink>
-              <RouterLink @click="closeMobileMenu" to="/activity" class="btn btn-ghost btn-sm rounded-full justify-start" title="View activity">Activity</RouterLink>
               <a @click="closeMobileMenu" class="btn btn-ghost btn-sm rounded-full justify-start" :href="manifestUrl" target="_blank" rel="noopener" title="Open manifest JSON">Manifest</a>
               <RouterLink v-if="isDev" @click="closeMobileMenu" to="/executor" class="btn btn-ghost btn-sm rounded-full justify-start" title="Developer executor">Executor</RouterLink>
               <div class="divider my-2"></div>
               <div class="flex items-center justify-between gap-2 px-1">
-                <span class="text-sm">Theme</span>
+                <span class="text-sm inline-flex items-center" aria-hidden="true">
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M21 12a9 9 0 10-9 9c.69 0 1.25-.56 1.25-1.25S12.69 18.5 12 18.5a6.5 6.5 0 116.5-6.5c0 .69.56 1.25 1.25 1.25S21 12.69 21 12z" />
+                  </svg>
+                </span>
+                <span class="sr-only">Theme</span>
                 <select class="select select-bordered select-sm" v-model="theme" @change="applyTheme(theme)" title="Change theme">
                   <option value="seedsphere">Seedsphere</option>
                   <option value="light">Light</option>
@@ -87,8 +92,21 @@
       </div>
     </div>
     <RouterView />
-    <!-- Dev drawer (visible only when ?dev=1 is present) -->
-    <DevDrawer v-if="isDev" />
+    <!-- Dev drawer (hidden on Gardener route) -->
+    <DevDrawer v-if="!isGardenerRoute && isDev" />
+    <!-- Site footer (hidden on Gardener route) -->
+    <footer v-if="!isGardenerRoute" class="mt-10 border-t border-base-300/50 bg-base-100/60 backdrop-blur supports-[backdrop-filter]:bg-base-100/50">
+      <div class="container mx-auto px-4 py-6 flex flex-col md:flex-row items-center justify-between gap-3">
+        <div class="flex items-center gap-2 opacity-80">
+          <img src="/assets/icon-256.png" alt="SeedSphere logo" class="h-5 w-5" />
+          <span class="text-sm">© {{ new Date().getFullYear() }} SeedSphere</span>
+        </div>
+        <nav class="flex items-center gap-2">
+          <RouterLink to="/privacy" class="btn btn-ghost btn-xs rounded-full">Privacy</RouterLink>
+          <RouterLink to="/terms" class="btn btn-ghost btn-xs rounded-full">Terms</RouterLink>
+        </nav>
+      </div>
+    </footer>
   </div>
   
 </template>
@@ -102,13 +120,21 @@ import DevDrawer from './components/DevDrawer.vue'
 import { gardener } from './lib/gardener'
 
 const theme = ref('seedsphere')
+const mainNavbar = ref(null)
+let resizeHandler = null
 const homeNavLink = ref(null)
 const ALLOWED_THEMES = ['seedsphere', 'light', 'dark']
 const isDev = ref(false)
 const serverOnline = ref(false)
 let pingTimer = null
-// Feature flag: enable Ko‑fi overlay; we will load it programmatically on load
-const ENABLE_KOFI_OVERLAY = true
+// Feature flag: Ko‑fi overlay; default on but can be overridden by public admin settings
+let kofiEnabled = true
+try {
+  fetch('/api/settings/public', { credentials: 'include', cache: 'no-store' })
+    .then(r => r.ok ? r.json() : Promise.reject())
+    .then(j => { try { if (j && j.ok && j.settings && typeof j.settings.kofi_overlay === 'string') { kofiEnabled = (j.settings.kofi_overlay === 'on') } } catch (_) {} })
+    .catch(() => {})
+} catch (_) {}
 // Mobile nav state
 const showMobileMenu = ref(false)
 function toggleMobileMenu() { showMobileMenu.value = !showMobileMenu.value }
@@ -122,6 +148,9 @@ function navLinkClasses(path) {
   }
 }
 const urlParams = new URLSearchParams(typeof window !== 'undefined' ? window.location.search : '')
+const isGardenerRoute = computed(() => {
+  try { return (route?.path || '').startsWith('/gardener') } catch { return false }
+})
 const pwaOverride = urlParams.get('pwa') // '1' to force on, '0' to force off
 const isStandalone = computed(() => {
   try {
@@ -407,6 +436,19 @@ onMounted(() => {
     if (saved) theme.value = sanitizeTheme(saved)
   } catch (_) {}
   applyTheme(theme.value)
+  // Publish navbar height as a CSS variable for fixed overlays (e.g., toast offset)
+  try {
+    const updateNavVar = () => {
+      try {
+        const el = (mainNavbar?.value && (mainNavbar.value.$el || mainNavbar.value)) || document.querySelector('.navbar')
+        const h = el ? el.getBoundingClientRect().height : 56
+        document.documentElement.style.setProperty('--nav-h', `${Math.round(h)}px`)
+      } catch (_) {}
+    }
+    updateNavVar()
+    resizeHandler = updateNavVar
+    window.addEventListener('resize', resizeHandler)
+  } catch (_) {}
   // Improve TV/remote navigation: set initial focus to Home link on coarse pointers
   try {
     const isCoarse = document?.documentElement?.getAttribute('data-input') === 'coarse'
@@ -430,7 +472,31 @@ onMounted(() => {
 
   // Ko‑fi overlay widget: programmatic load (equivalent to placing script before </body>)
   try {
-    if (ENABLE_KOFI_OVERLAY) {
+    const KOFI_INIT_FLAG = '__kofiOverlayInitialized__'
+    if (kofiEnabled) {
+      const shouldLoadKofi = () => {
+        try {
+          const path = window.location?.pathname || '/'
+          // Disable on per-seedling routes to avoid performance impact
+          if (path.startsWith('/s/')) return false
+          // Disable on Gardener executor route for a clutter-free minimal UI
+          if (path.startsWith('/gardener')) return false
+          return true
+        } catch { return true }
+      }
+      if (!shouldLoadKofi()) {
+        // Skip loading entirely for /s/* routes
+        return
+      }
+      // If already initialized (e.g., after HMR), re-apply overrides and skip reinjection
+      try {
+        if (typeof window !== 'undefined' && window[KOFI_INIT_FLAG]) {
+          injectKofiOverlayOverrides()
+          // Ensure fallback removed if present
+          try { const fb = document.querySelector('[data-kofi="fallback"]'); if (fb && fb.parentNode) fb.parentNode.removeChild(fb) } catch (_) {}
+          return
+        }
+      } catch (_) {}
       const existing = document.querySelector('script[data-kofi="overlay"]')
       let overlayReady = false
       const ensure = () => {
@@ -446,6 +512,7 @@ onMounted(() => {
           // Ensure our overrides are applied after the Ko-fi CSS
           injectKofiOverlayOverrides()
           overlayReady = true
+          try { if (typeof window !== 'undefined') window[KOFI_INIT_FLAG] = true } catch (_) {}
           // Remove fallback if it exists to avoid duplication
           try { const fb = document.querySelector('[data-kofi="fallback"]'); if (fb && fb.parentNode) fb.parentNode.removeChild(fb) } catch (_) {}
           return true
@@ -453,7 +520,7 @@ onMounted(() => {
         return false
       }
       const loader = () => {
-        if (!existing) {
+        if (!existing && !(typeof window !== 'undefined' && window[KOFI_INIT_FLAG])) {
           const s = document.createElement('script')
           s.src = 'https://storage.ko-fi.com/cdn/scripts/overlay-widget.js'
           s.async = true
@@ -464,12 +531,15 @@ onMounted(() => {
           ensure(); injectKofiOverlayOverrides()
         }
       }
-      if (document.readyState === 'complete') loader()
-      else {
-        let t
-        try { t = setTimeout(loader, 0) } catch (_) {}
-        try { window.addEventListener('load', () => { try { t && clearTimeout(t) } catch (_) {}; loader() }, { once: true }) } catch (_) { loader() }
-      }
+      // Defer load for performance: try requestIdleCallback, else setTimeout
+      try {
+        if ('requestIdleCallback' in window) {
+          // @ts-ignore
+          window.requestIdleCallback(() => loader(), { timeout: 2000 })
+        } else {
+          setTimeout(() => loader(), 500)
+        }
+      } catch { setTimeout(() => loader(), 500) }
       // Fallback if overlay doesn't become ready within 5 seconds
       try {
         setTimeout(() => {
@@ -558,6 +628,7 @@ onBeforeUnmount(() => {
   try { pingTimer && clearInterval(pingTimer) } catch (_) {}
   try { window.removeEventListener('online', null) } catch (_) {}
   try { window.removeEventListener('offline', null) } catch (_) {}
+  try { resizeHandler && window.removeEventListener('resize', resizeHandler) } catch (_) {}
 })
 </script>
 

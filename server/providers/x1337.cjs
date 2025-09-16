@@ -60,7 +60,7 @@ async function fetchStreams(type, id, timeoutMs = 5000) {
   const info = await fetchTitle(type, id)
   if (!info || !info.title) return { ok: true, provider: NAME, streams: [] }
   try {
-    const q = encodeURIComponent(`${info.title}`)
+    const q = encodeURIComponent(info.year ? `${info.title} ${info.year}` : `${info.title}`)
     const url = `${DEFAULT_BASE}/search/${q}/1/` // page 1 (best-effort default mirror)
     const res = await axios.get(url, { timeout: timeoutMs, validateStatus: () => true, headers: makeHeaders() })
     const html = (res && res.data) ? String(res.data) : ''
@@ -87,7 +87,7 @@ async function fetchStreams(type, id, timeoutMs = 5000) {
     }))
     return { ok: true, provider: NAME, streams }
   } catch (e) {
-    return { ok: false, error: e && e.message ? e.message : 'request_failed' }
+    return { ok: false, provider: NAME, streams: [], error: e && e.message ? e.message : 'request_failed' }
   }
 }
 

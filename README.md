@@ -34,6 +34,8 @@ npm run dev
 
 - Configure UI Canon: [`docs/CONFIGURE_UI_CANON.md`](docs/CONFIGURE_UI_CANON.md)
 - Greenhouse API: [`docs/openapi.yaml`](docs/openapi.yaml)
+- Informative streams policy: [`docs/INFORMATIVE_STREAMS.md`](docs/INFORMATIVE_STREAMS.md)
+  - See also the Troubleshooting section below for quick diagnostics and common reasons.
 
 ## Project overview
 
@@ -109,6 +111,35 @@ This project is licensed under the [MIT License](LICENSE).
 ## API
 
 - See docs/openapi.yaml for the latest Greenhouse API (link-token endpoints, SSE rooms, stream bridge, signing headers).
+
+## Troubleshooting: No Streams
+
+If you see an empty list or only an informative row in Stremio, use these built‑in tools to diagnose and fix quickly:
+
+- Configure diagnostics panel
+  - Open the Configure page. The “Why no streams? (Diagnostics)” panel lists recent fallback reasons for your current installation.
+  - Each entry includes a timestamp and a brief reason (e.g., providers unreachable, no providers enabled, timeout).
+
+- Diagnostics API
+  - `GET /api/diagnostics/fallbacks?seedling_id=...&limit=10`
+  - Optional filters: `gardener_id`, `minutes` (defaults to 1440).
+  - Shows recent fallback reasons with metadata to correlate issues.
+
+- Admin metrics (fallback reasons)
+  - `GET /api/admin/metrics/fallbacks?minutes=60` (admin only)
+  - Aggregated counts by reason to monitor system health.
+
+- Force an informative fallback (for testing)
+  - Visit `/executor`, toggle “Force fallback”, and click Run.
+  - This disables all providers and sets tiny timeouts to intentionally return a single informative stream with a clear reason.
+
+- Performance knobs (advanced)
+  - You can tune provider probing and concurrency/timeouts via filters passed to the stream bridge:
+    - `probe_providers` (`on`|`off`)
+    - `probe_timeout_ms` (number)
+    - `provider_fetch_timeout_ms` (number)
+    - `max_provider_concurrency` (number)
+  - See [`docs/INFORMATIVE_STREAMS.md`](docs/INFORMATIVE_STREAMS.md#performance-knobs) for examples and more details.
 
 ## Stremio stream formatting
 

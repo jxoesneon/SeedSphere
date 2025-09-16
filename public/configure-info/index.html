@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>SeedSphere – Configure</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/assets/configure.css" />
+  </head>
+  <body>
+    <main class="wrap">
+      <section class="card">
+        <h1>Configure your SeedSphere addon</h1>
+        <p id="msg" class="muted">Let's get your addon set up. If you arrived here from Stremio's Configure button, follow the steps below.</p>
+
+        <div class="grid">
+          <div class="box">
+            <h2>1. Sign in (website)</h2>
+            <p>Make sure you are signed in on this origin. This lets us verify account ownership.</p>
+            <a class="btn" href="/#/start" id="signinLink">Open Start</a>
+          </div>
+          <div class="box">
+            <h2>2. Link your seedling</h2>
+            <p>If this installation is new or unlinked, use Start to link it to your account.</p>
+            <a class="btn" href="/#/start" id="linkSeedling">Link Seedling</a>
+          </div>
+          <div class="box">
+            <h2>3. Check status</h2>
+            <p>On the Account page you can view your seedlings and revoke or reinstall if needed.</p>
+            <a class="btn" href="/#/account">Open Account</a>
+          </div>
+        </div>
+
+        <details class="note">
+          <summary>Why am I seeing this?</summary>
+          <ul>
+            <li><strong>Unauthorized</strong>: You may not be signed in on this origin.</li>
+            <li><strong>Revoked seedling</strong>: This installation was revoked. Mint or reinstall from the Account page.</li>
+            <li><strong>Invalid link</strong>: The link signature is invalid or expired. Reopen Configure after signing in.</li>
+          </ul>
+        </details>
+
+        <p class="foot">
+          Need help? See <a href="/#/start">Start</a> or <a href="/#/account">Account</a>.
+        </p>
+      </section>
+    </main>
+    <script src="/assets/configure.js"></script>
+  </body>
+</html>

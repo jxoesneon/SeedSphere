@@ -3,6 +3,8 @@ const { parseReleaseInfo } = require('./parse.cjs')
 const { enhanceDescription } = require('./ai_descriptions.cjs')
 const { scrapeSwarm } = require('./swarm.cjs')
 const boosts = require('./boosts.cjs')
+const reqctx = require('./reqctx.cjs')
+const rolllog = require('./rolllog.cjs')
 
 // Simple in-memory cache: key -> { ts, ttl, streams }
 const CACHE = new Map()
@@ -19,6 +21,38 @@ function getCache(key, allowStale = false) {
   // too old
   CACHE.delete(key)
   return null
+}
+
+// Ensure every upstream stream has a consistent shape so downstream logic is predictable
+function standardizeStream(s) {
+  const out = {}
+  const provider = String(s && s.provider ? s.provider : 'Upstream')
+  const title = String(s && s.title ? s.title : provider)
+  const infoHash = String(s && s.infoHash ? s.infoHash : '').toLowerCase()
+  const url = String(s && s.url ? s.url : '')
+  const behaviorHints = (s && typeof s.behaviorHints === 'object' && s.behaviorHints) ? s.behaviorHints : {}
+  const description = String((s && s.description) || '')
+  const seeds = (s && Number.isFinite(Number(s.seeds))) ? Number(s.seeds) : null
+  const leechers = (s && Number.isFinite(Number(s.leechers))) ? Number(s.leechers) : null
+  const size = (s && s.size !== undefined && s.size !== null) ? String(s.size) : null
+  const sizeBytes = (s && Number.isFinite(Number(s.sizeBytes))) ? Number(s.sizeBytes) : null
+  let languages = []
+  try {
+    if (Array.isArray(s.languages)) languages = s.languages.filter(Boolean).map(String)
+    else if (typeof s.language === 'string') languages = [String(s.language)]
+  } catch (_) {}
+  out.provider = provider
+  out.title = title
+  if (infoHash) out.infoHash = infoHash
+  if (url) out.url = url
+  out.behaviorHints = behaviorHints
+  out.description = description
+  out.seeds = seeds
+  out.leechers = leechers
+  out.size = size
+  out.sizeBytes = sizeBytes
+  out.languages = languages
+  return out
 }
 
 function parseSeriesId(rawId) {
@@ -82,6 +116,68 @@ function formatBytes(bytes) {
   let b = n, i = 0
   while (b >= 1024 && i < units.length - 1) { b /= 1024; i++ }
   return `${b.toFixed(b >= 10 ? 0 : 1)} ${units[i]}`
+}
+
+// Build an informative (non-playable) stream entry to ensure UI always shows at least one item
+// reason: machine-readable code, e.g. 'no_providers_enabled', 'providers_unreachable', 'providers_zero_results', 'global_timeout', 'account_issue'
+// details: optional metadata to surface in description (providers, timeouts, trackers count, etc.)
+function buildInformativeStream({ reason = 'no_results', details = {}, labelName = '! SeedSphere', configureUrl = '/configure' }) {
+  const reasonTitles = {
+    no_providers_enabled: 'No providers enabled',
+    providers_unreachable: 'Providers unreachable',
+    providers_zero_results: 'No results from providers',
+    providers_error: 'Provider errors',
+    providers_request_failed: 'Provider requests failed',
+    no_results: 'No results',
+    trackers_list_empty: 'No trackers configured',
+    account_missing_identities: 'Sign-in required',
+    account_no_binding: 'Installation not linked',
+    account_invalid_signature: 'Signature invalid',
+    account_banned: 'Account banned',
+    seedling_invalid_signature: 'Link invalid',
+    seedling_revoked: 'Installation revoked',
+    global_timeout: 'Timed out',
+  }
+  const titleBase = reasonTitles[reason] || 'SeedSphere'
+  const lines = []
+  // Primary reason
+  lines.push(`Reason: ${titleBase}`)
+  // Optional details block
+  try {
+    const prov = Array.isArray(details.providers) ? details.providers.filter(Boolean) : []
+    if (prov.length) lines.push(`Providers: ${prov.join(', ')}`)
+  } catch (_) {}
+  try {
+    if (Number.isFinite(details.probeTimeoutMs)) lines.push(`Probe timeout: ${details.probeTimeoutMs} ms`)
+    if (Number.isFinite(details.providerFetchTimeoutMs)) lines.push(`Provider fetch timeout: ${details.providerFetchTimeoutMs} ms`)
+  } catch (_) {}
+  try {
+    if (Number.isFinite(details.trackersCount)) lines.push(`Trackers configured: ${details.trackersCount}`)
+  } catch (_) {}
+  try {
+    if (details.note) lines.push(String(details.note))
+  } catch (_) {}
+  // Action hint
+  lines.push('Action: Open Configure to review providers, trackers, and preferences.')
+  const seedlingId = String(reqctx.getSeedlingId() || '')
+  let cfgLink = String(configureUrl || '/configure')
+  try {
+    if ((!configureUrl || configureUrl === '/configure') && seedlingId) {
+      const u = new URL('/configure', 'http://local')
+      u.searchParams.set('seedling_id', seedlingId)
+      cfgLink = u.pathname + u.search
+    }
+  } catch (_) { /* ignore URL failures */ }
+  lines.push(`Configure: ${cfgLink}`)
+
+  return {
+    name: labelName || '! SeedSphere',
+    title: `${titleBase} — Configure SeedSphere`,
+    description: lines.join('\n'),
+    // Placeholder torrent to ensure Stremio renders an entry; not intended to be playable
+    infoHash: '0000000000000000000000000000000000000000',
+    behaviorHints: { bingeGroup: 'seedsphere-info', notWebReady: true },
+  }
 }
 
 // Build a human-friendly series title according to spec guidance:
@@ -196,7 +292,7 @@ async function filterAvailableProviders(providers, timeoutMs = 800) {
   return tests.map(t => (t.status === 'fulfilled' ? t.value : null)).filter(Boolean)
 }
 
-async function aggregateStreams({ type, id, providers, trackers, trackersTotal = null, mode = 'basic', maxTrackers = 0, bingeGroup = 'seedsphere-optimized', cacheTtlMs = DEFAULT_TTL_MS, labelName = 'SeedSphere', descAppendOriginal = false, descRequireDetails = true, aiConfig = { enabled: false }, probeProviders = 'off', probeTimeoutMs = 500, providerFetchTimeoutMs = 3000, swarm = { enabled: false, topN: 2, timeoutMs: 800, missingOnly: true }, sort = { order: 'desc', fields: ['resolution','peers','language'] } }) {
+async function aggregateStreams({ type, id, providers, trackers, trackersTotal = null, mode = 'basic', maxTrackers = 0, bingeGroup = 'seedsphere-optimized', cacheTtlMs = DEFAULT_TTL_MS, labelName = 'SeedSphere', descAppendOriginal = false, descRequireDetails = true, aiConfig = { enabled: false }, probeProviders = 'off', probeTimeoutMs = 500, providerFetchTimeoutMs = 3000, maxProviderConcurrency = null, swarm = { enabled: false, topN: 2, timeoutMs: 800, missingOnly: true }, sort = { order: 'desc', fields: ['resolution','peers','language'] } }) {
   // Normalize sort config
   const sortOrder = (sort && String(sort.order || 'desc').toLowerCase() === 'asc') ? 'asc' : 'desc'
   const sortFields = Array.isArray(sort && sort.fields) && (sort.fields.length > 0)
@@ -207,25 +303,117 @@ async function aggregateStreams({ type, id, providers, trackers, trackersTotal =
   const cached = getCache(key, true)
   if (cached) return cached
 
+  const trackersAll = Array.isArray(trackers) ? trackers : []
   const doProbe = (String(probeProviders || 'off').toLowerCase() === 'on') || (probeProviders === true)
   const available = doProbe ? await filterAvailableProviders(providers, probeTimeoutMs) : providers
-  const results = await Promise.allSettled(available.map((p) => {
-    try { return p.fetchStreams(type, id, providerFetchTimeoutMs) }
-    catch (_) { return Promise.resolve({ ok: false, streams: [] }) }
-  }))
+
+  // Fallback cases before querying providers
+  if (!Array.isArray(providers) || providers.length === 0) {
+    const info = buildInformativeStream({
+      reason: 'no_providers_enabled',
+      details: { trackersCount: trackersAll.length },
+      labelName,
+    })
+    try { require('./db.cjs').writeAudit('fallback_stream', { reason: 'no_providers_enabled', type, id, seedling_id: (reqctx && reqctx.getSeedlingId && reqctx.getSeedlingId()) || '' }) } catch (_) {}
+    setCache(key, [info], cacheTtlMs)
+    return [info]
+  }
+  if (doProbe && Array.isArray(available) && available.length === 0) {
+    const info = buildInformativeStream({
+      reason: 'providers_unreachable',
+      details: { providers: providers.map(p => p.name || 'Upstream'), probeTimeoutMs, providerFetchTimeoutMs, trackersCount: trackersAll.length },
+      labelName,
+    })
+    try { require('./db.cjs').writeAudit('fallback_stream', { reason: 'providers_unreachable', type, id, seedling_id: (reqctx && reqctx.getSeedlingId && reqctx.getSeedlingId()) || '' }) } catch (_) {}
+    setCache(key, [info], cacheTtlMs)
+    return [info]
+  }
+
+  // Optional provider concurrency bound
+  const maxConcRaw = Number.isFinite(Number(maxProviderConcurrency)) ? Number(maxProviderConcurrency) : null
+  const CONCURRENCY = (maxConcRaw && maxConcRaw > 0) ? Math.min(maxConcRaw, available.length || 1) : (available.length || 1)
+  async function allSettledWithConcurrency(list, limit, taskFn) {
+    const results = new Array(list.length)
+    let i = 0
+    async function next() {
+      const idx = i++
+      if (idx >= list.length) return
+      try {
+        const v = await taskFn(list[idx], idx)
+        results[idx] = { status: 'fulfilled', value: v }
+      } catch (e) {
+        results[idx] = { status: 'rejected', reason: e }
+      }
+      return next()
+    }
+    const runners = Array.from({ length: Math.min(limit, list.length) }, () => next())
+    await Promise.allSettled(runners)
+    return results
+  }
+  const results = await allSettledWithConcurrency(available, CONCURRENCY, async (p) => {
+    try { return await p.fetchStreams(type, id, providerFetchTimeoutMs) }
+    catch (_) { return { ok: false, provider: p && p.name, streams: [] } }
+  })
   const collected = []
+  let anyOkEmpty = false
+  let anyError = false
+  let anyRejected = false
+  const reasonProvidersZero = []
+  const reasonProvidersError = []
+  const reasonProvidersRejected = []
+  const providerCounts = {}
+  const exampleTitles = {}
   for (const r of results) {
-    if (r.status !== 'fulfilled') continue
+    if (r.status !== 'fulfilled') { anyRejected = true; continue }
     const res = r.value
-    if (!res || !res.ok || !Array.isArray(res.streams)) continue
+    const providerName = (res && (res.provider || res.name)) || 'Upstream'
+    if (!res || res.ok !== true) { anyError = true; reasonProvidersError.push(providerName); continue }
+    if (!Array.isArray(res.streams)) { anyError = true; reasonProvidersError.push(providerName); continue }
+    if (res.streams.length === 0) { anyOkEmpty = true; reasonProvidersZero.push(providerName); continue }
+    providerCounts[providerName] = (providerCounts[providerName] || 0) + res.streams.length
+    if (!exampleTitles[providerName]) {
+      const first = res.streams[0]
+      exampleTitles[providerName] = first && (first.title || first.name || '') || ''
+    }
     for (const s of res.streams) {
-      collected.push({ ...s, provider: res.provider || s.provider || 'Upstream' })
+      const st = standardizeStream({ ...s, provider: res.provider || s.provider || 'Upstream' })
+      collected.push(st)
     }
   }
-  if (collected.length === 0) return []
+  try {
+    rolllog.log('stream_debug', {
+      component: 'addon',
+      stage: 'provider_counts',
+      type,
+      id,
+      seedling_id: String(reqctx.getSeedlingId() || ''),
+      counts: providerCounts,
+      examples: exampleTitles,
+    })
+  } catch (_) { /* ignore logging errors */ }
+  if (collected.length === 0) {
+    let reason = 'no_results'
+    if (trackersAll.length === 0) reason = 'trackers_list_empty'
+    if (anyOkEmpty) reason = 'providers_zero_results'
+    else if (anyError) reason = 'providers_error'
+    else if (anyRejected) reason = 'providers_request_failed'
+    const info = buildInformativeStream({
+      reason,
+      details: {
+        providers: available.map(p => p.name || 'Upstream'),
+        probeTimeoutMs,
+        providerFetchTimeoutMs,
+        trackersCount: trackersAll.length,
+        note: trackersAll.length === 0 ? 'No trackers are configured; consider changing variant or custom URL.' : undefined,
+      },
+      labelName,
+    })
+    try { require('./db.cjs').writeAudit('fallback_stream', { reason, type, id, seedling_id: (reqctx && reqctx.getSeedlingId && reqctx.getSeedlingId()) || '' }) } catch (_) {}
+    setCache(key, [info], cacheTtlMs)
+    return [info]
+  }
 
   const merged = dedupeStreams(collected)
-  const trackersAll = Array.isArray(trackers) ? trackers : []
   // Use all trackers by default; allow optional cap via maxTrackers > 0
   const cap = (Number.isFinite(maxTrackers) && maxTrackers > 0) ? Math.floor(maxTrackers) : trackersAll.length
   const trackersList = cap > 0 ? trackersAll.slice(0, cap) : trackersAll
@@ -236,6 +424,9 @@ async function aggregateStreams({ type, id, providers, trackers, trackersTotal =
   const swarmTopN = Number.isFinite(swarmCfg.topN) ? Math.max(0, swarmCfg.topN) : 0
   const swarmTimeout = Number(swarmCfg.timeoutMs) || 800
   const swarmMissingOnly = ('missingOnly' in swarmCfg) ? !!swarmCfg.missingOnly : true
+
+  // Determine requested S/E for series
+  const seRequested = (String(type || '').toLowerCase() === 'series') ? parseSeriesId(id) : null
 
   for (let idx = 0; idx < merged.length; idx++) {
     const s = merged[idx]
@@ -366,6 +557,18 @@ async function aggregateStreams({ type, id, providers, trackers, trackersTotal =
       return 0
     })()
 
+    // Surface normalized fields on the final stream for consistent shape
+    const leechersNum = Number(enriched && (enriched.leechers ?? enriched.peers))
+    const sizeBytesOut = Number((enriched && enriched.sizeBytes) || (rInfo && rInfo.sizeBytes))
+    const languagesOut = Array.from(new Set(langsArr)).filter(Boolean)
+
+    // Series exact-match hint: prefer entries with explicit SxxEyy or explicit fileIdx
+    const seFromMagnet = (() => { try { return extractSeasonEpisode(rInfo && rInfo.name) } catch (_) { return null } })()
+    const seMatches = !!(seRequested && (
+      typeof s.fileIdx === 'number' ||
+      (seFromMagnet && Number(seFromMagnet.season) === Number(seRequested.season) && Number(seFromMagnet.episode) === Number(seRequested.episode))
+    ))
+
     items.push({
       out: {
         name: labelName || '! SeedSphere',
@@ -380,8 +583,16 @@ async function aggregateStreams({ type, id, providers, trackers, trackersTotal =
           ...(s.behaviorHints || {}),
           bingeGroup,
         },
+        // Provide standardized fields for downstream consumers and tests
+        provider: s.provider || undefined,
+        seeds: Number.isFinite(seedsNum) ? seedsNum : null,
+        leechers: Number.isFinite(leechersNum) ? leechersNum : null,
+        size: (s.size !== undefined && s.size !== null) ? String(s.size) : null,
+        sizeBytes: Number.isFinite(sizeBytesOut) ? sizeBytesOut : null,
+        languages: languagesOut,
       },
       meta: {
+        sematch: seMatches ? 1 : 0,
         resolution: resolutionScore,
         peers: peersScore,
         language: primaryLang,
@@ -397,6 +608,10 @@ async function aggregateStreams({ type, id, providers, trackers, trackersTotal =
   const fieldsToUse = sortFields.filter((f) => ['resolution','peers','language','size','codec','source','hdr','audio'].includes(f))
   const factor = (sortOrder === 'asc') ? 1 : -1
   items.sort((a, b) => {
+    // Always prefer items that explicitly match requested S/E (sematch=1) when available
+    const sa = Number(a.meta.sematch || 0)
+    const sb = Number(b.meta.sematch || 0)
+    if (sa !== sb) return sb - sa
     for (const f of fieldsToUse) {
       const av = a.meta[f]
       const bv = b.meta[f]
@@ -422,7 +637,17 @@ async function aggregateStreams({ type, id, providers, trackers, trackersTotal =
     return 0
   })
 
-  const final = items.map((it) => it.out)
+  let final = items.map((it) => it.out)
+  // Prefer Torrentio results first for all types; for series, EZTV second — helps avoid wrong-title scrapes overshadowing accurate providers
+  try {
+    if (Array.isArray(final) && final.length > 1) {
+      const isSeries = String(type || '').toLowerCase() === 'series'
+      const first = final.filter((s) => String(s.provider || '') === 'Torrentio')
+      const second = isSeries ? final.filter((s) => String(s.provider || '') === 'EZTV') : []
+      const rest = final.filter((s) => !['Torrentio', ...(isSeries ? ['EZTV'] : [])].includes(String(s.provider || '')))
+      final = [].concat(first, second, rest)
+    }
+  } catch (_) { /* ignore reordering issues */ }
   // Emit enriched boost event with a representative title for Configure UI
   try {
     if (final.length > 0) {
@@ -441,6 +666,7 @@ async function aggregateStreams({ type, id, providers, trackers, trackersTotal =
         type: String(type || ''),
         id: String(id || ''),
         title: representativeTitle,
+        seedling_id: String(reqctx.getSeedlingId() || ''),
         ...(isSeries && (seFromId || seFromTitle) ? { season: (seFromId || seFromTitle).season, episode: (seFromId || seFromTitle).episode } : {}),
       })
     }
@@ -450,4 +676,4 @@ async function aggregateStreams({ type, id, providers, trackers, trackersTotal =
   return final
 }
 
-module.exports = { aggregateStreams, filterAvailableProviders }
+module.exports = { aggregateStreams, filterAvailableProviders, buildInformativeStream }

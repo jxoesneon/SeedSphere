@@ -14,7 +14,10 @@ function initDb(baseDir) {
   db = new Database(file)
   db.pragma('journal_mode = WAL')
   db.pragma('synchronous = NORMAL')
+  // Mitigate occasional lock contention when multiple endpoints touch DB
+  try { db.pragma('busy_timeout = 5000') } catch (_) {}
   migrate()
+  try { ensureSchemaUpgrades() } catch (_) {}
   return db
 }
 
@@ -157,6 +160,39 @@ function migrate() {
   }
 }
 
+// Ensure post-migration schema upgrades without creating separate migration files
+function ensureSchemaUpgrades() {
+  // Helper to check if a column exists on a table
+  const hasColumn = (table, column) => {
+    try {
+      const rows = db.prepare(`PRAGMA table_info(${table})`).all()
+      return rows.some(r => String(r.name) === String(column))
+    } catch (_) { return false }
+  }
+
+  // installations: add key_hash (TEXT), salt (BLOB), status (TEXT), config_json (BLOB)
+  try { if (!hasColumn('installations', 'key_hash')) db.exec('ALTER TABLE installations ADD COLUMN key_hash TEXT') } catch (_) {}
+  try { if (!hasColumn('installations', 'salt')) db.exec('ALTER TABLE installations ADD COLUMN salt BLOB') } catch (_) {}
+  try { if (!hasColumn('installations', 'status')) db.exec("ALTER TABLE installations ADD COLUMN status TEXT DEFAULT 'active'") } catch (_) {}
+  try { if (!hasColumn('installations', 'config_json')) db.exec('ALTER TABLE installations ADD COLUMN config_json BLOB') } catch (_) {}
+
+  // cache: ensure last_write_at present (idempotent)
+  try { if (!hasColumn('cache', 'last_write_at')) db.exec('ALTER TABLE cache ADD COLUMN last_write_at INTEGER') } catch (_) {}
+
+  // bans: simple table to mark banned users
+  try {
+    db.exec(`CREATE TABLE IF NOT EXISTS bans (
+      user_id TEXT PRIMARY KEY,
+      reason TEXT,
+      created_at INTEGER NOT NULL,
+      FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+    )`)
+  } catch (_) {}
+
+  // gardeners: add status (TEXT)
+  try { if (!hasColumn('gardeners', 'status')) db.exec('ALTER TABLE gardeners ADD COLUMN status TEXT') } catch (_) {}
+}
+
 function upsertUser({ id, provider, email }) {
   const now = Date.now()
   const insert = db.prepare('INSERT OR IGNORE INTO users (id, provider, email, created_at) VALUES (?, ?, ?, ?)')
@@ -222,7 +258,136 @@ function upsertInstallation({ install_id, user_id = null, platform = null }) {
   db.prepare(`INSERT INTO installations (install_id, user_id, platform, created_at, last_seen)
               VALUES (?, ?, ?, ?, ?)
               ON CONFLICT(install_id) DO UPDATE SET user_id = COALESCE(excluded.user_id, installations.user_id), platform = COALESCE(excluded.platform, installations.platform), last_seen = excluded.last_seen`).run(install_id, user_id, platform, now, now)
-  return db.prepare('SELECT install_id, user_id, platform, created_at, last_seen FROM installations WHERE install_id = ?').get(install_id)
+  return db.prepare('SELECT install_id, user_id, platform, created_at, last_seen, key_hash, salt, status, config_json FROM installations WHERE install_id = ?').get(install_id)
+}
+
+function setInstallationSecret(install_id, saltBuf, keyHashHex) {
+  const now = Date.now()
+  db.prepare('UPDATE installations SET salt = ?, key_hash = ?, last_seen = ? WHERE install_id = ?').run(saltBuf, keyHashHex, now, install_id)
+}
+
+function setInstallationUser(install_id, user_id) {
+  const now = Date.now()
+  db.prepare('UPDATE installations SET user_id = ?, last_seen = ? WHERE install_id = ?').run(user_id, now, install_id)
+}
+
+function setInstallationStatus(install_id, status) {
+  db.prepare('UPDATE installations SET status = ? WHERE install_id = ?').run(status, install_id)
+}
+
+function setInstallationConfig(install_id, cfgObj) {
+  const buf = cfgObj ? Buffer.from(JSON.stringify(cfgObj)) : null
+  db.prepare('UPDATE installations SET config_json = ? WHERE install_id = ?').run(buf, install_id)
+}
+
+function getInstallation(install_id) {
+  return db.prepare('SELECT install_id, user_id, platform, created_at, last_seen, key_hash, salt, status, config_json FROM installations WHERE install_id = ?').get(install_id)
+}
+
+function findRecentInstallationByUser(user_id, withinMs = 10 * 60_000) {
+  const now = Date.now()
+  const minTs = now - Math.max(60_000, withinMs)
+  return db.prepare('SELECT install_id, user_id, platform, created_at, last_seen, key_hash, salt, status, config_json FROM installations WHERE user_id = ? AND created_at >= ? ORDER BY created_at DESC LIMIT 1').get(user_id, minTs)
+}
+
+function countInstallationsByUser(user_id) {
+  const row = db.prepare('SELECT COUNT(*) AS c FROM installations WHERE user_id = ?').get(user_id)
+  return (row && row.c) || 0
+}
+
+function listInstallationsByUser(user_id) {
+  try {
+    return db.prepare('SELECT install_id, user_id, platform, created_at, last_seen, status FROM installations WHERE user_id = ? ORDER BY created_at DESC').all(user_id)
+  } catch (e) {
+    const msg = String(e && e.message || '')
+    if (msg.includes('no such column') && msg.includes('status')) {
+      const rows = db.prepare('SELECT install_id, user_id, platform, created_at, last_seen FROM installations WHERE user_id = ? ORDER BY created_at DESC').all(user_id)
+      return rows.map((r) => Object.assign({}, r, { status: 'active' }))
+    }
+    throw e
+  }
+}
+
+function revokeInstallationOwned(user_id, install_id) {
+  // Only allow status change if the installation belongs to this user
+  const row = db.prepare('SELECT install_id FROM installations WHERE install_id = ? AND user_id = ?').get(install_id, user_id)
+  if (!row) return false
+  const sleeper = (ms) => { try { Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, Math.max(1, ms)) } catch (_) {} }
+  const maxAttempts = 5
+  let attempt = 0
+  // Retry loop to mitigate SQLITE_BUSY under concurrent writes
+  while (true) {
+    try {
+      db.prepare('UPDATE installations SET status = ? WHERE install_id = ?').run('revoked', install_id)
+      break
+    } catch (e) {
+      const msg = String(e && e.message || '')
+      // Handle legacy DBs missing 'status' column by adding it on the fly
+      if (msg.includes('no such column') && msg.includes('status')) {
+        try { db.exec("ALTER TABLE installations ADD COLUMN status TEXT") } catch (_) { /* ignore */ }
+        // retry immediately once after adding column
+        continue
+      }
+      // Retry on SQLITE_BUSY / database is locked
+      if (msg.includes('SQLITE_BUSY') || msg.includes('database is locked')) {
+        attempt += 1
+        if (attempt >= maxAttempts) throw e
+        sleeper(50 * attempt)
+        continue
+      }
+      throw e
+    }
+  }
+  return true
+}
+
+function revokeAllInstallationsByUser(user_id) {
+  if (!user_id) return 0
+  const info = db.prepare('UPDATE installations SET status = ? WHERE user_id = ?').run('revoked', user_id)
+  return info.changes || 0
+}
+
+// Permanently delete an installation owned by the user and related rows
+function deleteInstallationOwned(user_id, install_id) {
+  const row = db.prepare('SELECT install_id, user_id FROM installations WHERE install_id = ? AND user_id = ?').get(install_id, user_id)
+  if (!row) return false
+  const txn = db.transaction(() => {
+    try { db.prepare('DELETE FROM pairings WHERE install_id = ?').run(install_id) } catch (_) {}
+    try { db.prepare('DELETE FROM bindings WHERE seedling_id = ?').run(install_id) } catch (_) {}
+    try { db.prepare('DELETE FROM seedlings WHERE seedling_id = ?').run(install_id) } catch (_) {}
+    db.prepare('DELETE FROM installations WHERE install_id = ?').run(install_id)
+  })
+  txn()
+  return true
+}
+
+// Bans
+function setBan(user_id, reason) {
+  const now = Date.now()
+  db.prepare('INSERT OR REPLACE INTO bans (user_id, reason, created_at) VALUES (?, ?, ?)').run(user_id, reason || null, now)
+}
+function removeBan(user_id) {
+  db.prepare('DELETE FROM bans WHERE user_id = ?').run(user_id)
+}
+function listBans() {
+  return db.prepare('SELECT user_id, reason, created_at FROM bans ORDER BY created_at DESC').all()
+}
+function isBanned(user_id) {
+  const row = db.prepare('SELECT 1 FROM bans WHERE user_id = ?').get(user_id)
+  return !!row
+}
+
+// Delete user and related data
+function deleteUserAndRelated(user_id) {
+  const txn = db.transaction(() => {
+    try { db.prepare('DELETE FROM sessions WHERE user_id = ?').run(user_id) } catch (_) {}
+    try { db.prepare('DELETE FROM ai_keys WHERE user_id = ?').run(user_id) } catch (_) {}
+    try { db.prepare('UPDATE devices SET user_id = NULL WHERE user_id = ?').run(user_id) } catch (_) {}
+    try { db.prepare('UPDATE installations SET user_id = NULL WHERE user_id = ?').run(user_id) } catch (_) {}
+    try { db.prepare('DELETE FROM bans WHERE user_id = ?').run(user_id) } catch (_) {}
+    db.prepare('DELETE FROM users WHERE id = ?').run(user_id)
+  })
+  txn()
 }
 
 // Pairings
@@ -325,6 +490,21 @@ function deleteBinding(gardener_id, seedling_id) {
   db.prepare('DELETE FROM bindings WHERE gardener_id = ? AND seedling_id = ?').run(gardener_id, seedling_id)
 }
 
+function reassignBinding(seedling_id, from_gardener_id, to_gardener_id) {
+  const sid = String(seedling_id || '').trim()
+  const from = String(from_gardener_id || '').trim()
+  const to = String(to_gardener_id || '').trim()
+  if (!sid || !from || !to || from === to) return false
+  const txn = db.transaction(() => {
+    const row = db.prepare('SELECT secret, created_at FROM bindings WHERE seedling_id = ? AND gardener_id = ?').get(sid, from)
+    if (!row) return false
+    db.prepare('INSERT OR REPLACE INTO bindings (seedling_id, gardener_id, secret, created_at) VALUES (?, ?, ?, ?)').run(sid, to, row.secret, row.created_at)
+    db.prepare('DELETE FROM bindings WHERE seedling_id = ? AND gardener_id = ?').run(sid, from)
+    return true
+  })
+  return txn()
+}
+
 function countBindingsForGardener(gardener_id) {
   const r = db.prepare('SELECT COUNT(*) AS c FROM bindings WHERE gardener_id = ?').get(gardener_id)
   return (r && r.c) || 0
@@ -359,6 +539,110 @@ function getBindingSecret(gardener_id, seedling_id) {
   return row ? row.secret : null
 }
 
+// --- Gardeners admin helpers ---
+function listGardeners(options = {}) {
+  const q = String(options.query || '').trim().toLowerCase()
+  const limit = Math.max(1, Math.min(200, Number(options.limit || 50)))
+  const offset = Math.max(0, Number(options.offset || 0))
+  // Build dynamic WHERE for search over gardener_id and platform
+  const where = []
+  const params = []
+  if (q) {
+    where.push('(LOWER(g.gardener_id) LIKE ? OR LOWER(g.platform) LIKE ?)')
+    params.push(`%${q}%`, `%${q}%`)
+  }
+  const whereSql = where.length ? ('WHERE ' + where.join(' AND ')) : ''
+  const sql = `
+    SELECT g.gardener_id, g.user_id, g.platform, g.created_at, g.last_seen,
+           COALESCE(b.cnt, 0) AS bindings_count
+    FROM gardeners g
+    LEFT JOIN (
+      SELECT gardener_id, COUNT(*) AS cnt FROM bindings GROUP BY gardener_id
+    ) b ON b.gardener_id = g.gardener_id
+    ${whereSql}
+    ORDER BY g.created_at DESC
+    LIMIT ? OFFSET ?`
+  return db.prepare(sql).all(...params, limit, offset)
+}
+
+function getGardenerWithCounts(gardener_id) {
+  const gid = String(gardener_id || '').trim()
+  if (!gid) return null
+  const row = db.prepare(`
+    SELECT g.gardener_id, g.user_id, g.platform, g.created_at, g.last_seen, g.status,
+           (SELECT COUNT(*) FROM bindings WHERE gardener_id = g.gardener_id) AS bindings_count
+    FROM gardeners g WHERE g.gardener_id = ?
+  `).get(gid)
+  if (!row) return null
+  const bindings = db.prepare('SELECT seedling_id, created_at FROM bindings WHERE gardener_id = ? ORDER BY created_at DESC').all(gid)
+  return Object.assign({}, row, { bindings })
+}
+
+function listGardenersByUser(user_id) {
+  try {
+    return db.prepare('SELECT gardener_id, user_id, platform, created_at, last_seen, status FROM gardeners WHERE user_id = ? ORDER BY created_at DESC').all(user_id)
+  } catch (e) {
+    const msg = String(e && e.message || '')
+    if (msg.includes('no such column') && msg.includes('status')) {
+      const rows = db.prepare('SELECT gardener_id, user_id, platform, created_at, last_seen FROM gardeners WHERE user_id = ? ORDER BY created_at DESC').all(user_id)
+      return rows.map((r) => Object.assign({}, r, { status: 'active' }))
+    }
+    throw e
+  }
+}
+
+function setGardenerStatus(gardener_id, status) {
+  const gid = String(gardener_id || '').trim()
+  if (!gid) return false
+  db.prepare('UPDATE gardeners SET status = ? WHERE gardener_id = ?').run(status, gid)
+  return true
+}
+
+function deleteGardenerOwned(user_id, gardener_id) {
+  const gid = String(gardener_id || '').trim()
+  if (!gid) return false
+  const row = db.prepare('SELECT gardener_id FROM gardeners WHERE gardener_id = ? AND user_id = ?').get(gid, user_id)
+  if (!row) return false
+  const txn = db.transaction(() => {
+    try { db.prepare('DELETE FROM bindings WHERE gardener_id = ?').run(gid) } catch (_) {}
+    db.prepare('DELETE FROM gardeners WHERE gardener_id = ?').run(gid)
+  })
+  txn()
+  return true
+}
+
+function getGardener(gardener_id) {
+  const gid = String(gardener_id || '').trim()
+  if (!gid) return null
+  try { return db.prepare('SELECT gardener_id, user_id, platform, created_at, last_seen FROM gardeners WHERE gardener_id = ?').get(gid) } catch { return null }
+}
+
+// Admin helpers for gardeners
+function setGardenerUser(gardener_id, user_id) {
+  const gid = String(gardener_id || '').trim()
+  if (!gid) return false
+  db.prepare('UPDATE gardeners SET user_id = ? WHERE gardener_id = ?').run(user_id || null, gid)
+  return true
+}
+
+function deleteBindingsForGardener(gardener_id) {
+  const gid = String(gardener_id || '').trim()
+  if (!gid) return 0
+  const info = db.prepare('DELETE FROM bindings WHERE gardener_id = ?').run(gid)
+  return info.changes || 0
+}
+
+function deleteGardener(gardener_id) {
+  const gid = String(gardener_id || '').trim()
+  if (!gid) return false
+  const txn = db.transaction(() => {
+    try { db.prepare('DELETE FROM bindings WHERE gardener_id = ?').run(gid) } catch (_) {}
+    const info = db.prepare('DELETE FROM gardeners WHERE gardener_id = ?').run(gid)
+    return info.changes > 0
+  })
+  return txn()
+}
+
 // Audit log
 function writeAudit(event, metaObj) {
   const at = Date.now()
@@ -380,6 +664,16 @@ module.exports = {
   // greenhouse helpers
   upsertDevice,
   upsertInstallation,
+  setInstallationSecret,
+  setInstallationUser,
+  setInstallationStatus,
+  setInstallationConfig,
+  getInstallation,
+  findRecentInstallationByUser,
+  countInstallationsByUser,
+  listInstallationsByUser,
+  revokeInstallationOwned,
+  deleteInstallationOwned,
   createPairing,
   getPairing,
   completePairing,
@@ -404,4 +698,22 @@ module.exports = {
   getLinkToken,
   deleteLinkToken,
   getBindingSecret,
+  // gardeners admin
+  listGardeners,
+  getGardenerWithCounts,
+  listGardenersByUser,
+  setGardenerStatus,
+  getGardener,
+  setGardenerUser,
+  deleteBindingsForGardener,
+  deleteGardener,
+  deleteGardenerOwned,
+  reassignBinding,
+  // bans & admin helpers
+  setBan,
+  removeBan,
+  listBans,
+  isBanned,
+  deleteUserAndRelated,
+  revokeAllInstallationsByUser,
 }

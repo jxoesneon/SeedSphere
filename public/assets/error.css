@@ -1,0 +1,19 @@
+/* Styles for standardized error page */
+:root { --bg: #0b1020; --fg: #e8ecf1; --muted: #a6b0c0; --accent: #ef4444; --card: #141a2e; --border: #26304a; }
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; background: var(--bg); color: var(--fg); font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Oxygen, Ubuntu, Cantarell, 'Fira Sans', 'Droid Sans', 'Helvetica Neue', Arial, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol'; }
+.wrap { max-width: 960px; margin: 40px auto; padding: 0 16px; }
+.card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 24px; box-shadow: 0 8px 24px rgba(0,0,0,.25); }
+.head { display: flex; align-items: center; gap: 12px; }
+h1 { font-size: 28px; margin: 0; font-weight: 800; }
+.badge { display: inline-block; font-size: 12px; padding: 2px 8px; border-radius: 999px; border: 1px solid var(--border); color: var(--muted); }
+.muted { color: var(--muted); margin: 6px 0 12px; }
+.grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); margin-top: 16px; }
+.box { background: #0f1528; border: 1px solid var(--border); border-radius: 12px; padding: 16px; }
+.list { margin: 0; padding-left: 18px; }
+.btn { display: inline-block; background: var(--accent); color: white; text-decoration: none; padding: 8px 12px; border-radius: 999px; font-weight: 600; border: 0; }
+.btn:hover { filter: brightness(1.08); }
+.note { margin-top: 12px; }
+.note summary { cursor: pointer; }
+.pre { white-space: pre-wrap; color: var(--muted); font-size: 13px; }
+.foot { margin-top: 18px; color: var(--muted); }

@@ -14,6 +14,12 @@
             <span class="badge badge-ghost text-xs">env: {{ env }}</span>
             <button class="btn btn-ghost btn-xs" @click="refresh">Refresh</button>
           </div>
+        
+        <!-- Rolling logs -->
+        <div class="px-3 pb-3 text-sm">
+          <div class="font-medium mb-1">Rolling logs</div>
+          <LogsViewer :snapshot="300" />
+        </div>
         </div>
         <div class="p-3 grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
           <!-- Auth state -->
@@ -96,6 +102,7 @@
 <script setup>
 import { ref, onMounted, computed, onBeforeUnmount } from 'vue'
 import { auth } from '../lib/auth'
+import LogsViewer from './LogsViewer.vue'
 
 const open = ref(true)
 const env = import.meta.env.MODE || (import.meta.env.DEV ? 'development' : 'production')

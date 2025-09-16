@@ -17,10 +17,11 @@
     "node": ">=22"
   },
   "scripts": {
-    "dev": "cross-env NODE_ENV=development node server/index.js",
+    "dev": "cross-env NODE_ENV=development DOTENV_CONFIG_PATH=.env.local node -r dotenv/config server/index.js",
     "build": "vite build",
     "preview": "cross-env NODE_ENV=production node server/index.js",
     "test": "cross-env DOTENV_CONFIG_PATH=.env.local SEEDSPHERE_DISABLE_PREFETCH=1 SEEDSPHERE_DISABLE_VITE=1 node -r dotenv/config --test",
+    "test:e2e": "cross-env NODE_ENV=development DOTENV_CONFIG_PATH=.env.local node -r dotenv/config ./node_modules/.bin/playwright test",
     "parity": "node scripts/parity-check.js"
   },
   "dependencies": {
@@ -42,6 +43,7 @@
   "devDependencies": {
     "@tailwindcss/postcss": "^4.1.12",
     "@vitejs/plugin-vue": "^6.0.0",
+    "@playwright/test": "^1.47.2",
     "autoprefixer": "^10.4.20",
     "cross-env": "^7.0.3",
     "daisyui": "^5.0.0",

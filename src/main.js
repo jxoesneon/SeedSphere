@@ -34,11 +34,23 @@ const app = createApp(App)
 app.use(router)
 app.mount('#app')
 
-// Register service worker for PWA installability
+// Disable PWA globally, except allow the Gardener PWA under /gardener to manage its own SW
 try {
   if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-      navigator.serviceWorker.register('/sw.js').catch(() => { /* ignore */ })
-    })
+    const path = String(window.location && window.location.pathname || '/')
+    const onGardener = path.startsWith('/gardener')
+    if (!onGardener) {
+      navigator.serviceWorker.getRegistrations()
+        .then((regs) => {
+          try {
+            regs.forEach((r) => {
+              const scope = String(r.scope || '')
+              const keep = scope.includes('/gardener/')
+              if (!keep) r.unregister()
+            })
+          } catch (_) {}
+        })
+        .catch(() => { /* ignore */ })
+    }
   }
 } catch (_) { /* ignore */ }

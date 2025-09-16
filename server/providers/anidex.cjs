@@ -62,7 +62,7 @@ async function fetchStreams(type, id, timeoutMs = 6000) {
     const streams = magnets.map((u) => ({ provider: NAME, title: `${info.title}`, url: u, behaviorHints: {} }))
     return { ok: true, provider: NAME, streams }
   } catch (e) {
-    return { ok: false, error: e && e.message ? e.message : 'request_failed' }
+    return { ok: false, provider: NAME, streams: [], error: e && e.message ? e.message : 'request_failed' }
   }
 }
 

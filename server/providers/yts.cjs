@@ -47,7 +47,7 @@ async function fetchStreams(type, id, timeoutMs = 2500) {
     })).filter(s => s.infoHash)
     return { ok: true, provider: NAME, streams }
   } catch (e) {
-    return { ok: false, error: e && e.message ? e.message : 'request_failed' }
+    return { ok: false, provider: NAME, streams: [], error: e && e.message ? e.message : 'request_failed' }
   }
 }
 
