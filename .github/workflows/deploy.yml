@@ -30,6 +30,7 @@ permissions:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    environment: production
     env:
       # Select app by branch: main -> seedsphere, others -> seedsphere-dev
       APP_NAME: ${{ github.ref_name == 'main' && 'seedsphere' || 'seedsphere-dev' }}
@@ -43,9 +44,20 @@ jobs:
       - name: Ensure Fly app exists (idempotent)
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+          FLY_ORG_SLUG: ${{ secrets.FLY_ORG_SLUG }}
         run: |
           set -euo pipefail
-          flyctl apps create "${APP_NAME}" || echo "App ${APP_NAME} may already exist. Continuing."
+          if ! flyctl apps show "${APP_NAME}" >/dev/null 2>&1; then
+            if [ -n "${FLY_ORG_SLUG:-}" ]; then
+              echo "Creating app ${APP_NAME} in org ${FLY_ORG_SLUG}"
+              flyctl apps create "${APP_NAME}" --org "${FLY_ORG_SLUG}"
+            else
+              echo "Creating app ${APP_NAME} in default org"
+              flyctl apps create "${APP_NAME}"
+            fi
+          else
+            echo "App ${APP_NAME} already exists."
+          fi
 
       # If you build assets during deploy, uncomment Node setup and build steps
       # - name: Setup Node.js
