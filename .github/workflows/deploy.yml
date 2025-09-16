@@ -32,8 +32,8 @@ jobs:
     runs-on: ubuntu-latest
     environment: production
     env:
-      # Always deploy to the single Fly app 'seedsphere' (shared across branches)
-      APP_NAME: seedsphere
+      # Select app by branch: main -> seedsphere, others -> seedsphere-dev
+      APP_NAME: ${{ github.ref_name == 'main' && 'seedsphere' || 'seedsphere-dev' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -48,9 +48,16 @@ jobs:
         run: |
           set -euo pipefail
           if ! flyctl apps show "${APP_NAME}" >/dev/null 2>&1; then
-            if [ -n "${FLY_ORG_SLUG:-}" ]; then
-              echo "Creating app ${APP_NAME} in org ${FLY_ORG_SLUG}"
-              flyctl apps create "${APP_NAME}" --org "${FLY_ORG_SLUG}"
+            ORG_SLUG="${FLY_ORG_SLUG:-}"
+            if [ -z "${ORG_SLUG}" ]; then
+              # Try to auto-detect org from the existing main app 'seedsphere'
+              if flyctl apps show "seedsphere" --json >/tmp/seedsphere_app.json 2>/dev/null; then
+                ORG_SLUG="$(python3 -c "import json; d=json.load(open('/tmp/seedsphere_app.json')); org=d.get('Organization') or d.get('organization') or {}; print(org.get('slug',''))" 2>/dev/null || true)"
+              fi
+            fi
+            if [ -n "${ORG_SLUG}" ]; then
+              echo "Creating app ${APP_NAME} in org ${ORG_SLUG}"
+              flyctl apps create "${APP_NAME}" --org "${ORG_SLUG}"
             else
               echo "Creating app ${APP_NAME} in default org"
               flyctl apps create "${APP_NAME}"
@@ -86,6 +93,8 @@ jobs:
           if [ -n "${{ secrets.BREVO_API_KEY }}" ]; then flyctl secrets set BREVO_API_KEY='${{ secrets.BREVO_API_KEY }}' --stage --app "${APP_NAME}"; fi
           if [ -n "${{ secrets.GOOGLE_CLIENT_ID }}" ]; then flyctl secrets set GOOGLE_CLIENT_ID='${{ secrets.GOOGLE_CLIENT_ID }}' --stage --app "${APP_NAME}"; fi
           if [ -n "${{ secrets.GOOGLE_CLIENT_SECRET }}" ]; then flyctl secrets set GOOGLE_CLIENT_SECRET='${{ secrets.GOOGLE_CLIENT_SECRET }}' --stage --app "${APP_NAME}"; fi
+          # Mark dev environment explicitly so manifest/id/logo switch
+          if [ "${{ github.ref_name }}" != "main" ]; then flyctl secrets set APP_ENV=dev --stage --app "${APP_NAME}"; fi
 
       - name: Deploy app
         env:
