@@ -197,6 +197,14 @@ export async function createServer(opts = {}) {
     next()
   })
 
+  // Performance: redirect heavy legacy icon to optimized 256px icon
+  // Some older clients or cached HTML may still request /assets/icon.png (~1.1MB)
+  // Serve a smaller alternative to improve LCP and bandwidth until all clients update
+  app.get('/assets/icon.png', (_req, res) => {
+    try { res.setHeader('Cache-Control', 'no-store') } catch (_) {}
+    return res.redirect(302, '/assets/icon-256.png')
+  })
+
   // Safety net (.json variant used by Stremio SDK)
   app.get('/stream/:type/:id/:extra?.json', (req, res) => {
     try {
