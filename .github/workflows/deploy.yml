@@ -93,8 +93,6 @@ jobs:
           if [ -n "${{ secrets.BREVO_API_KEY }}" ]; then flyctl secrets set BREVO_API_KEY='${{ secrets.BREVO_API_KEY }}' --stage --app "${APP_NAME}"; fi
           if [ -n "${{ secrets.GOOGLE_CLIENT_ID }}" ]; then flyctl secrets set GOOGLE_CLIENT_ID='${{ secrets.GOOGLE_CLIENT_ID }}' --stage --app "${APP_NAME}"; fi
           if [ -n "${{ secrets.GOOGLE_CLIENT_SECRET }}" ]; then flyctl secrets set GOOGLE_CLIENT_SECRET='${{ secrets.GOOGLE_CLIENT_SECRET }}' --stage --app "${APP_NAME}"; fi
-          # Mark dev environment explicitly so manifest/id/logo switch
-          if [ "${{ github.ref_name }}" != "main" ]; then flyctl secrets set APP_ENV=dev --stage --app "${APP_NAME}"; fi
 
       - name: Deploy app
         env:
