@@ -50,35 +50,13 @@ jobs:
           FLY_ORG_SLUG: ${{ secrets.FLY_ORG_SLUG }}
         run: |
           set -euo pipefail
-
-          ORG_SLUG="${FLY_ORG_SLUG:-}"
-          if [ -z "${ORG_SLUG}" ]; then
-            # Try to auto-detect org from the existing main app 'seedsphere'
-            if flyctl apps show "seedsphere" --json >/tmp/seedsphere_app.json 2>/dev/null; then
-              ORG_SLUG="$(python3 - <<'PY'
-import json,sys
-try:
-  d=json.load(open('/tmp/seedsphere_app.json'))
-  org=d.get('Organization') or d.get('organization') or {}
-  print(org.get('slug',''))
-except Exception:
-  print('')
-PY
-              )"
-            fi
+          if [ -z "${FLY_ORG_SLUG:-}" ]; then
+            echo "FLY_ORG_SLUG secret is required to create or manage apps" >&2
+            exit 1
           fi
-
           if ! flyctl apps show "${APP_NAME}" >/dev/null 2>&1; then
-            if [ -n "${ORG_SLUG}" ]; then
-              echo "Creating app ${APP_NAME} in org ${ORG_SLUG}"
-              flyctl apps create "${APP_NAME}" --org "${ORG_SLUG}"
-            else
-              echo "FLY_ORG_SLUG not provided; attempting create in default context"
-              if ! flyctl apps create "${APP_NAME}"; then
-                echo "Failed to create app without org. Please add repo secret FLY_ORG_SLUG to specify your Fly org slug." >&2
-                exit 1
-              fi
-            fi
+            echo "Creating app ${APP_NAME} in org ${FLY_ORG_SLUG}"
+            flyctl apps create "${APP_NAME}" --org "${FLY_ORG_SLUG}"
           else
             echo "App ${APP_NAME} already exists."
           fi
@@ -121,5 +99,3 @@ PY
           STRATEGY="${{ github.event.inputs.strategy || 'immediate' }}"
           echo "Deploying with strategy: ${STRATEGY}"
           flyctl deploy --remote-only --strategy "${STRATEGY}" --app "${APP_NAME}"
-
-# no-op change: trigger deploy after setting FLY_ORG_SLUG
