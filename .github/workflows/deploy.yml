@@ -73,6 +73,7 @@ jobs:
       #   run: npm run build
 
       - name: Stage Fly secrets (if provided)
+        continue-on-error: true
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
         run: |
@@ -99,5 +100,3 @@ jobs:
           STRATEGY="${{ github.event.inputs.strategy || 'immediate' }}"
           echo "Deploying with strategy: ${STRATEGY}"
           flyctl deploy --remote-only --strategy "${STRATEGY}" --app "${APP_NAME}"
-
-# no-op comment to trigger again
