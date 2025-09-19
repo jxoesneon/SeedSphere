@@ -122,7 +122,4 @@ PY
           echo "Deploying with strategy: ${STRATEGY}"
           flyctl deploy --remote-only --strategy "${STRATEGY}" --app "${APP_NAME}"
 
-# Notes:
-# - Ensure fly.toml and (if used) Dockerfile are present at repo root.
-# - Required secrets: FLY_API_TOKEN (and optionally FLY_ORG_SLUG).
-# - Branch rules: main -> seedsphere; any dev* -> seedsphere-dev
+# no-op change: trigger deploy after setting FLY_ORG_SLUG
