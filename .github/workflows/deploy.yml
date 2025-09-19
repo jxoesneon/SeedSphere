@@ -2,7 +2,7 @@ name: Deploy to Fly.io
 
 on:
   push:
-    branches: [ main, dev-1.0.0 ]
+    branches: [ main, dev, "dev*" ]
     paths:
       - 'package.json'
       - 'package-lock.json'
@@ -27,6 +27,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: fly-deploy-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
@@ -43,9 +47,19 @@ jobs:
       - name: Ensure Fly app exists (idempotent)
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+          FLY_ORG_SLUG: ${{ secrets.FLY_ORG_SLUG }}
         run: |
           set -euo pipefail
-          flyctl apps create "${APP_NAME}" || echo "App ${APP_NAME} may already exist. Continuing."
+          if [ -z "${FLY_ORG_SLUG:-}" ]; then
+            echo "FLY_ORG_SLUG secret is required to create or manage apps" >&2
+            exit 1
+          fi
+          if ! flyctl apps show "${APP_NAME}" >/dev/null 2>&1; then
+            echo "Creating app ${APP_NAME} in org ${FLY_ORG_SLUG}"
+            flyctl apps create "${APP_NAME}" --org "${FLY_ORG_SLUG}"
+          else
+            echo "App ${APP_NAME} already exists."
+          fi
 
       # If you build assets during deploy, uncomment Node setup and build steps
       # - name: Setup Node.js
@@ -88,19 +102,5 @@ jobs:
 
 # Notes:
 # - Ensure fly.toml and (if used) Dockerfile are present at repo root.
-# - Required secrets in repo or environment: FLY_API_TOKEN
-# - To enable auto-deploy on push later, add a push trigger and path filters like:
-#   on:
-#     push:
-#       branches: [ main ]
-#       paths:
-#         - 'package.json'
-#         - 'package-lock.json'
-#         - 'server/**'
-#         - 'src/**'
-#         - 'public/**'
-#         - 'vite.config.js'
-#         - 'tailwind.config.js'
-#         - 'postcss.config.cjs'
-#         - 'fly.toml'
-#         - 'Dockerfile'
+# - Required secrets in repo or environment: FLY_API_TOKEN, FLY_ORG_SLUG
+# - Branch rules: main -> seedsphere; any dev* -> seedsphere-dev
