@@ -99,3 +99,5 @@ jobs:
           STRATEGY="${{ github.event.inputs.strategy || 'immediate' }}"
           echo "Deploying with strategy: ${STRATEGY}"
           flyctl deploy --remote-only --strategy "${STRATEGY}" --app "${APP_NAME}"
+
+# no-op comment to trigger again
