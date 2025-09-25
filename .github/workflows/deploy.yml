@@ -1,8 +1,8 @@
-name: Deploy to Fly.io
+name: Deploy to Fly.io (dev)
 
 on:
   push:
-    branches: [ main, 'dev-*' ]
+    branches: [ 'dev', 'dev-*' ]
     paths:
       - 'package.json'
       - 'package-lock.json'
@@ -30,10 +30,9 @@ permissions:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    environment: production
     env:
-      # Select app by branch: main -> seedsphere, others -> seedsphere-dev
-      APP_NAME: ${{ github.ref_name == 'main' && 'seedsphere' || 'seedsphere-dev' }}
+      APP_NAME: seedsphere-dev
+      FLY_ORG_NAME: joseeduardox-gmail-com
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -43,21 +42,14 @@ jobs:
 
       - name: Ensure Fly app exists (idempotent)
         env:
-          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
-          FLY_ORG_SLUG: ${{ secrets.FLY_ORG_SLUG }}
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN_DEV }}
+          FLY_ORG_SLUG: ${{ env.FLY_ORG_NAME }}
         run: |
           set -euo pipefail
           if ! flyctl apps show "${APP_NAME}" >/dev/null 2>&1; then
-            ORG_SLUG="${FLY_ORG_SLUG:-}"
-            if [ -z "${ORG_SLUG}" ]; then
-              # Try to auto-detect org from the existing main app 'seedsphere'
-              if flyctl apps show "seedsphere" --json >/tmp/seedsphere_app.json 2>/dev/null; then
-                ORG_SLUG="$(python3 -c "import json; d=json.load(open('/tmp/seedsphere_app.json')); org=d.get('Organization') or d.get('organization') or {}; print(org.get('slug',''))" 2>/dev/null || true)"
-              fi
-            fi
-            if [ -n "${ORG_SLUG}" ]; then
-              echo "Creating app ${APP_NAME} in org ${ORG_SLUG}"
-              flyctl apps create "${APP_NAME}" --org "${ORG_SLUG}"
+            if [ -n "${FLY_ORG_SLUG:-}" ]; then
+              echo "Creating app ${APP_NAME} in org ${FLY_ORG_SLUG}"
+              flyctl apps create "${APP_NAME}" --org "${FLY_ORG_SLUG}"
             else
               echo "Creating app ${APP_NAME} in default org"
               flyctl apps create "${APP_NAME}"
@@ -66,54 +58,32 @@ jobs:
             echo "App ${APP_NAME} already exists."
           fi
 
-      # If you build assets during deploy, uncomment Node setup and build steps
-      # - name: Setup Node.js
-      #   uses: actions/setup-node@v4
-      #   with:
-      #     node-version: '20'
-      #     cache: 'npm'
-      # - name: Install dependencies
-      #   run: npm ci
-      # - name: Build frontend
-      #   run: npm run build
-
       - name: Stage Fly secrets (if provided)
-        continue-on-error: true
         env:
-          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
-          AUTH_JWT_SECRET: ${{ secrets.AUTH_JWT_SECRET }}
-          SMTP_HOST: ${{ secrets.SMTP_HOST }}
-          SMTP_PORT: ${{ secrets.SMTP_PORT }}
-          SMTP_USER: ${{ secrets.SMTP_USER }}
-          SMTP_PASS: ${{ secrets.SMTP_PASS }}
-          SMTP_SECURE: ${{ secrets.SMTP_SECURE }}
-          SMTP_FROM: ${{ secrets.SMTP_FROM }}
-          BREVO_API_KEY: ${{ secrets.BREVO_API_KEY }}
-          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
-          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN_DEV }}
         run: |
-          set -Eeuo pipefail
+          set -euo pipefail
           set_if_present() {
             key="$1"; val="$2";
             if [ -n "${val}" ]; then
-              # shellcheck disable=SC2086
               flyctl secrets set "${key}=${val}" --stage --app "${APP_NAME}"
             fi
           }
-          set_if_present AUTH_JWT_SECRET "${AUTH_JWT_SECRET:-}"
-          set_if_present SMTP_HOST "${SMTP_HOST:-}"
-          set_if_present SMTP_PORT "${SMTP_PORT:-}"
-          set_if_present SMTP_USER "${SMTP_USER:-}"
-          set_if_present SMTP_PASS "${SMTP_PASS:-}"
-          set_if_present SMTP_SECURE "${SMTP_SECURE:-}"
-          set_if_present SMTP_FROM "${SMTP_FROM:-}"
-          set_if_present BREVO_API_KEY "${BREVO_API_KEY:-}"
-          set_if_present GOOGLE_CLIENT_ID "${GOOGLE_CLIENT_ID:-}"
-          set_if_present GOOGLE_CLIENT_SECRET "${GOOGLE_CLIENT_SECRET:-}"
+          set_if_present AUTH_JWT_SECRET "${{ secrets.AUTH_JWT_SECRET }}"
+          set_if_present SMTP_HOST "${{ secrets.SMTP_HOST }}"
+          set_if_present SMTP_PORT "${{ secrets.SMTP_PORT }}"
+          set_if_present SMTP_USER "${{ secrets.SMTP_USER }}"
+          set_if_present SMTP_PASS "${{ secrets.SMTP_PASS }}"
+          set_if_present SMTP_SECURE "${{ secrets.SMTP_SECURE }}"
+          set_if_present SMTP_FROM "${{ secrets.SMTP_FROM }}"
+          set_if_present BREVO_API_KEY "${{ secrets.BREVO_API_KEY }}"
+          set_if_present GOOGLE_CLIENT_ID "${{ secrets.GOOGLE_CLIENT_ID }}"
+          set_if_present GOOGLE_CLIENT_SECRET "${{ secrets.GOOGLE_CLIENT_SECRET }}"
+          flyctl secrets set APP_ENV=dev --stage --app "${APP_NAME}"
 
       - name: Deploy app
         env:
-          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN_DEV }}
         run: |
           set -euo pipefail
           STRATEGY="${{ github.event.inputs.strategy || 'immediate' }}"
@@ -121,20 +91,5 @@ jobs:
           flyctl deploy --remote-only --strategy "${STRATEGY}" --app "${APP_NAME}"
 
 # Notes:
-# - Ensure fly.toml and (if used) Dockerfile are present at repo root.
-# - Required secrets in repo or environment: FLY_API_TOKEN
-# - To enable auto-deploy on push later, add a push trigger and path filters like:
-#   on:
-#     push:
-#       branches: [ main ]
-#       paths:
-#         - 'package.json'
-#         - 'package-lock.json'
-#         - 'server/**'
-#         - 'src/**'
-#         - 'public/**'
-#         - 'vite.config.js'
-#         - 'tailwind.config.js'
-#         - 'postcss.config.cjs'
-#         - 'fly.toml'
-#         - 'Dockerfile'
+# - This workflow targets the staging app `seedsphere-dev` and requires `FLY_API_TOKEN_DEV`.
+# - Ensure fly.toml and Dockerfile remain in sync with the dev environment expectations.
