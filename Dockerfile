@@ -1,7 +1,7 @@
 # SeedSphere - Fly.io compatible image (multi-stage)
 
 # --- Builder stage: install dev deps and build client ---
-FROM node:22-alpine AS builder
+FROM node:25-alpine AS builder
 WORKDIR /app
 RUN apk add --no-cache python3 make g++
 
@@ -16,7 +16,7 @@ COPY . .
 RUN npm run build
 
 # --- Runtime stage: production-only deps and runtime files ---
-FROM node:22-alpine AS runner
+FROM node:25-alpine AS runner
 WORKDIR /app
 ENV NODE_ENV=production
 ENV npm_config_legacy_peer_deps=true
