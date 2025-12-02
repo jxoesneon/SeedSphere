@@ -48,7 +48,7 @@
     "dotenv": "^17.2.2",
     "postcss": "^8.4.47",
     "tailwindcss": "^4.0.0",
-    "vite": "^7.1.5"
+    "vite": "^7.2.6"
   },
   "overrides": {
     "cross-spawn": "7.0.5",
