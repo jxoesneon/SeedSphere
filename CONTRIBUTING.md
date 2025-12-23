@@ -1,57 +1,37 @@
 # Contributing to SeedSphere
 
-Thanks for your interest in contributing! This guide explains how to set up your environment, the workflow for proposing changes, and our coding style.
+First off, thanks for taking the time to contribute! 🎉
 
-## Development setup
+The following is a set of guidelines for contributing to **SeedSphere**. These are mostly guidelines, not rules. Use your best judgment, and feel free to propose changes to this document in a pull request.
 
-- Requirements
-  - Node.js 22.x (LTS or current)
-  - npm (comes with Node)
+## How Can I Contribute?
 
-- Install and run
-  - Install dependencies:
-    - `npm install`
-  - Start development server (Express + Vite dev):
-    - `npm run dev`
-  - Build production assets:
-    - `npm run build`
-  - Preview production server locally:
-    - `npm run preview`
+### Reporting Bugs
 
-- Testing
-  - Run tests:
-    - `npm test`
+This section guides you through submitting a bug report. Following these guidelines helps maintainers and the community understand your report, reproduce the behavior, and find related reports.
 
-## Branching and PR flow
+- **Use a clear and descriptive title** for the issue to identify the problem.
+- **Describe the exact steps which reproduce the problem** in as much detail as possible.
+- **Provide specific examples** to demonstrate the steps.
 
-- Create a feature branch from `dev`:
-  - `git checkout -b feature/short-description`
-- Keep commits small and self-contained.
-- Update or add tests where applicable.
-- Run a production build locally before requesting review:
-  - `npm run build`
-- Open a Pull Request targeting `dev` and fill out the PR template.
-- After review and squash/merge into `dev`, maintainers will merge to `main` as needed for releases.
+### Pull Requests
 
-## Coding style
+1.  Fork the repo and create your branch from `main`.
+2.  If you've added code that should be tested, add tests.
+3.  Ensure the test suite passes.
+4.  Make sure your code lints.
+5.  Issue that pull request!
 
-- Frontend: Vue 3 Composition API, Tailwind v4, DaisyUI v5.
-- Backend: Node/Express with CommonJS modules under `server/` and ES modules in the entry.
-- UI
-  - Use centralized spacing variables and helpers (see `src/assets/main.css`).
-  - Use label‑less toggles with tooltips and `toggle-success` for green-on state on the Configure page.
-- Security
-  - Follow the production CSP in `server/index.js` when adding external resources.
-  - Avoid storing secrets in the repo. Use environment variables.
+## Styleguides
 
-## Commit messages
+### JavaScript/Code Style
 
-- Use clear types and scopes, for example:
-  - `feat(configure): add stacked layout to Optimization card`
-  - `fix(cors): reflect Origin header for web.strem.io`
-  - `chore: repo hygiene`
+- We follow standard JavaScript/ESLint conventions.
+- Keep code clean and modular.
 
-## Reporting bugs and requesting features
+### Commits
 
-- Use the GitHub issue templates (Bug Report, Feature Request).
-- For security issues, please follow the instructions in `SECURITY.md`.
+- Use the present tense ("Add feature" not "Added feature").
+- Use the imperative mood ("Move cursor to..." not "Moves cursor to...").
+
+Thank you for your contributions!
