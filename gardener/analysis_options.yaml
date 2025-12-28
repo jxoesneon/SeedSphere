@@ -1,0 +1,27 @@
+include: package:flutter_lints/flutter.yaml
+
+analyzer:
+  strong-mode:
+    implicit-casts: false
+    implicit-dynamic: false
+  errors:
+    todo: ignore
+    missing_required_param: error
+    missing_return: error
+    unused_import: error
+    unused_local_variable: warning
+    dead_code: warning
+
+linter:
+  rules:
+    - always_declare_return_types
+    - cancel_subscriptions
+    - close_sinks
+    - comment_references
+    - one_member_abstracts
+    - only_throw_errors
+    - prefer_final_locals
+    - prefer_interpolation_to_compose_strings
+    - unawaited_futures
+    - unnecessary_brace_in_string_interps
+    - use_super_parameters

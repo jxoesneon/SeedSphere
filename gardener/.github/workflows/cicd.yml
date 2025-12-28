@@ -1,0 +1,158 @@
+name: SeedSphere CI/CD
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  analyze_and_test:
+    name: Analyze and Test
+    runs-on: ubuntu-latest
+    outputs:
+      coverage_pct: ${{ steps.calc_coverage.outputs.pct }}
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+          
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.x'
+          channel: 'stable'
+          cache: true
+          
+      - name: Install Dependencies
+        run: flutter pub get
+        
+      - name: Check Formatting
+        run: dart format --output=error --set-exit-if-changed .
+        
+      - name: Analyze Code
+        run: flutter analyze
+        
+      - name: Run Tests
+        run: flutter test --coverage
+        
+      - name: Upload Coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          file: coverage/lcov.info
+          fail_ci_if_error: false
+          token: ${{ secrets.CODECOV_TOKEN }}
+
+      - name: Calculate Coverage
+        id: calc_coverage
+        run: |
+          if [ -f coverage/lcov.info ]; then
+            pct=$(awk -F: '/^LH/ {hit+=$2} /^LF/ {found+=$2} END {if (found > 0) printf "%.2f", hit*100/found; else print "0"}' coverage/lcov.info)
+            echo "pct=$pct" >> $GITHUB_OUTPUT
+          else
+            echo "pct=0" >> $GITHUB_OUTPUT
+          fi
+
+  build:
+    name: Build for ${{ matrix.platform }}
+    needs: analyze_and_test
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: android
+            os: ubuntu-latest
+            build_cmd: flutter build apk --release --split-per-abi
+            artifact_path: build/app/outputs/flutter-apk/*.apk
+          - platform: ios
+            os: macos-latest
+            build_cmd: flutter build ios --release --no-codesign
+            artifact_path: build/ios/iphoneos/Runner.app
+          - platform: windows
+            os: windows-latest
+            build_cmd: flutter build windows --release
+            artifact_path: build/windows/x64/runner/Release/*.exe
+          - platform: macos
+            os: macos-latest
+            build_cmd: flutter build macos --release
+            artifact_path: build/macos/Build/Products/Release/*.app
+          - platform: linux
+            os: ubuntu-latest
+            build_cmd: |
+              sudo apt-get update
+              sudo apt-get install -y libgtk-3-dev libblkid-dev liblzma-dev libgcrypt20-dev
+              flutter build linux --release
+            artifact_path: build/linux/x64/release/bundle/*
+          - platform: web
+            os: ubuntu-latest
+            build_cmd: flutter build web --release --wasm
+            artifact_path: build/web/*
+
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Java
+        if: matrix.platform == 'android'
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+          
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.x'
+          channel: 'stable'
+          cache: true
+          
+      - name: Install Dependencies
+        run: flutter pub get
+        
+      - name: Run Platform Build
+        run: ${{ matrix.build_cmd }}
+        
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: seedsphere-${{ matrix.platform }}-build
+          path: ${{ matrix.artifact_path }}
+          if-no-files-found: error
+
+  release:
+    name: Release Draft
+    needs: [build, analyze_and_test]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download All Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          
+      - name: Create Draft Release
+        uses: softprops/action-gh-release@v2
+        with:
+          draft: true
+          files: artifacts/**/*
+          tag_name: rolling-build-${{ github.run_number }}
+          name: SeedSphere Rolling Build #${{ github.run_number }}
+          body: |
+            Automated multi-platform build for SeedSphere.
+            
+            Platform Coverage:
+            - Windows (x64)
+            - macOS (Apple Silicon/Intel)
+            - Linux (x64)
+            - Android (Universal APK)
+            - iOS (Runner App Bundle)
+            - Web (WASM enabled)
+            
+            Coverage: ${{ needs.analyze_and_test.outputs.coverage_pct }}%
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -1,0 +1,42 @@
+# Standard .gitignore for SeedSphere (Flutter + Node + General)
+
+# Flutter/Dart
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub-cache/
+.pub/
+build/
+ios/.generated/
+
+# Node/JavaScript
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Database
+*.db
+*.sqlite
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# SeedSphere Specific
+seedsphere.log
+/legacy/node_modules/
+/legacy/dist/
+
+# Gemini / Antigravity (Keep brain artifacts but ignore temp/logs)
+.gemini/
+!.gemini/antigravity/brain/

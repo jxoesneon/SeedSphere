@@ -1,0 +1,11 @@
+name = "seedsphere-bridge"
+main = "src/index.ts"
+compatibility_date = "2024-01-01"
+
+[vars]
+ROUTER_URL = "https://seedsphere-router.fly.dev"
+
+# Standard Stremio Addon Routes
+# /manifest.json
+# /stream/:type/:id.json
+# /configure (Optional UI)

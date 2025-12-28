@@ -1,0 +1,47 @@
+# fly.toml app configuration file for SeedSphere Router
+
+app = "seedsphere-router"
+primary_region = "iad"
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  PORT = "8080"
+  NODE_ENV = "production"
+
+[[services]]
+  http_checks = []
+  internal_port = 8080
+  processes = ["app"]
+  protocol = "tcp"
+  script_checks = []
+  [services.concurrency]
+    hard_limit = 25
+    soft_limit = 20
+    type = "connections"
+
+  [[services.ports]]
+    force_https = true
+    handlers = ["http"]
+    port = 80
+
+  [[services.ports]]
+    handlers = ["tls", "http"]
+    port = 443
+
+# P2P Bootstrap Port (Libp2p)
+[[services]]
+  internal_port = 4001
+  processes = ["app"]
+  protocol = "tcp"
+  [[services.ports]]
+    port = 4001
+
+# P2P QUIC Port (UDP)
+[[services]]
+  internal_port = 4001
+  processes = ["app"]
+  protocol = "udp"
+  [[services.ports]]
+    port = 4001
