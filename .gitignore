@@ -23,6 +23,8 @@ yarn-error.log*
 
 # Database
 *.db
+*.db-shm
+*.db-wal
 *.sqlite
 
 # IDEs
@@ -36,6 +38,22 @@ yarn-error.log*
 seedsphere.log
 /legacy/node_modules/
 /legacy/dist/
+/legacy/backup/
+
+# Router (Dart) Runtime Artifacts
+router/data/
+router/ipfs_data/
+router/ipfs.log
+router/coverage/
+router/analysis_*.txt
+router/*.log
+
+# Bridge (Cloudflare Workers) Build Artifacts
+bridge/.wrangler/
+bridge/dist/
+
+# Scripts (if temporary)
+scripts/coverage_audit.dart
 
 # Gemini / Antigravity (Keep brain artifacts but ignore temp/logs)
 .gemini/
