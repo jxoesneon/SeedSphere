@@ -1,20 +1,9 @@
 name: SeedSphere CI
 
 on:
-  push:
-    branches: [ main ]
-    paths:
-      - 'router/**'
-      - 'bridge/**'
-      - '.github/workflows/ci.yml'
-  pull_request:
-    branches: [ main ]
-    paths:
-      - 'router/**'
-      - 'bridge/**'
-      - '.github/workflows/ci.yml'
   schedule:
-    - cron: '30 4 * * 1' # Early Monday morning
+    - cron: '0 2 * * *' # Daily at 2:00 AM
+  workflow_dispatch: # Allow manual runs
 
 permissions:
   contents: read
