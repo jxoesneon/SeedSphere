@@ -5,7 +5,7 @@ import 'package:test/test.dart';
 
 void main() {
   final port = '8080';
-  final host = 'http://0.0.0.0:$port';
+  final host = 'http://127.0.0.1:$port';
   late Process p;
 
   setUp(() async {
@@ -23,7 +23,9 @@ void main() {
   test('Root', () async {
     final response = await get(Uri.parse('$host/'));
     expect(response.statusCode, 200);
-    expect(response.body, 'Hello, World!\n');
+    // Expect JSON response as seen in actual output
+    expect(response.body, contains('"name":"SeedSphere Router"'));
+    expect(response.body, contains('"status":"active"'));
   });
 
   test('Echo', () async {

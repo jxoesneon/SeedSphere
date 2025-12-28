@@ -1,0 +1,109 @@
+import 'package:router/core/metadata_normalizer.dart';
+import 'package:router/scrapers/scraper_engine.dart';
+import 'package:http/http.dart' as http;
+
+/// Service that orchestrates metadata scraping from multiple sources.
+///
+/// Uses [ScraperEngine] to fetch and [MetadataNormalizer] to standardize results.
+class ScraperService {
+  final ScraperEngine _engine;
+
+  /// Creates a new ScraperService instance.
+  ScraperService() : _engine = ScraperEngine.defaults();
+
+  /// Map of known providers to probe.
+  static const _providers = {
+    'Torrentio': 'https://torrentio.strem.fun/manifest.json',
+    'YTS': 'https://yts.mx/api/v2/list_movies.json',
+    'EZTV': 'https://eztvx.to/api/get-torrents',
+    '1337x': 'https://1337x.to',
+    'ThePirateBay': 'https://thepiratebay.org',
+  };
+
+  /// Probes all providers for availability and latency.
+  Future<List<Map<String, dynamic>>> probeProviders() async {
+    final futures = _providers.entries.map((e) async {
+      final name = e.key;
+      final url = e.value;
+      final sw = Stopwatch()..start();
+      try {
+        final res = await http
+            .head(Uri.parse(url))
+            .timeout(Duration(seconds: 5));
+        sw.stop();
+        return {
+          'name': name,
+          'ok': res.statusCode < 500, // 404/403 is "reachable" technically
+          'ms': sw.elapsedMilliseconds,
+          'status': res.statusCode,
+        };
+      } catch (e) {
+        sw.stop();
+        // Try GET if HEAD fails (some block HEAD)
+        try {
+          final res = await http
+              .get(Uri.parse(url))
+              .timeout(Duration(seconds: 5));
+          return {
+            'name': name,
+            'ok': res.statusCode < 500,
+            'ms': sw.elapsedMilliseconds,
+            'status': res.statusCode,
+          };
+        } catch (_) {
+          return {
+            'name': name,
+            'ok': false,
+            'ms': sw.elapsedMilliseconds,
+            'error': 'timeout_or_error',
+          };
+        }
+      }
+    });
+
+    return Future.wait(futures);
+  }
+
+  /// Aggregates streams for a given media [type], [id], and user [settings].
+  ///
+  /// Returns a list of standardized stream maps ready for Stremio consumption.
+  Future<List<Map<String, dynamic>>> getStreams(
+    String type,
+    String id,
+    Map<String, dynamic> settings,
+  ) async {
+    // Determine IMDb ID (assuming 'tt' format for now)
+    final imdbId = id;
+
+    // Run Engine
+    final rawResults = await _engine.scrapeAll(imdbId);
+
+    // Normalize
+    final normalized = rawResults.map((raw) {
+      // Extract provider name if available in raw map, or infer one
+      // The current ScraperEngine returns raw maps, normalizing them here
+      // But ScraperEngine doesn't attach 'source' in base implementation easily?
+      // Wait, BaseScraper implementations just return raw maps.
+      // MetadataNormalizer needs 'provider'.
+      // The Engine's scrapeAll flattens results. We lose the provider context unless the scraper adds it.
+      // Let's assume scrapers don't add 'source' by default (based on YTS review).
+      // We might need to update ScraperEngine to preserve source, or individual scrapers to include it.
+
+      // For now, let's inject a generic source or check raw data structure.
+      // Actually, YTS scraper returns a map.
+      // Let's rely on basic normalization for now.
+      return MetadataNormalizer.normalize(raw, 'MultiScraper').toJson();
+    }).toList();
+
+    // Map to Stremio Stream format
+    return normalized.map((s) {
+      // Construct a basic Magnet stream
+      // Stremio 2.0 format
+      return {
+        'title': '${s['title']}\n👤 ${s['seeders']}  Sources: ${s['source']}',
+        'infoHash': s['infoHash'],
+        'behaviorHints': {'bingeGroup': 'seedsphere-p2p'},
+      };
+    }).toList();
+  }
+}

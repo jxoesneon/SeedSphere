@@ -1,10 +1,14 @@
+import 'dart:convert';
 import 'dart:io';
+import 'package:router/crypto_helper.dart';
 import 'package:sqlite3/sqlite3.dart';
 import 'package:path/path.dart' as p;
 
+/// Service for managing the SQLite database.
 class DbService {
   late Database _db;
 
+  /// Initializes the database connection and runs migrations.
   void init(String baseDir) {
     final dir = Directory(baseDir);
     if (!dir.existsSync()) {
@@ -80,11 +84,144 @@ class DbService {
         type TEXT NOT NULL,
         created_at INTEGER NOT NULL
       );
+      
+
+      CREATE TABLE IF NOT EXISTS users (
+        id TEXT PRIMARY KEY,
+        email TEXT,
+        provider TEXT,
+        created_at INTEGER NOT NULL,
+        last_seen INTEGER,
+        settings_json TEXT
+      );
+      
+      CREATE TABLE IF NOT EXISTS sessions (
+        sid TEXT PRIMARY KEY,
+        user_id TEXT NOT NULL,
+        created_at INTEGER NOT NULL,
+        expires_at INTEGER NOT NULL,
+        FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+      );
+
+      CREATE TABLE IF NOT EXISTS trackers (
+        url TEXT PRIMARY KEY,
+        score REAL DEFAULT 0,
+        votes INTEGER DEFAULT 0,
+        latency_avg INTEGER DEFAULT 0,
+        last_verified_at INTEGER DEFAULT 0,
+        created_at INTEGER NOT NULL
+      );
     ''');
+  }
+
+  // --- Trackers (Distributed Reputation) ---
+
+  /// Ingests a tracker into the system. Ignored if already exists.
+  void upsertTracker(String url) {
+    if (url.isEmpty) return;
+    try {
+      _db.execute(
+        'INSERT OR IGNORE INTO trackers (url, created_at) VALUES (?, ?)',
+        [url, DateTime.now().millisecondsSinceEpoch],
+      );
+    } catch (_) {}
+  }
+
+  /// Submits a vote from a Gardener.
+  ///
+  /// [url]: The tracker URL.
+  /// [up]: True if reachable.
+  /// [latency]: RTT in ms.
+  void submitTrackerVote(String url, bool up, int latency) {
+    final now = DateTime.now().millisecondsSinceEpoch;
+    // Simple Score Logic: +1 for UP, -1 for DOWN.
+    // Latency: Exponential Moving Average (alpha = 0.2)
+
+    // We do this in a transaction to be safe or just a single complex update
+    // But SQLite allows complex updates.
+
+    if (up) {
+      _db.execute(
+        '''
+        UPDATE trackers SET 
+          votes = votes + 1,
+          score = score + 1.0,
+          latency_avg = CASE WHEN latency_avg = 0 THEN ? ELSE CAST((latency_avg * 0.8) + (? * 0.2) AS INTEGER) END,
+          last_verified_at = ?
+        WHERE url = ?
+      ''',
+        [latency, latency, now, url],
+      );
+    } else {
+      _db.execute(
+        '''
+        UPDATE trackers SET 
+          votes = votes + 1,
+          score = score - 1.0, 
+          last_verified_at = ?
+        WHERE url = ?
+      ''',
+        [now, url],
+      );
+    }
+  }
+
+  /// Returns the top [limit] best trackers based on score.
+  List<String> getBestTrackers({int limit = 50}) {
+    // We default to score descending.
+    final result = _db.select(
+      'SELECT url FROM trackers WHERE score > -5 ORDER BY score DESC, latency_avg ASC LIMIT ?',
+      [limit],
+    );
+    return result.map((row) => row['url'] as String).toList();
+  }
+
+  /// Returns ALL trackers for synchronization (pagination support effectively needed on client,
+  /// but here we just dump or limit). Default limit 1000.
+  List<String> getTrackersSync({int limit = 2000}) {
+    final result = _db.select('SELECT url FROM trackers LIMIT ?', [limit]);
+    return result.map((row) => row['url'] as String).toList();
   }
 
   // --- Methods ---
 
+  // Sessions
+
+  /// Creates a new session with the given [sid], [userId], and [ttlMs].
+  void createSession(String sid, String userId, int ttlMs) {
+    final now = DateTime.now().millisecondsSinceEpoch;
+    final exp = now + ttlMs;
+    // Ensure user exists first or handle FK error?
+    // upsertUser should be called before session creation usually.
+    _db.execute(
+      'INSERT OR REPLACE INTO sessions (sid, user_id, created_at, expires_at) VALUES (?, ?, ?, ?)',
+      [sid, userId, now, exp],
+    );
+  }
+
+  /// Retrieves a session by [sid].
+  ///
+  /// Returns `null` if the session doesn't exist or has expired.
+  Map<String, dynamic>? getSession(String sid) {
+    final stmt = _db.prepare(
+      'SELECT sid, user_id, expires_at FROM sessions WHERE sid = ?',
+    );
+    final result = stmt.select([sid]);
+    if (result.isEmpty) return null;
+    final row = result.first;
+    if ((row['expires_at'] as int) < DateTime.now().millisecondsSinceEpoch) {
+      deleteSession(sid);
+      return null;
+    }
+    return row;
+  }
+
+  /// Deletes a session by [sid].
+  void deleteSession(String sid) {
+    _db.execute('DELETE FROM sessions WHERE sid = ?', [sid]);
+  }
+
+  /// Retrieves the binding secret between a [gardenerId] and [seedlingId].
   String? getBindingSecret(String gardenerId, String seedlingId) {
     final stmt = _db.prepare(
       'SELECT secret FROM bindings WHERE gardener_id = ? AND seedling_id = ?',
@@ -106,6 +243,7 @@ class DbService {
     ]);
   }
 
+  /// Upserts a Gardener's record, updating their platform and last seen time.
   void upsertGardener(String gardenerId, {String? platform}) {
     final now = DateTime.now().millisecondsSinceEpoch;
     _db.execute(
@@ -191,6 +329,7 @@ class DbService {
     return result.isNotEmpty;
   }
 
+  /// Logs an audit event with optional metadata.
   void writeAudit(String event, Map<String, dynamic>? meta) {
     _db
         .prepare('INSERT INTO audit (event, at, meta_json) VALUES (?, ?, ?)')
@@ -213,9 +352,8 @@ class DbService {
     // 2. Delete expired link tokens
     _db.prepare('DELETE FROM link_tokens WHERE expires_at < ?').execute([now]);
 
-    // 3. Mark old gardeners as offline (e.g., 24h of inactivity)
-    final oneDayAgo = now - (24 * 60 * 60 * 1000);
-    // Note: We don't delete them, just log or filter in queries later.
+    // 3. Delete expired sessions
+    _db.prepare('DELETE FROM sessions WHERE expires_at < ?').execute([now]);
 
     // 4. Cleanup old audit logs (optional, e.g., keep 30 days)
     final thirtyDaysAgo = now - (30 * 24 * 60 * 60 * 1000);
@@ -236,5 +374,150 @@ class DbService {
         .prepare('SELECT COUNT(*) as cnt FROM bindings WHERE seedling_id = ?')
         .select([seedlingId]);
     return result.first['cnt'] as int;
+  }
+
+  // --- Encryption Support ---
+  String get _encryptionKey {
+    final key = Platform.environment['DB_ENCRYPTION_KEY'];
+    if (key == null || key.isEmpty) {
+      throw Exception(
+        'FATAL: DB_ENCRYPTION_KEY environment variable is required for secure storage.',
+      );
+    }
+    return key;
+  }
+
+  final _sensitiveKeys = const ['rd_key', 'ad_key'];
+
+  /// Retrieves user data by [id], decrypting sensitive settings automatically.
+  Map<String, dynamic>? getUser(String id) {
+    final stmt = _db.prepare('SELECT * FROM users WHERE id = ?');
+    final result = stmt.select([id]);
+    if (result.isEmpty) return null;
+
+    final user = Map<String, dynamic>.from(result.first); // Make mutable
+    if (user['settings_json'] != null) {
+      try {
+        final settings =
+            jsonDecode(user['settings_json'] as String) as Map<String, dynamic>;
+
+        // Decrypt sensitive fields
+        for (final key in _sensitiveKeys) {
+          if (settings.containsKey(key)) {
+            try {
+              // Only decrypt if it looks encrypted (optional check, or just try-catch)
+              // For now we assume everything in these keys IS encrypted by us.
+              settings[key] = CryptoHelper.decrypt(
+                settings[key],
+                _encryptionKey,
+              );
+            } catch (e) {
+              // If decryption fails, it might be old plain-text data. Return as is.
+              // print('Warn: Could not decrypt $key for user $id');
+            }
+          }
+        }
+        user['settings_json'] = jsonEncode(
+          settings,
+        ); // Re-encode with decrypted values for consumer transparency?
+        // Or better: The consumer (AddonService) expects a Map or string?
+        // AddonService accesses settings_json then decodes it.
+        // So yes, we re-encode the decrypted map into the blob so the consumer sees plain text.
+      } catch (_) {}
+    }
+    return user;
+  }
+
+  void upsertUser({
+    required String id,
+    required String email,
+    required String provider,
+    Map<String, dynamic>? settings,
+  }) {
+    final now = DateTime.now().millisecondsSinceEpoch;
+
+    // Encrypt settings if provided
+    String? settingsJson;
+    if (settings != null) {
+      final secureSettings = Map<String, dynamic>.from(settings);
+      for (final key in _sensitiveKeys) {
+        if (secureSettings.containsKey(key)) {
+          secureSettings[key] = CryptoHelper.encrypt(
+            secureSettings[key],
+            _encryptionKey,
+          );
+        }
+      }
+      settingsJson = jsonEncode(secureSettings);
+    }
+
+    _db.execute(
+      '''
+      INSERT INTO users (id, email, provider, created_at, last_seen, settings_json)
+      VALUES (?, ?, ?, ?, ?, ?)
+      ON CONFLICT(id) DO UPDATE SET 
+        email = excluded.email,
+        last_seen = excluded.last_seen,
+        settings_json = COALESCE(excluded.settings_json, users.settings_json)
+    ''',
+      [id, email, provider, now, now, settingsJson],
+    );
+  }
+
+  void updateUserSettings(String id, Map<String, dynamic> newSettings) {
+    // 1. Fetch current raw (encrypted) settings directly to merge correctly
+    final stmt = _db.prepare('SELECT settings_json FROM users WHERE id = ?');
+    final result = stmt.select([id]);
+
+    Map<String, dynamic> merged = {};
+    if (result.isNotEmpty && result.first['settings_json'] != null) {
+      try {
+        merged = jsonDecode(result.first['settings_json'] as String);
+      } catch (_) {}
+    }
+
+    // 2. Encrypt new sensitive values
+    final secureUpdates = Map<String, dynamic>.from(newSettings);
+    for (final key in _sensitiveKeys) {
+      if (secureUpdates.containsKey(key)) {
+        secureUpdates[key] = CryptoHelper.encrypt(
+          secureUpdates[key],
+          _encryptionKey,
+        );
+      }
+    }
+
+    // 3. Merge
+    merged.addAll(secureUpdates);
+
+    // 4. Save
+    _db.execute('UPDATE users SET settings_json = ? WHERE id = ?', [
+      jsonEncode(merged),
+      id,
+    ]);
+  }
+
+  void deleteUser(String id) {
+    // Delete user
+    _db.execute('DELETE FROM users WHERE id = ?', [id]);
+    // Also delete associated bindings
+    _db.execute('DELETE FROM bindings WHERE gardener_id = ?', [id]);
+    // And tokens
+    _db.execute('DELETE FROM link_tokens WHERE gardener_id = ?', [id]);
+    // And sessions
+    _db.execute('DELETE FROM sessions WHERE user_id = ?', [id]);
+  }
+
+  /// Executes a block within a database transaction.
+  T transaction<T>(T Function() action) {
+    _db.execute('BEGIN EXCLUSIVE');
+    try {
+      final result = action();
+      _db.execute('COMMIT');
+      return result;
+    } catch (_) {
+      _db.execute('ROLLBACK');
+      rethrow;
+    }
   }
 }

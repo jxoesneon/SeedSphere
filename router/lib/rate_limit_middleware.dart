@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:shelf/shelf.dart';
 
+/// Simple container for rate limit tracking (timestamp and count).
 class RateLimitBucket {
   int ts;
   int count;

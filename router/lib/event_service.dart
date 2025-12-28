@@ -31,7 +31,7 @@ class EventService {
   /// Helper to create a shelf Response for SSE.
   Response sseResponse(Stream<String> stream) {
     return Response.ok(
-      stream,
+      stream.map(utf8.encode),
       headers: {
         'Content-Type': 'text/event-stream',
         'Cache-Control': 'no-cache, no-transform',

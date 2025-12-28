@@ -1,8 +1,10 @@
 import 'dart:convert';
-import 'package:crypto/crypto.dart';
 import 'package:uuid/uuid.dart';
 import 'package:router/db_service.dart';
 
+/// Service managing the 1:1 linking process between Gardeners and Seedlings/Users.
+///
+/// Uses HMAC primitives and temporary tokens to establish secure bindings.
 class LinkingService {
   final DbService _db;
   final _uuid = const Uuid();
@@ -29,30 +31,32 @@ class LinkingService {
 
   /// Completes a linking process for a Seedling using a token.
   Map<String, dynamic>? completeLinking(String token, String seedlingId) {
-    final tok = _db.getLinkToken(token);
-    if (tok == null) return null;
+    return _db.transaction(() {
+      final tok = _db.getLinkToken(token);
+      if (tok == null) return null;
 
-    final gardenerId = tok['gardener_id'] as String;
+      final gardenerId = tok['gardener_id'] as String;
 
-    // 1:1 Parity: Binding caps (max 10)
-    final gCount = _db.countBindingsForGardener(gardenerId);
-    final sCount = _db.countBindingsForSeedling(seedlingId);
-    if (gCount >= 10 || sCount >= 10) return null;
+      // 1:1 Parity: Binding caps (max 10)
+      final gCount = _db.countBindingsForGardener(gardenerId);
+      final sCount = _db.countBindingsForSeedling(seedlingId);
+      if (gCount >= 10 || sCount >= 10) return null;
 
-    // Generate a secure secret for HMAC communication
-    final secret = base64Url
-        .encode(utf8.encode(_uuid.v4()))
-        .replaceAll('=', '');
+      // Generate a secure secret for HMAC communication
+      final secret = base64Url
+          .encode(utf8.encode(_uuid.v4()))
+          .replaceAll('=', '');
 
-    _db.upsertSeedling(seedlingId);
-    _db.createBinding(gardenerId, seedlingId, secret);
-    _db.deleteLinkToken(token);
+      _db.upsertSeedling(seedlingId);
+      _db.createBinding(gardenerId, seedlingId, secret);
+      _db.deleteLinkToken(token);
 
-    return {
-      'ok': true,
-      'gardener_id': gardenerId,
-      'seedling_id': seedlingId,
-      'secret': secret,
-    };
+      return {
+        'ok': true,
+        'gardener_id': gardenerId,
+        'seedling_id': seedlingId,
+        'secret': secret,
+      };
+    });
   }
 }

@@ -1,0 +1,93 @@
+﻿Analyzing router...
+
+warning - lib\boost_service.dart:2:8 - Unused import: 'dart:convert'. Try removing the import directive. - unused_import
+warning - lib\task_service.dart:1:8 - Unused import: 'dart:convert'. Try removing the import directive. - unused_import
+warning - lib\task_service.dart:9:9 - The value of the field '_pending' isn't used. Try removing the field, or using it. - unused_field
+warning - lib\tracker_service.dart:51:13 - The value of the local variable 'newCount' isn't used. Try removing the variable or using it. - unused_local_variable
+warning - test\sweep_verify.dart:1:8 - Unused import: 'dart:async'. Try removing the import directive. - unused_import
+warning - test\system_verify.dart:2:8 - Unused import: 'dart:io'. Try removing the import directive. - unused_import
+   info - bin\server.dart:463:26 - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation. - prefer_const_constructors
+   info - bin\server.dart:467:19 - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation. - prefer_const_constructors
+   info - lib\addon_service.dart:14:3 - Missing documentation for a public member. Try adding documentation for the member. - public_member_api_docs
+   info - lib\addon_service.dart:16:14 - Missing documentation for a public member. Try adding documentation for the member. - public_member_api_docs
+   info - lib\auth_service.dart:22:3 - Missing documentation for a public member. Try adding documentation for the member. - public_member_api_docs
+   info - lib\auth_service.dart:46:14 - Missing documentation for a public member. Try adding documentation for the member. - public_member_api_docs
+   info - lib\auth_service.dart:169:20 - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation. - prefer_const_constructors
+   info - lib\boost_service.dart:6:16 - Missing documentation for a public member. Try adding documentation for the member. - public_member_api_docs
+   info - lib\boost_service.dart:7:16 - Missing documentation for a public member. Try adding documentation for the member. - public_member_api_docs
+   info - lib\boost_service.dart:8:16 - Missing documentation for a public member. Try adding documentation for the member. - public_member_api_docs
+   info - lib\boost_service.dart:9:13 - Missing documentation for a public member. Try adding documentation for the member. - public_member_api_docs
+   info - lib\boost_service.dart:10:30 - Missing documentation for a public member. Try adding documentation for the member. - public_member_api_docs
+   info - lib\boost_service.dart:12:3 - Missing documentation for a public member. Try adding documentation for the member. - public_member_api_docs
+   info - lib\boost_service.dart:19:24 - Missing documentation for a public member. Try adding documentation for the member. - public_member_api_docs
+   info - lib\boost_service.dart:36:11 - Missing documentation for a public member. Try adding documentation for the member. - public_member_api_docs
+   info - lib\boost_service.dart:64:8 - Missing documentation for a public member. Try adding documentation for the member. - public_member_api_docs
+   info - lib\db_service.dart:234:8 - Missing documentation for a public member. Try adding documentation for the member. - public_member_api_docs
+   info - lib\db_service.dart:259:8 - Missing documentation for a public member. Try adding documentation for the member. - public_member_api_docs
+   info - lib\db_service.dart:267:8 - Missing documentation for a public member. Try adding documentation for the member. - public_member_api_docs
+   info - lib\db_service.dart:279:8 - Missing documentation for a public member. Try adding documentation for the member. - public_member_api_docs
+   info - lib\db_service.dart:288:25 - Missing documentation for a public member. Try adding documentation for the member. - public_member_api_docs
+   info - lib\db_service.dart:299:8 - Missing documentation for a public member. Try adding documentation for the member. - public_member_api_docs
+   info - lib\db_service.dart:303:7 - Missing documentation for a public member. Try adding documentation for the member. - public_member_api_docs
+   info - lib\db_service.dart:312:8 - Missing documentation for a public member. Try adding documentation for the member. - public_member_api_docs
+   info - lib\db_service.dart:324:8 - Missing documentation for a public member. Try adding documentation for the member. - public_member_api_docs
+   info - lib\db_service.dart:343:8 - Missing documentation for a public member. Try adding documentation for the member. - public_member_api_docs
+   info - lib\db_service.dart:363:8 - Missing documentation for a public member. Try adding documentation for the member. - public_member_api_docs
+   info - lib\db_service.dart:365:7 - Missing documentation for a public member. Try adding documentation for the member. - public_member_api_docs
+   info - lib\db_service.dart:372:7 - Missing documentation for a public member. Try adding documentation for the member. - public_member_api_docs
+   info - lib\db_service.dart:431:8 - Missing documentation for a public member. Try adding documentation for the member. - public_member_api_docs
+   info - lib\db_service.dart:467:8 - Missing documentation for a public member. Try adding documentation for the member. - public_member_api_docs
+   info - lib\db_service.dart:500:8 - Missing documentation for a public member. Try adding documentation for the member. - public_member_api_docs
+   info - lib\linking_service.dart:12:3 - Missing documentation for a public member. Try adding documentation for the member. - public_member_api_docs
+   info - lib\mailer_service.dart:10:17 - Missing documentation for a public member. Try adding documentation for the member. - public_member_api_docs
+   info - lib\mailer_service.dart:23:17 - Missing documentation for a public member. Try adding documentation for the member. - public_member_api_docs
+   info - lib\mailer_service.dart:187:31 - Missing documentation for a public member. Try adding documentation for the member. - public_member_api_docs
+   info - lib\mailer_service.dart:194:31 - Missing documentation for a public member. Try adding documentation for the member. - public_member_api_docs
+   info - lib\mailer_service.dart:201:31 - Missing documentation for a public member. Try adding documentation for the member. - public_member_api_docs
+   info - lib\pairing_service.dart:6:16 - Missing documentation for a public member. Try adding documentation for the member. - public_member_api_docs
+   info - lib\pairing_service.dart:7:16 - Missing documentation for a public member. Try adding documentation for the member. - public_member_api_docs
+   info - lib\pairing_service.dart:8:18 - Missing documentation for a public member. Try adding documentation for the member. - public_member_api_docs
+   info - lib\pairing_service.dart:9:11 - Missing documentation for a public member. Try adding documentation for the member. - public_member_api_docs
+   info - lib\pairing_service.dart:10:11 - Missing documentation for a public member. Try adding documentation for the member. - public_member_api_docs
+   info - lib\pairing_service.dart:11:8 - Missing documentation for a public member. Try adding documentation for the member. - public_member_api_docs
+   info - lib\pairing_service.dart:13:3 - Missing documentation for a public member. Try adding documentation for the member. - public_member_api_docs
+   info - lib\pairing_service.dart:22:24 - Missing documentation for a public member. Try adding documentation for the member. - public_member_api_docs
+   info - lib\prefetch_service.dart:13:3 - Missing documentation for a public member. Try adding documentation for the member. - public_member_api_docs
+   info - lib\prefetch_service.dart:15:8 - Missing documentation for a public member. Try adding documentation for the member. - public_member_api_docs
+   info - lib\prefetch_service.dart:23:8 - Missing documentation for a public member. Try adding documentation for the member. - public_member_api_docs
+   info - lib\rate_limit_middleware.dart:6:7 - Missing documentation for a public member. Try adding documentation for the member. - public_member_api_docs
+   info - lib\rate_limit_middleware.dart:7:7 - Missing documentation for a public member. Try adding documentation for the member. - public_member_api_docs
+   info - lib\rate_limit_middleware.dart:8:3 - Missing documentation for a public member. Try adding documentation for the member. - public_member_api_docs
+   info - lib\scraper_service.dart:11:3 - Missing documentation for a public member. Try adding documentation for the member. - public_member_api_docs
+   info - lib\scraper_service.dart:29:61 - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation. - prefer_const_constructors
+   info - lib\scraper_service.dart:41:63 - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation. - prefer_const_constructors
+   info - lib\scrapers\anidex_scraper.dart:5:7 - Missing documentation for a public member. Try adding documentation for the member. - public_member_api_docs
+   info - lib\scrapers\anidex_scraper.dart:8:3 - Missing documentation for a public member. Try adding documentation for the member. - public_member_api_docs
+   info - lib\scrapers\eztv_scraper.dart:9:3 - Missing documentation for a public member. Try adding documentation for the member. - public_member_api_docs
+   info - lib\scrapers\magnetdl_scraper.dart:5:7 - Missing documentation for a public member. Try adding documentation for the member. - public_member_api_docs
+   info - lib\scrapers\magnetdl_scraper.dart:8:3 - Missing documentation for a public member. Try adding documentation for the member. - public_member_api_docs
+   info - lib\scrapers\nyaa_scraper.dart:9:3 - Missing documentation for a public member. Try adding documentation for the member. - public_member_api_docs
+   info - lib\scrapers\piratebay_scraper.dart:9:3 - Missing documentation for a public member. Try adding documentation for the member. - public_member_api_docs
+   info - lib\scrapers\rutor_scraper.dart:5:7 - Missing documentation for a public member. Try adding documentation for the member. - public_member_api_docs
+   info - lib\scrapers\rutor_scraper.dart:8:3 - Missing documentation for a public member. Try adding documentation for the member. - public_member_api_docs
+   info - lib\scrapers\tokyotosho_scraper.dart:5:7 - Missing documentation for a public member. Try adding documentation for the member. - public_member_api_docs
+   info - lib\scrapers\tokyotosho_scraper.dart:8:3 - Missing documentation for a public member. Try adding documentation for the member. - public_member_api_docs
+   info - lib\scrapers\torlock_scraper.dart:5:7 - Missing documentation for a public member. Try adding documentation for the member. - public_member_api_docs
+   info - lib\scrapers\torlock_scraper.dart:8:3 - Missing documentation for a public member. Try adding documentation for the member. - public_member_api_docs
+   info - lib\scrapers\torrentgalaxy_scraper.dart:7:29 - Missing documentation for a public member. Try adding documentation for the member. - public_member_api_docs
+   info - lib\scrapers\torrentgalaxy_scraper.dart:12:21 - Missing documentation for a public member. Try adding documentation for the member. - public_member_api_docs
+   info - lib\scrapers\torrentgalaxy_scraper.dart:16:3 - Missing documentation for a public member. Try adding documentation for the member. - public_member_api_docs
+   info - lib\scrapers\x1337_scraper.dart:7:29 - Missing documentation for a public member. Try adding documentation for the member. - public_member_api_docs
+   info - lib\scrapers\x1337_scraper.dart:13:21 - Missing documentation for a public member. Try adding documentation for the member. - public_member_api_docs
+   info - lib\scrapers\x1337_scraper.dart:17:3 - Missing documentation for a public member. Try adding documentation for the member. - public_member_api_docs
+   info - lib\scrapers\zooqle_scraper.dart:5:7 - Missing documentation for a public member. Try adding documentation for the member. - public_member_api_docs
+   info - lib\scrapers\zooqle_scraper.dart:8:3 - Missing documentation for a public member. Try adding documentation for the member. - public_member_api_docs
+   info - lib\task_service.dart:11:3 - Missing documentation for a public member. Try adding documentation for the member. - public_member_api_docs
+   info - lib\task_service.dart:29:59 - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation. - prefer_const_constructors
+   info - lib\tracker_service.dart:24:3 - Missing documentation for a public member. Try adding documentation for the member. - public_member_api_docs
+   info - lib\tracker_service.dart:30:5 - Missing an 'await' for the 'Future' computed by this expression. Try adding an 'await' or wrapping the expression with 'unawaited'. - unawaited_futures
+   info - test\boost_verify.dart:27:27 - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation. - prefer_const_constructors
+   info - test\gardener_simulation.dart:17:24 - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation. - prefer_const_constructors
+   info - test\system_verify.dart:37:15 - Statements in an if should be enclosed in a block. Try wrapping the statement in a block. - curly_braces_in_flow_control_structures
+
+89 issues found.

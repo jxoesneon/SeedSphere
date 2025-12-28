@@ -1,4 +1,4 @@
-import 'dart:async';
+import 'dart:io';
 import 'package:dart_ipfs/dart_ipfs.dart';
 
 /// Manages the libp2p bootstrap node lifecycle on the Router.
@@ -13,20 +13,33 @@ class P2PNode {
     try {
       print('P2P: Initializing SeedSphere Bootstrap Node...');
 
+      // 1. Configure Private Swarm if Key Provided
+      final swarmKey = Platform.environment['P2P_SWARM_KEY'];
+      if (swarmKey != null) {
+        final home =
+            Platform.environment['HOME'] ?? Platform.environment['USERPROFILE'];
+        final repoPath = Platform.environment['IPFS_PATH'] ?? '$home/.ipfs';
+
+        final dir = Directory(repoPath);
+        if (!dir.existsSync()) dir.createSync(recursive: true);
+
+        final keyFile = File('${dir.path}/swarm.key');
+        // swarm.key format: /key/swarm/psk/1.0.0/\n/base16/\n<key>
+        if (!keyFile.existsSync() || keyFile.readAsStringSync() != swarmKey) {
+          keyFile.writeAsStringSync(
+            '/key/swarm/psk/1.0.0/\n/base16/\n$swarmKey',
+          );
+          print('P2P: Private Swarm Key Configured');
+        }
+      }
+
       _node = await IPFSNode.create(
         IPFSConfig(
           offline: false,
           network: const NetworkConfig(
-            listenAddresses: [
-              '/ip4/0.0.0.0/tcp/4001',
-              '/ip4/0.0.0.0/udp/4001/quic',
-            ],
-            // As a bootstrap node, we don't necessarily need bootstrap peers,
-            // but we can include the IPFS defaults for connectivity.
-            bootstrapPeers: [
-              '/dnsaddr/bootstrap.libp2p.io/p2p/QmNnoo2uRhyMvRcrqQLmb7td3AddvXYZdqHqcSWtd4p5hc',
-              '/dnsaddr/bootstrap.libp2p.io/p2p/QmZa1s3K39YSUEB8iHUC8mcGEnmsVvYkjW4pToXyT9QByW',
-            ],
+            listenAddresses: ['/ip4/0.0.0.0/udp/2022', '/ip6/::/udp/2022'],
+            // No bootstrap peers needed - this Router IS the bootstrap node
+            bootstrapPeers: [],
           ),
         ),
       );

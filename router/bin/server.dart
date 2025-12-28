@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -15,7 +16,16 @@ import 'package:router/security_middleware.dart';
 import 'package:router/rate_limit_middleware.dart';
 import 'package:router/health_service.dart';
 import 'package:router/swarm_service.dart';
+import 'package:router/auth_service.dart';
+import 'package:router/mailer_service.dart';
+import 'package:router/scraper_service.dart';
+import 'package:router/addon_service.dart';
 import 'package:uuid/uuid.dart';
+
+import 'package:router/tracker_service.dart';
+import 'package:router/boost_service.dart';
+import 'package:router/prefetch_service.dart';
+import 'package:router/task_service.dart';
 
 // Services
 final db = DbService()..init('data');
@@ -25,6 +35,25 @@ final eventService = EventService();
 final linkingService = LinkingService(db);
 final healthService = HealthService();
 final swarmService = SwarmService();
+final mailerService = MailerService.custom(
+  host: Platform.environment['SMTP_HOST'] ?? 'smtp-relay.brevo.com',
+  port: int.parse(Platform.environment['SMTP_PORT'] ?? '587'),
+  username: Platform.environment['SMTP_USER'] ?? '',
+  password: Platform.environment['SMTP_PASS'] ?? '',
+  fromEmail: Platform.environment['SMTP_FROM'] ?? 'noreply@seedsphere.app',
+);
+final scraperService = ScraperService();
+final addonService = AddonService(db, scraperService);
+final authService = AuthService(db, mailerService, linkingService);
+// Pass DB to tracker service now
+// Pass DB to tracker service now
+final trackerService = TrackerService(db, healthService)..init();
+final boostService = BoostService();
+final prefetchService = PrefetchService(scraperService);
+// Reuse Auth Secret for simplicity or generate new one.
+final taskService = TaskService(
+  Platform.environment['AUTH_JWT_SECRET'] ?? 'task-secret-fallback',
+);
 
 // Configure routes.
 final _router = Router()
@@ -49,8 +78,31 @@ final _router = Router()
   ..get('/api/swarm/query', _swarmQueryHandler)
   // P2P Info
   ..get('/p2p/info', _p2pInfoHandler)
-  ..get('/p2p/health', _p2pHealthHandler);
+  ..get('/p2p/health', _p2pHealthHandler)
+  ..get('/p2p/health', _p2pHealthHandler)
+  // Tracker Optimization
+  // Tracker Distributed Reputation
+  ..post('/api/trackers/optimize', _trackerOptimizeHandler) // Legacy/Bridge
+  ..get('/api/trackers/best', _trackerBestHandler) // Bridge/Client
+  ..get('/api/trackers/sync', _trackerSyncHandler) // Gardener
+  ..get('/api/trackers/sync', _trackerSyncHandler) // Gardener
+  ..post('/api/trackers/vote', _trackerVoteHandler) // Gardener
+  // Boosts (Legacy Feature Parity)
+  ..get('/api/boosts/events', _boostEventsHandler)
+  ..get('/api/boosts/recent', _boostRecentHandler)
+  // Diagnostics
+  ..get('/api/providers/detect', _providersDetectHandler)
+  // Tracker Sweep
+  ..get('/api/trackers/sweep', _trackerSweepHandler)
+  // Task System
+  ..post('/api/tasks/request', _taskRequestHandler)
+  ..post('/api/tasks/result', _taskResultHandler)
+  // Auth Restoration (Phase 2.5)
+  ..mount('/api/auth/', authService.router.call)
+  // Stremio Addon (Phase 3)
+  ..mount('/', addonService.router.call);
 
+/// Root handler returning server status and version info.
 Response _rootHandler(Request req) {
   return Response.ok(
     jsonEncode({
@@ -63,6 +115,7 @@ Response _rootHandler(Request req) {
   );
 }
 
+/// Health check endpoint for monitoring uptime.
 Response _healthHandler(Request req) {
   return Response.ok(
     jsonEncode({'status': 'healthy'}),
@@ -71,6 +124,10 @@ Response _healthHandler(Request req) {
 }
 
 // PIN Pairing (Legacy)
+
+/// Initiates a legacy PIN-based pairing session.
+///
+/// Returns a [Response] containing the generated PIN code.
 Future<Response> _createPairingHandler(Request req) async {
   final payload = await req.readAsString();
   final data = jsonDecode(payload);
@@ -80,6 +137,7 @@ Future<Response> _createPairingHandler(Request req) async {
   return Response.ok(jsonEncode({'ok': true, 'pair_code': pin}));
 }
 
+/// Completes a pairing session using a PIN.
 Future<Response> _completePairingHandler(Request req) async {
   final payload = await req.readAsString();
   final data = jsonDecode(payload);
@@ -87,11 +145,13 @@ Future<Response> _completePairingHandler(Request req) async {
     data['pin'] ?? data['pair_code'],
     data['gardenerId'] ?? data['device_id'],
   );
-  if (session == null)
+  if (session == null) {
     return Response.notFound(jsonEncode({'ok': false, 'error': 'not_found'}));
+  }
   return Response.ok(jsonEncode({'ok': true, ...session.toJson()}));
 }
 
+/// Checks the status of a pairing session.
 Response _statusPairingHandler(Request req) {
   final pin =
       req.url.queryParameters['pin'] ?? req.url.queryParameters['pair_code'];
@@ -103,6 +163,8 @@ Response _statusPairingHandler(Request req) {
 }
 
 // Linking (HMAC Flow)
+
+/// Starts a 1:1 parity linking flow (HMAC-based).
 Future<Response> _linkStartHandler(Request req) async {
   final data = jsonDecode(await req.readAsString());
   final result = linkingService.startLinking(
@@ -112,17 +174,20 @@ Future<Response> _linkStartHandler(Request req) async {
   return Response.ok(jsonEncode(result));
 }
 
+/// Completes the linking process with a token verification.
 Future<Response> _linkCompleteHandler(Request req) async {
   final data = jsonDecode(await req.readAsString());
   final result = linkingService.completeLinking(
     data['token'],
     data['seedling_id'],
   );
-  if (result == null)
+  if (result == null) {
     return Response.notFound(jsonEncode({'ok': false, 'error': 'expired'}));
+  }
   return Response.ok(jsonEncode(result));
 }
 
+/// Returns the current linking status for a Gardener.
 Response _linkStatusHandler(Request req) {
   final gId = req.url.queryParameters['gardener_id'];
   // Simplified status for 1:1 parity demonstration
@@ -130,12 +195,16 @@ Response _linkStatusHandler(Request req) {
 }
 
 // Events (SSE)
+
+/// Handles Server-Sent Events (SSE) subscriptions for real-time updates.
 Response _eventsHandler(Request req, String gardenerId) {
   final stream = eventService.subscribe(gardenerId);
   return eventService.sseResponse(stream);
 }
 
 // Heartbeat (Secured via Middleware if applied)
+
+/// Processes heartbeat signals from Gardeners to maintain active status.
 Future<Response> _heartbeatHandler(Request req, String gardenerId) async {
   db.touchGardener(gardenerId);
   eventService.publish(gardenerId, 'heartbeat', {
@@ -145,6 +214,10 @@ Future<Response> _heartbeatHandler(Request req, String gardenerId) async {
 }
 
 // Telemetry Collector
+
+/// Collects telemetry data for analytics and debugging.
+///
+/// Verifies `x-telemetry-key` if configured.
 Future<Response> _telemetryHandler(Request req) async {
   final payload = await req.readAsString();
   final data = jsonDecode(payload);
@@ -171,6 +244,8 @@ Future<Response> _telemetryHandler(Request req) async {
 }
 
 // Greenhouse: Executor register
+
+/// Registers a new executor/agent and assigns a device ID.
 Future<Response> _executorRegisterHandler(Request req) async {
   final agent = req.headers['user-agent'] ?? 'unknown';
   final deviceId = const Uuid().v4().substring(
@@ -187,6 +262,10 @@ Future<Response> _executorRegisterHandler(Request req) async {
 }
 
 // Swarm Query: Coordinate discovery between Gardeners
+
+/// Queries the P2P swarm for metadata or peers.
+///
+/// Supports real-time scraping if [trackers] are provided.
 Future<Response> _swarmQueryHandler(Request req) async {
   final id = req.url.queryParameters['id'];
   final type = req.url.queryParameters['type'];
@@ -217,6 +296,7 @@ Future<Response> _swarmQueryHandler(Request req) async {
   );
 }
 
+/// Returns information about the P2P node (PeerID and addresses).
 Response _p2pInfoHandler(Request req) {
   return Response.ok(
     jsonEncode({'peerId': p2pNode.peerId, 'addresses': p2pNode.addresses}),
@@ -224,6 +304,7 @@ Response _p2pInfoHandler(Request req) {
   );
 }
 
+/// Checks the health of a specific P2P URL or the node itself.
 Future<Response> _p2pHealthHandler(Request req) async {
   final url = req.url.queryParameters['url'];
   if (url != null) {
@@ -231,6 +312,117 @@ Future<Response> _p2pHealthHandler(Request req) async {
     return Response.ok(jsonEncode({'url': url, 'healthy': ok}));
   }
   return Response.ok(jsonEncode({'status': 'active', 'engine': 'Dart/AOT'}));
+}
+
+/// Returns the calculated "Best" trackers based on community reputation.
+Response _trackerBestHandler(Request req) {
+  final best = trackerService.getBestTrackers();
+  return Response.ok(jsonEncode({'trackers': best}));
+}
+
+/// Returns the full list of trackers for Gardeners to verify.
+Response _trackerSyncHandler(Request req) {
+  final list = trackerService.getSyncList();
+  return Response.ok(jsonEncode({'trackers': list}));
+}
+
+/// Accepts batch votes from Gardeners.
+Future<Response> _trackerVoteHandler(Request req) async {
+  try {
+    final payload = await req.readAsString();
+    final data = jsonDecode(payload);
+    final votes = (data['votes'] as List?)?.cast<Map<String, dynamic>>() ?? [];
+
+    trackerService.submitVotes(votes);
+    return Response.ok(jsonEncode({'ok': true}));
+  } catch (e) {
+    return Response.badRequest(body: jsonEncode({'error': 'invalid_payload'}));
+  }
+}
+
+/// Optimizes a list of trackers by filtering bad ones and injecting best ones.
+Future<Response> _trackerOptimizeHandler(Request req) async {
+  try {
+    final payload = await req.readAsString();
+    final data = jsonDecode(payload);
+    final incoming = (data['trackers'] as List?)?.cast<String>() ?? [];
+
+    final result = await trackerService.optimize(incoming);
+    return Response.ok(jsonEncode(result));
+  } catch (e) {
+    return Response.badRequest(body: jsonEncode({'error': 'invalid_payload'}));
+  }
+}
+
+/// Returns recent boost activity.
+Response _boostRecentHandler(Request req) {
+  return Response.ok(
+    jsonEncode({'ok': true, 'items': boostService.getRecent()}),
+  );
+}
+
+/// SSE stream for boost events.
+Response _boostEventsHandler(Request req) {
+  Stream<String> stream() async* {
+    yield ': connected\n\n';
+    await for (final e in boostService.stream) {
+      yield 'event: boost\ndata: ${jsonEncode(e.toJson())}\n\n';
+    }
+  }
+
+  return eventService.sseResponse(stream());
+}
+
+/// Diagnoses upstream provider health.
+Future<Response> _providersDetectHandler(Request req) async {
+  final results = await scraperService.probeProviders();
+  return Response.ok(jsonEncode({'ok': true, 'providers': results}));
+}
+
+/// SSE stream for tracker sweeping.
+Response _trackerSweepHandler(Request req) {
+  final source =
+      req.url.queryParameters['source'] ??
+      'https://raw.githubusercontent.com/ngosang/trackerslist/master/trackers_all_ip.txt';
+
+  Stream<String> stream() async* {
+    yield ': start\n\n';
+    await for (final e in trackerService.sweep(source)) {
+      yield 'event: sweep\ndata: ${jsonEncode(e)}\n\n';
+    }
+  }
+
+  return eventService.sseResponse(stream());
+}
+
+/// Issues a task to a Gardener (Mock/Echo for now).
+Future<Response> _taskRequestHandler(Request req) async {
+  // In real implementation, check queue.
+  // Here we issue a mock "normalization" task.
+  final token = taskService.requestTask('echo', {
+    'ts': DateTime.now().toIso8601String(),
+  });
+  return Response.ok(jsonEncode({'ok': true, 'task_token': token}));
+}
+
+/// Receives a task result.
+Future<Response> _taskResultHandler(Request req) async {
+  try {
+    final body = jsonDecode(await req.readAsString());
+    final token = body['token'];
+    final result = body['result'];
+
+    final payload = taskService.verifyResult(token);
+    if (payload == null) {
+      return Response(401, body: jsonEncode({'error': 'invalid_token'}));
+    }
+
+    // Log result
+    print('Task Complete: ${payload['task_id']} => $result');
+    return Response.ok(jsonEncode({'ok': true}));
+  } catch (e) {
+    return Response.badRequest(body: jsonEncode({'error': 'bad_request'}));
+  }
 }
 
 /// Middleware for security hardening headers (CSP, HSTS, etc.)
@@ -241,10 +433,10 @@ Middleware securityHardeningMiddleware() {
 
       // 1:1 Parity: Audit CORS and access
       try {
+        final connInfo =
+            request.context['shelf.io.connection_info'] as HttpConnectionInfo?;
         db.writeAudit('access', {
-          'ip':
-              request.context['shelf.io.connection_info']?.remoteAddress ??
-              'unknown',
+          'ip': connInfo?.remoteAddress.address ?? 'unknown',
           'method': request.method,
           'path': request.url.path,
           'origin': request.headers['origin'] ?? '',
@@ -269,6 +461,7 @@ Middleware securityHardeningMiddleware() {
 
 void main(List<String> args) async {
   await p2pNode.start();
+  prefetchService.start();
 
   // Periodic Cleanup (Parity)
   Timer.periodic(const Duration(minutes: 15), (timer) {
@@ -286,8 +479,9 @@ void main(List<String> args) async {
       .addMiddleware(securityHardeningMiddleware())
       .addMiddleware(rateLimitMiddleware()) // Global rate limiting
       .addHandler((Request request) {
-        // Apply security middleware ONLY to the heartbeat endpoint for parity compliance
-        if (request.url.path.contains('heartbeat')) {
+        // Apply security middleware to the Gardener Namespace (excluding SSE which doesn't support headers)
+        if (request.url.path.startsWith('api/rooms/') &&
+            !request.url.path.contains('/events')) {
           return securePipeline.addHandler(_router.call)(request);
         }
         return _router.call(request);

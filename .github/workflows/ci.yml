@@ -13,11 +13,21 @@ on:
       - 'router/**'
       - 'bridge/**'
       - '.github/workflows/ci.yml'
+  schedule:
+    - cron: '30 4 * * 1' # Early Monday morning
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   router-ci:
     name: Router CI (Dart)
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     defaults:
       run:
         working-directory: router
@@ -38,6 +48,9 @@ jobs:
       - name: Install Dependencies
         run: dart pub get
         
+      - name: Formatter Check
+        run: dart format --output=none --set-exit-if-changed .
+
       - name: Analyze
         run: dart analyze --fatal-infos
         
@@ -47,6 +60,7 @@ jobs:
   bridge-ci:
     name: Bridge CI (TypeScript)
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     defaults:
       run:
         working-directory: bridge
@@ -65,3 +79,31 @@ jobs:
         
       - name: Typecheck & Build
         run: npm run build
+
+  security-scan:
+    name: Security Scan (CodeQL)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      security-events: write
+      actions: read
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        language: [ 'javascript' ] # CodeQL doesn't officially support Dart yet in standard action easily, but JS is good for Bridge
+        
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: ${{ matrix.language }}
+          
+      - name: Autobuild
+        uses: github/codeql-action/autobuild@v3
+        
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3

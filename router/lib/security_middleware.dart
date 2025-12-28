@@ -45,10 +45,19 @@ Middleware securityMiddleware(
       }
       nonceStore[nonce] = DateTime.now();
 
-      // Cleanup nonces older than 5 mins
-      nonceStore.removeWhere(
-        (key, value) => DateTime.now().difference(value).inMinutes > 5,
-      );
+      // Cleanup logic (DoS Protection)
+      // Remove expired nonces first
+      if (nonceStore.length > 10000 ||
+          DateTime.now().millisecondsSinceEpoch % 100 == 0) {
+        nonceStore.removeWhere(
+          (key, value) => DateTime.now().difference(value).inMinutes > 5,
+        );
+      }
+
+      // Fail Closed if still too full (Under Attack)
+      if (nonceStore.length > 10000) {
+        return Response(503, body: jsonEncode({'error': 'service_busy'}));
+      }
 
       // 3. Secret Lookup
       final secret = await getSecret(gardenerId, seedlingId);
@@ -72,18 +81,14 @@ Middleware securityMiddleware(
         bodyHash,
       ].join('\n');
 
-      final hmac = Hmac(sha256, utf8.encode(secret));
-      final computedSig = hmac.convert(utf8.encode(canonical)).toString();
-
       // Convert to base64url format as used in legacy
-      final computedSigB64 = base64Url
-          .encode(utf8.encode(computedSig))
-          .replaceAll('=', '');
-
       // Note: Legacy used a slightly different b64 conversion, but the core is HMAC-SHA256.
       // We will normalize 2.0 to standard hex for clarity unless 1:1 wire parity is required.
       // Re-reading legacy: digest('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '')
-      final rawMac = hmac.convert(utf8.encode(canonical)).bytes;
+      final rawMac = Hmac(
+        sha256,
+        utf8.encode(secret),
+      ).convert(utf8.encode(canonical)).bytes;
       final legacySig = base64Url.encode(rawMac).replaceAll('=', '');
 
       if (sig != legacySig) {
