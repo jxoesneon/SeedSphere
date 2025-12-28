@@ -10,8 +10,33 @@ on:
   workflow_dispatch:
 
 jobs:
+  # PRE-FLIGHT VERIFICATION GATE
+  verify:
+    name: Pre-flight Checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      # Verify Router
+      - uses: dart-lang/setup-dart@v1
+      - run: dart pub get
+        working-directory: router
+      - run: dart analyze --fatal-infos
+        working-directory: router
+      - run: dart test
+        working-directory: router
+      # Verify Bridge
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm ci
+        working-directory: bridge
+      - run: npm run build
+        working-directory: bridge
+
   deploy-router:
     name: Deploy Router (Fly.io)
+    needs: [verify] # CRITICAL: Block deploy until verify passes
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -27,6 +52,7 @@ jobs:
 
   deploy-bridge:
     name: Deploy Bridge (Cloudflare)
+    needs: [verify] # CRITICAL: Block deploy until verify passes
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
