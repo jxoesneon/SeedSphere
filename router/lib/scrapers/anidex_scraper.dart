@@ -2,9 +2,11 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:router/scrapers/scraper_engine.dart';
 
+/// Scraper implementation for AniDex (Anime focused).
 class AnidexScraper extends BaseScraper {
   final http.Client _client;
 
+  /// Creates a new AnidexScraper.
   AnidexScraper({http.Client? client})
     : _client = client ?? http.Client(),
       super(name: 'AniDex', baseUrl: 'https://anidex.info');

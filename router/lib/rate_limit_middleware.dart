@@ -3,8 +3,13 @@ import 'package:shelf/shelf.dart';
 
 /// Simple container for rate limit tracking (timestamp and count).
 class RateLimitBucket {
+  /// The timestamp of the first request in the current window.
   int ts;
+
+  /// The number of requests made in the current window.
   int count;
+
+  /// Creates a new RateLimitBucket.
   RateLimitBucket(this.ts, this.count);
 }
 

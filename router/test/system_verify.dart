@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'dart:io';
 import 'package:http/http.dart' as http;
 
 /// System Integration Verification Script (Real World Content)
@@ -21,29 +20,21 @@ void main() async {
 
       final res = await http.get(Uri.parse(url));
       if (res.statusCode == 200) {
-        final json = jsonDecode(res.body);
-        final streams = json['streams'] as List;
-        print('✅ Success: Found ${streams.length} streams');
-
+        final Map<String, dynamic> data = jsonDecode(res.body);
+        final streams = data['streams'] as List? ?? [];
         if (streams.isNotEmpty) {
-          // Print top 3 streams
-          print('Top 3 Streams:');
+          print('✅ Success: Found ${streams.length} streams');
           for (var i = 0; i < (streams.length < 3 ? streams.length : 3); i++) {
-            final s = streams[i];
+            final s = streams[i] as Map<String, dynamic>;
             print(
               '  ${i + 1}. [${s['name']}] ${s['title'].replaceAll('\n', ' ')}',
             );
-            if (s['seeds'] != null)
-              print('     🌱 Seeds: ${s['seeds']}  👥 Peers: ${s['peers']}');
           }
         } else {
-          print(
-            '⚠️ No streams found. This might be due to scraper blocks or no cached results.',
-          );
+          print('⚠️ No streams found.');
         }
       } else {
         print('❌ Failed: HTTP ${res.statusCode}');
-        print('Body: ${res.body}');
       }
     } catch (e) {
       print('❌ Error: $e');

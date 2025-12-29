@@ -6,6 +6,7 @@ import 'package:router/scrapers/scraper_engine.dart';
 class EztvScraper extends BaseScraper {
   final http.Client _client;
 
+  /// Creates a new EztvScraper.
   EztvScraper({http.Client? client})
     : _client = client ?? http.Client(),
       super(name: 'EZTV', baseUrl: 'https://eztv.re/api');

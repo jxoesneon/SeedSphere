@@ -10,6 +10,7 @@
 build/
 ios/.generated/
 
+
 # Node/JavaScript
 node_modules/
 npm-debug.log*
@@ -36,9 +37,7 @@ yarn-error.log*
 
 # SeedSphere Specific
 seedsphere.log
-/legacy/node_modules/
-/legacy/dist/
-/legacy/backup/
+legacy/
 
 # Router (Dart) Runtime Artifacts
 router/data/

@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description"
+        content="Manage your SeedSphere node, view streaming stats, and configure your P2P preferences.">
+    <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self' http://localhost:8080 https://seedsphere-router.fly.dev https://accounts.google.com; img-src 'self' data: https:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com;">
+    <title>SeedSphere Dashboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@100..900&display=swap" rel="stylesheet">
+    <link rel="icon" href="favicon.svg" type="image/svg+xml">
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="dashboard.css">
+</head>
+
+<body>
+    <!-- Navigation -->
+    <nav class="glass-nav">
+        <div class="nav-container">
+            <div class="logo">
+                <span class="logo-symbol">🌱</span>
+                <span class="logo-text">SeedSphere</span>
+            </div>
+            <div class="nav-links">
+                <a href="index.html">Home</a>
+                <a href="docs.html">Docs</a>
+                <a href="#" class="user-badge">
+                    <span>🌱</span>
+                    <span id="user-id">Loading...</span>
+                </a>
+                <button class="btn-logout">Sign Out</button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Login Overlay -->
+    <div id="login-overlay" class="login-overlay" style="display: none;">
+        <div class="login-card glass">
+            <div class="login-header">
+                <span class="logo-symbol">🌱</span>
+                <h2>Welcome Back</h2>
+                <p>Sign in to your account</p>
+            </div>
+
+            <a href="http://localhost:8080/api/auth/google/start" class="btn-login-google">
+                <span class="icon">G</span>
+                Continue with Google
+            </a>
+
+            <div class="divider">
+                <span>OR</span>
+            </div>
+
+            <form id="magic-link-form" class="magic-form">
+                <div class="form-group">
+                    <input type="email" id="magic-email" placeholder="name@example.com" required>
+                </div>
+                <button type="submit" class="btn-login-email">Continue with Email</button>
+            </form>
+            <p id="magic-status" class="status-msg"></p>
+        </div>
+    </div>
+
+    <!-- Dashboard Container -->
+    <div class="dashboard-container" id="main-dashboard" style="filter: blur(5px);">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <nav class="sidebar-nav">
+                <a href="#overview" class="nav-item active">
+                    <span class="nav-icon">📊</span>
+                    Overview
+                </a>
+                <a href="#downloads" class="nav-item">
+                    <span class="nav-icon">📱</span>
+                    Downloads
+                </a>
+                <a href="#settings" class="nav-item">
+                    <span class="nav-icon">⚙️</span>
+                    Settings
+                </a>
+                <a href="#activity" class="nav-item">
+                    <span class="nav-icon">📈</span>
+                    Activity
+                </a>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="dashboard-main">
+            <!-- Overview Section -->
+            <section id="overview" class="dashboard-section">
+                <h1 class="dashboard-title">Welcome Back</h1>
+
+                <!-- Profile Card -->
+                <div class="profile-card glass">
+                    <div class="profile-header">
+                        <div class="profile-avatar">🌱</div>
+                        <div class="profile-info">
+                            <h2 id="gardener-id">Gardener #####</h2>
+                            <p class="profile-status">
+                                <span class="status-indicator active"></span>
+                                Connected to Router
+                            </p>
+                        </div>
+                    </div>
+                    <div class="profile-stats">
+                        <div class="stat-card">
+                            <div class="stat-label">Nodes Discovered</div>
+                            <div class="stat-value" id="nodes-count">0</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">Data Shared</div>
+                            <div class="stat-value" id="data-shared">0 MB</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">Uptime</div>
+                            <div class="stat-value" id="uptime">0h</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Quick Actions -->
+                <div class="quick-actions">
+                    <h3>Quick Actions</h3>
+                    <div class="action-grid">
+                        <button class="action-card glass">
+                            <span class="action-icon">🔗</span>
+                            <span class="action-label">Link New Device</span>
+                        </button>
+                        <button class="action-card glass">
+                            <span class="action-icon">🔄</span>
+                            <span class="action-label">Refresh P2P Status</span>
+                        </button>
+                        <button class="action-card glass">
+                            <span class="action-icon">📥</span>
+                            <span class="action-label">Download APK</span>
+                        </button>
+                        <button class="action-card glass">
+                            <span class="action-icon">📋</span>
+                            <span class="action-label">View API Docs</span>
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Downloads Section -->
+            <section id="downloads" class="dashboard-section" style="display: none;">
+                <h1 class="dashboard-title">Downloads</h1>
+
+                <div class="download-list">
+                    <div class="download-item glass">
+                        <div class="download-info">
+                            <h3>Gardener v2.0.0</h3>
+                            <p>Android APK • Released Dec 27, 2025</p>
+                        </div>
+                        <div class="download-meta">
+                            <span class="download-size">24 MB</span>
+                            <button class="btn-download-small">Download</button>
+                        </div>
+                    </div>
+
+                    <div class="download-item glass">
+                        <div class="download-info">
+                            <h3>Gardener v2.0.0 Beta</h3>
+                            <p>iOS TestFlight • Released Dec 27, 2025</p>
+                        </div>
+                        <div class="download-meta">
+                            <span class="download-size">Beta</span>
+                            <button class="btn-download-small">Join TestFlight</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="version-history">
+                    <h3>Version History</h3>
+                    <div class="history-list">
+                        <div class="history-item">
+                            <span class="version-tag">v2.0.0</span>
+                            <span class="release-date">Dec 27, 2025</span>
+                            <span class="release-notes">Initial 2.0 release with P2P support</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Settings Section -->
+            <section id="settings" class="dashboard-section" style="display: none;">
+                <h1 class="dashboard-title">Settings</h1>
+
+                <div class="settings-card glass">
+                    <h3>API Credentials</h3>
+                    <form class="form-group" onsubmit="return false;">
+                        <label for="rd-key">Real-Debrid API Key</label>
+                        <!-- Accessibility: Hidden username -->
+                        <input type="text" name="username" autocomplete="username" style="display:none;">
+                        <input type="password" class="form-input" placeholder="••••••••" id="rd-key"
+                            autocomplete="new-password">
+                        <button class="btn-save">Save</button>
+                    </form>
+
+                    <form class="form-group" onsubmit="return false;">
+                        <label for="ad-key">AllDebrid API Key</label>
+                        <!-- Accessibility: Hidden username -->
+                        <input type="text" name="username" autocomplete="username" style="display:none;">
+                        <input type="password" class="form-input" placeholder="••••••••" id="ad-key"
+                            autocomplete="new-password">
+                        <button class="btn-save">Save</button>
+                    </form>
+                </div>
+
+                <div class="settings-card glass">
+                    <h3>Linking Token & Stremio Addon</h3>
+                    <div class="token-display">
+                        <code id="linking-token">Loading...</code>
+                        <button class="btn-copy">Copy</button>
+                    </div>
+                    <div style="margin-top: 1rem;">
+                        <button class="btn-install-addon"
+                            style="width: 100%; padding: 0.75rem; background: var(--aether-blue); border: none; border-radius: 8px; color: white; cursor: pointer; font-weight: 600;">
+                            🧩 Install to Stremio
+                        </button>
+                    </div>
+                    <p class="help-text">Use this token to link devices or install the private addon.</p>
+                </div>
+
+                <div class="settings-card glass danger-zone">
+                    <h3>Danger Zone</h3>
+                    <button class="btn-danger">Unlink All Devices</button>
+                    <button class="btn-danger">Delete Account</button>
+                </div>
+            </section>
+
+            <!-- Activity Section -->
+            <section id="activity" class="dashboard-section" style="display: none;">
+                <h1 class="dashboard-title">Activity Feed</h1>
+
+                <div class="activity-feed">
+                    <div class="activity-item glass">
+                        <span class="activity-icon">🔗</span>
+                        <div class="activity-content">
+                            <strong>Device Linked</strong>
+                            <span class="activity-time">2 hours ago</span>
+                        </div>
+                    </div>
+
+                    <div class="activity-item glass">
+                        <span class="activity-icon">📡</span>
+                        <div class="activity-content">
+                            <strong>Joined P2P Swarm</strong>
+                            <span class="activity-time">5 hours ago</span>
+                        </div>
+                    </div>
+
+                    <div class="activity-item glass">
+                        <span class="activity-icon">🌱</span>
+                        <div class="activity-content">
+                            <strong>Account Created</strong>
+                            <span class="activity-time">1 day ago</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="dashboard.js"></script>
+</body>
+
+</html>

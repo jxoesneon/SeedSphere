@@ -4,18 +4,19 @@ import 'package:router/scrapers/scraper_engine.dart';
 
 /// Scraper implementation for TorrentGalaxy.
 class TorrentGalaxyScraper extends BaseScraper {
+  /// List of mirrors for the TorrentGalaxy website.
   static const List<String> mirrors = [
     'https://torrentgalaxy.mx',
     'https://torrentgalaxy.to',
     'https://tgx.rs',
   ];
-  static String get defaultBase => mirrors[0];
 
   final http.Client _client;
 
+  /// Creates a new TorrentGalaxyScraper.
   TorrentGalaxyScraper({http.Client? client})
     : _client = client ?? http.Client(),
-      super(name: 'TorrentGalaxy', baseUrl: defaultBase);
+      super(name: 'TorrentGalaxy', baseUrl: 'https://torrentgalaxy.to');
 
   @override
   Future<List<Map<String, dynamic>>> scrape(String imdbId) async {
@@ -26,7 +27,7 @@ class TorrentGalaxyScraper extends BaseScraper {
 
       final searchQuery = Uri.encodeComponent(metaInfo['title'] as String);
       final url =
-          '$defaultBase/torrents.php?search=$searchQuery&sort=seeders&order=desc';
+          '$baseUrl/torrents.php?search=$searchQuery&sort=seeders&order=desc';
 
       final response = await _client
           .get(Uri.parse(url))

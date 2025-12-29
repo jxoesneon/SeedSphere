@@ -7,6 +7,7 @@ class MailerService {
   final String _fromEmail;
   final String _fromName;
 
+  /// Creates a MailerService instance using Brevo (formerly Sendinblue) SMTP.
   MailerService.brevo({
     required String apiKey,
     required String fromEmail,
@@ -20,6 +21,7 @@ class MailerService {
        _fromEmail = fromEmail,
        _fromName = fromName;
 
+  /// Creates a MailerService instance with custom SMTP server settings.
   MailerService.custom({
     required String host,
     required int port,
@@ -184,6 +186,7 @@ class MailerService {
   }
 
   // Quick notification templates
+  /// Template for a device linked notification.
   static Map<String, dynamic> deviceLinkedTemplate(String deviceName) => {
     'title': 'New Device Linked',
     'message':
@@ -191,6 +194,7 @@ class MailerService {
     'action_url': 'https://seedsphere.app/dashboard',
   };
 
+  /// Template for a security alert notification.
   static Map<String, dynamic> securityAlertTemplate(String reason) => {
     'title': 'Security Alert',
     'message':
@@ -198,6 +202,7 @@ class MailerService {
     'action_url': 'https://seedsphere.app/dashboard/security',
   };
 
+  /// Template for a system update notification.
   static Map<String, dynamic> systemUpdateTemplate(
     String version,
     String features,

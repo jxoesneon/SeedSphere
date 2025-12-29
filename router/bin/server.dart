@@ -42,12 +42,10 @@ final mailerService = MailerService.custom(
   password: Platform.environment['SMTP_PASS'] ?? '',
   fromEmail: Platform.environment['SMTP_FROM'] ?? 'noreply@seedsphere.app',
 );
-final scraperService = ScraperService();
+final trackerService = TrackerService(db, healthService)..init();
+final scraperService = ScraperService(trackerService);
 final addonService = AddonService(db, scraperService);
 final authService = AuthService(db, mailerService, linkingService);
-// Pass DB to tracker service now
-// Pass DB to tracker service now
-final trackerService = TrackerService(db, healthService)..init();
 final boostService = BoostService();
 final prefetchService = PrefetchService(scraperService);
 // Reuse Auth Secret for simplicity or generate new one.
@@ -464,16 +462,17 @@ void main(List<String> args) async {
   prefetchService.start();
 
   // Periodic Cleanup (Parity)
+  print('SeedSphere Router: Starting cleanup timer');
   Timer.periodic(const Duration(minutes: 15), (timer) {
     print('SeedSphere Router: Pruning expired data...');
     db.pruneExpiredData();
   });
 
-  final securePipeline = Pipeline().addMiddleware(
+  final securePipeline = const Pipeline().addMiddleware(
     securityMiddleware((g, s) async => db.getBindingSecret(g, s)),
   );
 
-  final handler = Pipeline()
+  final handler = const Pipeline()
       .addMiddleware(logRequests())
       .addMiddleware(corsHeaders())
       .addMiddleware(securityHardeningMiddleware())

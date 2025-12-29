@@ -245,10 +245,10 @@ packages:
     dependency: "direct main"
     description:
       name: dart_ipfs
-      sha256: "727ff6c270933c0dcf343e72fdbdbe1f38a402f478396780e8d3cd4a3316bfb4"
+      sha256: "8388c91099a04b00cb6323666f7cc3f90facd442224d6795b8d57cb686aa48ad"
       url: "https://pub.dev"
     source: hosted
-    version: "1.7.1"
+    version: "1.7.3"
   dart_lz4:
     dependency: transitive
     description:

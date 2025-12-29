@@ -6,6 +6,7 @@ import 'package:router/scrapers/scraper_engine.dart';
 class PirateBayScraper extends BaseScraper {
   final http.Client _client;
 
+  /// Creates a new PirateBayScraper.
   PirateBayScraper({http.Client? client})
     : _client = client ?? http.Client(),
       super(name: 'Pirate Bay', baseUrl: 'https://thepiratebay.org');

@@ -9,9 +9,15 @@ class LinkingService {
   final DbService _db;
   final _uuid = const Uuid();
 
+  /// Creates a new LinkingService.
   LinkingService(this._db);
 
   /// Starts a linking process for a Gardener.
+  ///
+  /// Generates a unique, time-limited token that a Seedling can use to complete the linking.
+  /// Optionally records the platform from which the linking was initiated.
+  ///
+  /// Returns a map containing the token, gardener ID, and its expiration time.
   Map<String, dynamic> startLinking(String gardenerId, {String? platform}) {
     final token = base64Url.encode(utf8.encode(_uuid.v4())).replaceAll('=', '');
     const ttlMs = 10 * 60 * 1000; // 10 minutes
@@ -30,6 +36,13 @@ class LinkingService {
   }
 
   /// Completes a linking process for a Seedling using a token.
+  ///
+  /// Verifies the provided token, checks binding limits, and if valid,
+  /// establishes a secure binding between the Gardener and Seedling.
+  /// A unique secret is generated for HMAC communication between the bound entities.
+  ///
+  /// Returns a map with binding details (gardener ID, seedling ID, secret) on success,
+  /// or `null` if the token is invalid or binding limits are exceeded.
   Map<String, dynamic>? completeLinking(String token, String seedlingId) {
     return _db.transaction(() {
       final tok = _db.getLinkToken(token);

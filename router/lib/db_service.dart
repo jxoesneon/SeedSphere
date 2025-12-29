@@ -176,12 +176,14 @@ class DbService {
     return result.map((row) => row['url'] as String).toList();
   }
 
-  /// Returns ALL trackers for synchronization (pagination support effectively needed on client,
-  /// but here we just dump or limit). Default limit 1000.
-  List<String> getTrackersSync({int limit = 2000}) {
+  /// Returns ALL trackers for synchronization.
+  List<String> getTrackers({int limit = 2000}) {
     final result = _db.select('SELECT url FROM trackers LIMIT ?', [limit]);
     return result.map((row) => row['url'] as String).toList();
   }
+
+  /// Alias for Gardeners to sync.
+  List<String> getTrackersSync({int limit = 2000}) => getTrackers(limit: limit);
 
   // --- Methods ---
 
@@ -231,6 +233,7 @@ class DbService {
     return result.first['secret'] as String;
   }
 
+  /// Creates a persistent binding between a [gardenerId] and [seedlingId].
   void createBinding(String gardenerId, String seedlingId, String secret) {
     final stmt = _db.prepare(
       'INSERT OR REPLACE INTO bindings (seedling_id, gardener_id, secret, created_at) VALUES (?, ?, ?, ?)',
@@ -256,6 +259,7 @@ class DbService {
     );
   }
 
+  /// Updates the `last_seen` timestamp for a Gardener.
   void touchGardener(String gardenerId) {
     final now = DateTime.now().millisecondsSinceEpoch;
     _db.execute('UPDATE gardeners SET last_seen = ? WHERE gardener_id = ?', [
@@ -264,6 +268,7 @@ class DbService {
     ]);
   }
 
+  /// Ingests or updates a Seedling record.
   void upsertSeedling(String seedlingId) {
     final now = DateTime.now().millisecondsSinceEpoch;
     _db.execute(
@@ -276,6 +281,7 @@ class DbService {
     );
   }
 
+  /// Creates a short-lived link token for identity verification.
   void createLinkToken(String token, String gardenerId, int ttlMs) {
     final now = DateTime.now().millisecondsSinceEpoch;
     final exp = now + ttlMs;
@@ -285,6 +291,7 @@ class DbService {
     );
   }
 
+  /// Retrieves and validates a link token.
   Map<String, dynamic>? getLinkToken(String token) {
     final stmt = _db.prepare(
       'SELECT token, gardener_id, expires_at FROM link_tokens WHERE token = ?',
@@ -296,10 +303,12 @@ class DbService {
     return row;
   }
 
+  /// Deletes a used or expired link token.
   void deleteLinkToken(String token) {
     _db.execute('DELETE FROM link_tokens WHERE token = ?', [token]);
   }
 
+  /// Returns the reputation score for a given [entityId].
   int getReputation(String entityId) {
     final stmt = _db.prepare(
       'SELECT score FROM reputation WHERE entity_id = ?',
@@ -309,6 +318,7 @@ class DbService {
     return result.first['score'] as int;
   }
 
+  /// Increments or decrements reputation for an entity.
   void updateReputation(String entityId, int delta) {
     final now = DateTime.now().millisecondsSinceEpoch;
     _db.execute(
@@ -321,6 +331,7 @@ class DbService {
     );
   }
 
+  /// Checks if an ID is present in the global whitelist.
   bool isWhitelisted(String id, String type) {
     final stmt = _db.prepare(
       'SELECT 1 FROM whitelist WHERE id = ? AND type = ?',
@@ -340,6 +351,7 @@ class DbService {
         ]);
   }
 
+  /// Performs background cleanup of expired tokens and sessions.
   void pruneExpiredData() {
     final now = DateTime.now().millisecondsSinceEpoch;
     // 1. Expire old pairings
@@ -360,8 +372,10 @@ class DbService {
     _db.prepare('DELETE FROM audit WHERE at < ?').execute([thirtyDaysAgo]);
   }
 
+  /// Closes the database connection.
   void close() => _db.dispose();
 
+  /// Returns the number of active bindings for a Gardener.
   int countBindingsForGardener(String gardenerId) {
     final result = _db
         .prepare('SELECT COUNT(*) as cnt FROM bindings WHERE gardener_id = ?')
@@ -369,6 +383,7 @@ class DbService {
     return result.first['cnt'] as int;
   }
 
+  /// Returns the number of active bindings for a Seedling.
   int countBindingsForSeedling(String seedlingId) {
     final result = _db
         .prepare('SELECT COUNT(*) as cnt FROM bindings WHERE seedling_id = ?')
@@ -428,6 +443,7 @@ class DbService {
     return user;
   }
 
+  /// Ingests or updates a User record, encrypting sensitive fields.
   void upsertUser({
     required String id,
     required String email,
@@ -464,6 +480,7 @@ class DbService {
     );
   }
 
+  /// Merges new settings into an existing user record with encryption.
   void updateUserSettings(String id, Map<String, dynamic> newSettings) {
     // 1. Fetch current raw (encrypted) settings directly to merge correctly
     final stmt = _db.prepare('SELECT settings_json FROM users WHERE id = ?');
@@ -497,6 +514,7 @@ class DbService {
     ]);
   }
 
+  /// Permanently removes a user and all their associated data.
   void deleteUser(String id) {
     // Delete user
     _db.execute('DELETE FROM users WHERE id = ?', [id]);

@@ -1,15 +1,23 @@
 import 'dart:async';
-import 'dart:convert';
 
 /// Represents a system activity event ("Boost").
 class BoostEvent {
-  final String
-  type; // e.g., 'stream_found', 'tracker_verified', 'peer_connected'
-  final String title; // Human readable title
-  final String details; // Extra info
+  /// The type of event (e.g., 'stream_found').
+  final String type;
+
+  /// Human readable title for the event.
+  final String title;
+
+  /// Extra descriptive information.
+  final String details;
+
+  /// When the event occurred (ms since epoch).
   final int timestamp;
+
+  /// Additional structured metadata.
   final Map<String, dynamic> metadata;
 
+  /// Creates a new BoostEvent.
   BoostEvent({
     required this.type,
     required this.title,
@@ -17,6 +25,7 @@ class BoostEvent {
     this.metadata = const {},
   }) : timestamp = DateTime.now().millisecondsSinceEpoch;
 
+  /// Converts the event to a JSON-encodable map.
   Map<String, dynamic> toJson() => {
     'type': type,
     'title': title,
@@ -34,7 +43,10 @@ class BoostService {
 
   // Singleton instance
   static final BoostService _instance = BoostService._internal();
+
+  /// Returns the singleton instance of BoostService.
   factory BoostService() => _instance;
+
   BoostService._internal();
 
   /// Adds a new event to the system.
@@ -67,6 +79,7 @@ class BoostService {
   /// Subscribes to the live event stream.
   Stream<BoostEvent> get stream => _controller.stream;
 
+  /// Closes the event stream.
   void dispose() {
     _controller.close();
   }

@@ -2,9 +2,11 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:router/scrapers/scraper_engine.dart';
 
+/// Scraper implementation for Zooqle.
 class ZooqleScraper extends BaseScraper {
   final http.Client _client;
 
+  /// Creates a new ZooqleScraper.
   ZooqleScraper({http.Client? client})
     : _client = client ?? http.Client(),
       super(name: 'Zooqle', baseUrl: 'https://zooqle.com');

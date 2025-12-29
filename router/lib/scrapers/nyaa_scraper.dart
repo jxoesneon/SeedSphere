@@ -6,6 +6,7 @@ import 'package:router/scrapers/scraper_engine.dart';
 class NyaaScraper extends BaseScraper {
   final http.Client _client;
 
+  /// Creates a new NyaaScraper.
   NyaaScraper({http.Client? client})
     : _client = client ?? http.Client(),
       super(name: 'Nyaa', baseUrl: 'https://nyaa.si');

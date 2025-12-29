@@ -11,10 +11,12 @@ class PairingManager {
   /// The P2P manager for network communication.
   final P2PManager p2p;
   final SecurityManager _security;
+  final http.Client _client;
 
   /// Creates a [PairingManager] instance.
-  PairingManager(this.p2p, {SecurityManager? security})
-      : _security = security ?? SecurityManager();
+  PairingManager(this.p2p, {SecurityManager? security, http.Client? client})
+      : _security = security ?? SecurityManager(),
+        _client = client ?? http.Client();
 
   /// Generates a base64-encoded pairing payload containing credentials.
   ///
@@ -77,8 +79,8 @@ class PairingManager {
     if (gardenerId == null) return null;
 
     try {
-      final baseUrl = 'https://seedsphere-router.fly.dev';
-      final response = await http.post(
+      const baseUrl = 'https://seedsphere-router.fly.dev';
+      final response = await _client.post(
         Uri.parse('$baseUrl/api/linking/start'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
@@ -100,8 +102,8 @@ class PairingManager {
   /// Polls the Router to complete the linking process and obtain the secret.
   Future<bool> completeLinkingWithToken(String token) async {
     try {
-      final baseUrl = 'https://seedsphere-router.fly.dev';
-      final response = await http.post(
+      const baseUrl = 'https://seedsphere-router.fly.dev';
+      final response = await _client.post(
         Uri.parse('$baseUrl/api/linking/complete'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'token': token, 'seedling_id': 'mobile-app'}),

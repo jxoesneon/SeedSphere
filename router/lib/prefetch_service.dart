@@ -18,8 +18,10 @@ class PrefetchService {
     'tt2861424',
   ]; // GoT, Breaking Bad, Cobra Kai
 
+  /// Creates a new PrefetchService.
   PrefetchService(this._scraper);
 
+  /// Starts the background cache warming process.
   void start() {
     print('PrefetchService: Starting background warmer...');
     // Initial warm
@@ -28,6 +30,7 @@ class PrefetchService {
     _timer = Timer.periodic(const Duration(hours: 6), (_) => _warm());
   }
 
+  /// Stops the background prefetching timer.
   void stop() {
     _timer?.cancel();
   }

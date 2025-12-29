@@ -2,9 +2,11 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:router/scrapers/scraper_engine.dart';
 
+/// Scraper implementation for Rutor.
 class RutorScraper extends BaseScraper {
   final http.Client _client;
 
+  /// Creates a new RutorScraper.
   RutorScraper({http.Client? client})
     : _client = client ?? http.Client(),
       super(name: 'Rutor', baseUrl: 'http://rutor.info');

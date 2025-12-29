@@ -2,9 +2,11 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:router/scrapers/scraper_engine.dart';
 
+/// Scraper implementation for Tokyo Tosho.
 class TokyoToshoScraper extends BaseScraper {
   final http.Client _client;
 
+  /// Creates a new TokyoToshoScraper.
   TokyoToshoScraper({http.Client? client})
     : _client = client ?? http.Client(),
       super(name: 'TokyoTosho', baseUrl: 'https://tokyotosho.info');

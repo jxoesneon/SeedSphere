@@ -1,9 +1,14 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 import 'dart:isolate';
 import 'package:dart_ipfs/dart_ipfs.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:http/http.dart' as http;
+import 'package:uuid/uuid.dart';
+import 'package:gardener/core/security_manager.dart';
 import 'package:gardener/p2p/p2p_protocol.dart';
 
 /// Provider for the [P2PManager] instance.
@@ -15,11 +20,6 @@ final p2pManagerProvider = Provider<P2PManager>((ref) {
   ref.onDispose(() => manager.stop());
   return manager;
 });
-
-import 'package:gardener/core/security_manager.dart';
-import 'package:gardener/p2p/p2p_protocol.dart';
-import 'package:http/http.dart' as http;
-import 'package:uuid/uuid.dart';
 
 /// Orchestrates the P2P networking layer using a background isolate.
 class P2PManager {
@@ -33,10 +33,15 @@ class P2PManager {
   /// Port used to receive messages from the background isolate.
   final ReceivePort _fromIsolatePort = ReceivePort();
 
-  final SecurityManager _security = SecurityManager();
+  final FlutterSecureStorage _storage;
+  final SecurityManager _security;
   bool _isInitialized = false;
   Timer? _heartbeatTimer;
   String? _gardenerId;
+
+  P2PManager({FlutterSecureStorage? storage, SecurityManager? security})
+      : _storage = storage ?? const FlutterSecureStorage(),
+        _security = security ?? SecurityManager();
 
   /// Whether the P2P isolate is started and the handshake is complete.
   bool get isInitialized => _isInitialized;
@@ -91,7 +96,7 @@ class P2PManager {
 
   Future<void> _sendHeartbeat() async {
     if (_gardenerId == null) return;
-    
+
     final secret = await _security.getSharedSecret();
     if (secret == null) {
       debugPrint('P2P: Heartbeat skipped (no shared secret)');
@@ -101,11 +106,11 @@ class P2PManager {
     final ts = DateTime.now().millisecondsSinceEpoch.toString();
     final nonce = const Uuid().v4();
     final body = jsonEncode({'status': 'active', 't': ts});
-    
+
     // In SeedSphere 2.0, the seedlingId during heartbeat is often fixed or derived
     // for self-presence. For parity linking, we use the gardenerId as seedling part
     // if it's a "solo" announcement, or the real seedlingId if known.
-    const seedlingId = 'self'; 
+    const seedlingId = 'self';
 
     final sig = await _security.generateHmacSignature(
       method: 'POST',
@@ -119,7 +124,7 @@ class P2PManager {
     if (sig == null) return;
 
     try {
-      final baseUrl = 'https://seedsphere-router.fly.dev';
+      const baseUrl = 'https://seedsphere-router.fly.dev';
       await http.post(
         Uri.parse('$baseUrl/api/rooms/$_gardenerId/heartbeat'),
         headers: {
@@ -192,6 +197,22 @@ class P2PManager {
     try {
       fromMainPort.send('P2P: Initializing IPFS Node...');
 
+      // 1. Configure Private Swarm
+      const swarmKey =
+          '/key/swarm/psk/1.0.0/\n/base16/\n4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a';
+
+      // Use default IPFS path logic (replicates Router behavior)
+      final home =
+          Platform.environment['HOME'] ?? Platform.environment['USERPROFILE'];
+      final repoPath =
+          Platform.environment['IPFS_PATH'] ?? '${home ?? "."}/.ipfs';
+
+      final repoDir = Directory(repoPath);
+      if (!repoDir.existsSync()) repoDir.createSync(recursive: true);
+
+      final keyFile = File('${repoDir.path}/swarm.key');
+      await keyFile.writeAsString(swarmKey);
+
       final IPFSNode node = await IPFSNode.create(
         IPFSConfig(
           offline: false,
@@ -200,15 +221,9 @@ class P2PManager {
               '/ip4/0.0.0.0/tcp/4001',
               '/ip4/0.0.0.0/udp/4001/quic'
             ],
+            // PRIVACY FIX: Only connect to trusted SeedSphere routers.
             bootstrapPeers: [
               '/dnsaddr/seedsphere-router.fly.dev/tcp/4001',
-              '/dnsaddr/bootstrap.libp2p.io/p2p/QmNnoo2uRhyMvRcrqQLmb7td3AddvXYZdqHqcSWtd4p5hc',
-              '/dnsaddr/bootstrap.libp2p.io/p2p/QmZa1s3K39YSUEB8iHUC8mcGEnmsVvYkjW4pToXyT9QByW',
-              '/dnsaddr/bootstrap.libp2p.io/p2p/QmcZf59bWwK5XFi76CZX8cbJ4BhTzzA3gU1ZjYZcYW3dwt',
-              '/dnsaddr/bootstrap.libp2p.io/p2p/QmNnooDu7bfjPFoTZYxMNLWUQJyrVwtbZg5gBMjTezGAJN',
-              '/dnsaddr/bootstrap.libp2p.io/p2p/QmbLHAnMoJPWSCR5Zhtx6BHJX9KiKNN6tpvbUcqanj75Nb',
-              '/dnsaddr/bootstrap.libp2p.io/p2p/QmQCU2EcMqAqQPR2i9bChDtGNJchTbq5TbXJJ16u19uLTa',
-              '/dnsaddr/bootstrap.libp2p.io/p2p/12D3KooWKnDdG3iXw9eTFijk3EWSunZcFi54Zka4wmtqtt6rPxc8',
             ],
           ),
         ),

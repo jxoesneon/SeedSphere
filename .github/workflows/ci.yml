@@ -1,9 +1,11 @@
 name: SeedSphere CI
 
 on:
-  schedule:
-    - cron: '0 2 * * *' # Daily at 2:00 AM
-  workflow_dispatch: # Allow manual runs
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch: 
 
 permissions:
   contents: read

@@ -11,8 +11,10 @@ class AddonService {
   final DbService _db;
   final ScraperService _scraper;
 
+  /// Creates a new AddonService.
   AddonService(this._db, this._scraper);
 
+  /// Returns the router representing the Stremio Addon routes.
   Router get router {
     final app = Router();
 

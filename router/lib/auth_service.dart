@@ -19,6 +19,7 @@ class AuthService {
   final String? _googleClientSecret;
   final LinkingService _linkingService;
 
+  /// Creates a new AuthService with the required system dependencies.
   AuthService(this._db, this._mailer, this._linkingService)
     : _jwtSecret =
           Platform.environment['AUTH_JWT_SECRET'] ?? _generateRandomSecret(),
@@ -43,6 +44,7 @@ class AuthService {
     return req.headers.containsKey('x-seedsphere-client');
   }
 
+  /// Returns the router representing the authentication and user management endpoints.
   Router get router {
     final app = Router();
 
@@ -166,7 +168,7 @@ class AuthService {
       final jwt = JWT({'sub': email, 'typ': 'magic'});
       final token = jwt.sign(
         SecretKey(_jwtSecret),
-        expiresIn: Duration(minutes: 15),
+        expiresIn: const Duration(minutes: 15),
       );
       final url = '${_baseUrl(req)}/api/auth/magic/callback?token=$token';
 

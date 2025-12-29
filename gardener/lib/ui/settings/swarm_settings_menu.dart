@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:gardener/ui/settings/cortex_settings.dart';
 import 'package:gardener/ui/settings/key_vault_settings.dart';
 import 'package:gardener/ui/settings/playback_settings.dart';
+
+import 'package:gardener/ui/settings/provider_settings.dart';
 import 'package:gardener/ui/settings/swarm_uplink_settings.dart';
 import 'package:gardener/ui/theme/aetheric_theme.dart';
 import 'package:gardener/ui/widgets/aetheric_glass.dart';
@@ -67,6 +69,13 @@ class SwarmSettingsMenu extends StatelessWidget {
             description: 'Sorting, Quality & Filters',
             onTap: () => Navigator.push(context,
                 MaterialPageRoute(builder: (_) => const PlaybackSettings())),
+          ),
+          _SettingsCard(
+            title: 'Providers',
+            icon: Icons.extension_rounded,
+            description: 'Manage Scrapers & Sources',
+            onTap: () => Navigator.push(context,
+                MaterialPageRoute(builder: (_) => const ProviderSettings())),
           ),
         ],
       ),

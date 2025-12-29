@@ -1,5 +1,18 @@
 import 'dart:async';
 import 'package:gardener/core/metadata_normalizer.dart';
+import 'package:gardener/scrapers/eztv_scraper.dart';
+import 'package:gardener/scrapers/nyaa_scraper.dart';
+import 'package:gardener/scrapers/x1337_scraper.dart';
+import 'package:gardener/scrapers/piratebay_scraper.dart';
+import 'package:gardener/scrapers/torrentgalaxy_scraper.dart';
+import 'package:gardener/scrapers/torlock_scraper.dart';
+import 'package:gardener/scrapers/magnetdl_scraper.dart';
+import 'package:gardener/scrapers/anidex_scraper.dart';
+import 'package:gardener/scrapers/tokyotosho_scraper.dart';
+import 'package:gardener/scrapers/zooqle_scraper.dart';
+import 'package:gardener/scrapers/rutor_scraper.dart';
+import 'package:gardener/scrapers/torrentio_scraper.dart';
+import 'package:gardener/scrapers/yts_scraper.dart';
 
 /// Base class for all torrent and stream metadata scrapers.
 ///
@@ -42,6 +55,25 @@ class ScraperEngine {
 
   /// Creates a [ScraperEngine] with the provided [scrapers].
   ScraperEngine({required this.scrapers});
+
+  /// Creates a [ScraperEngine] configured with all supported providers.
+  factory ScraperEngine.defaults() {
+    return ScraperEngine(scrapers: [
+      TorrentioScraper(),
+      YTSScraper(),
+      EztvScraper(),
+      NyaaScraper(),
+      X1337Scraper(),
+      PirateBayScraper(),
+      TorrentGalaxyScraper(),
+      TorlockScraper(),
+      MagnetDLScraper(),
+      AnidexScraper(),
+      TokyoToshoScraper(),
+      ZooqleScraper(),
+      RutorScraper(),
+    ]);
+  }
 
   /// Executes all configured scrapers for the given [imdbId] in parallel.
   ///

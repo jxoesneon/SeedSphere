@@ -2,14 +2,17 @@ import 'package:router/core/metadata_normalizer.dart';
 import 'package:router/scrapers/scraper_engine.dart';
 import 'package:http/http.dart' as http;
 
+import 'package:router/tracker_service.dart';
+
 /// Service that orchestrates metadata scraping from multiple sources.
 ///
 /// Uses [ScraperEngine] to fetch and [MetadataNormalizer] to standardize results.
 class ScraperService {
   final ScraperEngine _engine;
+  final TrackerService _trackers;
 
   /// Creates a new ScraperService instance.
-  ScraperService() : _engine = ScraperEngine.defaults();
+  ScraperService(this._trackers) : _engine = ScraperEngine.defaults();
 
   /// Map of known providers to probe.
   static const _providers = {
@@ -29,7 +32,7 @@ class ScraperService {
       try {
         final res = await http
             .head(Uri.parse(url))
-            .timeout(Duration(seconds: 5));
+            .timeout(const Duration(seconds: 5));
         sw.stop();
         return {
           'name': name,
@@ -43,7 +46,7 @@ class ScraperService {
         try {
           final res = await http
               .get(Uri.parse(url))
-              .timeout(Duration(seconds: 5));
+              .timeout(const Duration(seconds: 5));
           return {
             'name': name,
             'ok': res.statusCode < 500,
@@ -96,14 +99,27 @@ class ScraperService {
     }).toList();
 
     // Map to Stremio Stream format
-    return normalized.map((s) {
-      // Construct a basic Magnet stream
-      // Stremio 2.0 format
-      return {
+    final streams = <Map<String, dynamic>>[];
+    for (final s in normalized) {
+      // TRACKER MANAGEMENT CORRECTION: Inject optimized trackers
+      final optimized = await _trackers.optimize([]);
+      final bestTrackers = optimized['added'] as List<String>;
+
+      final infoHash = s['infoHash'] as String;
+      // Build magnet link with injected best trackers
+      final trackersPart = bestTrackers
+          .map((t) => 'tr=${Uri.encodeComponent(t)}')
+          .join('&');
+      final magnet =
+          'magnet:?xt=urn:btih:$infoHash${trackersPart.isNotEmpty ? '&$trackersPart' : ''}';
+
+      streams.add({
         'title': '${s['title']}\n👤 ${s['seeders']}  Sources: ${s['source']}',
-        'infoHash': s['infoHash'],
+        'infoHash': infoHash,
+        'url': magnet, // Inject the full magnet with corrected trackers
         'behaviorHints': {'bingeGroup': 'seedsphere-p2p'},
-      };
-    }).toList();
+      });
+    }
+    return streams;
   }
 }

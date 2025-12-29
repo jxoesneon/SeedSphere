@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description"
+        content="Technical documentation for SeedSphere 2.0. Learn about the P2P architecture, installation guides, and API reference.">
+    <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self' http://localhost:8080 https://seedsphere-router.fly.dev https://accounts.google.com; img-src 'self' data: https:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com;">
+    <title>Documentation — SeedSphere</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@100..900&display=swap" rel="stylesheet">
+    <link rel="icon" href="favicon.svg" type="image/svg+xml">
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        /* Docs-specific overrides */
+        .docs-container {
+            padding-top: 100px;
+            display: flex;
+            gap: 40px;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding-left: 20px;
+            padding-right: 20px;
+            padding-bottom: 60px;
+        }
+
+        .docs-sidebar {
+            width: 250px;
+            position: sticky;
+            top: 120px;
+            height: calc(100vh - 140px);
+            overflow-y: auto;
+            background: rgba(2, 6, 23, 0.5);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            padding: 24px;
+        }
+
+        .docs-nav-link {
+            display: block;
+            padding: 12px 16px;
+            color: var(--text-secondary);
+            text-decoration: none;
+            border-radius: 8px;
+            transition: all 0.2s;
+            margin-bottom: 4px;
+        }
+
+        .docs-nav-link:hover,
+        .docs-nav-link.active {
+            background: rgba(56, 189, 248, 0.1);
+            color: var(--aether-blue);
+        }
+
+        .docs-content {
+            flex: 1;
+            background: rgba(2, 6, 23, 0.5);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--glass-border);
+            border-radius: 24px;
+            padding: 40px;
+        }
+
+        .docs-section {
+            margin-bottom: 60px;
+        }
+
+        .doc-title {
+            font-size: 32px;
+            margin-bottom: 24px;
+            color: var(--text-primary);
+        }
+
+        .doc-p {
+            color: var(--text-secondary);
+            line-height: 1.6;
+            margin-bottom: 16px;
+            font-size: 16px;
+        }
+
+        code {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 2px 6px;
+            border-radius: 4px;
+            color: var(--aether-blue);
+            font-family: monospace;
+        }
+
+        pre {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 20px;
+            border-radius: 12px;
+            overflow-x: auto;
+            margin: 16px 0;
+            border: 1px solid var(--glass-border);
+        }
+
+        h2 {
+            margin-top: 32px;
+            margin-bottom: 16px;
+            color: var(--text-primary);
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Navigation -->
+    <nav class="glass-nav">
+        <div class="nav-container">
+            <div class="logo">
+                <span class="logo-symbol">🌱</span>
+                <span class="logo-text">SeedSphere docs</span>
+            </div>
+            <div class="nav-links">
+                <a href="index.html">Home</a>
+                <a href="dashboard.html" class="btn-primary">Dashboard</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="docs-container">
+        <aside class="docs-sidebar">
+            <h3 style="margin-bottom: 16px; color: var(--text-primary);">Guide</h3>
+            <a href="#intro" class="docs-nav-link active">Introduction</a>
+            <a href="#install" class="docs-nav-link">Installation</a>
+            <a href="#auth" class="docs-nav-link">Authentication</a>
+            <a href="#p2p" class="docs-nav-link">P2P Architecture</a>
+            <a href="#api" class="docs-nav-link">API Reference</a>
+        </aside>
+
+        <main class="docs-content">
+            <section id="intro" class="docs-section">
+                <h1 class="doc-title">Introduction to SeedSphere 2.0</h1>
+                <p class="doc-p">SeedSphere is a federated media discovery protocol. Unlike centralized services,
+                    SeedSphere relies on a swarm of user-operated nodes ("Gardeners") to index, metadata, and healthy
+                    signals for content.</p>
+                <p class="doc-p">This documentation covers the usage of the <strong>Gardener Client</strong>
+                    (Android/iOS) and the <strong>SeedSphere Bridge</strong>.</p>
+            </section>
+
+            <section id="install" class="docs-section">
+                <h1 class="doc-title">Installation</h1>
+                <h2>Android</h2>
+                <p class="doc-p">Download the APK from the dashboard or homepage. Allow "Install from Unknown Sources"
+                    if prompted.</p>
+                <pre><code>adb install seedsphere-gardener-v2.0.0.apk</code></pre>
+
+                <h2>iOS</h2>
+                <p class="doc-p">Join the TestFlight beta using the link on the dashboard. Slots are limited to 10,000
+                    users.</p>
+            </section>
+
+            <section id="auth" class="docs-section">
+                <h1 class="doc-title">Authentication</h1>
+                <p class="doc-p">SeedSphere uses a secure, passwordless authentication system.</p>
+                <ul>
+                    <li class="doc-p"><strong>Google OAuth</strong>: Standard secure login.</li>
+                    <li class="doc-p"><strong>Magic Link</strong>: Email-based JWT sign-in.</li>
+                </ul>
+                <p class="doc-p">Once authenticated, you receive a session cookie <code>seedsphere_session</code> which
+                    is valid for 30 days.</p>
+            </section>
+
+            <section id="p2p" class="docs-section">
+                <h1 class="doc-title">P2P Architecture</h1>
+                <p class="doc-p">Your device acts as a DHT node. It participates in:</p>
+                <ol>
+                    <li class="doc-p"><strong>Gossipsub</strong>: Broadcasting content health signals.</li>
+                    <li class="doc-p"><strong>Kademlia DHT</strong>: Storing distributed metadata.</li>
+                </ol>
+                <p class="doc-p">Port <code>2022</code> (UDP) must be open for optimal performance.</p>
+            </section>
+
+            <section id="api" class="docs-section">
+                <h1 class="doc-title">API Reference</h1>
+                <p class="doc-p">The Router exposes a REST API on port <code>8080</code>.</p>
+                <pre><code>GET /api/v1/health
+GET /api/v1/swarm/peers
+POST /api/auth/logout</code></pre>
+            </section>
+        </main>
+    </div>
+
+    <script>
+        // Simple active link highlighter
+        const links = document.querySelectorAll('.docs-nav-link');
+        links.forEach(link => {
+            link.addEventListener('click', () => {
+                links.forEach(l => l.classList.remove('active'));
+                link.classList.add('active');
+            });
+        });
+    </script>
+</body>
+
+</html>

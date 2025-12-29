@@ -14,7 +14,7 @@ void main() async {
   // 1. Sync
   print('1. Syncing tracker list...');
   // Force ingestion if empty logic isn't explicit, but ingestion runs on startup.
-  await Future.delayed(Duration(seconds: 2));
+  await Future.delayed(const Duration(seconds: 2));
 
   final syncRes = await http.get(Uri.parse('$router/api/trackers/sync'));
   print('Sync Status: ${syncRes.statusCode}');

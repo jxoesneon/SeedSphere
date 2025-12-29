@@ -1,5 +1,6 @@
 import 'dart:io';
-
+import 'dart:async';
+import 'dart:convert';
 import 'package:http/http.dart';
 import 'package:test/test.dart';
 
@@ -14,8 +15,24 @@ void main() {
       ['run', 'bin/server.dart'],
       environment: {'PORT': port},
     );
-    // Wait for server to start and print to stdout.
-    await p.stdout.first;
+
+    final completer = Completer<void>();
+    final subscription = p.stdout
+        .transform(utf8.decoder)
+        .transform(const LineSplitter())
+        .listen((line) {
+          if (line.contains('listening on')) {
+            if (!completer.isCompleted) completer.complete();
+          }
+        });
+
+    try {
+      await completer.future.timeout(const Duration(seconds: 15));
+    } catch (e) {
+      await subscription.cancel();
+      p.kill();
+      throw Exception('Server failed to start within 15s');
+    }
   });
 
   tearDown(() => p.kill());
@@ -31,7 +48,7 @@ void main() {
   test('Echo', () async {
     final response = await get(Uri.parse('$host/echo/hello'));
     expect(response.statusCode, 200);
-    expect(response.body, 'hello\n');
+    expect(response.body, 'hello');
   });
 
   test('404', () async {

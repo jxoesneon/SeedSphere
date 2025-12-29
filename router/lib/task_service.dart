@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'dart:math';
 import 'package:dart_jsonwebtoken/dart_jsonwebtoken.dart';
 
@@ -26,7 +25,10 @@ class TaskService {
     });
 
     // Sign with 5 min expiry
-    final token = jwt.sign(SecretKey(_secret), expiresIn: Duration(minutes: 5));
+    final token = jwt.sign(
+      SecretKey(_secret),
+      expiresIn: const Duration(minutes: 5),
+    );
 
     // Store completer to handle result (optional, if we want request-response flow)
     // For now, fire-and-forget or async result collection.

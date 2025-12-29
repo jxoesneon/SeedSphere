@@ -1,0 +1,5 @@
+analyzer:
+  exclude:
+    - dart_ipfs/**
+    - dart_ipfs/packages/**
+    - dart_ipfs/example/**

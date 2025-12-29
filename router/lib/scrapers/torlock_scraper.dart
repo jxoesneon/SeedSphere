@@ -2,9 +2,11 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:router/scrapers/scraper_engine.dart';
 
+/// Scraper implementation for Torlock.
 class TorlockScraper extends BaseScraper {
   final http.Client _client;
 
+  /// Creates a new TorlockScraper.
   TorlockScraper({http.Client? client})
     : _client = client ?? http.Client(),
       super(name: 'Torlock', baseUrl: 'https://www.torlock.com');

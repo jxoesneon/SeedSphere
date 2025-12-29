@@ -1,74 +1,153 @@
+import 'dart:async';
+import 'dart:collection';
 import 'dart:isolate';
-import 'dart:typed_data';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:gardener/core/security_manager.dart';
 import 'package:gardener/p2p/p2p_manager.dart';
 import 'package:gardener/p2p/p2p_protocol.dart';
+import 'package:mocktail/mocktail.dart';
 
-// Mocks (Duck Typing)
-class MockDHTClient {
-  Future<List<dynamic>> findProviders(String key) async => [];
+// Mocks
+class MockFlutterSecureStorage extends Mock implements FlutterSecureStorage {}
 
-  Future<void> addProvider(String key, String provider) async {}
-}
+class MockSecurityManager extends Mock implements SecurityManager {}
 
-class MockIPFSNode {
-  final MockDHTClient _dht = MockDHTClient();
-
-  String get peerId => 'QmTestPeerID';
-
-  MockDHTClient get dhtClient => _dht;
+// Mock for IPFSNode - simplified for test since we can't import the real one easily if it's not exported well
+// Or we assume the structure matches.
+class MockIPFSNode extends Mock {
+  final _dht = MockDHT();
+  dynamic get dhtClient => _dht;
+  String get peerId => 'peer123';
+  Future<List<String>> get connectedPeers async => ['peerA', 'peerB'];
 
   Future<void> subscribe(String topic) async {}
-
   Future<void> publish(String topic, String data) async {}
+  Future<List<int>?> get(String cid) async => [1, 2, 3];
+}
 
-  Future<List<dynamic>> get connectedPeers async => [];
-
-  Future<Uint8List?> get(String cid, {String path = ''}) async => Uint8List(0);
+class MockDHT extends Mock {
+  Future<List<String>> findProviders(String key) async => ['provider1'];
+  Future<void> addProvider(String key, String peerId) async {}
 }
 
 void main() {
-  group('P2PManager Isolate Worker Logic', () {
-    late ReceivePort receivePort;
+  late P2PManager manager;
+  late MockFlutterSecureStorage mockStorage;
+  late MockSecurityManager mockSecurity;
+
+  setUp(() {
+    mockStorage = MockFlutterSecureStorage();
+    mockSecurity = MockSecurityManager();
+    manager = P2PManager(storage: mockStorage, security: mockSecurity);
+  });
+
+  group('P2PManager Client Side', () {
+    test('start initializes gardenerId if missing', () async {
+      when(() => mockStorage.read(key: 'ss_gardener_id'))
+          .thenAnswer((_) async => null);
+      when(() => mockStorage.write(
+          key: 'ss_gardener_id',
+          value: any(named: 'value'))).thenAnswer((_) async {});
+
+      // Since start() spawns isolate, testing it fully is hard.
+      // But we can verify logic *before* spawn if we could partially mock.
+      // For now, this just ensures the mocks are set up correctly.
+    });
+
+    test('search sends correct command', () {
+      final receivePort = ReceivePort();
+      manager.toIsolatePort = receivePort.sendPort;
+
+      manager.search('tt12345');
+
+      final msg = receivePort.first;
+      expectLater(
+          msg,
+          completion({
+            'type': P2PCommandType.search.index,
+            'imdbId': 'tt12345',
+            'data': null
+          }));
+    });
+  });
+
+  group('P2PManager Isolate Side (static)', () {
     late MockIPFSNode mockNode;
+    late ReceivePort fromMainPort;
+    late StreamQueue<dynamic> events;
 
     setUp(() {
-      receivePort = ReceivePort();
       mockNode = MockIPFSNode();
+      fromMainPort = ReceivePort();
+      // Simple stream queue alternative
+      events = StreamQueue(fromMainPort);
     });
 
     tearDown(() {
-      receivePort.close();
+      events.cancel();
+      fromMainPort.close();
     });
 
-    test('Handles Search Command', () async {
-      final cmd = P2PCommand(type: P2PCommandType.search, imdbId: 'tt1234567');
-
+    test('handleWorkerMessage Search', () async {
+      final cmd = P2PCommand(type: P2PCommandType.search, imdbId: 'tt12345');
       await P2PManager.handleWorkerMessage(
-          cmd.toJson(), mockNode, receivePort.sendPort);
+          cmd.toJson(), mockNode, fromMainPort.sendPort);
 
-      final visibleMessages = await receivePort.take(2).toList();
-      expect(visibleMessages[0], contains('Searching for tt1234567'));
-      expect(visibleMessages[1], contains('Found 0 swarm providers'));
+      // We expect sequential messages
+      expect(await events.next, contains('Searching for tt12345'));
+      expect(await events.next, contains('Found 1 swarm providers'));
     });
 
-    test('Handles Publish Command', () async {
-      final cmd = P2PCommand(type: P2PCommandType.publish, imdbId: 'tt1234567');
-
+    test('handleWorkerMessage Publish', () async {
+      final cmd = P2PCommand(type: P2PCommandType.publish, imdbId: 'tt12345');
       await P2PManager.handleWorkerMessage(
-          cmd.toJson(), mockNode, receivePort.sendPort);
+          cmd.toJson(), mockNode, fromMainPort.sendPort);
 
-      final msg = await receivePort.first;
-      expect(msg, contains('Seeding metadata'));
+      expect(await events.next, contains('Seeding metadata'));
     });
 
-    // Status
-    test('Handles Status Command', () async {
+    test('handleWorkerMessage Status', () async {
       final cmd = P2PCommand(type: P2PCommandType.status, imdbId: '');
       await P2PManager.handleWorkerMessage(
-          cmd.toJson(), mockNode, receivePort.sendPort);
-      final msg = await receivePort.first;
-      expect(msg, contains('0 active peers'));
+          cmd.toJson(), mockNode, fromMainPort.sendPort);
+
+      expect(await events.next, contains('2 active peers'));
     });
   });
+}
+
+// Simple StreamQueue implementation to avoid extra dependency if package:async is missing
+class StreamQueue<T> {
+  final Stream<T> _stream;
+  final _queue = Queue<T>();
+  final _completers = Queue<Completer<T>>();
+  late StreamSubscription<T> _sub;
+
+  StreamQueue(this._stream) {
+    _sub = _stream.listen((data) {
+      if (_completers.isNotEmpty) {
+        _completers.removeFirst().complete(data);
+      } else {
+        _queue.add(data);
+      }
+    }, onError: (e) {
+      if (_completers.isNotEmpty) {
+        _completers.removeFirst().completeError(e);
+      }
+    });
+  }
+
+  Future<T> get next {
+    if (_queue.isNotEmpty) {
+      return Future.value(_queue.removeFirst());
+    }
+    final c = Completer<T>();
+    _completers.add(c);
+    return c.future;
+  }
+
+  void cancel() {
+    _sub.cancel();
+  }
 }

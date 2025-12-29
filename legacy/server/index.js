@@ -97,7 +97,7 @@ export async function createServer(opts = {}) {
       res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS')
       res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-SeedSphere-G, X-SeedSphere-Id, X-SeedSphere-Ts, X-SeedSphere-Nonce, X-SeedSphere-Sig')
       // Optional: do not set Allow-Credentials to keep wildcard compatibility
-      try { writeAudit('cors', { ip: req.ip, origin, method: req.method, path: req.originalUrl || req.url }) } catch (_) {}
+      try { writeAudit('cors', { ip: req.ip, origin, method: req.method, path: req.originalUrl || req.url }) } catch (_) { }
       if (req.method === 'OPTIONS') return res.sendStatus(204)
     } catch (_) { /* ignore */ }
     next()
@@ -151,7 +151,7 @@ export async function createServer(opts = {}) {
       const secret = getBindingSecret(gardener_id, seedling_id)
       if (!secret) return res.status(401).json({ ok: false, error: 'no_binding' })
       if (!verifySignature(secret, req)) return res.status(401).json({ ok: false, error: 'bad_signature' })
-      try { touchGardener(gardener_id) } catch (_) {}
+      try { touchGardener(gardener_id) } catch (_) { }
       publish(gardener_id, 'heartbeat', { t: Date.now(), seedling_id })
       res.setHeader('Cache-Control', 'no-store')
       return res.json({ ok: true })
@@ -308,11 +308,11 @@ export async function createServer(opts = {}) {
     try {
       const sample = Math.max(0, Math.min(1, Number(process.env.TELEMETRY_SAMPLE || '1')))
       if (Math.random() <= sample) {
-        try { writeAudit('telemetry', { ip: req.ip, ua: req.get('user-agent') || '', body: req.body }) } catch (_) {}
+        try { writeAudit('telemetry', { ip: req.ip, ua: req.get('user-agent') || '', body: req.body }) } catch (_) { }
       }
       const url = process.env.TELEMETRY_URL
       if (url) {
-        try { await axios.post(url, req.body, { timeout: 2000 }).catch(() => {}) } catch (_) {}
+        try { await axios.post(url, req.body, { timeout: 2000 }).catch(() => { }) } catch (_) { }
       }
       res.setHeader('Cache-Control', 'no-store')
       return res.json({ ok: true })
@@ -387,13 +387,13 @@ export async function createServer(opts = {}) {
     res.setHeader('Cache-Control', 'no-cache, no-transform')
     res.setHeader('Connection', 'keep-alive')
     res.flushHeaders && res.flushHeaders()
-    try { res.write(`retry: 2000\n\n`) } catch (_) {}
-    const writeEvent = (event, data) => { try { if (event) res.write(`event: ${event}\n`); res.write(`data: ${JSON.stringify(data)}\n\n`) } catch (_) {} }
+    try { res.write(`retry: 2000\n\n`) } catch (_) { }
+    const writeEvent = (event, data) => { try { if (event) res.write(`event: ${event}\n`); res.write(`data: ${JSON.stringify(data)}\n\n`) } catch (_) { } }
     writeEvent('init', { gardener_id, t: Date.now(), clients: 1 })
-    try { touchRoom(gardener_id); touchGardener(gardener_id) } catch (_) {}
+    try { touchRoom(gardener_id); touchGardener(gardener_id) } catch (_) { }
     const unsubscribe = subscribe(gardener_id, res)
-    const hb = setInterval(() => { try { touchGardener(gardener_id); res.write(`:keepalive\n\n`) } catch (_) {} }, 15000)
-    const close = () => { try { clearInterval(hb) } catch (_) {} try { unsubscribe && unsubscribe() } catch (_) {} try { res.end() } catch (_) {} }
+    const hb = setInterval(() => { try { touchGardener(gardener_id); res.write(`:keepalive\n\n`) } catch (_) { } }, 15000)
+    const close = () => { try { clearInterval(hb) } catch (_) { } try { unsubscribe && unsubscribe() } catch (_) { } try { res.end() } catch (_) { } }
     req.on('close', close)
     req.on('aborted', close)
   })
@@ -407,7 +407,7 @@ export async function createServer(opts = {}) {
     res.setHeader('Connection', 'keep-alive')
     res.flushHeaders && res.flushHeaders()
     // Recommend reconnect delay
-    try { res.write(`retry: 2000\n\n`) } catch (_) {}
+    try { res.write(`retry: 2000\n\n`) } catch (_) { }
 
     const writeEvent = (event, data) => {
       try {
@@ -417,10 +417,10 @@ export async function createServer(opts = {}) {
     }
 
     writeEvent('init', { room_id, t: Date.now(), clients: 1 })
-    try { touchRoom(room_id) } catch (_) {}
+    try { touchRoom(room_id) } catch (_) { }
     const unsubscribe = subscribe(room_id, res)
-    const hb = setInterval(() => { try { res.write(`:keepalive\n\n`) } catch (_) {} }, 15000)
-    const close = () => { try { clearInterval(hb) } catch (_) {} try { unsubscribe && unsubscribe() } catch (_) {} try { res.end() } catch (_) {} }
+    const hb = setInterval(() => { try { res.write(`:keepalive\n\n`) } catch (_) { } }, 15000)
+    const close = () => { try { clearInterval(hb) } catch (_) { } try { unsubscribe && unsubscribe() } catch (_) { } try { res.end() } catch (_) { } }
     req.on('close', close)
     req.on('aborted', close)
   })
@@ -436,7 +436,9 @@ export async function createServer(opts = {}) {
         params: body.params || {},
         aud: 'executor',
       }
-      const secret = process.env.AUTH_JWT_SECRET || 'dev-secret'
+      const secret = process.env.AUTH_JWT_SECRET
+      if (!secret) throw new Error('AUTH_JWT_SECRET must be set')
+
       const token = jwt.sign(task, secret, { expiresIn: '5m' })
       // Publish notify event to room that a task is available (optional)
       publish(room_id, 'task', { token, type: task.type })
@@ -463,7 +465,7 @@ export async function createServer(opts = {}) {
         try { normalized = normalize(data) } catch (_) { /* ignore */ }
       }
       // Store in cache (best-effort)
-      try { setCacheRow(`task:${room_id}:${Date.now()}`, { normalized, raw: data }, 5 * 60_000) } catch (_) {}
+      try { setCacheRow(`task:${room_id}:${Date.now()}`, { normalized, raw: data }, 5 * 60_000) } catch (_) { }
       // Publish to room
       publish(room_id || 'default', 'result', { ok: true, normalized, raw: data })
       res.setHeader('Cache-Control', 'no-store')
@@ -535,7 +537,7 @@ export async function createServer(opts = {}) {
       const healthy = await filterByHealth(urls, mode, limit)
       const payload = { ok: true, total: urls.length, healthy: healthy.length, limit, mode, sample: healthy.slice(0, 10) }
       if (full) payload.list = healthy
-      try { setLastFetch(Date.now()) } catch (_) {}
+      try { setLastFetch(Date.now()) } catch (_) { }
       res.setHeader('Cache-Control', 'no-store')
       return res.json(payload)
     } catch (e) {
@@ -560,7 +562,7 @@ export async function createServer(opts = {}) {
       res.setHeader('Connection', 'keep-alive')
       res.flushHeaders && res.flushHeaders()
       // Hint browser to retry after 2s on disconnect
-      try { res.write(`retry: 2000\n\n`) } catch (_) {}
+      try { res.write(`retry: 2000\n\n`) } catch (_) { }
 
       const writeEvent = (event, data) => {
         try {
@@ -623,7 +625,7 @@ export async function createServer(opts = {}) {
       writeEvent('progress', { processed: 0, healthy: 0, total: urls.length })
 
       let cancelled = false
-      const onClose = () => { cancelled = true; try { res.end() } catch (_) {} }
+      const onClose = () => { cancelled = true; try { res.end() } catch (_) { } }
       req.on('close', onClose)
       req.on('aborted', onClose)
 
@@ -636,7 +638,7 @@ export async function createServer(opts = {}) {
           writeEvent('progress', { processed: p.processed, healthy: p.healthy, total: urls.length })
         })
         if (cancelled) return
-        try { setLastFetch(Date.now()) } catch (_) {}
+        try { setLastFetch(Date.now()) } catch (_) { }
         const payload = { ok: true, total: urls.length, healthy: healthy.length, limit, mode }
         if (full) payload.list = healthy
         else payload.sample = healthy.slice(0, 10)
@@ -644,8 +646,8 @@ export async function createServer(opts = {}) {
       } catch (e) {
         writeEvent('error', { ok: false, error: e.message || 'sweep_failed' })
       } finally {
-        try { clearInterval(hb) } catch (_) {}
-        try { res.end() } catch (_) {}
+        try { clearInterval(hb) } catch (_) { }
+        try { res.end() } catch (_) { }
       }
     } catch (_) {
       return res.status(500).end()
@@ -840,7 +842,7 @@ export async function createServer(opts = {}) {
 
   // Dynamic manifest: include gardener_id (non-standard field) without duplicating manifest
   app.get(['/manifest.json', '/manifest'], (req, res) => {
-    try { console.log('[manifest] request', { ip: req.ip, ua: req.headers['user-agent'], q: req.query, accept: req.headers.accept || '' }) } catch (_) {}
+    try { console.log('[manifest] request', { ip: req.ip, ua: req.headers['user-agent'], q: req.query, accept: req.headers.accept || '' }) } catch (_) { }
     try {
       // If the manifest URL is opened in a browser/webview (Accept includes text/html),
       // redirect to /configure to show the UI instead of returning JSON.
@@ -848,9 +850,9 @@ export async function createServer(opts = {}) {
       const accept = String(req.headers.accept || '').toLowerCase()
       if (accept.includes('text/html')) {
         let seedling_id = ''
-        try { seedling_id = String(req.cookies.seedling_id || '').trim() } catch (_) {}
+        try { seedling_id = String(req.cookies.seedling_id || '').trim() } catch (_) { }
         if (!seedling_id) {
-          try { seedling_id = nanoid(); res.cookie('seedling_id', seedling_id, { maxAge: 365 * 24 * 60 * 60 * 1000, sameSite: 'lax', secure: isProd, httpOnly: false, path: '/' }) } catch (_) {}
+          try { seedling_id = nanoid(); res.cookie('seedling_id', seedling_id, { maxAge: 365 * 24 * 60 * 60 * 1000, sameSite: 'lax', secure: isProd, httpOnly: false, path: '/' }) } catch (_) { }
         }
         const gardener_id = String(req.query.gardener_id || '').trim()
         const baseOrigin = (() => {
@@ -925,15 +927,15 @@ export async function createServer(opts = {}) {
     '/manifest.variant.experiment/manifest.json',
     '/manifest.variant.experiment/manifest'
   ], (req, res) => {
-    try { console.log('[manifest.experiment] request', { ip: req.ip, ua: req.headers['user-agent'], q: req.query }) } catch (_) {}
+    try { console.log('[manifest.experiment] request', { ip: req.ip, ua: req.headers['user-agent'], q: req.query }) } catch (_) { }
     try {
       // If opened in a browser/webview (Accept includes text/html), redirect to /configure
       const accept = String(req.headers.accept || '').toLowerCase()
       if (accept.includes('text/html')) {
         let seedling_id = ''
-        try { seedling_id = String(req.cookies.seedling_id || '').trim() } catch (_) {}
+        try { seedling_id = String(req.cookies.seedling_id || '').trim() } catch (_) { }
         if (!seedling_id) {
-          try { seedling_id = nanoid(); res.cookie('seedling_id', seedling_id, { maxAge: 365 * 24 * 60 * 60 * 1000, sameSite: 'lax', secure: isProd, httpOnly: false, path: '/' }) } catch (_) {}
+          try { seedling_id = nanoid(); res.cookie('seedling_id', seedling_id, { maxAge: 365 * 24 * 60 * 60 * 1000, sameSite: 'lax', secure: isProd, httpOnly: false, path: '/' }) } catch (_) { }
         }
         const gardener_id = String(req.query.gardener_id || '').trim()
         const baseOrigin = (() => {
@@ -973,7 +975,7 @@ export async function createServer(opts = {}) {
 
       // Ensure a per-client seedling_id (persisted in cookie)
       let seedling_id = ''
-      try { seedling_id = String(req.cookies.seedling_id || '').trim() } catch (_) {}
+      try { seedling_id = String(req.cookies.seedling_id || '').trim() } catch (_) { }
       if (!seedling_id) {
         try {
           seedling_id = nanoid()
@@ -1028,15 +1030,15 @@ export async function createServer(opts = {}) {
     '/manifest.variant/:key.json',
     '/manifest.variant/:key'
   ], (req, res) => {
-    try { console.log('[manifest.variant] request', { key: req.params.key, ip: req.ip, ua: req.headers['user-agent'], q: req.query }) } catch (_) {}
+    try { console.log('[manifest.variant] request', { key: req.params.key, ip: req.ip, ua: req.headers['user-agent'], q: req.query }) } catch (_) { }
     try {
       // If opened in a browser/webview (Accept includes text/html), redirect to /configure
       const accept = String(req.headers.accept || '').toLowerCase()
       if (accept.includes('text/html')) {
         let seedling_id = ''
-        try { seedling_id = String(req.cookies.seedling_id || '').trim() } catch (_) {}
+        try { seedling_id = String(req.cookies.seedling_id || '').trim() } catch (_) { }
         if (!seedling_id) {
-          try { seedling_id = nanoid(); res.cookie('seedling_id', seedling_id, { maxAge: 365 * 24 * 60 * 60 * 1000, sameSite: 'lax', secure: isProd, httpOnly: false, path: '/' }) } catch (_) {}
+          try { seedling_id = nanoid(); res.cookie('seedling_id', seedling_id, { maxAge: 365 * 24 * 60 * 60 * 1000, sameSite: 'lax', secure: isProd, httpOnly: false, path: '/' }) } catch (_) { }
         }
         const gardener_id = String(req.query.gardener_id || '').trim()
         const baseOrigin = (() => {
@@ -1076,7 +1078,7 @@ export async function createServer(opts = {}) {
 
       // Ensure a per-client seedling_id (persisted in cookie)
       let seedling_id = ''
-      try { seedling_id = String(req.cookies.seedling_id || '').trim() } catch (_) {}
+      try { seedling_id = String(req.cookies.seedling_id || '').trim() } catch (_) { }
       if (!seedling_id) {
         try {
           seedling_id = nanoid()
@@ -1145,7 +1147,7 @@ export async function createServer(opts = {}) {
   // Mount Stremio SDK router (serves /stream/*); our manifest override stays above
   // Log incoming stream requests for observability
   app.use('/stream', (req, _res, next) => {
-    try { console.log('[stream] incoming', { path: req.originalUrl || req.url, ua: req.headers['user-agent'] || '' }) } catch (_) {}
+    try { console.log('[stream] incoming', { path: req.originalUrl || req.url, ua: req.headers['user-agent'] || '' }) } catch (_) { }
     touchActive()
     next()
   })
@@ -1186,7 +1188,7 @@ export async function createServer(opts = {}) {
       // Attempt cached first if exists
       const cached = getCacheRow(cacheKey)
       if (cached) {
-        try { res.setHeader('Cache-Control', 'no-store') } catch (_) {}
+        try { res.setHeader('Cache-Control', 'no-store') } catch (_) { }
         const payload = JSON.parse(Buffer.from(cached.payload_json).toString('utf8'))
         return res.json(payload)
       }
@@ -1202,7 +1204,7 @@ export async function createServer(opts = {}) {
           ])
           if (result && result.streams) {
             // weekly capped cache write
-            try { setCacheRowWeeklyCapped(cacheKey, result, 7 * 24 * 60 * 60_000) } catch (_) {}
+            try { setCacheRowWeeklyCapped(cacheKey, result, 7 * 24 * 60 * 60_000) } catch (_) { }
             res.setHeader('Cache-Control', 'no-store')
             return res.json(result)
           }
@@ -1396,7 +1398,7 @@ export async function createServer(opts = {}) {
         async function next() {
           if (i >= jobs.length) return
           const idx = i++
-          try { await jobs[idx] } catch (_) {}
+          try { await jobs[idx] } catch (_) { }
           return next()
         }
         const runners = Array.from({ length: Math.min(CONCURRENCY, jobs.length) }, () => next())
@@ -1404,8 +1406,8 @@ export async function createServer(opts = {}) {
       }
 
       // Initial warm shortly after start, then on interval
-      setTimeout(() => { prefetchPopular().catch(() => {}) }, 2000)
-      setInterval(() => { prefetchPopular().catch(() => {}) }, PREFETCH_INTERVAL_MS)
+      setTimeout(() => { prefetchPopular().catch(() => { }) }, 2000)
+      setInterval(() => { prefetchPopular().catch(() => { }) }, PREFETCH_INTERVAL_MS)
     } catch (_) { /* ignore scheduler errors */ }
   }
 

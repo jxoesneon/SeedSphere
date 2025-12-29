@@ -4,16 +4,19 @@ import 'package:router/scrapers/scraper_engine.dart';
 
 /// Scraper implementation for the 1337x provider (General).
 class X1337Scraper extends BaseScraper {
+  /// List of mirrors for the 1337x website.
   static const List<String> mirrors = [
     'https://www.1377x.to',
     'https://www.1337x.to',
     'https://1337x.to',
   ];
 
+  /// Returns the default base URL from the list of mirrors.
   static String get defaultBase => mirrors[0];
 
   final http.Client _client;
 
+  /// Creates a new X1337Scraper.
   X1337Scraper({http.Client? client})
     : _client = client ?? http.Client(),
       super(name: '1337x', baseUrl: defaultBase);

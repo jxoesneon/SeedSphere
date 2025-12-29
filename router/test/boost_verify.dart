@@ -26,7 +26,7 @@ void main() async {
   // 3. Poll for update
   print('3. Checking for update...');
   for (int i = 0; i < 5; i++) {
-    await Future.delayed(Duration(milliseconds: 500));
+    await Future.delayed(const Duration(milliseconds: 500));
     final res = await http.get(Uri.parse('$router/api/boosts/recent'));
     final items = (jsonDecode(res.body)['items'] as List);
     if (items.length > initialCount) {

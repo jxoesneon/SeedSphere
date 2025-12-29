@@ -3,13 +3,25 @@ import 'package:uuid/uuid.dart';
 
 /// Represents a pairing session between a Gardener and a Seedling.
 class PairingSession {
+  /// Unique session identifier.
   final String id;
+
+  /// Numeric PIN used for pairing.
   final String pin;
+
+  /// When the session was initialized.
   final DateTime createdAt;
+
+  /// The Gardener ID participating in the pairing.
   String? gardenerId;
+
+  /// The Seedling ID participating in the pairing.
   String? seedlingId;
+
+  /// Whether the pairing process has finished successfully.
   bool isComplete;
 
+  /// Creates a new PairingSession.
   PairingSession({
     required this.id,
     required this.pin,
@@ -19,6 +31,7 @@ class PairingSession {
     this.isComplete = false,
   });
 
+  /// Converts the session to a JSON map.
   Map<String, dynamic> toJson() => {
     'id': id,
     'pin': pin,

@@ -2,9 +2,11 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:router/scrapers/scraper_engine.dart';
 
+/// Scraper implementation for MagnetDL.
 class MagnetDLScraper extends BaseScraper {
   final http.Client _client;
 
+  /// Creates a new MagnetDLScraper.
   MagnetDLScraper({http.Client? client})
     : _client = client ?? http.Client(),
       super(name: 'MagnetDL', baseUrl: 'https://www.magnetdl.com');
