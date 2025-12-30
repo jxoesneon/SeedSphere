@@ -48,8 +48,6 @@ void main() {
     expect(response.body, contains('"status":"active"'));
   });
 
-
-
   test('404', () async {
     final response = await get(Uri.parse('$host/foobar'));
     expect(response.statusCode, 404);
