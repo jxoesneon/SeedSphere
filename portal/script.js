@@ -267,31 +267,31 @@ function detectPlatform() {
     if (ua.includes('android')) {
         detectedOS = 'android';
         downloadUrl = 'https://github.com/jxoesneon/SeedSphere/releases/latest/download/gardener-android-apk.zip';
-        icon = '';
+        icon = '🤖';
         name = 'Android APK';
-        desc = 'ARM64/x64/x86  Universal';
+        desc = 'ARM64/x64/x86 • Universal';
     } else if (ua.includes('iphone') || ua.includes('ipad')) {
         detectedOS = 'ios';
         downloadUrl = 'https://github.com/jxoesneon/SeedSphere/releases/latest';
-        icon = '';
+        icon = '🍎';
         name = 'iOS';
         desc = 'Requires manual signing';
     } else if (platform.includes('win') || ua.includes('windows')) {
         detectedOS = 'windows';
         downloadUrl = 'https://github.com/jxoesneon/SeedSphere/releases/latest/download/gardener-windows-x64.zip';
-        icon = '';
+        icon = '🪟';
         name = 'Windows x64';
         desc = 'Windows 10/11';
     } else if (platform.includes('mac') || ua.includes('mac os x')) {
         detectedOS = 'macos';
         downloadUrl = 'https://github.com/jxoesneon/SeedSphere/releases/latest/download/gardener-macos.zip';
-        icon = '';
+        icon = '🍏';
         name = 'macOS';
         desc = 'Universal (Apple Silicon & Intel)';
     } else if (platform.includes('linux') || ua.includes('linux')) {
         detectedOS = 'linux';
         downloadUrl = 'https://github.com/jxoesneon/SeedSphere/releases/latest/download/gardener-linux-x64.zip';
-        icon = '';
+        icon = '🐧';
         name = 'Linux x64';
         desc = 'Ubuntu 20.04+ / Debian 11+';
     }
