@@ -20,7 +20,7 @@ publish_to: "none"
 version: 1.9.1
 
 environment:
-  sdk: ^3.8.0
+  sdk: ^3.2.0
 
 dependencies:
   flutter:
@@ -51,7 +51,7 @@ dependencies:
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  flutter_lints: ^6.0.0
+  flutter_lints: ^4.0.0
   mocktail: ^1.0.4
   flutter_background_service_android: ^6.3.1
 
