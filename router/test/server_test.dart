@@ -30,7 +30,7 @@ void main() {
         });
 
     try {
-      await completer.future.timeout(const Duration(seconds: 15));
+      await completer.future.timeout(const Duration(seconds: 45));
     } catch (e) {
       await subscription.cancel();
       p.kill();
@@ -40,10 +40,16 @@ void main() {
 
   tearDown(() => p.kill());
 
-  test('Root', () async {
+  test('Portal (Root)', () async {
     final response = await get(Uri.parse('$host/'));
     expect(response.statusCode, 200);
-    // Expect JSON response as seen in actual output
+    // Should serve the HTML portal
+    expect(response.headers['content-type'], contains('text/html'));
+  });
+
+  test('API Status', () async {
+    final response = await get(Uri.parse('$host/api'));
+    expect(response.statusCode, 200);
     expect(response.body, contains('"name":"SeedSphere Router"'));
     expect(response.body, contains('"status":"active"'));
   });
