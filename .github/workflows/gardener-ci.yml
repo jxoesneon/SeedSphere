@@ -161,7 +161,7 @@ jobs:
         # Flutter defaults to x64 on x64 runners, needing manual config for universal/arm64 often,
         # but 'flutter build macos' typically builds for the runner architecture.
         # To strictly test, we build.
-        run: flutter build macos --release --no-codesign
+        run: flutter build macos --release
 
       - name: Upload macOS Build
         uses: actions/upload-artifact@v4
