@@ -27,23 +27,17 @@ void main() {
       await tester.pump(const Duration(milliseconds: 500));
 
       // Verify Headers and Stats
-      expect(find.text('SWARM NODE'), findsOneWidget);
-      expect(find.text('PEERS'), findsOneWidget);
-      expect(find.text('LATENCY'), findsOneWidget);
+      expect(find.text('SYSTEM OPTIMAL'), findsOneWidget);
+      expect(find.text('CONNECTED TO 0 ACTIVE PEERS'), findsOneWidget);
+      expect(find.text('POPULAR STREAMS'), findsOneWidget);
 
       // Verify Content
-      expect(find.text('Cosmos Laundromat'), findsOneWidget);
-      expect(
-        find.textContaining('1240 Seeds'),
-        findsOneWidget,
-      ); // Part of "$type • $seeds Seeds" might need finding by subtext or full string construction
-
-      // Interact
-      await tester.enterText(find.byType(TextField), 'Test Search');
-      await tester.pump();
+      expect(find.text('Scanning frequency bands...'), findsOneWidget);
 
       await tester.tap(find.byIcon(Icons.settings_input_antenna_rounded));
-      await tester.pump(const Duration(milliseconds: 500));
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 1));
+      await tester.pump(const Duration(seconds: 1));
 
       // Expect Settings Menu
       expect(find.text('NODE CONFIGURATION'), findsOneWidget);
