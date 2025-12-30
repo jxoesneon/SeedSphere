@@ -4,6 +4,7 @@
   "description": "SeedSphere Federated P2P Discovery Bridge",
   "main": "src/index.ts",
   "scripts": {
+    "build": "echo 'No build step required'",
     "deploy": "wrangler deploy",
     "dev": "wrangler dev",
     "start": "wrangler dev",
