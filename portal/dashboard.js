@@ -270,7 +270,6 @@ function setupInteractions() {
   actionCards.forEach((card, index) => {
     card.addEventListener("click", () => {
       const actions = [
-      const actions = [
         () => {
           // Link new device
           const token = document.getElementById("linking-token").textContent;
