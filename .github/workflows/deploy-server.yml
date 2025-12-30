@@ -6,6 +6,7 @@ on:
     paths:
       - "router/**"
       - "bridge/**"
+      - "portal/**"
       - ".github/workflows/deploy-server.yml"
   workflow_dispatch:
 
