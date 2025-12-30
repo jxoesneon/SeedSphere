@@ -152,19 +152,6 @@ Future<Response> _handleReleases(Request req) async {
   }
 }
 
-/// Root handler returning server status and version info.
-Response _rootHandler(Request req) {
-  return Response.ok(
-    jsonEncode({
-      'name': 'SeedSphere Router',
-      'version': '2.0.0',
-      'status': 'active',
-      'mode': 'Federated Frontier (Parity)',
-    }),
-    headers: {'content-type': 'application/json'},
-  );
-}
-
 /// Health check endpoint for monitoring uptime.
 Response _healthHandler(Request req) {
   return Response.ok(
