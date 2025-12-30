@@ -172,12 +172,16 @@ class AuthService {
       );
       final url = '${_baseUrl(req)}/api/auth/magic/callback?token=$token';
 
-      await _mailer.sendEmail(
+      final sent = await _mailer.sendEmail(
         to: email,
         subject: 'Sign in to SeedSphere',
         body: 'Click here to sign in: $url', // Simplified for now
         isHtml: false,
       );
+
+      if (!sent) {
+        return Response.internalServerError(body: 'email_send_failed');
+      }
 
       return Response.ok(jsonEncode({'ok': true}));
     } catch (e) {

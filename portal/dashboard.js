@@ -179,11 +179,12 @@ function setupInteractions() {
 
       try {
         statusFn.textContent = "Sending magic link...";
-        await fetch(`${API_BASE}/api/auth/magic/start`, {
+        const res = await fetch(`${API_BASE}/api/auth/magic/start`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ email }),
         });
+        if (!res.ok) throw new Error("Request failed");
         statusFn.textContent = "Check your email for the sign-in link!";
         statusFn.style.color = "#4ade80";
       } catch (err) {
