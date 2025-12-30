@@ -15,8 +15,8 @@ FROM debian:stable-slim
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
-    libsodium23 \
-    libsqlite3-0 \
+    libsodium-dev \
+    libsqlite3-dev \
     ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
