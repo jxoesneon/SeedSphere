@@ -1,6 +1,6 @@
 # fly.toml app configuration file for SeedSphere Router
 
-app = "seedsphere-router"
+app = "seedsphere"
 primary_region = "iad"
 
 [build]
