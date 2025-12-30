@@ -6,6 +6,7 @@ import 'package:shelf/shelf.dart';
 import 'package:shelf/shelf_io.dart';
 import 'package:shelf_router/shelf_router.dart';
 import 'package:shelf_cors_headers/shelf_cors_headers.dart';
+import 'package:shelf_static/shelf_static.dart';
 
 import 'package:router/pairing_service.dart';
 import 'package:router/p2p_node.dart';
@@ -55,7 +56,7 @@ final taskService = TaskService(
 
 // Configure routes.
 final _router = Router()
-  ..get('/', _rootHandler)
+  ..get('/api', _rootHandler) // Moved from root to /api
   ..get('/health', _healthHandler)
   // Legacy PIN-pairing (Deprecated in 1.0, kept for parity)
   ..post('/api/pair/start', _createPairingHandler)
@@ -77,12 +78,10 @@ final _router = Router()
   // P2P Info
   ..get('/p2p/info', _p2pInfoHandler)
   ..get('/p2p/health', _p2pHealthHandler)
-  ..get('/p2p/health', _p2pHealthHandler)
   // Tracker Optimization
   // Tracker Distributed Reputation
   ..post('/api/trackers/optimize', _trackerOptimizeHandler) // Legacy/Bridge
   ..get('/api/trackers/best', _trackerBestHandler) // Bridge/Client
-  ..get('/api/trackers/sync', _trackerSyncHandler) // Gardener
   ..get('/api/trackers/sync', _trackerSyncHandler) // Gardener
   ..post('/api/trackers/vote', _trackerVoteHandler) // Gardener
   // Boosts (Legacy Feature Parity)
@@ -98,7 +97,10 @@ final _router = Router()
   // Auth Restoration (Phase 2.5)
   ..mount('/api/auth/', authService.router.call)
   // Stremio Addon (Phase 3)
-  ..mount('/', addonService.router.call);
+  ..mount(
+    '/addon/',
+    addonService.router.call,
+  ); // Mounted under /addon/ to avoid conflict with root static files
 
 /// Root handler returning server status and version info.
 Response _rootHandler(Request req) {
@@ -491,12 +493,19 @@ Middleware securityHardeningMiddleware() {
           'X-Frame-Options': 'DENY',
           'Referrer-Policy': 'no-referrer',
           'Content-Security-Policy':
-              "default-src 'self'; script-src 'self'; object-src 'none';",
+              "default-src 'self' 'unsafe-inline' https: http:; script-src 'self' 'unsafe-inline'; object-src 'none';",
           ...response.headers, // Keep existing headers
         },
       );
     };
   };
+}
+
+String _findPortalDir() {
+  if (Directory('portal').existsSync()) return 'portal';
+  if (Directory('../portal').existsSync()) return '../portal';
+  print('Warning: Portal directory not found. Static serving will fail.');
+  return 'portal'; // Fallback
 }
 
 void main(List<String> args) async {
@@ -521,6 +530,18 @@ void main(List<String> args) async {
     securityMiddleware((g, s) async => db.getBindingSecret(g, s)),
   );
 
+  // Initialize Static Handler
+  final portalDir = _findPortalDir();
+  print('SeedSphere Router: Serving portal from $portalDir');
+  final staticHandler = createStaticHandler(
+    portalDir,
+    defaultDocument: 'index.html',
+  );
+
+  final cascade = Cascade()
+      .add(_router.call) // Try API/Addon routes first
+      .add(staticHandler); // Fallback to static portal files
+
   final handler = const Pipeline()
       .addMiddleware(logRequests())
       .addMiddleware(corsHeaders())
@@ -530,9 +551,9 @@ void main(List<String> args) async {
         // Apply security middleware to the Gardener Namespace (excluding SSE which doesn't support headers)
         if (request.url.path.startsWith('api/rooms/') &&
             !request.url.path.contains('/events')) {
-          return securePipeline.addHandler(_router.call)(request);
+          return securePipeline.addHandler(cascade.handler)(request);
         }
-        return _router.call(request);
+        return cascade.handler(request);
       });
 
   final port = int.parse(Platform.environment['PORT'] ?? '8080');

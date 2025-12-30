@@ -23,6 +23,7 @@ RUN apt-get update && apt-get install -y \
 WORKDIR /app
 COPY --from=build /app/bin/server /app/bin/
 RUN chmod +x /app/bin/server
+COPY --from=build /app/portal /app/portal
 
 # Start server.
 EXPOSE 8080

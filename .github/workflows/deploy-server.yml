@@ -2,11 +2,11 @@ name: SeedSphere Server Deployment
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
     paths:
-      - 'router/**'
-      - 'bridge/**'
-      - '.github/workflows/deploy-server.yml'
+      - "router/**"
+      - "bridge/**"
+      - ".github/workflows/deploy-server.yml"
   workflow_dispatch:
 
 jobs:
@@ -40,10 +40,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Setup Flyctl
         uses: superfly/flyctl-actions/setup-flyctl@master
-        
+
+      - name: Stage Portal Assets
+        run: cp -r portal router/portal
+
       - name: Deploy to Fly.io
         run: flyctl deploy --remote-only
         working-directory: router
@@ -56,7 +59,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Deploy to Cloudflare Workers
         uses: cloudflare/wrangler-action@v3
         with:
