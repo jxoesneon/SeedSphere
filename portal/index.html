@@ -1,266 +1,473 @@
 <!DOCTYPE html>
 <html lang="en">
-
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description"
-        content="SeedSphere: The decentralized, privacy-first media addon for Stremio. Powered by a community swarm.">
-    <meta http-equiv="Content-Security-Policy"
-        content="default-src 'self' http://localhost:8080 https://seedsphere-router.fly.dev https://accounts.google.com; img-src 'self' data: https:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com;">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="SeedSphere: The decentralized, privacy-first media addon for Stremio. Powered by a community swarm."
+    />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self' http://localhost:8080 https://seedsphere-router.fly.dev https://accounts.google.com; img-src 'self' data: https:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com;"
+    />
     <title>SeedSphere — The Future of P2P Streaming</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@100..900&display=swap" rel="stylesheet">
-    <link rel="icon" href="favicon.svg" type="image/svg+xml">
-    <link rel="stylesheet" href="styles.css">
-    <link rel="stylesheet" href="dashboard.css">
-</head>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Outfit:wght@100..900&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="dashboard.css" />
+  </head>
 
-<body>
+  <body>
     <!-- Navigation -->
     <nav class="glass-nav">
-        <div class="nav-container">
-            <div class="logo">
-                <span class="logo-symbol">🌱</span>
-                <span class="logo-text">SeedSphere</span>
-            </div>
-            <div class="nav-links">
-                <a href="#features">Features</a>
-                <a href="#download">Download</a>
-                <a href="docs.html">Docs</a>
-                <a href="dashboard.html" class="btn-primary">Sign In</a>
-            </div>
+      <div class="nav-container">
+        <div class="logo">
+          <span class="logo-symbol">🌱</span>
+          <span class="logo-text">SeedSphere</span>
         </div>
+        <div class="nav-links">
+          <a href="#features">Features</a>
+          <a href="#download">Download</a>
+          <a href="docs.html">Docs</a>
+          <a href="dashboard.html" class="btn-primary">Sign In</a>
+        </div>
+      </div>
     </nav>
 
     <!-- Hero Section -->
     <section class="hero">
-        <div class="hero-content">
-            <h1 class="hero-title">
-                <span class="gradient-text">The Last Media</span><br>
-                <span class="gradient-text">Addon You'll</span><br>
-                <span class="gradient-text">Ever Need.</span>
-            </h1>
-            <p class="hero-subtitle">
-                Powered by a community swarm. No central servers, no downtime, 100% private.
-                <br>Compatible with Stremio, Kodi, and Plex.
-            </p>
-            <div class="hero-cta">
-                <a href="#download-addon" class="btn-download">
-                    <span class="btn-icon">🧩</span>
-                    Get the Addon
-                </a>
-                <a href="#download-app" class="btn-secondary">
-                    <span class="btn-icon">📱</span>
-                    Become a Node
-                </a>
-            </div>
-            <div class="hero-stats">
-                <div class="stat">
-                    <div class="stat-value">∞</div>
-                    <div class="stat-label">Uptime</div>
-                </div>
-                <div class="stat">
-                    <div class="stat-value">0</div>
-                    <div class="stat-label">Trackers</div>
-                </div>
-                <div class="stat">
-                    <div class="stat-value">4K</div>
-                    <div class="stat-label">Ready</div>
-                </div>
-            </div>
+      <div class="hero-content">
+        <h1 class="hero-title">
+          <span class="gradient-text">The Last Media</span><br />
+          <span class="gradient-text">Addon You'll</span><br />
+          <span class="gradient-text">Ever Need.</span>
+        </h1>
+        <p class="hero-subtitle">
+          Powered by a community swarm. No central servers, no downtime, 100%
+          private.
+          <br />Compatible with Stremio, Kodi, and Plex.
+        </p>
+        <div class="hero-cta">
+          <a href="#download-addon" class="btn-download">
+            <span class="btn-icon">🧩</span>
+            Get the Addon
+          </a>
+          <a href="#download-app" class="btn-secondary">
+            <span class="btn-icon">📱</span>
+            Become a Node
+          </a>
         </div>
-        <div class="hero-visual">
-            <div class="network-graph">
-                <!-- Keep existing Animated P2P network visualization -->
-                <svg width="600" height="600" viewBox="0 0 600 600">
-                    <defs>
-                        <linearGradient id="nodeGradient">
-                            <stop offset="0%" stop-color="#38bdf8" />
-                            <stop offset="100%" stop-color="#0ea5e9" />
-                        </linearGradient>
-                    </defs>
-                    <!-- Central node -->
-                    <circle class="node central-node" cx="300" cy="300" r="30" />
-                    <!-- Orbit nodes -->
-                    <circle class="node orbit-node" cx="300" cy="150" r="15" data-orbit="1" />
-                    <circle class="node orbit-node" cx="450" cy="300" r="15" data-orbit="2" />
-                    <circle class="node orbit-node" cx="300" cy="450" r="15" data-orbit="3" />
-                    <circle class="node orbit-node" cx="150" cy="300" r="15" data-orbit="4" />
-                    <circle class="node orbit-node" cx="400" cy="200" r="12" data-orbit="5" />
-                    <circle class="node orbit-node" cx="400" cy="400" r="12" data-orbit="6" />
-                    <circle class="node orbit-node" cx="200" cy="400" r="12" data-orbit="7" />
-                    <circle class="node orbit-node" cx="200" cy="200" r="12" data-orbit="8" />
+        <div class="hero-stats">
+          <div class="stat">
+            <div class="stat-value">∞</div>
+            <div class="stat-label">Uptime</div>
+          </div>
+          <div class="stat">
+            <div class="stat-value">0</div>
+            <div class="stat-label">Trackers</div>
+          </div>
+          <div class="stat">
+            <div class="stat-value">4K</div>
+            <div class="stat-label">Ready</div>
+          </div>
+        </div>
+      </div>
+      <div class="hero-visual">
+        <div class="network-graph">
+          <!-- Keep existing Animated P2P network visualization -->
+          <svg width="600" height="600" viewBox="0 0 600 600">
+            <defs>
+              <linearGradient id="nodeGradient">
+                <stop offset="0%" stop-color="#38bdf8" />
+                <stop offset="100%" stop-color="#0ea5e9" />
+              </linearGradient>
+            </defs>
+            <!-- Central node -->
+            <circle class="node central-node" cx="300" cy="300" r="30" />
+            <!-- Orbit nodes -->
+            <circle
+              class="node orbit-node"
+              cx="300"
+              cy="150"
+              r="15"
+              data-orbit="1"
+            />
+            <circle
+              class="node orbit-node"
+              cx="450"
+              cy="300"
+              r="15"
+              data-orbit="2"
+            />
+            <circle
+              class="node orbit-node"
+              cx="300"
+              cy="450"
+              r="15"
+              data-orbit="3"
+            />
+            <circle
+              class="node orbit-node"
+              cx="150"
+              cy="300"
+              r="15"
+              data-orbit="4"
+            />
+            <circle
+              class="node orbit-node"
+              cx="400"
+              cy="200"
+              r="12"
+              data-orbit="5"
+            />
+            <circle
+              class="node orbit-node"
+              cx="400"
+              cy="400"
+              r="12"
+              data-orbit="6"
+            />
+            <circle
+              class="node orbit-node"
+              cx="200"
+              cy="400"
+              r="12"
+              data-orbit="7"
+            />
+            <circle
+              class="node orbit-node"
+              cx="200"
+              cy="200"
+              r="12"
+              data-orbit="8"
+            />
 
-                    <!-- Connection lines -->
-                    <g class="connections">
-                        <line class="connection" x1="300" y1="300" x2="300" y2="150" />
-                        <line class="connection" x1="300" y1="300" x2="450" y2="300" />
-                        <line class="connection" x1="300" y1="300" x2="300" y2="450" />
-                        <line class="connection" x1="300" y1="300" x2="150" y2="300" />
-                        <line class="connection" x1="300" y1="300" x2="400" y2="200" />
-                        <line class="connection" x1="300" y1="300" x2="400" y2="400" />
-                        <line class="connection" x1="300" y1="300" x2="200" y2="400" />
-                        <line class="connection" x1="300" y1="300" x2="200" y2="200" />
-                    </g>
-                </svg>
-            </div>
+            <!-- Connection lines -->
+            <g class="connections">
+              <line class="connection" x1="300" y1="300" x2="300" y2="150" />
+              <line class="connection" x1="300" y1="300" x2="450" y2="300" />
+              <line class="connection" x1="300" y1="300" x2="300" y2="450" />
+              <line class="connection" x1="300" y1="300" x2="150" y2="300" />
+              <line class="connection" x1="300" y1="300" x2="400" y2="200" />
+              <line class="connection" x1="300" y1="300" x2="400" y2="400" />
+              <line class="connection" x1="300" y1="300" x2="200" y2="400" />
+              <line class="connection" x1="300" y1="300" x2="200" y2="200" />
+            </g>
+          </svg>
         </div>
+      </div>
     </section>
 
     <!-- Features Section (Consumer Benefits) -->
     <section id="features" class="features">
-        <div class="container">
-            <h2 class="section-title">Why Switch?</h2>
-            <div class="bento-grid">
-                <div class="bento-card">
-                    <div class="card-icon">🛡️</div>
-                    <h3>Impossible to Kill</h3>
-                    <p>Conventional addons die when their server goes down. SeedSphere lives on thousands of devices. It
-                        works when others don't.</p>
-                </div>
-                <div class="bento-card">
-                    <div class="card-icon">👻</div>
-                    <h3>No One Is Watching</h3>
-                    <p>Zero centralized logs. Your viewing habits are your business. Built with privacy-first
-                        architecture from day one.</p>
-                </div>
-                <div class="bento-card">
-                    <div class="card-icon">⚡</div>
-                    <h3>Instant & 4K</h3>
-                    <p>Seamlessly integrates with Real-Debrid for buffer-free ultra-high definition streaming.</p>
-                </div>
-            </div>
+      <div class="container">
+        <h2 class="section-title">Why Switch?</h2>
+        <div class="bento-grid">
+          <div class="bento-card">
+            <div class="card-icon">🛡️</div>
+            <h3>Impossible to Kill</h3>
+            <p>
+              Conventional addons die when their server goes down. SeedSphere
+              lives on thousands of devices. It works when others don't.
+            </p>
+          </div>
+          <div class="bento-card">
+            <div class="card-icon">👻</div>
+            <h3>No One Is Watching</h3>
+            <p>
+              Zero centralized logs. Your viewing habits are your business.
+              Built with privacy-first architecture from day one.
+            </p>
+          </div>
+          <div class="bento-card">
+            <div class="card-icon">⚡</div>
+            <h3>Instant & 4K</h3>
+            <p>
+              Seamlessly integrates with Real-Debrid for buffer-free ultra-high
+              definition streaming.
+            </p>
+          </div>
         </div>
+      </div>
     </section>
 
     <!-- How It Works (The Loop) -->
     <section class="quickstart">
-        <div class="container">
-            <h2 class="section-title">The Loop</h2>
-            <div class="steps">
-                <div class="step">
-                    <div class="step-number">1</div>
-                    <h4>Install Addon</h4>
-                    <p>Add SeedSphere to Stremio</p>
-                </div>
-                <div class="step">
-                    <div class="step-number">2</div>
-                    <h4>Discover</h4>
-                    <p>Browse the infinite catalog</p>
-                </div>
-                <div class="step">
-                    <div class="step-number">3</div>
-                    <h4>Watch</h4>
-                    <p>Stream instantly in 4K</p>
-                </div>
-                <div class="step">
-                    <div class="step-number">4</div>
-                    <h4>Support</h4>
-                    <p>Run the node app (optional)</p>
-                </div>
-            </div>
+      <div class="container">
+        <h2 class="section-title">The Loop</h2>
+        <div class="steps">
+          <div class="step">
+            <div class="step-number">1</div>
+            <h4>Install Addon</h4>
+            <p>Add SeedSphere to Stremio</p>
+          </div>
+          <div class="step">
+            <div class="step-number">2</div>
+            <h4>Discover</h4>
+            <p>Browse the infinite catalog</p>
+          </div>
+          <div class="step">
+            <div class="step-number">3</div>
+            <h4>Watch</h4>
+            <p>Stream instantly in 4K</p>
+          </div>
+          <div class="step">
+            <div class="step-number">4</div>
+            <h4>Support</h4>
+            <p>Run the node app (optional)</p>
+          </div>
         </div>
+      </div>
     </section>
 
     <!-- Download Section (Split) -->
     <section id="download" class="download">
-        <div class="container">
-            <h2 class="section-title">Get Started</h2>
+      <div class="container">
+        <h2 class="section-title">Get Started</h2>
 
-            <!-- Addon Card (Primary) -->
-            <div id="download-addon" class="glass"
-                style="padding: 40px; border-radius: 24px; margin-bottom: 40px; text-align: center; border: 1px solid var(--aether-blue);">
-                <span style="font-size: 3rem;">🧩</span>
-                <h3 style="margin: 1rem 0; font-size: 1.5rem;">SeedSphere Addon</h3>
-                <p style="color: var(--text-secondary); margin-bottom: 1.5rem;">For Stremio • v2.0.0</p>
-                <div style="display: flex; gap: 1rem; justify-content: center;">
-                    <button class="btn-download-platform" id="btn-copy-manifest">Copy Manifest URL</button>
-                    <button class="btn-download-platform" id="btn-launch-stremio">Launch Stremio</button>
-                </div>
-            </div>
-
-            <!-- Node App (Secondary) -->
-            <h3 id="download-app" class="section-title" style="font-size: 1.5rem; margin-bottom: 2rem;">Run a Node
-                (Gardener)</h3>
-            <div class="download-grid">
-                <div class="download-card">
-                    <div class="platform-icon">🤖</div>
-                    <h3>Android</h3>
-                    <p>Host from your phone</p>
-                    <button class="btn-download-platform">Download APK</button>
-                    <span class="version">v2.0.0 • 24MB</span>
-                </div>
-                <div class="download-card">
-                    <div class="platform-icon">🍎</div>
-                    <h3>iOS</h3>
-                    <p>Join TestFlight Beta</p>
-                    <button class="btn-download-platform">Get TestFlight</button>
-                    <span class="version">v2.0.0 beta</span>
-                </div>
-                <div class="download-card coming-soon">
-                    <div class="platform-icon">💻</div>
-                    <h3>Desktop</h3>
-                    <p>Windows • macOS • Linux</p>
-                    <button class="btn-download-platform" disabled>Coming Soon</button>
-                    <span class="version">Q2 2026</span>
-                </div>
-            </div>
+        <!-- Addon Card (Primary) -->
+        <div
+          id="download-addon"
+          class="glass"
+          style="
+            padding: 40px;
+            border-radius: 24px;
+            margin-bottom: 40px;
+            text-align: center;
+            border: 1px solid var(--aether-blue);
+          "
+        >
+          <span style="font-size: 3rem">🧩</span>
+          <h3 style="margin: 1rem 0; font-size: 1.5rem">SeedSphere Addon</h3>
+          <p style="color: var(--text-secondary); margin-bottom: 1.5rem">
+            For Stremio • v2.0.0
+          </p>
+          <div style="display: flex; gap: 1rem; justify-content: center">
+            <button class="btn-download-platform" id="btn-copy-manifest">
+              Copy Manifest URL
+            </button>
+            <button class="btn-download-platform" id="btn-launch-stremio">
+              Launch Stremio
+            </button>
+          </div>
         </div>
+
+        <!-- Node App (Secondary) -->
+        <h3
+          id="download-app"
+          class="section-title"
+          style="font-size: 1.5rem; margin-bottom: 2rem"
+        >
+          Run a Node (Gardener)
+        </h3>
+
+        <!-- Recommended Platform (Auto-detected) -->
+        <div
+          id="recommended-platform"
+          class="glass"
+          style="
+            padding: 30px;
+            border-radius: 20px;
+            margin-bottom: 30px;
+            border: 2px solid var(--aether-blue);
+            display: none;
+          "
+        >
+          <div
+            style="
+              display: flex;
+              align-items: center;
+              justify-content: space-between;
+              flex-wrap: wrap;
+              gap: 20px;
+            "
+          >
+            <div>
+              <h4 style="margin: 0 0 8px 0; color: var(--aether-blue)">
+                ✨ Recommended for Your System
+              </h4>
+              <div style="display: flex; align-items: center; gap: 15px">
+                <span id="rec-icon" style="font-size: 2.5rem"></span>
+                <div>
+                  <h3
+                    id="rec-platform"
+                    style="margin: 0 0 5px 0; font-size: 1.3rem"
+                  ></h3>
+                  <p
+                    id="rec-desc"
+                    style="
+                      margin: 0;
+                      color: var(--text-secondary);
+                      font-size: 0.9rem;
+                    "
+                  ></p>
+                </div>
+              </div>
+            </div>
+            <div
+              style="
+                display: flex;
+                flex-direction: column;
+                gap: 10px;
+                align-items: flex-end;
+              "
+            >
+              <a
+                id="rec-download"
+                class="btn-download-platform"
+                style="
+                  min-width: 180px;
+                  text-align: center;
+                  text-decoration: none;
+                "
+                >Download Now</a
+              >
+              <span id="rec-version" class="version"></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- All Platforms -->
+        <h4
+          style="
+            margin: 2rem 0 1rem 0;
+            color: var(--text-secondary);
+            font-size: 1rem;
+          "
+        >
+          All Platforms
+        </h4>
+        <div class="download-grid">
+          <div class="download-card">
+            <div class="platform-icon">🤖</div>
+            <h3>Android</h3>
+            <p>Host from your phone</p>
+            <a
+              href="https://github.com/jxoesneon/SeedSphere/releases/latest/download/gardener-android-apk.zip"
+              class="btn-download-platform"
+              style="text-decoration: none; display: inline-block"
+              >Download APK</a
+            >
+            <span class="version">v1.9.1 • ARM64/x64/x86</span>
+          </div>
+          <div class="download-card">
+            <div class="platform-icon">🍎</div>
+            <h3>iOS</h3>
+            <p>Requires manual signing</p>
+            <a
+              href="https://github.com/jxoesneon/SeedSphere/releases/latest"
+              class="btn-download-platform"
+              style="text-decoration: none; display: inline-block"
+              >View Release</a
+            >
+            <span class="version">v1.9.1 • No codesign</span>
+          </div>
+          <div class="download-card">
+            <div class="platform-icon">🪟</div>
+            <h3>Windows</h3>
+            <p>Windows 10/11 x64</p>
+            <a
+              href="https://github.com/jxoesneon/SeedSphere/releases/latest/download/gardener-windows-x64.zip"
+              class="btn-download-platform"
+              style="text-decoration: none; display: inline-block"
+              >Download</a
+            >
+            <span class="version">v1.9.1 • x64</span>
+          </div>
+          <div class="download-card">
+            <div class="platform-icon">🍏</div>
+            <h3>macOS</h3>
+            <p>Apple Silicon & Intel</p>
+            <a
+              href="https://github.com/jxoesneon/SeedSphere/releases/latest/download/gardener-macos.zip"
+              class="btn-download-platform"
+              style="text-decoration: none; display: inline-block"
+              >Download</a
+            >
+            <span class="version">v1.9.1 • Universal</span>
+          </div>
+          <div class="download-card">
+            <div class="platform-icon">🐧</div>
+            <h3>Linux</h3>
+            <p>Ubuntu 20.04+ / Debian 11+</p>
+            <a
+              href="https://github.com/jxoesneon/SeedSphere/releases/latest/download/gardener-linux-x64.zip"
+              class="btn-download-platform"
+              style="text-decoration: none; display: inline-block"
+              >Download</a
+            >
+            <span class="version">v1.9.1 • x64</span>
+          </div>
+        </div>
+      </div>
     </section>
 
     <!-- Footer -->
     <footer class="footer">
-        <div class="container">
-            <div class="footer-content">
-                <div class="footer-brand">
-                    <span class="logo-symbol">🌱</span>
-                    <span class="logo-text">SeedSphere 2.0</span>
-                </div>
-                <div class="footer-links">
-                    <a href="docs.html">Documentation</a>
-                    <a href="https://github.com/jxoesneon/IPFS">GitHub</a>
-                    <a href="dashboard.html">Dashboard</a>
-                </div>
-                <div class="footer-copy">
-                    <p>Federated Frontier • 2026</p>
-                </div>
-            </div>
+      <div class="container">
+        <div class="footer-content">
+          <div class="footer-brand">
+            <span class="logo-symbol">🌱</span>
+            <span class="logo-text">SeedSphere 2.0</span>
+          </div>
+          <div class="footer-links">
+            <a href="docs.html">Documentation</a>
+            <a href="https://github.com/jxoesneon/IPFS">GitHub</a>
+            <a href="dashboard.html">Dashboard</a>
+          </div>
+          <div class="footer-copy">
+            <p>Federated Frontier • 2026</p>
+          </div>
         </div>
+      </div>
     </footer>
 
     <!-- Login Overlay (Home: Dismissible) -->
-    <div id="login-overlay" class="login-overlay" style="display: none;">
-        <div class="login-card glass">
-            <div class="login-header">
-                <div class="logo-symbol">🌱</div>
-                <h2>Welcome Back</h2>
-                <p>Sign in to your private garden</p>
-            </div>
-
-            <div class="login-actions">
-                <a href="http://localhost:8080/api/auth/google/start" class="btn-login-google">
-                    <span class="icon">G</span>
-                    Continue with Google
-                </a>
-
-                <div class="divider">
-                    <span>OR</span>
-                </div>
-
-                <form id="magic-link-form" class="magic-form">
-                    <div class="form-group">
-                        <input type="email" id="magic-email" placeholder="name@example.com" required>
-                    </div>
-                    <button type="submit" class="btn-login-email">Continue with Email</button>
-                </form>
-                <p id="magic-status" class="status-msg"></p>
-            </div>
+    <div id="login-overlay" class="login-overlay" style="display: none">
+      <div class="login-card glass">
+        <div class="login-header">
+          <div class="logo-symbol">🌱</div>
+          <h2>Welcome Back</h2>
+          <p>Sign in to your private garden</p>
         </div>
+
+        <div class="login-actions">
+          <a
+            href="http://localhost:8080/api/auth/google/start"
+            class="btn-login-google"
+          >
+            <span class="icon">G</span>
+            Continue with Google
+          </a>
+
+          <div class="divider">
+            <span>OR</span>
+          </div>
+
+          <form id="magic-link-form" class="magic-form">
+            <div class="form-group">
+              <input
+                type="email"
+                id="magic-email"
+                placeholder="name@example.com"
+                required
+              />
+            </div>
+            <button type="submit" class="btn-login-email">
+              Continue with Email
+            </button>
+          </form>
+          <p id="magic-status" class="status-msg"></p>
+        </div>
+      </div>
     </div>
 
     <script src="script.js"></script>
-</body>
-
+  </body>
 </html>

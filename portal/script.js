@@ -250,3 +250,68 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 });
+
+// Platform Detection and Auto-Recommendation
+function detectPlatform() {
+    const ua = navigator.userAgent.toLowerCase();
+    const platform = navigator.platform.toLowerCase();
+    
+    let detectedOS = null;
+    let downloadUrl = '';
+    let icon = '';
+    let name = '';
+    let desc = '';
+    let version = 'v1.9.1';
+    
+    // Detect platform
+    if (ua.includes('android')) {
+        detectedOS = 'android';
+        downloadUrl = 'https://github.com/jxoesneon/SeedSphere/releases/latest/download/gardener-android-apk.zip';
+        icon = '';
+        name = 'Android APK';
+        desc = 'ARM64/x64/x86  Universal';
+    } else if (ua.includes('iphone') || ua.includes('ipad')) {
+        detectedOS = 'ios';
+        downloadUrl = 'https://github.com/jxoesneon/SeedSphere/releases/latest';
+        icon = '';
+        name = 'iOS';
+        desc = 'Requires manual signing';
+    } else if (platform.includes('win') || ua.includes('windows')) {
+        detectedOS = 'windows';
+        downloadUrl = 'https://github.com/jxoesneon/SeedSphere/releases/latest/download/gardener-windows-x64.zip';
+        icon = '';
+        name = 'Windows x64';
+        desc = 'Windows 10/11';
+    } else if (platform.includes('mac') || ua.includes('mac os x')) {
+        detectedOS = 'macos';
+        downloadUrl = 'https://github.com/jxoesneon/SeedSphere/releases/latest/download/gardener-macos.zip';
+        icon = '';
+        name = 'macOS';
+        desc = 'Universal (Apple Silicon & Intel)';
+    } else if (platform.includes('linux') || ua.includes('linux')) {
+        detectedOS = 'linux';
+        downloadUrl = 'https://github.com/jxoesneon/SeedSphere/releases/latest/download/gardener-linux-x64.zip';
+        icon = '';
+        name = 'Linux x64';
+        desc = 'Ubuntu 20.04+ / Debian 11+';
+    }
+    
+    // If platform detected, show recommendation
+    if (detectedOS) {
+        const recBox = document.getElementById('recommended-platform');
+        const recIcon = document.getElementById('rec-icon');
+        const recPlatform = document.getElementById('rec-platform');
+        const recDesc = document.getElementById('rec-desc');
+        const recDownload = document.getElementById('rec-download');
+        const recVersion = document.getElementById('rec-version');
+        
+        if (recBox && recIcon && recPlatform && recDesc && recDownload && recVersion) {
+            recIcon.textContent = icon;
+            recPlatform.textContent = name;
+            recDesc.textContent = desc;
+            recDownload.href = downloadUrl;
+            recVersion.textContent = version;
+            recBox.style.display = 'block';
+        }
+    }
+}
