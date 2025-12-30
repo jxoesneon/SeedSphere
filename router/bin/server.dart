@@ -28,6 +28,8 @@ import 'package:router/boost_service.dart';
 import 'package:router/prefetch_service.dart';
 import 'package:router/task_service.dart';
 
+import 'package:http/http.dart' as http; // Added import
+
 // Services
 final db = DbService()..init('data');
 final pairingService = PairingService();
@@ -94,6 +96,9 @@ final _router = Router()
   // Task System
   ..post('/api/tasks/request', _taskRequestHandler)
   ..post('/api/tasks/result', _taskResultHandler)
+  // Downloads & Releases (Dynamic)
+  ..get('/downloads/<file>', _handleDownload)
+  ..get('/api/releases', _handleReleases)
   // Auth Restoration (Phase 2.5)
   ..mount('/api/auth/', authService.router.call)
   // Stremio Addon (Phase 3)
@@ -101,6 +106,51 @@ final _router = Router()
     '/addon/',
     addonService.router.call,
   ); // Mounted under /addon/ to avoid conflict with root static files
+
+/// Root handler returning server status and version info.
+Response _rootHandler(Request req) {
+  return Response.ok(
+    jsonEncode({
+      'name': 'SeedSphere Router',
+      'version': '2.0.0',
+      'status': 'active',
+      'mode': 'Federated Frontier (Parity)',
+    }),
+    headers: {'content-type': 'application/json'},
+  );
+}
+
+/// Dynamic Download Proxy (Redirects to GitHub Releases)
+Future<Response> _handleDownload(Request req, String file) async {
+  final redirect = Uri.https(
+    'github.com',
+    '/jxoesneon/SeedSphere/releases/latest/download/$file',
+  );
+  return Response.found(redirect);
+}
+
+/// Dynamic Releases Proxy (Fetches from GitHub API)
+Future<Response> _handleReleases(Request req) async {
+  try {
+    final url = Uri.https(
+      'api.github.com',
+      '/repos/jxoesneon/SeedSphere/releases',
+    );
+    final response = await http.get(
+      url,
+      headers: {'User-Agent': 'SeedSphere-Router'},
+    );
+    if (response.statusCode != 200) {
+      return Response.internalServerError(body: 'github_api_error');
+    }
+    return Response.ok(
+      response.body,
+      headers: {'content-type': 'application/json'},
+    );
+  } catch (e) {
+    return Response.internalServerError(body: 'error: $e');
+  }
+}
 
 /// Root handler returning server status and version info.
 Response _rootHandler(Request req) {

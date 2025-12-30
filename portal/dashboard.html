@@ -168,27 +168,10 @@
         <section id="downloads" class="dashboard-section" style="display: none">
           <h1 class="dashboard-title">Downloads</h1>
 
-          <div class="download-list">
-            <div class="download-item glass">
-              <div class="download-info">
-                <h3>Gardener v2.0.0</h3>
-                <p>Android APK • Released Dec 27, 2025</p>
-              </div>
-              <div class="download-meta">
-                <span class="download-size">24 MB</span>
-                <button class="btn-download-small">Download</button>
-              </div>
-            </div>
-
-            <div class="download-item glass">
-              <div class="download-info">
-                <h3>Gardener v2.0.0 Beta</h3>
-                <p>iOS TestFlight • Released Dec 27, 2025</p>
-              </div>
-              <div class="download-meta">
-                <span class="download-size">Beta</span>
-                <button class="btn-download-small">Join TestFlight</button>
-              </div>
+          <div class="download-list" id="download-list-container">
+            <!-- Dynamically populated -->
+            <div style="text-align: center; padding: 2rem; color: var(--aether-text-muted);">
+                Loading releases...
             </div>
           </div>
 
@@ -317,6 +300,21 @@
           </div>
         </section>
       </main>
+    <!-- Toast Container -->
+    <div id="toast-container" class="toast-container"></div>
+
+    <!-- QR Modal -->
+    <div id="qr-modal" class="modal-overlay" style="display: none">
+      <div class="modal-card glass" style="text-align: center; max-width: 400px;">
+        <h3>Link New Device</h3>
+        <p>Scan this QR code with the Gardener mobile app</p>
+        <div style="background: white; padding: 1rem; border-radius: 12px; margin: 1.5rem auto; display: inline-block;">
+            <img id="qr-image" src="" alt="QR Code" width="200" height="200" />
+        </div>
+        <div style="margin-top: 1rem;">
+            <button class="btn-nav" onclick="document.getElementById('qr-modal').style.display='none'">Close</button>
+        </div>
+      </div>
     </div>
 
     <script src="dashboard.js"></script>
