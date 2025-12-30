@@ -24,11 +24,8 @@ document.addEventListener("DOMContentLoaded", () => {
 function setupInstallButton() {
   const launchBtn = document.getElementById("btn-launch-stremio");
   const copyBtn = document.getElementById("btn-copy-manifest");
-  const API_BASE =
-    window.location.hostname === "localhost" ||
-    window.location.hostname === "127.0.0.1"
-      ? "http://localhost:8080"
-      : "https://seedsphere-router.fly.dev";
+  // Determine API Base dynamically (relative path for same-origin)
+  const API_BASE = "";
 
   if (launchBtn) {
     launchBtn.addEventListener("click", async () => {
@@ -39,10 +36,7 @@ function setupInstallButton() {
 
         if (data.ok && data.user) {
           const userId = data.user.id.split(":")[1] || data.user.id;
-          const host =
-            window.location.hostname === "localhost"
-              ? "localhost:8080"
-              : window.location.host;
+          const host = window.location.host;
           const manifestUrl = `stremio://${host}/u/${userId}/manifest.json`;
           window.location.href = manifestUrl;
         } else {
@@ -69,10 +63,7 @@ function setupInstallButton() {
 
         if (data.ok && data.user) {
           const userId = data.user.id.split(":")[1] || data.user.id;
-          const host =
-            window.location.hostname === "localhost"
-              ? "localhost:8080"
-              : window.location.host;
+          const host = window.location.host;
           const manifestUrl = `https://${host}/u/${userId}/manifest.json`;
 
           navigator.clipboard.writeText(manifestUrl);

@@ -8,8 +8,7 @@
       content="SeedSphere: The decentralized, privacy-first media addon for Stremio. Powered by a community swarm."
     />
     <meta
-      http-equiv="Content-Security-Policy"
-      content="default-src 'self' http://localhost:8080 https://seedsphere-router.fly.dev https://accounts.google.com; img-src 'self' data: https:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com;"
+      content="default-src 'self' https://accounts.google.com; img-src 'self' data: https:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com;"
     />
     <title>SeedSphere — The Future of P2P Streaming</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -438,10 +437,7 @@
         </div>
 
         <div class="login-actions">
-          <a
-            href="http://localhost:8080/api/auth/google/start"
-            class="btn-login-google"
-          >
+          <a href="/api/auth/google/start" class="btn-login-google">
             <span class="icon">G</span>
             Continue with Google
           </a>
