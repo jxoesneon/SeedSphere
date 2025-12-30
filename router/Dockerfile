@@ -11,10 +11,18 @@ COPY . .
 RUN dart compile exe bin/server.dart -o bin/server
 
 # Build minimal serving image from AOT-compiled `/server`
-# and the pre-built AOT-runtime in the `/runtime/` directory of the base image.
-# Build minimal serving image from AOT-compiled `/server`
 FROM debian:stable-slim
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    libsodium23 \
+    libsqlite3-0 \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
 COPY --from=build /app/bin/server /app/bin/
+RUN chmod +x /app/bin/server
 
 # Start server.
 EXPOSE 8080
