@@ -148,7 +148,7 @@ class AuthService {
       return _issueSession(
         req,
         userId,
-        redirect: 'http://localhost:9090/dashboard.html?login=success',
+        redirect: '/dashboard.html?login=success',
       );
     } catch (e) {
       return Response.internalServerError(body: 'auth_error: $e');
@@ -207,7 +207,7 @@ class AuthService {
       return _issueSession(
         req,
         userId,
-        redirect: 'http://localhost:9090/dashboard.html?login=success',
+        redirect: '/dashboard.html?login=success',
       );
     } catch (e) {
       return Response.badRequest(body: 'invalid_or_expired_token');
