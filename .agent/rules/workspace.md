@@ -1,8 +1,4 @@
-﻿---
-trigger: always_on
-glob: "*"
-description: Project governance rules for Release, Cross-Platform, and Automation.
----
+﻿
 
 # Project Governance Rules (SeedSphere)
 
@@ -24,6 +20,13 @@ description: Project governance rules for Release, Cross-Platform, and Automatio
   - **Release**: Use `gardener-ci.yml` for multi-platform build verification.
   - **Verification**: Use split workflows (`ci-backend.yml`, `ci-gardener.yml`) with **Path Filtering** enabled to save resources.
   - **Dependencies**: Rely on `dependabot.yml` for automated updates; review PRs weekly.
+- **Documentation Standards**:
+  - **Format**: Standard Markdown (CommonMark).
+  - **Linting**:
+    - **Lists**: Exactly ONE space after bullets (`- Item`, not `-  Item`).
+    - **Trailing Spaces**: None allowed at end of lines.
+    - **Headers**: One space after hash (`# Header`).
+  - **Verification**: Run `.agent/scripts/test_suite.ps1` to prevent CI failures.
 
 ## 4. Development Standards
 - **Testing**: `dart test` (Router) and `flutter test` (Gardener) are the golden standards.

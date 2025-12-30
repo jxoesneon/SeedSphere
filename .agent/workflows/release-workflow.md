@@ -1,4 +1,4 @@
-﻿---
+---
 description: Comprehensive Release Process for SeedSphere
 ---
 

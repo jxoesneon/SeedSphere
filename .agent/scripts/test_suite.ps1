@@ -37,3 +37,31 @@ try {
 Pop-Location
 
 Write-Host "`n All Tests Passed!" -ForegroundColor Green
+
+function Test-Documentation {
+    Write-Host "`nTesting Documentation (Linting)..." -ForegroundColor Cyan
+    $Errors = 0
+    $Files = Get-ChildItem -Path . -Recurse -Filter "*.md" | Where-Object { $_.FullName -notmatch "node_modules|\.git|\.agent" }
+
+    foreach ($File in $Files) {
+        $Content = Get-Content $File.FullName
+        $LineNum = 0
+        foreach ($Line in $Content) {
+            $LineNum++
+            # MD030: Lists should have 1 space after marker (-  Item)
+            if ($Line -match "^-\s{2,}\S") {
+                Write-Host "  [FAIL] $($File.Name):$LineNum - MD030: Double space after bullet" -ForegroundColor Red
+                $Errors++
+            }
+        }
+    }
+
+    if ($Errors -eq 0) {
+        Write-Host "No documentation issues found!" -ForegroundColor Green
+    } else {
+        Write-Host "Found $Errors documentation issues. Please fix before pushing." -ForegroundColor Yellow
+        # Optional: exit 1 to enforce
+    }
+}
+
+Test-Documentation
