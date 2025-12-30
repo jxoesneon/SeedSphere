@@ -38,6 +38,15 @@ yarn-error.log*
 # SeedSphere Specific
 seedsphere.log
 legacy/
+dart_ipfs/
+backup/
+protection.json
+scripts/
+
+# Temporary Logs
+ci_log.txt
+run_log.txt
+*.txt.bak
 
 # Router (Dart) Runtime Artifacts
 router/data/
@@ -51,22 +60,14 @@ router/*.log
 bridge/.wrangler/
 bridge/dist/
 
-# Scripts (if temporary)
-scripts/coverage_audit.dart
-
-# Gemini / Antigravity (Keep brain artifacts but ignore temp/logs)
+# Gemini / Antigravity
 .gemini/
 !.gemini/antigravity/brain/
 
-
-
-
-
-
-
-
 # Agent Configuration
-# !.agent/
+.agent/
+!.agent/workflows/
+!.agent/rules/
 
 
 
