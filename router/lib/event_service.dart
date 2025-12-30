@@ -19,6 +19,11 @@ class EventService {
       controller.close();
     };
 
+    // Send initial connection event to keep client alive
+    controller.add(
+      'event: connected\ndata: {"t":${DateTime.now().millisecondsSinceEpoch}}\n\n',
+    );
+
     return controller.stream;
   }
 

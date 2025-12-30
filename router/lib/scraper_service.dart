@@ -3,6 +3,8 @@ import 'package:router/scrapers/scraper_engine.dart';
 import 'package:http/http.dart' as http;
 
 import 'package:router/tracker_service.dart';
+import 'package:router/services/ai_service.dart';
+import 'package:router/models/ai_models.dart';
 
 /// Service that orchestrates metadata scraping from multiple sources.
 ///
@@ -10,9 +12,12 @@ import 'package:router/tracker_service.dart';
 class ScraperService {
   final ScraperEngine _engine;
   final TrackerService _trackers;
+  final AiService _ai;
 
   /// Creates a new ScraperService instance.
-  ScraperService(this._trackers) : _engine = ScraperEngine.defaults();
+  ScraperService(this._trackers, {AiService? aiService})
+    : _engine = ScraperEngine.defaults(),
+      _ai = aiService ?? AiService();
 
   /// Map of known providers to probe.
   static const _providers = {
@@ -110,11 +115,48 @@ class ScraperService {
       final trackersPart = bestTrackers
           .map((t) => 'tr=${Uri.encodeComponent(t)}')
           .join('&');
+      final dn = Uri.encodeComponent(s['title'] as String? ?? 'video');
       final magnet =
-          'magnet:?xt=urn:btih:$infoHash${trackersPart.isNotEmpty ? '&$trackersPart' : ''}';
+          'magnet:?xt=urn:btih:$infoHash&dn=$dn${trackersPart.isNotEmpty ? '&$trackersPart' : ''}';
+
+      // Build basic description
+      String description =
+          '${s['title']}\n👤  ${s['seeders']}  Sources: ${s['source']}';
+
+      // Optionally enhance with AI if enabled in settings
+      final aiEnabled = settings['aiEnabled'] == true;
+      if (aiEnabled) {
+        try {
+          final aiRequest = AiDescriptionRequest(
+            title: s['title'] as String? ?? 'Unknown',
+            resolution: s['resolution'] as String?,
+            codec: s['codec'] as String?,
+            hdr: s['hdr'] as String?,
+            audio: s['audio'] as String?,
+            source: s['source'] as String?,
+            providerName: s['source'] as String?,
+            sizeStr: s['size'] as String?,
+            provider: AiProvider.fromString(
+              settings['aiProvider'] as String? ?? 'deepseek',
+            ),
+            model: settings['aiModel'] as String? ?? 'deepseek-chat',
+            apiKey: settings['aiApiKey'] as String?,
+            baseDescription: description,
+          );
+
+          final aiResponse = await _ai.enhanceDescription(aiRequest);
+          if (aiResponse.success && aiResponse.enhancedDescription != null) {
+            description = aiResponse.enhancedDescription!;
+            description += '\n\n🧠 AI enhanced';
+          }
+        } catch (e) {
+          // Silently fail AI enhancement, use basic description
+          print('AI enhancement failed: $e');
+        }
+      }
 
       streams.add({
-        'title': '${s['title']}\n👤 ${s['seeders']}  Sources: ${s['source']}',
+        'title': description,
         'infoHash': infoHash,
         'url': magnet, // Inject the full magnet with corrected trackers
         'behaviorHints': {'bingeGroup': 'seedsphere-p2p'},

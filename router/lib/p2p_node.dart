@@ -13,6 +13,19 @@ class P2PNode {
     try {
       print('P2P: Initializing SeedSphere Bootstrap Node...');
 
+      // 0. Cleanup Stale Locks (State Management)
+      // Fixes "lock failed" error after crashes
+      final lockFile = File('./ipfs_data/blocks.lock');
+      if (lockFile.existsSync()) {
+        try {
+          lockFile.deleteSync();
+          print('P2P: 🧹 Removed stale DB lock file.');
+        } catch (e) {
+          print('P2P: ⚠️ Could not remove lock file (active process?): $e');
+          // If we can't delete it, it might be truly locked, so we proceed and let it fail naturally
+        }
+      }
+
       // 1. Configure Private Swarm if Key Provided
       final swarmKey = Platform.environment['P2P_SWARM_KEY'];
       if (swarmKey != null) {
@@ -38,8 +51,7 @@ class P2PNode {
           offline: false,
           network: const NetworkConfig(
             listenAddresses: ['/ip4/0.0.0.0/udp/2022', '/ip6/::/udp/2022'],
-            // No bootstrap peers needed - this Router IS the bootstrap node
-            bootstrapPeers: [],
+            // Use default public bootstrap nodes (Protocol Labs, etc.)
           ),
         ),
       );

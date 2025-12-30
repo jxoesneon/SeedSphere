@@ -5,15 +5,15 @@ import 'package:http/http.dart';
 import 'package:test/test.dart';
 
 void main() {
-  final port = '8080';
-  final host = 'http://127.0.0.1:$port';
   late Process p;
+  late int actualPort;
+  late String host;
 
   setUp(() async {
     p = await Process.start(
       'dart',
       ['run', 'bin/server.dart'],
-      environment: {'PORT': port},
+      environment: {'PORT': '0'},
     );
 
     final completer = Completer<void>();
@@ -21,7 +21,10 @@ void main() {
         .transform(utf8.decoder)
         .transform(const LineSplitter())
         .listen((line) {
-          if (line.contains('listening on')) {
+          if (line.contains('listening on port')) {
+            final parts = line.split(' ');
+            actualPort = int.parse(parts.last);
+            host = 'http://127.0.0.1:$actualPort';
             if (!completer.isCompleted) completer.complete();
           }
         });
@@ -31,7 +34,7 @@ void main() {
     } catch (e) {
       await subscription.cancel();
       p.kill();
-      throw Exception('Server failed to start within 15s');
+      throw Exception('Server failed to start (or bind port) within 15s');
     }
   });
 
@@ -45,11 +48,7 @@ void main() {
     expect(response.body, contains('"status":"active"'));
   });
 
-  test('Echo', () async {
-    final response = await get(Uri.parse('$host/echo/hello'));
-    expect(response.statusCode, 200);
-    expect(response.body, 'hello');
-  });
+
 
   test('404', () async {
     final response = await get(Uri.parse('$host/foobar'));

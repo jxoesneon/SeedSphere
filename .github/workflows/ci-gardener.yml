@@ -1,0 +1,43 @@
+name: Gardener CI (Flutter)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "gardener/**"
+      - ".github/workflows/ci-gardener.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "gardener/**"
+      - ".github/workflows/ci-gardener.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Verify (Analyze & Test)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: gardener
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.19.0"
+          cache: true
+
+      - name: Install Dependencies
+        run: flutter pub get
+
+      - name: Analyze
+        run: flutter analyze --no-fatal-infos
+
+      - name: Run Tests
+        run: flutter test

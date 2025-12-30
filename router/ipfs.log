@@ -1,9 +1,1 @@
-2025-12-28T16:15:06.564383 [SEVERE] [MDNSHandler] [ERROR] Error resolving peer info
-Error: SocketException: Failed host lookup: '663VdqSQppgLKMTneQmT28AC75K4GMpkuMxGU2mmeVBi.local' (OS Error: No such host is known, errno = 11001)
-Stack trace: #0      _NativeSocket.lookup.<anonymous closure> (dart:io-patch/socket_patch.dart:594:9)
-<asynchronous suspension>
-#1      MDNSHandler._resolvePeerInfo (package:dart_ipfs/src/core/ipfs_node/mdns_handler.dart:193:25)
-<asynchronous suspension>
-#2      MDNSHandler._discoverPeers (package:dart_ipfs/src/core/ipfs_node/mdns_handler.dart:148:28)
-<asynchronous suspension>
-
+2025-12-29T21:56:26.738735 [FINE] [MDNSHandler] [VERBOSE] Could not resolve mDNS hostname: CwhW6euUfaTb2ydfrjY5S9qTVpx4CwRJX8MsHq3BUF5p.local (OS Error: No such host is known)

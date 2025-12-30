@@ -1,6 +1,6 @@
-name: router
+﻿name: router
 description: A server app using the shelf package and Docker.
-version: 1.9.0
+version: 1.9.1
 # repository: https://github.com/my_org/my_repo
 
 environment:
@@ -16,12 +16,15 @@ dependencies:
   sqlite3: ^2.4.0
   path: ^1.8.3
 
-  http: ^1.2.2
+  http: ^1.6.0
   mailer: ^6.0.0
   googleapis_auth: ^2.0.0
   dart_jsonwebtoken: ^3.3.1
   pointycastle: 4.0.0
 
 dev_dependencies:
+  build_runner: ^2.10.4
   lints: ^6.0.0
+  mockito: ^5.6.1
   test: ^1.25.6
+

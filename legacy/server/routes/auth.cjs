@@ -32,6 +32,18 @@ function baseUrl(req) {
 // Session check
 router.get('/session', (req, res) => {
   try {
+    // Debug mode: bypass authentication for local development
+    if (process.env.DEBUG_MODE === 'true') {
+      console.log('[auth] DEBUG_MODE enabled - returning mock authenticated user')
+      return res.json({ 
+        ok: true, 
+        user: { 
+          id: 'debug-user', 
+          email: 'debug@local.dev' 
+        } 
+      })
+    }
+    
     const sess = readSession(req)
     if (!sess) return res.json({ ok: true, user: null })
     // Enrich with user info (email) for UI label

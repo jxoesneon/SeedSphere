@@ -1,18 +1,20 @@
 import 'dart:convert';
 import 'package:shelf/shelf.dart';
 import 'package:shelf_router/shelf_router.dart';
-import 'package:router/db_service.dart';
+import 'package:http/http.dart' as http;
+
 import 'package:router/scraper_service.dart';
 
 /// Service that powers the Stremio Addon functionality.
 ///
 /// Handles manifest generation and stream resolution (redirecting to the Swarm).
 class AddonService {
-  final DbService _db;
   final ScraperService _scraper;
+  final http.Client _client;
 
   /// Creates a new AddonService.
-  AddonService(this._db, this._scraper);
+  AddonService(this._scraper, [http.Client? client])
+    : _client = client ?? http.Client();
 
   /// Returns the router representing the Stremio Addon routes.
   Router get router {
@@ -35,8 +37,8 @@ class AddonService {
     // User-Specific Manifest (Thin Client)
     app.get('/u/<userId>/manifest.json', _handleUserManifest);
 
-    // Stream Handler (User-Specific)
-    app.get('/u/<userId>/stream/<type>/<id>.json', _handleUserStream);
+    // Catalog Handler (Public)
+    app.get('/catalog/<type>/<id>.json', _handleCatalog);
 
     return app;
   }
@@ -44,19 +46,49 @@ class AddonService {
   // Define the base manifest structure
   Map<String, dynamic> get _baseManifest => {
     "id": "community.seedsphere",
-    "version": "2.0.0",
+    "version": "2.0.1",
     "name": "SeedSphere",
     "description":
         "The Last Media Addon You'll Ever Need. Powered by a community swarm.",
     "logo": "https://seedsphere.app/assets/icon.png",
-    "resources": ["stream"],
+    "resources": ["catalog", "stream"],
     "types": ["movie", "series", "anime"],
     "idPrefixes": ["tt", "kitsu"],
-    "catalogs": [],
+    "catalogs": [
+      {"type": "movie", "id": "top", "name": "Swarm Popular"},
+      {"type": "series", "id": "top", "name": "Swarm Popular"},
+    ],
   };
 
   Response _handlePublicManifest(Request req) {
     return _jsonResponse(_baseManifest);
+  }
+
+  /// Handler for catalog requests (Popular content).
+  Future<Response> _handleCatalog(Request req, String type, String id) async {
+    if (id == 'top' || id == 'top.json') {
+      return _proxyCinemeta(type);
+    }
+    return _jsonResponse({'metas': []});
+  }
+
+  /// Proxies the Cinemeta catalog to provide real, dynamic metadata.
+  Future<Response> _proxyCinemeta(String type) async {
+    try {
+      // Cinemeta V3 endpoint for popular movies/series
+      final uri = Uri.parse(
+        'https://v3-cinemeta.strem.io/catalog/$type/top.json',
+      );
+      final resp = await _client.get(uri);
+      if (resp.statusCode == 200) {
+        // Pass-through the real metadata
+        return _jsonResponse(jsonDecode(resp.body));
+      }
+    } catch (e) {
+      print('Cinemeta Proxy Error: $e');
+    }
+    // Fallback if offline
+    return _jsonResponse({'metas': []});
   }
 
   /// Handler for variant manifests (e.g. Lite, Ultra).
@@ -107,45 +139,6 @@ class AddonService {
     return _jsonResponse(manifest);
   }
 
-  /// Resolves streams for a specific [type] (movie/series) and [id].
-  ///
-  /// Uses the user's settings (from [userId]) to configure the [ScraperService].
-  Future<Response> _handleUserStream(
-    Request req,
-    String userId,
-    String type,
-    String id,
-  ) async {
-    try {
-      // 1. Fetch User Settings
-      final user = _db.getUser(userId);
-      if (user == null) {
-        // Invalid user, return empty streams or error stream
-        return _jsonResponse({
-          'streams': [_errorStream("User not found")],
-        });
-      }
-
-      final settings = user['settings_json'] != null
-          ? jsonDecode(user['settings_json'] as String)
-          : {};
-
-      // 2. Parse ID (IMDb vs Kitsu)
-      // ID parsing is handled by the Scraper Service implementation
-
-      // 3. Invoke Scraper Engine
-      // We pass the user settings to the scraper/engine to respect their providers/debrid keys
-      final streams = await _scraper.getStreams(type, id, settings);
-
-      return _jsonResponse({'streams': streams});
-    } catch (e) {
-      print('Stream Error: $e');
-      return _jsonResponse({
-        'streams': [_errorStream("Error: $e")],
-      });
-    }
-  }
-
   Response _jsonResponse(Map<String, dynamic> body) {
     return Response.ok(
       jsonEncode(body),
@@ -155,13 +148,5 @@ class AddonService {
         'Cache-Control': 'max-age=300', // 5 min cache
       },
     );
-  }
-
-  Map<String, dynamic> _errorStream(String message) {
-    return {
-      'name': 'SeedSphere',
-      'title': '⚠️ $message',
-      'url': 'data:text/plain;charset=utf-8,Error',
-    };
   }
 }

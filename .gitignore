@@ -57,3 +57,14 @@ scripts/coverage_audit.dart
 # Gemini / Antigravity (Keep brain artifacts but ignore temp/logs)
 .gemini/
 !.gemini/antigravity/brain/
+
+
+
+
+
+
+# Agent Configuration
+# !.agent/
+
+
+

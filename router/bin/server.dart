@@ -44,7 +44,7 @@ final mailerService = MailerService.custom(
 );
 final trackerService = TrackerService(db, healthService)..init();
 final scraperService = ScraperService(trackerService);
-final addonService = AddonService(db, scraperService);
+final addonService = AddonService(scraperService);
 final authService = AuthService(db, mailerService, linkingService);
 final boostService = BoostService();
 final prefetchService = PrefetchService(scraperService);
@@ -395,12 +395,36 @@ Response _trackerSweepHandler(Request req) {
 
 /// Issues a task to a Gardener (Mock/Echo for now).
 Future<Response> _taskRequestHandler(Request req) async {
-  // In real implementation, check queue.
-  // Here we issue a mock "normalization" task.
-  final token = taskService.requestTask('echo', {
-    'ts': DateTime.now().toIso8601String(),
-  });
-  return Response.ok(jsonEncode({'ok': true, 'task_token': token}));
+  try {
+    final body = jsonDecode(await req.readAsString());
+    final roomId = body['room_id'];
+    final type = body['type'] ?? 'echo';
+    final params = body['params'] ?? {};
+
+    if (roomId == null) {
+      return Response.badRequest(
+        body: jsonEncode({'error': 'missing_room_id'}),
+      );
+    }
+
+    // Embed room_id in task payload so we can route the result event later
+    final token = taskService.requestTask(type, {
+      'ts': DateTime.now().toIso8601String(),
+      'room_id': roomId,
+      'params': params,
+    });
+
+    // Notify the room that a task has been issued
+    eventService.publish(roomId, 'task', {
+      'type': type,
+      'params': params,
+      't': DateTime.now().millisecondsSinceEpoch,
+    });
+
+    return Response.ok(jsonEncode({'ok': true, 'task_token': token}));
+  } catch (e) {
+    return Response.badRequest(body: jsonEncode({'error': 'bad_request'}));
+  }
 }
 
 /// Receives a task result.
@@ -415,10 +439,28 @@ Future<Response> _taskResultHandler(Request req) async {
       return Response(401, body: jsonEncode({'error': 'invalid_token'}));
     }
 
+    // Extract original context
+    final taskPayload = payload['payload'] as Map<String, dynamic>?;
+    final roomId = taskPayload?['room_id'];
+    final taskId = payload['task_id'];
+
+    if (roomId != null) {
+      eventService.publish(roomId, 'result', {
+        'task_id': taskId,
+        'ok': true, // Assuming success if we got here
+        'result': result, // Raw result
+        // Helper for Activity.vue which looks for 'normalized' or 'raw'
+        'normalized': result is Map ? result['normalized'] : null,
+        'raw': result is Map ? result['raw'] : null,
+        't': DateTime.now().millisecondsSinceEpoch,
+      });
+    }
+
     // Log result
-    print('Task Complete: ${payload['task_id']} => $result');
+    print('Task Complete: $taskId => $result');
     return Response.ok(jsonEncode({'ok': true}));
   } catch (e) {
+    print('Error processing result: $e');
     return Response.badRequest(body: jsonEncode({'error': 'bad_request'}));
   }
 }
@@ -458,7 +500,14 @@ Middleware securityHardeningMiddleware() {
 }
 
 void main(List<String> args) async {
-  await p2pNode.start();
+  try {
+    await p2pNode.start();
+  } catch (e) {
+    print(
+      'SeedSphere Router: P2P Node failed to start (libsodium missing?): $e',
+    );
+    print('SeedSphere Router: Continuing in degraded mode (HTTP-only).');
+  }
   prefetchService.start();
 
   // Periodic Cleanup (Parity)

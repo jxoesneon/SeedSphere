@@ -1,9 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:gardener/ui/theme/aetheric_theme.dart';
-import 'package:gardener/ui/widgets/aetheric_glass.dart';
+import 'package:gardener/ui/widgets/settings/settings.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 /// Settings screen for configuring content providers/scrapers.
+///
+/// **Redesigned with Gardener Design System**:
+/// - ExpandableSection for provider grouping
+/// - SettingsToggle for enable/disable
+/// - InfoCard showing active provider count
+/// - Organized by content type
 class ProviderSettings extends StatefulWidget {
   const ProviderSettings({super.key});
 
@@ -12,20 +18,42 @@ class ProviderSettings extends StatefulWidget {
 }
 
 class _ProviderSettingsState extends State<ProviderSettings> {
-  // Demo state - in real app would verify against actual provider manager
+  // Movies & TV providers
   bool _torrentioEnabled = true;
   bool _ytsEnabled = true;
   bool _eztvEnabled = true;
+
+  // Anime providers
   bool _nyaaEnabled = true;
+  bool _anidexEnabled = true;
+  bool _tokyoToshoEnabled = true;
+
+  // General providers
   bool _x1337Enabled = true;
   bool _pirateBayEnabled = false;
   bool _torrentGalaxyEnabled = true;
   bool _torlockEnabled = true;
   bool _magnetDLEnabled = true;
-  bool _anidexEnabled = true;
-  bool _tokyoToshoEnabled = true;
   bool _zooqleEnabled = false;
   bool _rutorEnabled = false;
+
+  int get _activeProvidersCount {
+    int count = 0;
+    if (_torrentioEnabled) count++;
+    if (_ytsEnabled) count++;
+    if (_eztvEnabled) count++;
+    if (_nyaaEnabled) count++;
+    if (_anidexEnabled) count++;
+    if (_tokyoToshoEnabled) count++;
+    if (_x1337Enabled) count++;
+    if (_pirateBayEnabled) count++;
+    if (_torrentGalaxyEnabled) count++;
+    if (_torlockEnabled) count++;
+    if (_magnetDLEnabled) count++;
+    if (_zooqleEnabled) count++;
+    if (_rutorEnabled) count++;
+    return count;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -47,148 +75,172 @@ class _ProviderSettingsState extends State<ProviderSettings> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildSectionHeader('ACTIVE SCRAPERS'),
+            // Status info
+            InfoCard(
+              message:
+                  'Active Providers: $_activeProvidersCount/13. More providers = better search results but slower queries.',
+              severity: _activeProvidersCount >= 8
+                  ? InfoCardSeverity.success
+                  : InfoCardSeverity.warning,
+              customIcon: Icons.hub_rounded,
+            ),
+            const SizedBox(height: 24),
+
+            // Movies & TV Section
+            ExpandableSection(
+              title: 'Movies & TV',
+              icon: Icons.movie_rounded,
+              initiallyExpanded: true,
+              badge: '${[
+                _torrentioEnabled,
+                _ytsEnabled,
+                _eztvEnabled
+              ].where((e) => e).length}/3',
+              child: Column(
+                children: [
+                  SettingsToggle(
+                    title: 'Torrentio',
+                    description: 'Aggregator for movies & series',
+                    value: _torrentioEnabled,
+                    leadingIcon: Icons.hub,
+                    onChanged: (v) => setState(() => _torrentioEnabled = v),
+                  ),
+                  const SizedBox(height: 8),
+                  SettingsToggle(
+                    title: 'YTS',
+                    description: 'High quality movie encodes',
+                    value: _ytsEnabled,
+                    leadingIcon: Icons.movie,
+                    onChanged: (v) => setState(() => _ytsEnabled = v),
+                  ),
+                  const SizedBox(height: 8),
+                  SettingsToggle(
+                    title: 'EZTV',
+                    description: 'TV Series specialist',
+                    value: _eztvEnabled,
+                    leadingIcon: Icons.tv,
+                    onChanged: (v) => setState(() => _eztvEnabled = v),
+                  ),
+                ],
+              ),
+            ),
             const SizedBox(height: 16),
-            _buildProviderToggle(
-              'Torrentio',
-              'Aggregator for movies & series',
-              _torrentioEnabled,
-              (v) => setState(() => _torrentioEnabled = v),
-              Icons.hub,
+
+            // Anime Section
+            ExpandableSection(
+              title: 'Anime',
+              icon: Icons.animation_rounded,
+              badge: '${[
+                _nyaaEnabled,
+                _anidexEnabled,
+                _tokyoToshoEnabled
+              ].where((e) => e).length}/3',
+              child: Column(
+                children: [
+                  SettingsToggle(
+                    title: 'Nyaa',
+                    description: 'Anime & East Asian media',
+                    value: _nyaaEnabled,
+                    leadingIcon: Icons.animation,
+                    onChanged: (v) => setState(() => _nyaaEnabled = v),
+                  ),
+                  const SizedBox(height: 8),
+                  SettingsToggle(
+                    title: 'AniDex',
+                    description: 'Specialized Anime Tracker',
+                    value: _anidexEnabled,
+                    leadingIcon: Icons.animation,
+                    onChanged: (v) => setState(() => _anidexEnabled = v),
+                  ),
+                  const SizedBox(height: 8),
+                  SettingsToggle(
+                    title: 'TokyoTosho',
+                    description: 'Japanese media tracker',
+                    value: _tokyoToshoEnabled,
+                    leadingIcon: Icons.translate,
+                    onChanged: (v) => setState(() => _tokyoToshoEnabled = v),
+                  ),
+                ],
+              ),
             ),
-            const SizedBox(height: 12),
-            _buildProviderToggle(
-              'YTS',
-              'High quality movie encodes',
-              _ytsEnabled,
-              (v) => setState(() => _ytsEnabled = v),
-              Icons.movie,
-            ),
-            const SizedBox(height: 12),
-            _buildProviderToggle(
-              'EZTV',
-              'TV Series specialist',
-              _eztvEnabled,
-              (v) => setState(() => _eztvEnabled = v),
-              Icons.tv,
-            ),
-            const SizedBox(height: 12),
-            _buildProviderToggle(
-              'Nyaa',
-              'Anime & East Asian media',
-              _nyaaEnabled,
-              (v) => setState(() => _nyaaEnabled = v),
-              Icons.animation,
-            ),
-            const SizedBox(height: 12),
-            _buildProviderToggle(
-              '1337x',
-              'General purpose community',
-              _x1337Enabled,
-              (v) => setState(() => _x1337Enabled = v),
-              Icons.public,
-            ),
-            const SizedBox(height: 12),
-            _buildProviderToggle(
-              'TorrentGalaxy',
-              'Popular general tracker',
-              _torrentGalaxyEnabled,
-              (v) => setState(() => _torrentGalaxyEnabled = v),
-              Icons.stars,
-            ),
-            const SizedBox(height: 12),
-            _buildProviderToggle(
-              'Torlock',
-              'Verified torrents only',
-              _torlockEnabled,
-              (v) => setState(() => _torlockEnabled = v),
-              Icons.lock,
-            ),
-            const SizedBox(height: 12),
-            _buildProviderToggle(
-              'MagnetDL',
-              'Fast magnet link search',
-              _magnetDLEnabled,
-              (v) => setState(() => _magnetDLEnabled = v),
-              Icons.link,
-            ),
-            const SizedBox(height: 12),
-            _buildProviderToggle(
-              'AniDex',
-              'Specialized Anime Tracker',
-              _anidexEnabled,
-              (v) => setState(() => _anidexEnabled = v),
-              Icons.animation,
-            ),
-            const SizedBox(height: 12),
-            _buildProviderToggle(
-              'TokyoTosho',
-              'Japanese media tracker',
-              _tokyoToshoEnabled,
-              (v) => setState(() => _tokyoToshoEnabled = v),
-              Icons.translate,
-            ),
-            const SizedBox(height: 12),
-            _buildProviderToggle(
-              'Zooqle',
-              'Verified movies & TV',
-              _zooqleEnabled,
-              (v) => setState(() => _zooqleEnabled = v),
-              Icons.check_circle,
-            ),
-            const SizedBox(height: 12),
-            _buildProviderToggle(
-              'Rutor',
-              'Russian/International tracker',
-              _rutorEnabled,
-              (v) => setState(() => _rutorEnabled = v),
-              Icons.language,
-            ),
-            const SizedBox(height: 12),
-            _buildProviderToggle(
-              'The Pirate Bay',
-              'Legacy tracker (ISP blocks common)',
-              _pirateBayEnabled,
-              (v) => setState(() => _pirateBayEnabled = v),
-              Icons.flag_circle,
-              isWarning: true,
+            const SizedBox(height: 16),
+
+            // General Providers Section
+            ExpandableSection(
+              title: 'General',
+              icon: Icons.public_rounded,
+              badge: '${[
+                _x1337Enabled,
+                _torrentGalaxyEnabled,
+                _torlockEnabled,
+                _magnetDLEnabled,
+                _zooqleEnabled,
+                _rutorEnabled,
+                _pirateBayEnabled
+              ].where((e) => e).length}/7',
+              child: Column(
+                children: [
+                  SettingsToggle(
+                    title: '1337x',
+                    description: 'General purpose community',
+                    value: _x1337Enabled,
+                    leadingIcon: Icons.public,
+                    onChanged: (v) => setState(() => _x1337Enabled = v),
+                  ),
+                  const SizedBox(height: 8),
+                  SettingsToggle(
+                    title: 'TorrentGalaxy',
+                    description: 'Popular general tracker',
+                    value: _torrentGalaxyEnabled,
+                    leadingIcon: Icons.stars,
+                    onChanged: (v) => setState(() => _torrentGalaxyEnabled = v),
+                  ),
+                  const SizedBox(height: 8),
+                  SettingsToggle(
+                    title: 'Torlock',
+                    description: 'Verified torrents only',
+                    value: _torlockEnabled,
+                    leadingIcon: Icons.lock,
+                    onChanged: (v) => setState(() => _torlockEnabled = v),
+                  ),
+                  const SizedBox(height: 8),
+                  SettingsToggle(
+                    title: 'MagnetDL',
+                    description: 'Fast magnet link search',
+                    value: _magnetDLEnabled,
+                    leadingIcon: Icons.link,
+                    onChanged: (v) => setState(() => _magnetDLEnabled = v),
+                  ),
+                  const SizedBox(height: 8),
+                  SettingsToggle(
+                    title: 'Zooqle',
+                    description: 'Verified movies & TV',
+                    value: _zooqleEnabled,
+                    leadingIcon: Icons.check_circle,
+                    onChanged: (v) => setState(() => _zooqleEnabled = v),
+                  ),
+                  const SizedBox(height: 8),
+                  SettingsToggle(
+                    title: 'Rutor',
+                    description: 'Russian/International tracker',
+                    value: _rutorEnabled,
+                    leadingIcon: Icons.language,
+                    onChanged: (v) => setState(() => _rutorEnabled = v),
+                  ),
+                  const SizedBox(height: 8),
+                  SettingsToggle(
+                    title: 'The Pirate Bay',
+                    description: 'Legacy tracker (ISP blocks common)',
+                    value: _pirateBayEnabled,
+                    leadingIcon: Icons.flag_circle,
+                    isWarning: true,
+                    onChanged: (v) => setState(() => _pirateBayEnabled = v),
+                  ),
+                ],
+              ),
             ),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildProviderToggle(String title, String subtitle, bool value,
-      ValueChanged<bool> onChanged, IconData icon,
-      {bool isWarning = false}) {
-    return AethericGlass(
-      child: SwitchListTile(
-        secondary: Icon(icon,
-            color: isWarning ? Colors.orange : AethericTheme.aetherBlue),
-        title: Text(title, style: GoogleFonts.outfit(color: Colors.white)),
-        subtitle: Text(
-          subtitle,
-          style: GoogleFonts.outfit(color: Colors.white54, fontSize: 12),
-        ),
-        value: value,
-        activeTrackColor: isWarning
-            ? Colors.orange.withValues(alpha: 0.5)
-            : AethericTheme.aetherBlue,
-        activeThumbColor: isWarning ? Colors.orange : Colors.white,
-        onChanged: onChanged,
-      ),
-    );
-  }
-
-  Widget _buildSectionHeader(String title) {
-    return Text(
-      title,
-      style: GoogleFonts.outfit(
-        color: AethericTheme.aetherBlue,
-        fontWeight: FontWeight.bold,
-        letterSpacing: 1.5,
-        fontSize: 12,
       ),
     );
   }

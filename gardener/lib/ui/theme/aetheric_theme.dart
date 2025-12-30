@@ -25,6 +25,18 @@ class AethericTheme {
   /// The subtle border color for glass containers.
   static const Color glassBorder = Color(0x33FFFFFF);
 
+  /// Semantic Color: Success (Green)
+  static const Color success = Color(0xFF10B981);
+
+  /// Semantic Color: Warning (Amber)
+  static const Color warning = Color(0xFFF59E0B);
+
+  /// Semantic Color: Error (Red)
+  static const Color error = Color(0xFFEF4444);
+
+  /// Semantic Color: Info (Blue)
+  static const Color info = Color(0xFF3B82F6);
+
   /// Generates the global [ThemeData] for the application.
   ///
   /// Configures Material 3, dark brightness, and custom component themes

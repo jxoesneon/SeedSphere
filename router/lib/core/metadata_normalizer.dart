@@ -21,6 +21,21 @@ class SeedStream {
   /// Number of seeders for this torrent.
   final int seeders;
 
+  /// Detected video codec (e.g., 'x265', 'x264', 'AV1').
+  final String? codec;
+
+  /// Detected audio format (e.g., 'Dolby Atmos', 'DDP 5.1').
+  final String? audio;
+
+  /// Detected HDR type (e.g., 'Dolby Vision', 'HDR10+').
+  final String? hdr;
+
+  /// Detected languages (e.g., ['en', 'es-419']).
+  final List<String> languages;
+
+  /// File size in bytes (if available).
+  final int? sizeBytes;
+
   /// Creates a new [SeedStream] instance.
   SeedStream({
     required this.title,
@@ -29,6 +44,11 @@ class SeedStream {
     required this.resolution,
     required this.source,
     required this.seeders,
+    this.codec,
+    this.audio,
+    this.hdr,
+    this.languages = const [],
+    this.sizeBytes,
   });
 
   /// Converts this stream to a JSON-serializable map.
@@ -39,74 +59,173 @@ class SeedStream {
     'resolution': resolution,
     'source': source,
     'seeders': seeders,
+    if (codec != null) 'codec': codec,
+    if (audio != null) 'audio': audio,
+    if (hdr != null) 'hdr': hdr,
+    if (languages.isNotEmpty) 'languages': languages,
+    if (sizeBytes != null) 'sizeBytes': sizeBytes,
   };
 }
 
 /// Utility for normalizing stream metadata from different scraper sources.
 ///
-/// Different torrent/stream providers use varying field names and formats.
-/// This normalizer standardizes them into a consistent [SeedStream] model.
-///
-/// Example:
-/// ```dart
-/// // Raw data from YTS scraper
-/// final rawYTS = {'title': 'Movie.2024.2160p', 'hash': 'ABC123', 'seeds': 50};
-/// final stream = MetadataNormalizer.normalize(rawYTS, 'YTS');
-/// print(stream.resolution); // '4K'
-///
-/// // Raw data from Torrentio
-/// final rawTorrentio = {'name': 'Movie.720p', 'infoHash': 'DEF456', 'seeders': 10};
-/// final stream2 = MetadataNormalizer.normalize(rawTorrentio, 'Torrentio');
-/// print(stream2.resolution); // '720p'
-/// ```
+/// Ensures 1:1 parity with legacy `parse.cjs` logic by extracting:
+/// - Resolution (4K, 1080p)
+/// - Codec (HEVC, x264)
+/// - HDR (Dolby Vision, HDR10+)
+/// - Audio (Atmos, DDP, Surround)
+/// - Languages (Multi-lingual detection)
 class MetadataNormalizer {
+  // Regex patterns from legacy `parse.cjs`
+  static final _reHevc = RegExp(r'(hevc|x265|h\.265)', caseSensitive: false);
+  static final _reAvc = RegExp(r'(x264|h\.264)', caseSensitive: false);
+  static final _reAv1 = RegExp(r'av1', caseSensitive: false);
+
+  static final _reHdrDv = RegExp(
+    r'Dolby[ \-.]?Vision|\bDV\b',
+    caseSensitive: false,
+  );
+  static final _reHdr10Plus = RegExp(r'HDR10\+?', caseSensitive: false);
+  static final _reHdr = RegExp(r'\bHDR\b', caseSensitive: false);
+
+  static final _reAudio = RegExp(
+    r'(DDP(?:\.?5\.1)?|E-?AC-?3|AC3|DTS(?:-HD)?(?: MA)?|TrueHD|AAC|Opus)',
+    caseSensitive: false,
+  );
+
+  static final _reSize = RegExp(
+    r'(\d+(?:\.\d+)?)\s*(TB|TiB|GB|GiB|MB|MiB|KB|KiB)\b',
+    caseSensitive: false,
+  );
+
   /// Normalizes raw scraper data into a [SeedStream] model.
-  ///
-  /// [raw] - The raw metadata map from a scraper (field names vary by source).
-  /// [provider] - The name of the scraper provider (e.g., 'YTS', 'Torrentio').
-  ///
-  /// Returns a normalized [SeedStream] with standardized fields.
-  ///
-  /// **Field Mapping:**
-  /// - Title: `raw['title']` or `raw['name']` or "Unknown Stream"
-  /// - InfoHash: `raw['infoHash']` or `raw['hash']` or empty string
-  /// - Resolution: Extracted from title string (see [_extractResolution])
-  /// - Seeders: `raw['seeders']` or 0
   static SeedStream normalize(Map<String, dynamic> raw, String provider) {
+    final title = raw['title'] ?? raw['name'] ?? 'Unknown Stream';
+    final lowerTitle = title.toLowerCase();
+
+    // Use legacy logic for size parsing if not provided numerically
+    int? sizeBytes = _parseInt(raw['sizeBytes'] ?? raw['size_bytes']);
+
+    if (sizeBytes == null && raw['size'] is String) {
+      sizeBytes = _parseSize(raw['size']);
+    }
+
+    sizeBytes ??= _parseSize(title); // Attempt to find size in title
+
     return SeedStream(
-      title: raw['title'] ?? raw['name'] ?? 'Unknown Stream',
+      title: title,
       infoHash: raw['infoHash'] ?? raw['hash'] ?? '',
       fileIdx: raw['fileIdx']?.toString(),
-      resolution: _extractResolution(raw['title'] ?? ''),
+      resolution: _extractResolution(title),
       source: provider,
-      seeders: raw['seeders'] ?? 0,
+      seeders: _parseInt(raw['seeders']) ?? 0,
+      codec: _extractCodec(lowerTitle),
+      hdr: _extractHdr(lowerTitle),
+      audio: _extractAudio(title),
+      languages: _extractLanguages(lowerTitle),
+      sizeBytes: sizeBytes,
     );
   }
 
-  /// Extracts standardized resolution from a title string.
-  ///
-  /// [title] - The stream/torrent title to parse.
-  ///
-  /// Returns one of: '4K', '1080p', '720p', or 'SD' (default).
-  ///
-  /// **Detection patterns (case-insensitive):**
-  /// - **4K**: Contains '2160p', '4k', or 'uhd'
-  /// - **1080p**: Contains '1080p'
-  /// - **720p**: Contains '720p'
-  /// - **SD**: Everything else (480p, no quality specified, etc.)
   static String _extractResolution(String title) {
     final lower = title.toLowerCase();
+    // Legacy mapping parity
     if (lower.contains('2160p') ||
         lower.contains('4k') ||
         lower.contains('uhd')) {
       return '4K';
     }
-    if (lower.contains('1080p')) {
-      return '1080p';
-    }
-    if (lower.contains('720p')) {
-      return '720p';
-    }
+    if (lower.contains('1080p')) return '1080p';
+    if (lower.contains('720p')) return '720p';
+    if (lower.contains('480p')) return '480p';
     return 'SD';
+  }
+
+  static String? _extractCodec(String s) {
+    if (_reHevc.hasMatch(s)) return 'HEVC x265';
+    if (_reAvc.hasMatch(s)) return 'x264';
+    if (_reAv1.hasMatch(s)) return 'AV1';
+    return null;
+  }
+
+  static String? _extractHdr(String s) {
+    if (_reHdr10Plus.hasMatch(s)) return 'HDR10+';
+    if (_reHdrDv.hasMatch(s)) return 'Dolby Vision';
+    if (_reHdr.hasMatch(s)) return 'HDR';
+    return null;
+  }
+
+  static String? _extractAudio(String s) {
+    // Audio regex is case-insensitive but we preserve formatting for display
+    final match = _reAudio.firstMatch(s);
+    if (match != null) {
+      return match.group(1)!.replaceAll('_', ' ').toUpperCase();
+    }
+    return null;
+  }
+
+  static List<String> _extractLanguages(String s) {
+    final Set<String> found = {};
+
+    // Check against all aliases from StreamMappings
+    // Note: Iterate over a flat list of checks for performance?
+    // Legacy code did 17 if-checks. We can map that.
+
+    // Parity with parse.cjs hardcoded checks
+    if (s.contains('multi') || s.contains('dual')) found.add('Multi');
+
+    // Common languages check
+    // We iterate the alias map but optimized for key phrases in parse.cjs
+    if (s.contains('eng') || s.contains('english')) found.add('en');
+    if (s.contains('spa') || s.contains('latino') || s.contains('castellano')) {
+      found.add('es');
+    }
+    if (s.contains('fre') || s.contains('french') || s.contains('vff')) {
+      found.add('fr');
+    }
+    if (s.contains('ger') || s.contains('german') || s.contains('deutsch')) {
+      found.add('de');
+    }
+    if (s.contains('ita') || s.contains('italian')) found.add('it');
+    if (s.contains('rus') || s.contains('russian')) found.add('ru');
+    if (s.contains('por') || s.contains('portuguese') || s.contains('brazil')) {
+      found.add('pt');
+    }
+    if (s.contains('jpn') || s.contains('japanese')) found.add('ja');
+    if (s.contains('kor') || s.contains('korean')) found.add('ko');
+    if (s.contains('chi') || s.contains('chinese')) found.add('zh');
+    if (s.contains('hin') || s.contains('hindi')) found.add('hi');
+
+    return found.toList();
+  }
+
+  static int? _parseInt(dynamic value) {
+    if (value == null) return null;
+    if (value is int) return value;
+    if (value is String) return int.tryParse(value);
+    return null;
+  }
+
+  static int? _parseSize(String s) {
+    final match = _reSize.firstMatch(s);
+    if (match == null) return null;
+
+    try {
+      final num = double.parse(match.group(1)!);
+      final unit = match.group(2)!.toUpperCase();
+
+      int mult = 1024;
+      if (unit.startsWith('T')) {
+        mult = 1024 * 1024 * 1024 * 1024;
+      } else if (unit.startsWith('G')) {
+        mult = 1024 * 1024 * 1024;
+      } else if (unit.startsWith('M')) {
+        mult = 1024 * 1024;
+      }
+
+      return (num * mult).round();
+    } catch (_) {
+      return null;
+    }
   }
 }

@@ -1,9 +1,9 @@
-name: gardener
+﻿name: gardener
 description: "SeedSphere 2.0: The Federated Frontier. A decentralized, P2P-powered media discovery and streaming engine for the IPFS era."
 homepage: https://github.com/seedsphere/seedsphere
 repository: https://github.com/seedsphere/seedsphere
 issue_tracker: https://github.com/seedsphere/seedsphere/issues
-publish_to: 'none'
+publish_to: "none"
 
 # The following defines the version and build number for your application.
 # A version number is three numbers separated by dots, like 1.2.43
@@ -17,7 +17,7 @@ publish_to: 'none'
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-version: 1.9.0+1
+version: 1.9.1
 
 environment:
   sdk: ^3.2.0
@@ -44,6 +44,9 @@ dependencies:
   flutter_local_notifications: ^19.5.0
   uuid: ^4.5.2
   http: ^1.6.0
+  qr_flutter: ^4.1.0
+  fl_chart: ^0.65.0
+  url_launcher: ^6.3.2
 
 dev_dependencies:
   flutter_test:
@@ -60,3 +63,4 @@ flutter:
 
   shaders:
     - assets/shaders/aetheric_glass.frag
+

@@ -1,0 +1,170 @@
+name: Gardener Build & Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      android:
+        description: "Build Android"
+        type: boolean
+        default: false
+      ios:
+        description: "Build iOS"
+        type: boolean
+        default: false
+      windows:
+        description: "Build Windows"
+        type: boolean
+        default: false
+      linux:
+        description: "Build Linux"
+        type: boolean
+        default: false
+      macos:
+        description: "Build macOS"
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+jobs:
+  build-android:
+    if: ${{ github.event_name == 'push' || inputs.android == true }}
+    name: Android Build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: gardener
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v3
+        with:
+          distribution: "zulu"
+          java-version: "17"
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.19.0"
+          cache: true
+
+      - name: Get Dependencies
+        run: flutter pub get
+
+      - name: Build APK (Fat - arm64/x64/x86 included)
+        run: flutter build apk --release
+
+      - name: Build AppBundle
+        run: flutter build appbundle --release
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: gardener-android-apk
+          path: gardener/build/app/outputs/flutter-apk/app-release.apk
+
+  build-ios:
+    if: ${{ github.event_name == 'push' || inputs.ios == true }}
+    name: iOS Build (No Codesign)
+    runs-on: macos-latest
+    defaults:
+      run:
+        working-directory: gardener
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.19.0"
+          cache: true
+
+      - name: Get Dependencies
+        run: flutter pub get
+
+      - name: Build iOS (Simulator/No Sign)
+        run: flutter build ios --release --no-codesign
+
+  build-windows:
+    if: ${{ github.event_name == 'push' || inputs.windows == true }}
+    name: Windows Build
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: gardener
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.19.0"
+          cache: true
+
+      - name: Get Dependencies
+        run: flutter pub get
+
+      - name: Build Windows (x64)
+        run: flutter build windows --release
+
+      - name: Upload Windows Build
+        uses: actions/upload-artifact@v4
+        with:
+          name: gardener-windows-x64
+          path: gardener/build/windows/x64/runner/Release
+
+  build-linux:
+    if: ${{ github.event_name == 'push' || inputs.linux == true }}
+    name: Linux Build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: gardener
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Linux Deps
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev libstdc++-12-dev
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.19.0"
+          cache: true
+
+      - name: Get Dependencies
+        run: flutter pub get
+
+      - name: Build Linux (x64)
+        run: flutter build linux --release
+
+      - name: Upload Linux Build
+        uses: actions/upload-artifact@v4
+        with:
+          name: gardener-linux-x64
+          path: gardener/build/linux/x64/release/bundle
+
+  build-macos:
+    if: ${{ github.event_name == 'push' || inputs.macos == true }}
+    name: macOS Build
+    runs-on: macos-latest
+    defaults:
+      run:
+        working-directory: gardener
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.19.0"
+          cache: true
+
+      - name: Get Dependencies
+        run: flutter pub get
+
+      - name: Build macOS (Universal)
+        # Flutter defaults to x64 on x64 runners, needing manual config for universal/arm64 often,
+        # but 'flutter build macos' typically builds for the runner architecture.
+        # To strictly test, we build.
+        run: flutter build macos --release --no-codesign
+
+      - name: Upload macOS Build
+        uses: actions/upload-artifact@v4
+        with:
+          name: gardener-macos
+          path: gardener/build/macos/Build/Products/Release/gardener.app

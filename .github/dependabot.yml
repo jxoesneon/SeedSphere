@@ -1,24 +1,32 @@
 version: 2
 updates:
+  # GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    commit-message:
+      prefix: "ci"
+
+  # Dart/Flutter (Router & Gardener)
   - package-ecosystem: "pub"
     directory: "/router"
     schedule:
       interval: "weekly"
-    groups:
-      router-deps:
-        patterns:
-          - "*"
+    commit-message:
+      prefix: "chore(deps-router)"
 
+  - package-ecosystem: "pub"
+    directory: "/gardener"
+    schedule:
+      interval: "weekly"
+    commit-message:
+      prefix: "chore(deps-gardener)"
+
+  # NPM (Bridge)
   - package-ecosystem: "npm"
     directory: "/bridge"
     schedule:
       interval: "weekly"
-    groups:
-      bridge-deps:
-        patterns:
-          - "*"
-
-  - package-ecosystem: "github-actions"
-    directory: "/"
-    schedule:
-      interval: "monthly"
+    commit-message:
+      prefix: "chore(deps-bridge)"

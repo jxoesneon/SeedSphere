@@ -1,28 +1,149 @@
+import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 import 'package:gardener/ui/settings/swarm_settings_menu.dart';
 import 'package:gardener/ui/theme/aetheric_theme.dart';
-import 'package:gardener/ui/widgets/aetheric_glass.dart';
-import 'package:gardener/ui/widgets/adaptive_bento_grid.dart';
+import 'package:gardener/ui/widgets/swarm_health_hero.dart';
+import 'package:gardener/ui/widgets/signal_card.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-/// The central hub for swarm interactions and decentralized content discovery.
-///
-/// This dashboard provides a glassmorphic interface for monitoring swarm
-/// health (peers, latency, uptime), searching the decentralized web,
-/// and browsing popular/seeded content.
-///
-/// Uses [AethericGlass] for premium visual effects and [AdaptiveBentoGrid]
-/// for a responsive content layout that adapts to mobile and desktop.
-///
-/// Example:
-/// ```dart
-/// Navigator.of(context).push(
-///   MaterialPageRoute(builder: (_) => const SwarmDashboard()),
-/// );
-/// ```
-class SwarmDashboard extends StatelessWidget {
-  /// Creates a [SwarmDashboard] widget.
+/// "The Observatory" - Central hub for swarm monitoring and discovery.
+class SwarmDashboard extends StatefulWidget {
   const SwarmDashboard({super.key});
+
+  @override
+  State<SwarmDashboard> createState() => _SwarmDashboardState();
+}
+
+class _SwarmDashboardState extends State<SwarmDashboard> {
+  // State
+  bool _sseConnected = false;
+  int _peerCount = 0;
+  final List<String> _logs = [];
+  final List<Map<String, dynamic>> _recentResults = [];
+  List<Map<String, dynamic>> _popularSignals = [];
+
+  StreamSubscription? _sseSubscription;
+  final http.Client _client = http.Client();
+
+  @override
+  void initState() {
+    super.initState();
+    _connectSSE();
+    _fetchPopular();
+  }
+
+  @override
+  void dispose() {
+    _sseSubscription?.cancel();
+    _client.close();
+    super.dispose();
+  }
+
+  /// Fetches popular content from the local SeedSphere Addon.
+  Future<void> _fetchPopular() async {
+    try {
+      // SeedSphere router exposes standard Stremio addon catalog at root
+      // 'top' catalog for 'movie' type
+      final uri = Uri.parse('http://127.0.0.1:8080/catalog/movie/top.json');
+      final resp = await _client.get(uri);
+
+      if (resp.statusCode == 200) {
+        final data = jsonDecode(resp.body);
+        final metas = (data['metas'] as List).take(10).toList();
+
+        if (mounted) {
+          setState(() {
+            _popularSignals = metas.map<Map<String, dynamic>>((m) {
+              return {
+                'title': m['name'],
+                'subtitle': m['releaseInfo'] ?? 'Unknown',
+                'source': 'Popular',
+                'magnet': null,
+                'seeders': 0,
+                'poster': m['poster'],
+              };
+            }).toList();
+          });
+        }
+      }
+    } catch (e) {
+      _addLog('[WARN] Failed to fetch popular signals: $e');
+    }
+  }
+
+  /// Connects to the Router's Event Stream (SSE).
+  void _connectSSE() async {
+    try {
+      final req = http.Request(
+          'GET', Uri.parse('http://127.0.0.1:8080/api/rooms/swarm/events'));
+      req.headers['Accept'] = 'text/event-stream';
+
+      final resp = await _client.send(req);
+      if (mounted) setState(() => _sseConnected = true);
+      _addLog('Connected to Swarm Uplink (SSE)');
+
+      _sseSubscription = resp.stream
+          .transform(const Utf8Decoder())
+          .transform(const LineSplitter())
+          .listen((line) {
+        if (line.startsWith('data: ')) {
+          final payload = line.substring(6);
+          try {
+            final event = jsonDecode(payload);
+            _handleEvent(event);
+          } catch (_) {}
+        }
+      }, onError: (e) {
+        if (mounted) setState(() => _sseConnected = false);
+        _addLog('[ERROR] SSE Disconnected');
+      });
+    } catch (e) {
+      if (mounted) setState(() => _sseConnected = false);
+      _addLog('[ERROR] Connection failed: $e');
+    }
+  }
+
+  void _handleEvent(Map<String, dynamic> event) {
+    // Simple logic to interpret events for visualization
+    if (event.containsKey('t')) {
+      // heartbeat or generic
+      // Update peer count simulation or parse real if available
+      // For now, we increment peer count on activity to show "liveness"
+      if (mounted) setState(() => _peerCount = (_peerCount + 1) % 100 + 10);
+    }
+
+    // Result event (Task Completion)
+    if (event['ok'] == true && event.containsKey('result')) {
+      final res = event['result'];
+      // If result looks like a stream/meta
+      if (res is Map && res.containsKey('title')) {
+        if (mounted) {
+          setState(() {
+            _recentResults.insert(0, {
+              'title': res['title'],
+              'subtitle': res['infoHash']?.substring(0, 8) ?? 'Unknown Hash',
+              'source': 'Swarm',
+              'magnet': res['magnet'],
+              'seeders': res['seeders'] ?? 0,
+            });
+            if (_recentResults.length > 10) _recentResults.removeLast();
+          });
+          _addLog('Received stream: ${res['title']}');
+        }
+      }
+    }
+  }
+
+  void _addLog(String msg) {
+    if (!mounted) return;
+    setState(() {
+      _logs.add(
+          '[${DateTime.now().toIso8601String().split('T')[1].substring(0, 8)}] $msg');
+      if (_logs.length > 50) _logs.removeAt(0);
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -37,39 +158,19 @@ class SwarmDashboard extends StatelessWidget {
               color: Colors.white70),
           onPressed: () => Navigator.of(context).pop(),
         ),
-        title: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.hub_rounded,
-                color: AethericTheme.aetherBlue, size: 20),
-            const SizedBox(width: 12),
-            Text(
-              'SWARM NODE',
-              style: GoogleFonts.outfit(
-                fontWeight: FontWeight.w600,
-                letterSpacing: 2,
-                fontSize: 16,
-                color: Colors.white,
-              ),
-            ),
-          ],
-        ),
-        centerTitle: true,
         actions: [
           IconButton(
             icon: const Icon(Icons.settings_input_antenna_rounded,
                 color: Colors.white70),
-            onPressed: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const SwarmSettingsMenu()),
-              );
-            },
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const SwarmSettingsMenu()),
+            ),
           ),
         ],
       ),
       body: Stack(
         children: [
-          // Deep slate background with subtle gradients
+          // Deep Void Gradient
           Positioned.fill(
             child: Container(
               decoration: const BoxDecoration(
@@ -77,8 +178,8 @@ class SwarmDashboard extends StatelessWidget {
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                   colors: [
-                    Color(0xFF020617),
-                    Color(0xFF0F172A),
+                    Color(0xFF020617), // Deep Void
+                    Color(0xFF0F172A), // Slate 900
                     Color(0xFF020617),
                   ],
                 ),
@@ -86,197 +187,142 @@ class SwarmDashboard extends StatelessWidget {
             ),
           ),
 
-          Column(
-            children: [
-              const SizedBox(height: 100), // Spacing for transparent AppBar
+          // Main Scrollable Content
+          SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const SizedBox(height: 80),
 
-              // 1. Swarm Vitality Stats Table (Glassmorphic Container)
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: AethericGlass(
-                  borderRadius: 20,
-                  baseColor: const Color(0x0DFFFFFF),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: [
-                      const _StatItem(
-                          label: 'PEERS',
-                          value: '842',
-                          icon: Icons.people_outline_rounded),
-                      _VerticalDivider(),
-                      const _StatItem(
-                          label: 'LATENCY',
-                          value: '24ms',
-                          icon: Icons.speed_rounded,
-                          color: AethericTheme.aetherBlue),
-                      _VerticalDivider(),
-                      const _StatItem(
-                          label: 'UPTIME',
-                          value: '99.9%',
-                          icon: Icons.timer_outlined),
-                    ],
-                  ),
-                ),
-              ),
+                // 1. HERO: Swarm Vitality (The Eye)
+                SwarmHealthHero(
+                    peerCount: _peerCount, isHealthy: _sseConnected),
 
-              const SizedBox(height: 24),
+                const SizedBox(height: 24),
 
-              // 2. Swarm Search Bar
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: TextField(
-                  style: GoogleFonts.outfit(color: Colors.white),
-                  decoration: InputDecoration(
-                    hintText: 'Search the decentralized web...',
-                    hintStyle: GoogleFonts.outfit(color: Colors.white30),
-                    filled: true,
-                    fillColor: Colors.white.withValues(alpha: 0.05),
-                    prefixIcon:
-                        const Icon(Icons.search_rounded, color: Colors.white54),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(16),
-                      borderSide: BorderSide.none,
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(16),
-                      borderSide: BorderSide(
-                          color:
-                              AethericTheme.aetherBlue.withValues(alpha: 0.5)),
-                    ),
-                  ),
-                ),
-              ),
+                // 2. POPULAR STREAMS (Discovery)
+                _buildSectionHeader('POPULAR STREAMS'),
+                const SizedBox(height: 16),
+                if (_popularSignals.isEmpty)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    child: Text('Scanning frequency bands...',
+                        style: GoogleFonts.firaCode(
+                            color: Colors.white30, fontSize: 12)),
+                  )
+                else
+                  _buildSignalStream(_popularSignals),
 
-              const SizedBox(height: 16),
+                const SizedBox(height: 32),
 
-              // 3. Featured Content Grid (Using Bento Layout)
-              const Expanded(
-                child: AdaptiveBentoGrid(
-                  mobileColumns: 2,
-                  desktopColumns: 4,
-                  children: [
-                    _ContentCard(
-                        title: 'Cosmos Laundromat', type: 'Movie', seeds: 1240),
-                    _ContentCard(title: 'Sintel', type: 'Short', seeds: 890),
-                    _ContentCard(
-                        title: 'Big Buck Bunny',
-                        type: 'Animation',
-                        seeds: 4500),
-                    _ContentCard(
-                        title: 'Tears of Steel', type: 'Sci-Fi', seeds: 620),
-                    _ContentCard(
-                        title: 'Elephants Dream', type: 'Classic', seeds: 310),
-                    _ContentCard(
-                        title: 'Spring', type: 'Animation', seeds: 1100),
-                  ],
-                ),
-              ),
-            ],
+                // 3. RECENT STREAMS (Active History)
+                if (_recentResults.isNotEmpty) ...[
+                  _buildSectionHeader('RECENT STREAMS'),
+                  const SizedBox(height: 16),
+                  _buildSignalStream(_recentResults),
+                  const SizedBox(height: 32),
+                ],
+
+                const SizedBox(height: 100), // Spacing for footer
+              ],
+            ),
+          ),
+
+          // 4. FOOTER: Ambient Monitor (Ticker)
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 0,
+            child: _buildSystemTicker(),
           ),
         ],
       ),
     );
   }
-}
 
-/// A single statistic display within the dashboard stats header.
-class _StatItem extends StatelessWidget {
-  final String label;
-  final String value;
-  final IconData icon;
-  final Color? color;
-
-  const _StatItem(
-      {required this.label,
-      required this.value,
-      required this.icon,
-      this.color});
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Padding(
-          padding: const EdgeInsets.only(top: 12),
-          child: Icon(icon, color: color ?? Colors.white54, size: 20),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          value,
-          style: GoogleFonts.outfit(
-            color: Colors.white,
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        Text(
-          label.toUpperCase(),
-          style: GoogleFonts.outfit(
-            color: Colors.white30,
-            fontSize: 10,
-            letterSpacing: 1.5,
-          ),
-        ),
-        const SizedBox(height: 12),
-      ],
-    );
-  }
-}
-
-/// A subtle vertical separator for the stat row.
-class _VerticalDivider extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: 30,
-      width: 1,
-      color: Colors.white.withValues(alpha: 0.1),
-    );
-  }
-}
-
-/// A card representing a piece of content discovered in the swarm.
-class _ContentCard extends StatelessWidget {
-  final String title;
-  final String type;
-  final int seeds;
-
-  const _ContentCard(
-      {required this.title, required this.type, required this.seeds});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.all(8),
-      decoration: BoxDecoration(
-        color: const Color(0xFF1E293B),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
+  Widget _buildSectionHeader(String title) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24),
+      child: Row(
         children: [
-          const Icon(Icons.movie_creation_outlined,
-              size: 32, color: Colors.white24),
-          const SizedBox(height: 12),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8),
+          Container(width: 4, height: 16, color: AethericTheme.aetherBlue),
+          const SizedBox(width: 8),
+          Text(
+            title,
+            style: GoogleFonts.outfit(
+              color: Colors.white70,
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 2.0,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSignalStream(List<Map<String, dynamic>> signals) {
+    return SizedBox(
+      height: 220,
+      child: ListView.builder(
+        padding: const EdgeInsets.symmetric(horizontal: 24),
+        scrollDirection: Axis.horizontal,
+        itemCount: signals.length,
+        itemBuilder: (context, index) {
+          final sig = signals[index];
+          return SignalCard(
+            title: sig['title'],
+            subtitle: sig['subtitle'],
+            seeders: sig['seeders'] ?? 0,
+            source: sig['source'],
+            magnet: sig['magnet'],
+            posterUrl: sig['poster'],
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildSystemTicker() {
+    // A simplified ticker using the last log entry
+    final lastLog = _logs.isEmpty ? 'System initialized...' : _logs.last;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 24),
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: 0.8),
+        border: const Border(top: BorderSide(color: Colors.white10)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 6,
+            height: 6,
+            decoration: BoxDecoration(
+              color: AethericTheme.success,
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                    color: AethericTheme.success.withValues(alpha: 0.5),
+                    blurRadius: 4),
+              ],
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
             child: Text(
-              title,
-              style: GoogleFonts.outfit(
-                  color: Colors.white, fontWeight: FontWeight.w600),
-              textAlign: TextAlign.center,
-              maxLines: 2,
+              lastLog,
+              style: GoogleFonts.firaCode(
+                color: AethericTheme.aetherBlue,
+                fontSize: 10,
+              ),
+              maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
           ),
-          const SizedBox(height: 4),
-          Text(
-            '$type • $seeds Seeds',
-            style: GoogleFonts.outfit(
-                color: AethericTheme.aetherBlue, fontSize: 12),
-          ),
+          const SizedBox(width: 12),
+          Icon(Icons.terminal, size: 12, color: Colors.white30),
         ],
       ),
     );

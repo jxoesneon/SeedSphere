@@ -1,4 +1,6 @@
+import 'dart:io' as java_io;
 import 'package:flutter/material.dart';
+import 'package:qr_flutter/qr_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:gardener/ui/theme/aetheric_theme.dart';
 import 'package:gardener/ui/widgets/aetheric_glass.dart';
@@ -102,6 +104,26 @@ class HomeScreen extends StatelessWidget {
                           ),
                         ),
                       ),
+                      const SizedBox(height: 16),
+
+                      // Secondary Action: Mobile Install (QR)
+                      TextButton.icon(
+                        onPressed: () => _showQrInstallDialog(context),
+                        icon: const Icon(Icons.qr_code_rounded,
+                            color: Colors.white60),
+                        label: Text(
+                          'INSTALL ON MOBILE',
+                          style: GoogleFonts.outfit(
+                            color: Colors.white60,
+                            letterSpacing: 1.5,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        style: TextButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 24, vertical: 16),
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -111,5 +133,96 @@ class HomeScreen extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  void _showQrInstallDialog(BuildContext context) async {
+    // Attempt to find a non-loopback IPv4 address
+    String ip = '127.0.0.1';
+    try {
+      final interfaces = await java_io.NetworkInterface.list(
+        type: java_io.InternetAddressType.IPv4,
+      );
+      for (var interface in interfaces) {
+        // Filter out VM/Docker adapters if possible, but first non-loopback is usually okay
+        for (var addr in interface.addresses) {
+          if (!addr.isLoopback) {
+            ip = addr.address;
+            break;
+          }
+        }
+        if (ip != '127.0.0.1') break;
+      }
+    } catch (_) {}
+
+    final url = 'stremio://$ip:7000/manifest.json';
+
+    if (context.mounted) {
+      await showDialog(
+        context: context,
+        builder: (_) => AlertDialog(
+          backgroundColor: const Color(0xFF0F172A),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(height: 16),
+              Text(
+                'Mobile Install',
+                style: GoogleFonts.outfit(
+                  color: Colors.white,
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 24),
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: SizedBox(
+                  width: 200,
+                  height: 200,
+                  child: QrImageView(
+                    data: url,
+                    version: QrVersions.auto,
+                    backgroundColor: Colors.white,
+                    padding: const EdgeInsets.all(12),
+                    eyeStyle: const QrEyeStyle(
+                      eyeShape: QrEyeShape.square,
+                      color: Colors.black,
+                    ),
+                    dataModuleStyle: const QrDataModuleStyle(
+                      dataModuleShape: QrDataModuleShape.square,
+                      color: Colors.black,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
+              Text(
+                'Scan this code with your phone camera to open SeedSphere in Stremio.',
+                textAlign: TextAlign.center,
+                style: GoogleFonts.outfit(color: Colors.white70, fontSize: 14),
+              ),
+              const SizedBox(height: 8),
+              SelectableText(
+                url,
+                style: GoogleFonts.firaCode(
+                    color: AethericTheme.aetherBlue, fontSize: 12),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('DONE'),
+            ),
+          ],
+        ),
+      );
+    }
   }
 }
