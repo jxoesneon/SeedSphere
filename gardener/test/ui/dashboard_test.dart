@@ -15,14 +15,16 @@ void main() {
   group('SwarmDashboard Tests', () {
     testWidgets('Dashboard renders main sections', (WidgetTester tester) async {
       // Create a mock app with routes because Dashboard navigates
-      await tester.pumpWidget(MaterialApp(
-        home: const SwarmDashboard(),
-        routes: {
-          '/settings': (_) => const Scaffold(body: Text('Settings Screen')),
-        },
-      ));
+      await tester.pumpWidget(
+        MaterialApp(
+          home: const SwarmDashboard(),
+          routes: {
+            '/settings': (_) => const Scaffold(body: Text('Settings Screen')),
+          },
+        ),
+      );
 
-      await tester.pumpAndSettle();
+      await tester.pump(const Duration(milliseconds: 500));
 
       // Verify Headers and Stats
       expect(find.text('SWARM NODE'), findsOneWidget);
@@ -31,15 +33,17 @@ void main() {
 
       // Verify Content
       expect(find.text('Cosmos Laundromat'), findsOneWidget);
-      expect(find.textContaining('1240 Seeds'),
-          findsOneWidget); // Part of "$type • $seeds Seeds" might need finding by subtext or full string construction
+      expect(
+        find.textContaining('1240 Seeds'),
+        findsOneWidget,
+      ); // Part of "$type • $seeds Seeds" might need finding by subtext or full string construction
 
       // Interact
       await tester.enterText(find.byType(TextField), 'Test Search');
       await tester.pump();
 
       await tester.tap(find.byIcon(Icons.settings_input_antenna_rounded));
-      await tester.pumpAndSettle();
+      await tester.pump(const Duration(milliseconds: 500));
 
       // Expect Settings Menu
       expect(find.text('NODE CONFIGURATION'), findsOneWidget);
