@@ -274,9 +274,9 @@ function setupInteractions() {
           // Link new device
           const token = document.getElementById("linking-token").textContent;
           if (token && token !== "Loading...") {
-             showQrModal(token);
+            showQrModal(token);
           } else {
-             showToast("Token loading... please wait", "error");
+            showToast("Token loading... please wait", "error");
           }
         },
         () => {
@@ -323,98 +323,110 @@ function setupInteractions() {
       }
     });
   }
+}
 // --- UI Helpers ---
 
-function showToast(message, type = 'info') {
-    const container = document.getElementById('toast-container');
-    const toast = document.createElement('div');
-    toast.className = `toast toast-${type}`;
-    toast.textContent = message;
-    
-    // Add glass effect and animation styles dynamically if not in CSS
-    toast.style.background = 'rgba(255, 255, 255, 0.9)';
-    toast.style.backdropFilter = 'blur(10px)';
-    toast.style.padding = '1rem 1.5rem';
-    toast.style.borderRadius = '12px';
-    toast.style.margin = '0.5rem';
-    toast.style.boxShadow = '0 4px 6px rgba(0,0,0,0.1)';
-    toast.style.borderLeft = type === 'success' ? '4px solid #4ade80' : '4px solid #60a5fa';
-    toast.style.animation = 'slideIn 0.3s ease-out';
-    
-    container.appendChild(toast);
-    
-    setTimeout(() => {
-        toast.style.opacity = '0';
-        toast.style.transform = 'translateX(100%)';
-        setTimeout(() => toast.remove(), 300);
-    }, 3000);
+function showToast(message, type = "info") {
+  const container = document.getElementById("toast-container");
+  const toast = document.createElement("div");
+  toast.className = `toast toast-${type}`;
+  toast.textContent = message;
+
+  // Add glass effect and animation styles dynamically if not in CSS
+  toast.style.background = "rgba(255, 255, 255, 0.9)";
+  toast.style.backdropFilter = "blur(10px)";
+  toast.style.padding = "1rem 1.5rem";
+  toast.style.borderRadius = "12px";
+  toast.style.margin = "0.5rem";
+  toast.style.boxShadow = "0 4px 6px rgba(0,0,0,0.1)";
+  toast.style.borderLeft =
+    type === "success" ? "4px solid #4ade80" : "4px solid #60a5fa";
+  toast.style.animation = "slideIn 0.3s ease-out";
+
+  container.appendChild(toast);
+
+  setTimeout(() => {
+    toast.style.opacity = "0";
+    toast.style.transform = "translateX(100%)";
+    setTimeout(() => toast.remove(), 300);
+  }, 3000);
 }
 
 function showQrModal(tokenRaw) {
-    const modal = document.getElementById('qr-modal');
-    const img = document.getElementById('qr-image');
-    // Using a public QR API for simplicity locally. 
-    // In strict env, we might want to generate this server-side or use a simple JS lib.
-    // For now, this is robust enough for the requirement.
-    img.src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${tokenRaw}`;
-    modal.style.display = 'flex';
+  const modal = document.getElementById("qr-modal");
+  const img = document.getElementById("qr-image");
+  // Using a public QR API for simplicity locally.
+  // In strict env, we might want to generate this server-side or use a simple JS lib.
+  // For now, this is robust enough for the requirement.
+  img.src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${tokenRaw}`;
+  modal.style.display = "flex";
 }
 
 async function loadReleases() {
-    const container = document.getElementById('download-list-container');
-    try {
-        const res = await fetch(`${API_BASE}/api/releases`);
-        if (!res.ok) throw new Error('Failed to load');
-        const releases = await res.json();
-        
-        container.innerHTML = '';
-        
-        releases.forEach(release => {
-            const date = new Date(release.published_at).toLocaleDateString();
-            const isBeta = release.prerelease;
-            
-            // Find APK asset
-            const apkAsset = release.assets.find(a => a.name.endsWith('.apk'));
-            const size = apkAsset ? (apkAsset.size / 1024 / 1024).toFixed(1) + ' MB' : 'N/A';
-            const downloadUrl = apkAsset ? `${API_BASE}/downloads/${apkAsset.name}` : release.html_url;
+  const container = document.getElementById("download-list-container");
+  try {
+    const res = await fetch(`${API_BASE}/api/releases`);
+    if (!res.ok) throw new Error("Failed to load");
+    const releases = await res.json();
 
-            const item = document.createElement('div');
-            item.className = 'download-item glass';
-            item.innerHTML = `
+    container.innerHTML = "";
+
+    releases.forEach((release) => {
+      const date = new Date(release.published_at).toLocaleDateString();
+      const isBeta = release.prerelease;
+
+      // Find APK asset
+      const apkAsset = release.assets.find((a) => a.name.endsWith(".apk"));
+      const size = apkAsset
+        ? (apkAsset.size / 1024 / 1024).toFixed(1) + " MB"
+        : "N/A";
+      const downloadUrl = apkAsset
+        ? `${API_BASE}/downloads/${apkAsset.name}`
+        : release.html_url;
+
+      const item = document.createElement("div");
+      item.className = "download-item glass";
+      item.innerHTML = `
               <div class="download-info">
                 <h3>${release.name || release.tag_name}</h3>
-                <p>${isBeta ? 'Pre-release' : 'Stable'} • Released ${date}</p>
+                <p>${isBeta ? "Pre-release" : "Stable"} • Released ${date}</p>
               </div>
               <div class="download-meta">
                 <span class="download-size">${size}</span>
                 <a href="${downloadUrl}" class="btn-download-small" target="_blank">
-                    ${apkAsset ? 'Download APK' : 'View on GitHub'}
+                    ${apkAsset ? "Download APK" : "View on GitHub"}
                 </a>
               </div>
             `;
-            container.appendChild(item);
-        });
-        
-        // Populate version history list too if needed
-        const historyList = document.querySelector('.history-list');
-        if (historyList) {
-             historyList.innerHTML = releases.slice(0, 5).map(r => `
+      container.appendChild(item);
+    });
+
+    // Populate version history list too if needed
+    const historyList = document.querySelector(".history-list");
+    if (historyList) {
+      historyList.innerHTML = releases
+        .slice(0, 5)
+        .map(
+          (r) => `
                 <div class="history-item">
                     <span class="version-tag">${r.tag_name}</span>
-                    <span class="release-date">${new Date(r.published_at).toLocaleDateString()}</span>
+                    <span class="release-date">${new Date(
+                      r.published_at
+                    ).toLocaleDateString()}</span>
                     <span class="release-notes" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 200px;">
-                        ${r.body ? r.body.split('\n')[0] : 'No notes'}
+                        ${r.body ? r.body.split("\n")[0] : "No notes"}
                     </span>
                  </div>
-             `).join('');
-        }
-
-    } catch (e) {
-        container.innerHTML = `
+             `
+        )
+        .join("");
+    }
+  } catch (e) {
+    container.innerHTML = `
             <div style="text-align: center; padding: 2rem; color: #ef4444;">
                 Failed to load releases. <br>
                 <a href="https://github.com/jxoesneon/SeedSphere/releases" target="_blank" style="color: var(--aether-blue);">View on GitHub</a>
             </div>
         `;
-    }
+  }
 }
