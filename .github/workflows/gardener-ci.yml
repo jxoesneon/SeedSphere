@@ -168,3 +168,41 @@ jobs:
         with:
           name: gardener-macos
           path: gardener/build/macos/Build/Products/Release/gardener.app
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [build-android, build-windows, build-linux, build-macos]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: ./artifacts
+
+      - name: Prepare Release Assets
+        run: |
+          mkdir -p dist
+          # Android
+          cp artifacts/gardener-android-apk/app-release.apk dist/gardener-android.apk
+          # Windows (Zip it)
+          cd artifacts/gardener-windows-x64 && zip -r ../../dist/gardener-windows-x64.zip . && cd ../..
+          # Linux (Zip it)
+          cd artifacts/gardener-linux-x64 && zip -r ../../dist/gardener-linux-x64.zip . && cd ../..
+          # macOS (Already a folder/app, zip it)
+          cd artifacts/gardener-macos && zip -r ../../dist/gardener-macos.zip . && cd ../..
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/gardener-android.apk
+            dist/gardener-windows-x64.zip
+            dist/gardener-linux-x64.zip
+            dist/gardener-macos.zip
+          draft: false
+          prerelease: false
+          generate_release_notes: true
