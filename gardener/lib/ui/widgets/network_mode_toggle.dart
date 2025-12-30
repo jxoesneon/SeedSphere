@@ -50,10 +50,7 @@ class NetworkModeToggle extends StatelessWidget {
           ],
         ),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: AethericTheme.glassBorder,
-          width: 1,
-        ),
+        border: Border.all(color: AethericTheme.glassBorder, width: 1),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -81,6 +78,7 @@ class NetworkModeToggle extends StatelessWidget {
               children: [
                 Expanded(
                   child: _ModeButton(
+                    key: const Key('network_mode_automatic'),
                     label: 'Automatic',
                     isSelected: mode == NetworkMode.automatic,
                     icon: Icons.auto_awesome_rounded,
@@ -90,6 +88,7 @@ class NetworkModeToggle extends StatelessWidget {
                 const SizedBox(width: 4),
                 Expanded(
                   child: _ModeButton(
+                    key: const Key('network_mode_manual'),
                     label: 'Manual',
                     isSelected: mode == NetworkMode.manual,
                     icon: Icons.tune_rounded,
@@ -104,11 +103,7 @@ class NetworkModeToggle extends StatelessWidget {
           // Description
           Row(
             children: [
-              Icon(
-                Icons.info_outline_rounded,
-                size: 14,
-                color: Colors.white54,
-              ),
+              Icon(Icons.info_outline_rounded, size: 14, color: Colors.white54),
               const SizedBox(width: 6),
               Expanded(
                 child: Text(
@@ -138,6 +133,7 @@ class _ModeButton extends StatelessWidget {
   final VoidCallback onTap;
 
   const _ModeButton({
+    super.key,
     required this.label,
     required this.isSelected,
     required this.icon,
@@ -166,8 +162,9 @@ class _ModeButton extends StatelessWidget {
                   : Colors.transparent,
               borderRadius: BorderRadius.circular(8),
               border: Border.all(
-                color:
-                    isSelected ? AethericTheme.aetherBlue : Colors.transparent,
+                color: isSelected
+                    ? AethericTheme.aetherBlue
+                    : Colors.transparent,
                 width: 1.5,
               ),
             ),
@@ -185,8 +182,9 @@ class _ModeButton extends StatelessWidget {
                   style: GoogleFonts.outfit(
                     color: isSelected ? Colors.white : Colors.white60,
                     fontSize: 14,
-                    fontWeight:
-                        isSelected ? FontWeight.w600 : FontWeight.normal,
+                    fontWeight: isSelected
+                        ? FontWeight.w600
+                        : FontWeight.normal,
                   ),
                 ),
               ],

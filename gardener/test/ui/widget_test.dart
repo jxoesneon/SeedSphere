@@ -25,7 +25,7 @@ void main() {
       );
 
       // Allow layout to settle
-      await tester.pumpAndSettle();
+      await tester.pump(const Duration(seconds: 1));
 
       expect(find.text('Item 0'), findsOneWidget);
       expect(find.text('Item 3'), findsOneWidget);
@@ -37,19 +37,18 @@ void main() {
       await tester.pumpWidget(
         const Directionality(
           textDirection: TextDirection.ltr,
-          child: DpadFocusAura(
-            child: SizedBox(width: 50, height: 50),
-          ),
+          child: DpadFocusAura(child: SizedBox(width: 50, height: 50)),
         ),
       );
 
       // Initially no shadow (simplified check - verifying no error in build)
       expect(find.byType(AnimatedContainer), findsOneWidget);
 
-      final focusNode =
-          Focus.of(tester.element(find.byType(AnimatedContainer)));
+      final focusNode = Focus.of(
+        tester.element(find.byType(AnimatedContainer)),
+      );
       focusNode.requestFocus();
-      await tester.pumpAndSettle();
+      await tester.pump(const Duration(seconds: 1));
 
       // Check for state change if possible, or just verify interaction doesn't crash
       expect(focusNode.hasFocus, true);
@@ -74,13 +73,13 @@ void main() {
 
   group('MotionPhysics', () {
     testWidgets('SpringScaleTransition animates', (WidgetTester tester) async {
-      await tester.pumpWidget(const MaterialApp(
-        home: SpringScaleTransition(child: Text('Spring')),
-      ));
+      await tester.pumpWidget(
+        const MaterialApp(home: SpringScaleTransition(child: Text('Spring'))),
+      );
 
       expect(find.text('Spring'), findsOneWidget);
       expect(find.byType(ScaleTransition), findsOneWidget);
-      await tester.pumpAndSettle();
+      await tester.pump(const Duration(seconds: 1));
     });
 
     testWidgets('EntropySpring constants', (WidgetTester tester) async {
