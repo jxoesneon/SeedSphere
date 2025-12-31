@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.9.5] - 2025-12-31
+
+### Added
+
+- **Build Infrastructure**: Timestamped release binaries (e.g., `gardener-windows-setup-20251231.exe`) for uniqueness.
+- **Test Reliability**: Hardened integration tests against zombie processes.
+
 ## [1.9.4] - 2025-12-31
 
 ### Added
