@@ -112,6 +112,7 @@ final _router = Router()
   ) // Mounted under /addon/ to avoid conflict with root static files
   // User-specific addon manifest at root for legacy compatibility
   ..get('/u/<userId>/manifest.json', _userManifestHandler)
+  ..get('/u/<userId>/catalog/<type>/<id>.json', _userCatalogHandler)
   ..get('/u/<userId>/stream/<type>/<id>.json', _userStreamHandler);
 
 /// Mobile Interstitial Page (Deep Linking)
@@ -211,6 +212,44 @@ Response _userManifestHandler(Request req, String userId) {
       'Content-Type': 'application/json',
       'Access-Control-Allow-Origin': '*',
       'Cache-Control': 'max-age=300',
+    },
+  );
+}
+
+/// User-specific catalog handler for legacy /u/{userId}/catalog/{type}/{id}.json route.
+Future<Response> _userCatalogHandler(
+  Request req,
+  String userId,
+  String type,
+  String id,
+) async {
+  // Proxy Cinemeta V3 for "top" catalog (Swarm Popular)
+  if (id == 'top' || id == 'top.json') {
+    try {
+      final uri = Uri.parse(
+        'https://v3-cinemeta.strem.io/catalog/$type/top.json',
+      );
+      final resp = await http.get(uri);
+      if (resp.statusCode == 200) {
+        return Response.ok(
+          resp.body,
+          headers: {
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*',
+            'Cache-Control': 'max-age=300',
+          },
+        );
+      }
+    } catch (e) {
+      print('Cinemeta Proxy Error: $e');
+    }
+  }
+  // Fallback: empty catalog
+  return Response.ok(
+    jsonEncode({'metas': []}),
+    headers: {
+      'Content-Type': 'application/json',
+      'Access-Control-Allow-Origin': '*',
     },
   );
 }
