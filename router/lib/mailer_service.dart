@@ -1,17 +1,27 @@
 import 'package:mailer/mailer.dart';
 import 'package:mailer/smtp_server.dart';
 
+/// Function signature for sending emails (mockable).
+typedef SmtpSender =
+    Future<SendReport> Function(
+      Message message,
+      SmtpServer smtpServer, {
+      Duration? timeout,
+    });
+
 /// Email service for SeedSphere notifications (optional feature)
 class MailerService {
   final SmtpServer _smtpServer;
   final String _fromEmail;
   final String _fromName;
+  final SmtpSender _sender;
 
   /// Creates a MailerService instance using Brevo (formerly Sendinblue) SMTP.
   MailerService.brevo({
     required String apiKey,
     required String fromEmail,
     String fromName = 'SeedSphere',
+    SmtpSender? sender,
   }) : _smtpServer = SmtpServer(
          'smtp-relay.brevo.com',
          port: 587,
@@ -19,7 +29,8 @@ class MailerService {
          password: apiKey,
        ),
        _fromEmail = fromEmail,
-       _fromName = fromName;
+       _fromName = fromName,
+       _sender = sender ?? send;
 
   /// Creates a MailerService instance with custom SMTP server settings.
   MailerService.custom({
@@ -29,6 +40,7 @@ class MailerService {
     required String password,
     required String fromEmail,
     String fromName = 'SeedSphere',
+    SmtpSender? sender,
   }) : _smtpServer = SmtpServer(
          host,
          port: port,
@@ -36,7 +48,8 @@ class MailerService {
          password: password,
        ),
        _fromEmail = fromEmail,
-       _fromName = fromName;
+       _fromName = fromName,
+       _sender = sender ?? send;
 
   /// Sends an email with the specified [subject] and [body].
   ///
@@ -60,7 +73,7 @@ class MailerService {
     }
 
     try {
-      await send(message, _smtpServer);
+      await _sender(message, _smtpServer);
       return true;
     } catch (e) {
       print('Failed to send email: $e');

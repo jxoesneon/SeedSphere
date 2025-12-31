@@ -1,10 +1,18 @@
 import 'dart:io';
 import 'package:dart_ipfs/dart_ipfs.dart';
 
+/// Factory for creating IPFS nodes (allows mocking).
+typedef NodeFactory = Future<IPFSNode> Function(IPFSConfig config);
+
 /// Manages the libp2p bootstrap node lifecycle on the Router.
 class P2PNode {
   IPFSNode? _node;
   bool _initialized = false;
+  final NodeFactory _nodeFactory;
+
+  /// Creates a new P2PNode instance.
+  P2PNode({NodeFactory? nodeFactory})
+    : _nodeFactory = nodeFactory ?? IPFSNode.create;
 
   /// Starts the IPFS node with bootstrap configuration.
   Future<void> start() async {
@@ -46,7 +54,7 @@ class P2PNode {
         }
       }
 
-      _node = await IPFSNode.create(
+      _node = await _nodeFactory(
         IPFSConfig(
           offline: false,
           network: const NetworkConfig(
