@@ -256,52 +256,85 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 // Platform Detection and Auto-Recommendation
-function detectPlatform() {
+async function detectPlatform() {
   const ua = navigator.userAgent.toLowerCase();
   const platform = navigator.platform.toLowerCase();
 
   let detectedOS = null;
-  let downloadUrl = "";
   let icon = "";
   let name = "";
   let desc = "";
-  let version = "v1.9.1";
+  let pattern = "";
 
-  // Detect platform
+  // 1. Detect OS
   if (ua.includes("android")) {
     detectedOS = "android";
-    downloadUrl =
-      "https://github.com/jxoesneon/SeedSphere/releases/latest/download/gardener-android.apk";
     icon = "🤖";
     name = "Android APK";
     desc = "ARM64/x64/x86 • Universal";
+    pattern = /gardener-android.*\.apk$/i;
   } else if (ua.includes("iphone") || ua.includes("ipad")) {
     detectedOS = "ios";
-    downloadUrl = "https://github.com/jxoesneon/SeedSphere/releases/latest";
     icon = "🍎";
     name = "iOS";
     desc = "Requires manual signing";
+    // iOS usually points to release page, no direct asset yet
   } else if (platform.includes("win") || ua.includes("windows")) {
     detectedOS = "windows";
-    downloadUrl =
-      "https://github.com/jxoesneon/SeedSphere/releases/latest/download/gardener-windows-x64.zip";
     icon = "🪟";
     name = "Windows x64";
     desc = "Windows 10/11";
+    pattern = /gardener-windows-x64.*\.zip$/i;
   } else if (platform.includes("mac") || ua.includes("mac os x")) {
     detectedOS = "macos";
-    downloadUrl =
-      "https://github.com/jxoesneon/SeedSphere/releases/latest/download/gardener-macos.zip";
     icon = "🍏";
     name = "macOS";
     desc = "Universal (Apple Silicon & Intel)";
+    pattern = /gardener-macos.*\.zip$/i;
   } else if (platform.includes("linux") || ua.includes("linux")) {
     detectedOS = "linux";
-    downloadUrl =
-      "https://github.com/jxoesneon/SeedSphere/releases/latest/download/gardener-linux-x64.zip";
     icon = "🐧";
     name = "Linux x64";
     desc = "Ubuntu 20.04+ / Debian 11+";
+    pattern = /gardener-linux-x64.*\.zip$/i;
+  }
+
+  if (!detectedOS) return;
+
+  // 2. Fetch Latest Release Info
+  let downloadUrl = "https://github.com/jxoesneon/SeedSphere/releases/latest";
+  let version = "Latest";
+
+  try {
+    const res = await fetch(
+      "https://api.github.com/repos/jxoesneon/SeedSphere/releases/latest"
+    );
+    if (res.ok) {
+      const data = await res.json();
+      version = data.tag_name || "v1.9.5";
+
+      if (pattern) {
+        const asset = data.assets.find((a) => pattern.test(a.name));
+        if (asset) downloadUrl = asset.browser_download_url;
+      }
+
+      // Update all-platforms grid
+      const links = [
+        { id: "dl-android", pattern: /gardener-android.*\.apk$/i },
+        { id: "dl-windows", pattern: /gardener-windows-x64.*\.zip$/i },
+        { id: "dl-macos", pattern: /gardener-macos.*\.zip$/i },
+        { id: "dl-linux", pattern: /gardener-linux-x64.*\.zip$/i },
+      ];
+      links.forEach((link) => {
+        const el = document.getElementById(link.id);
+        if (el) {
+          const asset = data.assets.find((a) => link.pattern.test(a.name));
+          if (asset) el.href = asset.browser_download_url;
+        }
+      });
+    }
+  } catch (e) {
+    console.warn("Failed to fetch latest release, falling back to default.", e);
   }
 
   // If platform detected, show recommendation
