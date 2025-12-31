@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:gardener/ui/theme/aetheric_theme.dart';
 import 'package:gardener/core/local_kms.dart';
 import 'package:gardener/core/keys_helper.dart' as keys_helper;
+import 'package:gardener/background_sentinel.dart';
 
 import 'package:gardener/ui/screens/home_screen.dart';
 
@@ -11,10 +14,12 @@ import 'package:gardener/ui/screens/home_screen.dart';
 ///
 /// Responsible for:
 /// 1. Bootstrapping Flutter bindings.
-/// 2. Initializing core security services ([LocalKMS]).
-/// 3. Ensuring essential API keys exist.
-/// 4. Wrapping the app in a [ProviderScope] for Riverpod state management.
-/// 5. Configuring the global "Aetheric" theme.
+/// 2. Requesting runtime permissions for background service.
+/// 3. Initializing core security services ([LocalKMS]).
+/// 4. Initializing the background sentinel service.
+/// 5. Ensuring essential API keys exist.
+/// 6. Wrapping the app in a [ProviderScope] for Riverpod state management.
+/// 7. Configuring the global "Aetheric" theme.
 ///
 /// **Architecture Note:**
 /// The application uses Riverpod for dependency injection and state management.
@@ -23,17 +28,41 @@ import 'package:gardener/ui/screens/home_screen.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  // Request runtime permissions for background service (Android 13+)
+  await _requestBackgroundPermissions();
+
   // Initialize minimal core services before UI launch
   final kms = LocalKMS();
 
   // Prevent app crash on first launch by ensuring placeholder keys exist
   await keys_helper.ensureKeysExist(kms);
 
-  runApp(
-    const ProviderScope(
-      child: GardenerApp(),
-    ),
-  );
+  // Initialize background sentinel for P2P network stability
+  await initializeService();
+
+  runApp(const ProviderScope(child: GardenerApp()));
+}
+
+/// Request runtime permissions for background service operation.
+Future<void> _requestBackgroundPermissions() async {
+  // Skip on non-mobile platforms
+  if (kIsWeb ||
+      (defaultTargetPlatform != TargetPlatform.android &&
+          defaultTargetPlatform != TargetPlatform.iOS)) {
+    return;
+  }
+
+  // Request notification permission (Android 13+ / iOS)
+  if (await Permission.notification.isDenied) {
+    await Permission.notification.request();
+  }
+
+  // Request battery optimization exemption (Android)
+  if (defaultTargetPlatform == TargetPlatform.android) {
+    if (await Permission.ignoreBatteryOptimizations.isDenied) {
+      await Permission.ignoreBatteryOptimizations.request();
+    }
+  }
 }
 // coverage:ignore-end
 
@@ -53,8 +82,9 @@ class GardenerApp extends StatelessWidget {
 
       // Apply the custom dark theme with Outfit typography
       theme: AethericTheme.darkTheme.copyWith(
-        textTheme:
-            GoogleFonts.outfitTextTheme(AethericTheme.darkTheme.textTheme),
+        textTheme: GoogleFonts.outfitTextTheme(
+          AethericTheme.darkTheme.textTheme,
+        ),
       ),
 
       // Default entry screen

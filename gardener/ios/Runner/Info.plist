@@ -45,5 +45,19 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<!-- Background Modes for P2P Networking -->
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>fetch</string>
+		<string>processing</string>
+		<string>remote-notification</string>
+	</array>
+	<!-- Usage Descriptions -->
+	<key>NSUserTrackingUsageDescription</key>
+	<string>SeedSphere uses background processing to maintain P2P network connectivity for streaming.</string>
+	<key>BGTaskSchedulerPermittedIdentifiers</key>
+	<array>
+		<string>com.seedsphere.gardener.sentinel</string>
+	</array>
 </dict>
 </plist>
