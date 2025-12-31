@@ -150,16 +150,29 @@ Response _linkHandler(Request req) {
   return Response.ok(html, headers: {'content-type': 'text/html'});
 }
 
-/// Android App Links Verification (Placeholder)
+/// Android App Links Verification
+///
+/// Returns the assetlinks.json for Android Deep Linking.
+/// SHA256 fingerprints are read from the ANDROID_SHA256 environment variable.
+/// Multiple fingerprints can be comma-separated.
 Response _assetLinksHandler(Request req) {
-  // TODO: Replace with real SHA256 fingerprints from user
+  // Read SHA256 fingerprints from environment (comma-separated for multiple certs)
+  final sha256Env = Platform.environment['ANDROID_SHA256'] ?? '';
+  final fingerprints = sha256Env.isNotEmpty
+      ? sha256Env
+            .split(',')
+            .map((s) => s.trim())
+            .where((s) => s.isNotEmpty)
+            .toList()
+      : <String>[];
+
   final json = [
     {
       "relation": ["delegate_permission/common.handle_all_urls"],
       "target": {
         "namespace": "android_app",
-        "package_name": "com.jxoesneon.seedsphere.gardener",
-        "sha256_cert_fingerprints": [],
+        "package_name": "com.seedsphere.gardener",
+        "sha256_cert_fingerprints": fingerprints,
       },
     },
   ];
@@ -169,15 +182,20 @@ Response _assetLinksHandler(Request req) {
   );
 }
 
-/// iOS Universal Links Verification (Placeholder)
+/// iOS Universal Links Verification
+///
+/// Returns the apple-app-site-association for iOS Deep Linking.
+/// Team ID is read from the IOS_TEAM_ID environment variable.
 Response _appleAssociationHandler(Request req) {
-  // TODO: Replace with real Team ID
+  // Read Team ID from environment variable
+  final teamId = Platform.environment['IOS_TEAM_ID'] ?? 'TEAM_ID_NOT_SET';
+
   final json = {
     "applinks": {
       "apps": [],
       "details": [
         {
-          "appID": "<TEAM_ID>.com.jxoesneon.seedsphere.gardener",
+          "appID": "$teamId.com.seedsphere.gardener",
           "paths": ["/link", "/auth/*"],
         },
       ],
