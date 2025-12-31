@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.9.4] - 2025-12-31
+
+### Added
+
+- **Desktop Authentication**: Loopback IP Flow for Windows, Linux, and macOS.
+- **Android Authentication**: Release keystore configuration for consistent signing.
+- **iOS Config**: Preparation for Google Sign-In.
+
+### Fixed
+
+- **Linting**: Resolved duplicate imports and unawaited futures in Auth logic.
+
 ## [1.9.3] - 2025-12-31
 
 ### Fixed on 2025-12-31
