@@ -79,9 +79,8 @@ class DesktopGoogleAuth {
             completer.completeError('Auth failed: $error');
           }
         } else {
-          request.response
-            ..statusCode = HttpStatus.notFound
-            ..close();
+          request.response.statusCode = HttpStatus.notFound;
+          await request.response.close();
         }
       });
 
