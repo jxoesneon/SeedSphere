@@ -12,7 +12,9 @@ import 'package:google_fonts/google_fonts.dart';
 
 /// "The Observatory" - Central hub for swarm monitoring and discovery.
 class SwarmDashboard extends StatefulWidget {
-  const SwarmDashboard({super.key});
+  final http.Client? client;
+
+  const SwarmDashboard({super.key, this.client});
 
   @override
   State<SwarmDashboard> createState() => _SwarmDashboardState();
@@ -31,11 +33,12 @@ class _SwarmDashboardState extends State<SwarmDashboard> {
   bool _showLogMode = false; // Toggle between graph and log view
 
   StreamSubscription? _sseSubscription;
-  final http.Client _client = http.Client();
+  late final http.Client _client;
 
   @override
   void initState() {
     super.initState();
+    _client = widget.client ?? http.Client();
     _connectSSE();
     _fetchPopular();
   }

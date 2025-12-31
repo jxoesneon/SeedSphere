@@ -8,6 +8,16 @@ if ($Version -notmatch '^\d+\.\d+\.\d+') {
     exit 1
 }
 
+# 0. Verify Release (Prevent Broken CI)
+Write-Host "Verifying Codebase (Tests & Analysis)..." -ForegroundColor Cyan
+try {
+    & "$PSScriptRoot/test_suite.ps1"
+    if ($LASTEXITCODE -ne 0) { throw "Test Suite Failed" }
+} catch {
+    Write-Error "Release Aborted: Verification failed. Fix errors before releasing."
+    exit 1
+}
+
 # 1. Update Router
 $RouterPubspec = "router/pubspec.yaml"
 if (Test-Path $RouterPubspec) {
