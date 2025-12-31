@@ -262,34 +262,38 @@ jobs:
       - name: Prepare Release Assets
         run: |
           mkdir -p dist
+          TIMESTAMP=$(date +%Y%m%d-%H%M%S)
+          echo "Appending timestamp: $TIMESTAMP"
+
           # Android
-          cp artifacts/gardener-android-apk/app-release.apk dist/gardener-android.apk
+          cp artifacts/gardener-android-apk/app-release.apk dist/gardener-android-${TIMESTAMP}.apk
 
           # Windows
-          cp artifacts/gardener-windows-setup/gardener-setup.exe dist/gardener-windows-setup.exe
+          cp artifacts/gardener-windows-setup/gardener-setup.exe dist/gardener-windows-setup-${TIMESTAMP}.exe
 
           # Linux x64
-          cd artifacts/gardener-linux-x64-all/bundle && zip -r ../../../dist/gardener-linux-x64.zip . && cd ../../..
-          cp artifacts/gardener-linux-x64-all/*.deb dist/
-          cp artifacts/gardener-linux-x64-all/*.rpm dist/
+          cd artifacts/gardener-linux-x64-all/bundle && zip -r ../../../dist/gardener-linux-x64-${TIMESTAMP}.zip . && cd ../../..
+          # Copy DEB/RPM with timestamp (assuming they have version in name, we append timestamp before extension)
+          for f in artifacts/gardener-linux-x64-all/*.deb; do cp "$f" "dist/$(basename "$f" .deb)-${TIMESTAMP}.deb"; done
+          for f in artifacts/gardener-linux-x64-all/*.rpm; do cp "$f" "dist/$(basename "$f" .rpm)-${TIMESTAMP}.rpm"; done
 
           # Linux ARM64
-          cd artifacts/gardener-linux-arm64 && zip -r ../../dist/gardener-linux-arm64.zip . && cd ../..
+          cd artifacts/gardener-linux-arm64 && zip -r ../../dist/gardener-linux-arm64-${TIMESTAMP}.zip . && cd ../..
 
           # macOS (Universal)
-          cd artifacts/gardener-macos-universal && zip -r ../../dist/gardener-macos-universal.zip . && cd ../..
+          cd artifacts/gardener-macos-universal && zip -r ../../dist/gardener-macos-universal-${TIMESTAMP}.zip . && cd ../..
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            dist/gardener-android.apk
-            dist/gardener-windows-setup.exe
-            dist/gardener-linux-x64.zip
-            dist/gardener-linux-arm64.zip
+            dist/gardener-android-*.apk
+            dist/gardener-windows-setup-*.exe
+            dist/gardener-linux-x64-*.zip
+            dist/gardener-linux-arm64-*.zip
             dist/*.deb
             dist/*.rpm
-            dist/gardener-macos-universal.zip
+            dist/gardener-macos-universal-*.zip
           draft: false
           prerelease: false
           generate_release_notes: true
