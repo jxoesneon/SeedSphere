@@ -26,6 +26,10 @@ class _SwarmDashboardState extends State<SwarmDashboard> {
   final List<Map<String, dynamic>> _recentResults = [];
   List<Map<String, dynamic>> _popularSignals = [];
 
+  // Heartbeat tracking for graph visualization
+  final List<DateTime> _heartbeatTimestamps = [];
+  bool _showLogMode = false; // Toggle between graph and log view
+
   StreamSubscription? _sseSubscription;
   final http.Client _client = http.Client();
 
@@ -123,10 +127,18 @@ class _SwarmDashboardState extends State<SwarmDashboard> {
   void _handleEvent(Map<String, dynamic> event) {
     // Simple logic to interpret events for visualization
     if (event.containsKey('t')) {
-      // heartbeat or generic
-      // Update peer count simulation or parse real if available
-      // For now, we increment peer count on activity to show "liveness"
-      if (mounted) setState(() => _peerCount = (_peerCount + 1) % 100 + 10);
+      // heartbeat or generic - track timestamp for graph
+      if (mounted) {
+        setState(() {
+          _peerCount = (_peerCount + 1) % 100 + 10;
+          // Track heartbeat timestamps for sparkline visualization
+          _heartbeatTimestamps.add(DateTime.now());
+          // Keep only last 60 heartbeats (30 min at 30s intervals)
+          if (_heartbeatTimestamps.length > 60) {
+            _heartbeatTimestamps.removeAt(0);
+          }
+        });
+      }
     }
 
     // Result event (Task Completion)
@@ -314,49 +326,175 @@ class _SwarmDashboardState extends State<SwarmDashboard> {
     );
   }
 
+  /// Builds a minimal heartbeat sparkline ticker (2025 PhD-level UX)
+  /// - Default: Shows heartbeat activity as a subtle sparkline graph
+  /// - On tap: Toggles to show the last log entry
   Widget _buildSystemTicker() {
-    // A simplified ticker using the last log entry
-    final lastLog = _logs.isEmpty ? 'System initialized...' : _logs.last;
-
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 24),
-      decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: 0.8),
-        border: const Border(top: BorderSide(color: Colors.white10)),
+    return GestureDetector(
+      onTap: () => setState(() => _showLogMode = !_showLogMode),
+      child: Container(
+        width: double.infinity,
+        height: 32, // Same compact height as before
+        decoration: BoxDecoration(
+          color: Colors.black.withValues(alpha: 0.9),
+          border: const Border(top: BorderSide(color: Colors.white10)),
+        ),
+        child: AnimatedSwitcher(
+          duration: const Duration(milliseconds: 200),
+          child: _showLogMode ? _buildLogView() : _buildHeartbeatGraph(),
+        ),
       ),
+    );
+  }
+
+  /// Heartbeat sparkline visualization
+  Widget _buildHeartbeatGraph() {
+    // Generate sparkline data points from heartbeat intervals
+    final dataPoints = _generateHeartbeatData();
+
+    return Padding(
+      key: const ValueKey('graph'),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       child: Row(
         children: [
-          Container(
-            width: 6,
-            height: 6,
-            decoration: BoxDecoration(
-              color: AethericTheme.success,
-              shape: BoxShape.circle,
-              boxShadow: [
-                BoxShadow(
-                  color: AethericTheme.success.withValues(alpha: 0.5),
-                  blurRadius: 4,
-                ),
-              ],
+          // Subtle label
+          Text(
+            'PULSE',
+            style: GoogleFonts.outfit(
+              color: Colors.white24,
+              fontSize: 8,
+              fontWeight: FontWeight.w600,
+              letterSpacing: 1.5,
             ),
           ),
           const SizedBox(width: 12),
+          // Sparkline graph
           Expanded(
-            child: Text(
-              lastLog,
-              style: GoogleFonts.firaCode(
+            child: CustomPaint(
+              painter: _HeartbeatSparklinePainter(
+                dataPoints: dataPoints,
                 color: AethericTheme.aetherBlue,
-                fontSize: 10,
+                isConnected: _sseConnected,
               ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
             ),
           ),
           const SizedBox(width: 12),
-          Icon(Icons.terminal, size: 12, color: Colors.white30),
+          // Heartbeat count indicator
+          Text(
+            '${_heartbeatTimestamps.length}',
+            style: GoogleFonts.firaCode(
+              color: AethericTheme.aetherBlue.withValues(alpha: 0.6),
+              fontSize: 10,
+            ),
+          ),
         ],
       ),
     );
+  }
+
+  /// Log view (shown on tap)
+  Widget _buildLogView() {
+    final lastLog = _logs.isEmpty ? 'System initialized...' : _logs.last;
+    return Padding(
+      key: const ValueKey('log'),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Text(
+        lastLog,
+        style: GoogleFonts.firaCode(
+          color: AethericTheme.aetherBlue.withValues(alpha: 0.8),
+          fontSize: 10,
+        ),
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+      ),
+    );
+  }
+
+  /// Generates normalized data points for the sparkline
+  List<double> _generateHeartbeatData() {
+    if (_heartbeatTimestamps.isEmpty) {
+      // Show flat line when no data
+      return List.filled(30, 0.5);
+    }
+
+    // Calculate intervals between heartbeats (normalized)
+    final intervals = <double>[];
+    for (int i = 1; i < _heartbeatTimestamps.length; i++) {
+      final diff = _heartbeatTimestamps[i]
+          .difference(_heartbeatTimestamps[i - 1])
+          .inMilliseconds;
+      // Normalize: 30000ms (30s) = 0.5, faster = higher, slower = lower
+      final normalized = (1.0 - (diff / 60000.0)).clamp(0.1, 1.0);
+      intervals.add(normalized);
+    }
+
+    // Ensure minimum 30 data points for smooth visualization
+    while (intervals.length < 30) {
+      intervals.insert(0, 0.5);
+    }
+
+    // Return only the last 60 data points
+    if (intervals.length > 60) {
+      return intervals.skip(intervals.length - 60).toList();
+    }
+    return intervals;
+  }
+}
+
+/// Custom painter for the heartbeat sparkline
+class _HeartbeatSparklinePainter extends CustomPainter {
+  final List<double> dataPoints;
+  final Color color;
+  final bool isConnected;
+
+  _HeartbeatSparklinePainter({
+    required this.dataPoints,
+    required this.color,
+    required this.isConnected,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (dataPoints.isEmpty) return;
+
+    final paint = Paint()
+      ..color = isConnected ? color : color.withValues(alpha: 0.3)
+      ..strokeWidth = 1.5
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round;
+
+    final path = Path();
+    final stepX =
+        size.width / (dataPoints.length - 1).clamp(1, double.infinity);
+
+    for (int i = 0; i < dataPoints.length; i++) {
+      final x = i * stepX;
+      final y = size.height - (dataPoints[i] * size.height * 0.8);
+      if (i == 0) {
+        path.moveTo(x, y);
+      } else {
+        path.lineTo(x, y);
+      }
+    }
+
+    canvas.drawPath(path, paint);
+
+    // Draw subtle glow under the line
+    final glowPaint = Paint()
+      ..color = color.withValues(alpha: 0.1)
+      ..style = PaintingStyle.fill;
+
+    final glowPath = Path.from(path)
+      ..lineTo(size.width, size.height)
+      ..lineTo(0, size.height)
+      ..close();
+
+    canvas.drawPath(glowPath, glowPaint);
+  }
+
+  @override
+  bool shouldRepaint(covariant _HeartbeatSparklinePainter oldDelegate) {
+    return dataPoints != oldDelegate.dataPoints ||
+        isConnected != oldDelegate.isConnected;
   }
 }
