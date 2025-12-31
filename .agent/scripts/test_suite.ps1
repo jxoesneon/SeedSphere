@@ -1,5 +1,9 @@
 ﻿Write-Host " Running SeedSphere Test Suite..." -ForegroundColor Cyan
 
+# 0. Cleanup Zombies
+Write-Host "Cleaning up zombie Dart processes..." -ForegroundColor Gray
+Stop-Process -Name "dart" -Force -ErrorAction SilentlyContinue
+
 # 1. Router Tests
 Write-Host "`n Testing Router (Dart)..." -ForegroundColor Yellow
 Push-Location "router"

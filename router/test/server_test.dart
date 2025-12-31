@@ -12,7 +12,7 @@ void main() {
   // Skip all tests in CI environment
   final isCI = Platform.environment['CI'] == 'true';
 
-  late Process p;
+  Process? p;
   late int actualPort;
   late String host;
 
@@ -22,9 +22,11 @@ void main() {
       ['run', 'bin/server.dart'],
       environment: {'PORT': '0'},
     );
+    // Guaranteed cleanup even if test times out
+    addTearDown(() => p?.kill());
 
     final completer = Completer<void>();
-    final subscription = p.stdout
+    final subscription = p!.stdout
         .transform(utf8.decoder)
         .transform(const LineSplitter())
         .listen((line) {
@@ -40,12 +42,12 @@ void main() {
       await completer.future.timeout(const Duration(seconds: 45));
     } catch (e) {
       await subscription.cancel();
-      p.kill();
+      p?.kill();
       throw Exception('Server failed to start (or bind port) within 45s');
     }
   });
 
-  tearDown(() => p.kill());
+  // tearDown(() => p.kill()); // Handled by addTearDown
 
   test('Portal (Root)', () async {
     final response = await get(Uri.parse('$host/'));
