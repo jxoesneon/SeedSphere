@@ -99,6 +99,10 @@ final _router = Router()
   // Downloads & Releases (Dynamic)
   ..get('/downloads/<file>', _handleDownload)
   ..get('/api/releases', _handleReleases)
+  // Mobile Linking (Universal Links)
+  ..get('/link', _linkHandler)
+  ..get('/.well-known/assetlinks.json', _assetLinksHandler)
+  ..get('/.well-known/apple-app-site-association', _appleAssociationHandler)
   // Auth Restoration (Phase 2.5)
   ..mount('/api/auth/', authService.router.call)
   // Stremio Addon (Phase 3)
@@ -106,6 +110,80 @@ final _router = Router()
     '/addon/',
     addonService.router.call,
   ); // Mounted under /addon/ to avoid conflict with root static files
+
+/// Mobile Interstitial Page (Deep Linking)
+Response _linkHandler(Request req) {
+  final token = req.url.queryParameters['token'] ?? '';
+  // Fallback Custom Scheme
+  final schemeUrl = 'seedsphere://link?token=$token';
+
+  final html =
+      '''
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Link Device</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body { font-family: sans-serif; text-align: center; padding: 2rem; background: #0f172a; color: white; }
+    .btn { display: inline-block; background: #60a5fa; color: white; padding: 1rem 2rem; text-decoration: none; border-radius: 8px; font-weight: bold; margin-top: 1rem; }
+  </style>
+</head>
+<body>
+  <h1>Open in Gardener</h1>
+  <p>Linking your device...</p>
+  <a href="$schemeUrl" class="btn">Open App</a>
+  <p style="margin-top:2rem; opacity:0.7;">Don't have the app?</p>
+  <a href="/dashboard.html#downloads" style="color: #60a5fa;">Download Gardener</a>
+  <script>
+    // Auto-redirect attempt
+    window.location.href = "$schemeUrl";
+  </script>
+</body>
+</html>
+  ''';
+  return Response.ok(html, headers: {'content-type': 'text/html'});
+}
+
+/// Android App Links Verification (Placeholder)
+Response _assetLinksHandler(Request req) {
+  // TODO: Replace with real SHA256 fingerprints from user
+  final json = [
+    {
+      "relation": ["delegate_permission/common.handle_all_urls"],
+      "target": {
+        "namespace": "android_app",
+        "package_name": "com.jxoesneon.seedsphere.gardener",
+        "sha256_cert_fingerprints": [],
+      },
+    },
+  ];
+  return Response.ok(
+    jsonEncode(json),
+    headers: {'content-type': 'application/json'},
+  );
+}
+
+/// iOS Universal Links Verification (Placeholder)
+Response _appleAssociationHandler(Request req) {
+  // TODO: Replace with real Team ID
+  final json = {
+    "applinks": {
+      "apps": [],
+      "details": [
+        {
+          "appID": "<TEAM_ID>.com.jxoesneon.seedsphere.gardener",
+          "paths": ["/link", "/auth/*"],
+        },
+      ],
+    },
+  };
+  return Response.ok(
+    jsonEncode(json),
+    headers: {'content-type': 'application/json'},
+  );
+}
 
 /// Root handler returning server status and version info.
 Response _rootHandler(Request req) {

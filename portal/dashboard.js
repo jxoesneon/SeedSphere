@@ -355,10 +355,15 @@ function showToast(message, type = "info") {
 function showQrModal(tokenRaw) {
   const modal = document.getElementById("qr-modal");
   const img = document.getElementById("qr-image");
+
+  // Construct Universal Link: https://seedsphere.fly.dev/link?token=...
+  // Uses window.location.origin to ensure it works on both localhost and prod
+  const linkUrl = `${window.location.origin}/link?token=${tokenRaw}`;
+
   // Using a public QR API for simplicity locally.
-  // In strict env, we might want to generate this server-side or use a simple JS lib.
-  // For now, this is robust enough for the requirement.
-  img.src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${tokenRaw}`;
+  img.src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(
+    linkUrl
+  )}`;
   modal.style.display = "flex";
 }
 
