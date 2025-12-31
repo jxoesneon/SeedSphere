@@ -140,7 +140,7 @@ jobs:
       - name: Build Linux (x64)
         run: flutter build linux --release
 
-      - name: Package Linux (DEB, RPM)
+      - name: Package Linux (x64 DEB/RPM)
         run: |
           mkdir -p dist
           # Create DEB
@@ -159,7 +159,7 @@ jobs:
             -C gardener/build/linux/x64/release/bundle .
           mv gardener-1.9.3-1.x86_64.rpm dist/gardener-linux-x64.rpm
 
-      - name: Upload Linux Build
+      - name: Upload Linux Build (x64)
         uses: actions/upload-artifact@v4
         with:
           name: gardener-linux-x64-all
@@ -168,9 +168,47 @@ jobs:
             dist/*.deb
             dist/*.rpm
 
+  build-linux-arm64:
+    if: ${{ github.event_name == 'push' || inputs.linux == true }}
+    name: Linux Build (ARM64)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-qemu-action@v3
+
+      - name: Build inside ARM64 Container
+        uses: uraimo/run-on-arch-action@v2
+        with:
+          arch: aarch64
+          distro: ubuntu22.04
+          githubToken: ${{ github.token }}
+          install: |
+            apt-get update
+            apt-get install -y git curl unzip clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev libstdc++-12-dev libsecret-1-dev
+
+            # Install Flutter manually in ARM container
+            git clone https://github.com/flutter/flutter.git -b stable --depth 1 /opt/flutter
+            export PATH="/opt/flutter/bin:$PATH"
+            git config --global --add safe.directory /opt/flutter
+
+          run: |
+            export PATH="/opt/flutter/bin:$PATH"
+            cd gardener
+            flutter config --no-analytics
+            flutter pub get
+            flutter build linux --release
+
+            # Packaging would go here ideally, but simplified for now
+
+      - name: Upload Linux Build (ARM64)
+        uses: actions/upload-artifact@v4
+        with:
+          name: gardener-linux-arm64
+          path: gardener/build/linux/arm64/release/bundle
+
   build-macos:
     if: ${{ github.event_name == 'push' || inputs.macos == true }}
-    name: macOS Build
+    name: macOS Build (Universal)
     runs-on: macos-latest
     defaults:
       run:
@@ -186,20 +224,25 @@ jobs:
         run: flutter pub get
 
       - name: Build macOS (Universal)
-        # Flutter defaults to x64 on x64 runners, needing manual config for universal/arm64 often,
-        # but 'flutter build macos' typically builds for the runner architecture.
-        # To strictly test, we build.
+        # Flutter builds universal binary by default on macOS
         run: flutter build macos --release
 
       - name: Upload macOS Build
         uses: actions/upload-artifact@v4
         with:
-          name: gardener-macos
+          name: gardener-macos-universal
           path: gardener/build/macos/Build/Products/Release/gardener.app
 
   release:
     if: startsWith(github.ref, 'refs/tags/v')
-    needs: [build-android, build-windows, build-linux, build-macos]
+    needs:
+      [
+        build-android,
+        build-windows,
+        build-linux,
+        build-linux-arm64,
+        build-macos,
+      ]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -220,15 +263,16 @@ jobs:
           # Windows
           cd artifacts/gardener-windows-x64 && zip -r ../../dist/gardener-windows-x64.zip . && cd ../..
 
-          # Linux
-          # Zip the bundle for generic use
+          # Linux x64
           cd artifacts/gardener-linux-x64-all/bundle && zip -r ../../../dist/gardener-linux-x64.zip . && cd ../../..
-          # Copy packages
           cp artifacts/gardener-linux-x64-all/*.deb dist/
           cp artifacts/gardener-linux-x64-all/*.rpm dist/
 
-          # macOS
-          cd artifacts/gardener-macos && zip -r ../../dist/gardener-macos.zip . && cd ../..
+          # Linux ARM64
+          cd artifacts/gardener-linux-arm64 && zip -r ../../dist/gardener-linux-arm64.zip . && cd ../..
+
+          # macOS (Universal)
+          cd artifacts/gardener-macos-universal && zip -r ../../dist/gardener-macos-universal.zip . && cd ../..
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
@@ -237,9 +281,10 @@ jobs:
             dist/gardener-android.apk
             dist/gardener-windows-x64.zip
             dist/gardener-linux-x64.zip
+            dist/gardener-linux-arm64.zip
             dist/*.deb
             dist/*.rpm
-            dist/gardener-macos.zip
+            dist/gardener-macos-universal.zip
           draft: false
           prerelease: false
           generate_release_notes: true
