@@ -109,7 +109,10 @@ final _router = Router()
   ..mount(
     '/addon/',
     addonService.router.call,
-  ); // Mounted under /addon/ to avoid conflict with root static files
+  ) // Mounted under /addon/ to avoid conflict with root static files
+  // User-specific addon manifest at root for legacy compatibility
+  ..get('/u/<userId>/manifest.json', _userManifestHandler)
+  ..get('/u/<userId>/stream/<type>/<id>.json', _userStreamHandler);
 
 /// Mobile Interstitial Page (Deep Linking)
 Response _linkHandler(Request req) {
@@ -183,6 +186,65 @@ Response _appleAssociationHandler(Request req) {
     jsonEncode(json),
     headers: {'content-type': 'application/json'},
   );
+}
+
+/// User-specific manifest handler for legacy /u/{userId}/manifest.json route.
+Response _userManifestHandler(Request req, String userId) {
+  final manifest = {
+    "id": "community.seedsphere.user.$userId",
+    "version": "2.0.1",
+    "name": "SeedSphere (Private)",
+    "description":
+        "Your personalized SeedSphere addon. Powered by a community swarm.",
+    "logo": "https://seedsphere.app/assets/icon.png",
+    "resources": ["catalog", "stream"],
+    "types": ["movie", "series", "anime"],
+    "idPrefixes": ["tt", "kitsu"],
+    "catalogs": [
+      {"type": "movie", "id": "top", "name": "Swarm Popular"},
+      {"type": "series", "id": "top", "name": "Swarm Popular"},
+    ],
+  };
+  return Response.ok(
+    jsonEncode(manifest),
+    headers: {
+      'Content-Type': 'application/json',
+      'Access-Control-Allow-Origin': '*',
+      'Cache-Control': 'max-age=300',
+    },
+  );
+}
+
+/// User-specific stream handler for legacy /u/{userId}/stream/{type}/{id}.json route.
+Future<Response> _userStreamHandler(
+  Request req,
+  String userId,
+  String type,
+  String id,
+) async {
+  // Delegate to the addon service scraper for stream resolution
+  try {
+    final streams = await scraperService.getStreams(type, id, {});
+    return Response.ok(
+      jsonEncode({'streams': streams}),
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*',
+      },
+    );
+  } catch (e) {
+    return Response.ok(
+      jsonEncode({
+        'streams': [
+          {'name': 'Error', 'title': '$e'},
+        ],
+      }),
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*',
+      },
+    );
+  }
 }
 
 /// Root handler returning server status and version info.
