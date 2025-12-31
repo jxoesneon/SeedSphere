@@ -104,11 +104,16 @@ jobs:
       - name: Build Windows (x64)
         run: flutter build windows --release
 
-      - name: Upload Windows Build
+      - name: Create Installer (Inno Setup)
+        run: |
+          choco install innosetup
+          iscc gardener/windows/installer.iss
+
+      - name: Upload Windows Installer
         uses: actions/upload-artifact@v4
         with:
-          name: gardener-windows-x64
-          path: gardener/build/windows/x64/runner/Release
+          name: gardener-windows-setup
+          path: gardener/build/windows/installer/gardener-setup.exe
 
   build-linux:
     if: ${{ github.event_name == 'push' || inputs.linux == true }}
@@ -261,7 +266,7 @@ jobs:
           cp artifacts/gardener-android-apk/app-release.apk dist/gardener-android.apk
 
           # Windows
-          cd artifacts/gardener-windows-x64 && zip -r ../../dist/gardener-windows-x64.zip . && cd ../..
+          cp artifacts/gardener-windows-setup/gardener-setup.exe dist/gardener-windows-setup.exe
 
           # Linux x64
           cd artifacts/gardener-linux-x64-all/bundle && zip -r ../../../dist/gardener-linux-x64.zip . && cd ../../..
@@ -279,7 +284,7 @@ jobs:
         with:
           files: |
             dist/gardener-android.apk
-            dist/gardener-windows-x64.zip
+            dist/gardener-windows-setup.exe
             dist/gardener-linux-x64.zip
             dist/gardener-linux-arm64.zip
             dist/*.deb
