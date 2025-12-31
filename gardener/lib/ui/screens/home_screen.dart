@@ -1,5 +1,7 @@
 import 'dart:io' as java_io;
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:gardener/ui/theme/aetheric_theme.dart';
@@ -19,11 +21,23 @@ import 'package:gardener/ui/screens/swarm_dashboard.dart';
 /// - Custom typography using Google Fonts (Outfit)
 /// - Integrated [HapticManager] feedback on button interaction
 class HomeScreen extends StatelessWidget {
+  /// The deep link token passed if the app was opened via QR/Link.
+  final String? initialToken;
+
   /// Creates a [HomeScreen] widget.
-  const HomeScreen({super.key});
+  const HomeScreen({super.key, this.initialToken});
 
   @override
   Widget build(BuildContext context) {
+    // If a token was passed, we might want to trigger auto-linking logic here.
+    // For now, let's just log it or show a snackbar if we are in a valid context.
+    if (initialToken != null) {
+      // Defer this to post-frame callback
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _handleLinking(context, initialToken!);
+      });
+    }
+
     return Scaffold(
       body: Stack(
         children: [
@@ -47,8 +61,10 @@ class HomeScreen extends StatelessWidget {
               child: AethericGlass(
                 borderRadius: 24,
                 child: Padding(
-                  padding:
-                      const EdgeInsets.symmetric(vertical: 48, horizontal: 32),
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 48,
+                    horizontal: 32,
+                  ),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
@@ -80,7 +96,8 @@ class HomeScreen extends StatelessWidget {
                           HapticManager.heavy();
                           Navigator.of(context).push(
                             MaterialPageRoute(
-                                builder: (_) => const SwarmDashboard()),
+                              builder: (_) => const SwarmDashboard(),
+                            ),
                           );
                         },
                         style: ElevatedButton.styleFrom(
@@ -90,17 +107,21 @@ class HomeScreen extends StatelessWidget {
                             borderRadius: BorderRadius.circular(12),
                           ),
                           elevation: 8,
-                          shadowColor:
-                              AethericTheme.aetherBlue.withValues(alpha: 0.3),
+                          shadowColor: AethericTheme.aetherBlue.withValues(
+                            alpha: 0.3,
+                          ),
                         ),
                         child: const Padding(
                           padding: EdgeInsets.symmetric(
-                              horizontal: 32, vertical: 16),
+                            horizontal: 32,
+                            vertical: 16,
+                          ),
                           child: Text(
                             'ENTER SWARM',
                             style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                letterSpacing: 1.2),
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 1.2,
+                            ),
                           ),
                         ),
                       ),
@@ -109,8 +130,10 @@ class HomeScreen extends StatelessWidget {
                       // Secondary Action: Mobile Install (QR)
                       TextButton.icon(
                         onPressed: () => _showQrInstallDialog(context),
-                        icon: const Icon(Icons.qr_code_rounded,
-                            color: Colors.white60),
+                        icon: const Icon(
+                          Icons.qr_code_rounded,
+                          color: Colors.white60,
+                        ),
                         label: Text(
                           'INSTALL ON MOBILE',
                           style: GoogleFonts.outfit(
@@ -121,7 +144,9 @@ class HomeScreen extends StatelessWidget {
                         ),
                         style: TextButton.styleFrom(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 24, vertical: 16),
+                            horizontal: 24,
+                            vertical: 16,
+                          ),
                         ),
                       ),
                     ],
@@ -161,8 +186,9 @@ class HomeScreen extends StatelessWidget {
         context: context,
         builder: (_) => AlertDialog(
           backgroundColor: const Color(0xFF0F172A),
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(24),
+          ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -211,7 +237,9 @@ class HomeScreen extends StatelessWidget {
               SelectableText(
                 url,
                 style: GoogleFonts.firaCode(
-                    color: AethericTheme.aetherBlue, fontSize: 12),
+                  color: AethericTheme.aetherBlue,
+                  fontSize: 12,
+                ),
               ),
             ],
           ),
@@ -224,5 +252,32 @@ class HomeScreen extends StatelessWidget {
         ),
       );
     }
+  }
+}
+
+Future<void> _handleLinking(BuildContext context, String token) async {
+  final scaffold = ScaffoldMessenger.of(context);
+  scaffold.showSnackBar(const SnackBar(content: Text('Linking device...')));
+
+  try {
+    final uri = Uri.parse('https://seedsphere.fly.dev/api/link/complete');
+    final response = await http.post(
+      uri,
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({'token': token}),
+    );
+
+    if (response.statusCode == 200) {
+      // TODO: Persist session token (flutter_secure_storage)
+      scaffold.showSnackBar(
+        const SnackBar(content: Text('Device Linked Successfully!')),
+      );
+    } else {
+      scaffold.showSnackBar(
+        SnackBar(content: Text('Linking Failed: ${response.body}')),
+      );
+    }
+  } catch (e) {
+    scaffold.showSnackBar(SnackBar(content: Text('Error linking: $e')));
   }
 }

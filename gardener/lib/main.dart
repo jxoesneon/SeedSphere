@@ -6,6 +6,7 @@ import 'package:gardener/core/local_kms.dart';
 import 'package:gardener/core/keys_helper.dart' as keys_helper;
 
 import 'package:gardener/ui/screens/home_screen.dart';
+import 'package:gardener/core/router.dart';
 
 /// The entrance point for the SeedSphere 2.0 application.
 ///
@@ -29,11 +30,7 @@ void main() async {
   // Prevent app crash on first launch by ensuring placeholder keys exist
   await keys_helper.ensureKeysExist(kms);
 
-  runApp(
-    const ProviderScope(
-      child: GardenerApp(),
-    ),
-  );
+  runApp(const ProviderScope(child: GardenerApp()));
 }
 // coverage:ignore-end
 
@@ -47,18 +44,19 @@ class GardenerApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
+    return MaterialApp.router(
       title: 'SeedSphere 2.0',
       debugShowCheckedModeBanner: false,
 
       // Apply the custom dark theme with Outfit typography
       theme: AethericTheme.darkTheme.copyWith(
-        textTheme:
-            GoogleFonts.outfitTextTheme(AethericTheme.darkTheme.textTheme),
+        textTheme: GoogleFonts.outfitTextTheme(
+          AethericTheme.darkTheme.textTheme,
+        ),
       ),
 
-      // Default entry screen
-      home: const HomeScreen(),
+      // GoRouter configuration
+      routerConfig: router,
     );
   }
 }

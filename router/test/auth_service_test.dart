@@ -174,5 +174,17 @@ void main() {
       final res = await authService.router(req);
       expect(res.statusCode, 403); // CSRF fail
     });
+
+    test('Magic Link Start - 200', () async {
+      final req = Request(
+        'POST',
+        Uri.parse('http://localhost/magic/start'),
+        body: '{"email":"magic@test.com"}',
+      );
+      final res = await authService.router(req);
+      expect(res.statusCode, 200);
+      final body = await res.readAsString();
+      expect(body, contains('"ok":true'));
+    });
   });
 }

@@ -146,16 +146,19 @@ Response _linkHandler(Request req) {
   return Response.ok(html, headers: {'content-type': 'text/html'});
 }
 
-/// Android App Links Verification (Placeholder)
+/// Android App Links Verification
 Response _assetLinksHandler(Request req) {
-  // TODO: Replace with real SHA256 fingerprints from user
+  final sha256 =
+      Platform.environment['ANDROID_SHA256'] ??
+      'FA:C6:17:45:DC:09:03:78:6F:B9:ED:E6:2A:96:2B:39:9F:73:48:F0:BB:6F:89:9B:83:32:66:75:91:03:3B:9C'; // Debug Default
+
   final json = [
     {
       "relation": ["delegate_permission/common.handle_all_urls"],
       "target": {
         "namespace": "android_app",
-        "package_name": "com.jxoesneon.seedsphere.gardener",
-        "sha256_cert_fingerprints": [],
+        "package_name": "com.seedsphere.gardener",
+        "sha256_cert_fingerprints": [sha256],
       },
     },
   ];
@@ -165,15 +168,17 @@ Response _assetLinksHandler(Request req) {
   );
 }
 
-/// iOS Universal Links Verification (Placeholder)
+/// iOS Universal Links Verification
 Response _appleAssociationHandler(Request req) {
-  // TODO: Replace with real Team ID
+  final teamId = Platform.environment['IOS_TEAM_ID'] ?? 'UNKNOWN_TEAM';
+  final bundleId = 'com.seedsphere.gardener';
+
   final json = {
     "applinks": {
       "apps": [],
       "details": [
         {
-          "appID": "<TEAM_ID>.com.jxoesneon.seedsphere.gardener",
+          "appID": "$teamId.$bundleId",
           "paths": ["/link", "/auth/*"],
         },
       ],

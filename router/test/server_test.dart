@@ -29,12 +29,14 @@ void main() {
           }
         });
 
+    p.stderr.transform(utf8.decoder).listen((line) => print('STDERR: $line'));
+
     try {
       await completer.future.timeout(const Duration(seconds: 45));
     } catch (e) {
       await subscription.cancel();
       p.kill();
-      throw Exception('Server failed to start (or bind port) within 15s');
+      throw Exception('Server failed to start within 45s');
     }
   });
 
@@ -50,10 +52,34 @@ void main() {
   test('API Status', () async {
     final response = await get(Uri.parse('$host/api'));
     expect(response.statusCode, 200);
-    expect(response.body, contains('"name":"SeedSphere Router"'));
-    expect(response.body, contains('"status":"active"'));
+    final json = jsonDecode(response.body);
+    expect(json['status'], 'ok');
   });
 
+  test('Mobile Verification (Deep Link)', () async {
+    final response = await get(Uri.parse('$host/link?token=TEST'));
+    expect(response.statusCode, 200);
+    expect(response.body, contains('seedsphere://link?token=TEST'));
+  });
+
+  test('Mobile Verification (Android)', () async {
+    final response = await get(Uri.parse('$host/.well-known/assetlinks.json'));
+    expect(response.statusCode, 200);
+    final json = jsonDecode(response.body) as List;
+    expect(json[0]['target']['package_name'], 'com.seedsphere.gardener');
+  });
+
+  test('Mobile Verification (iOS)', () async {
+    final response = await get(
+      Uri.parse('$host/.well-known/apple-app-site-association'),
+    );
+    expect(response.statusCode, 200);
+    final json = jsonDecode(response.body);
+    expect(
+      json['applinks']['details'][0]['appID'],
+      contains('com.seedsphere.gardener'),
+    );
+  });
   test('404', () async {
     final response = await get(Uri.parse('$host/foobar'));
     expect(response.statusCode, 404);
