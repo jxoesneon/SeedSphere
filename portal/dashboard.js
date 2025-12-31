@@ -369,64 +369,45 @@ function showQrModal(tokenRaw) {
 
 async function loadReleases() {
   const container = document.getElementById("download-list-container");
+  const hero = document.getElementById("latest-release-hero");
+  const grid = document.getElementById("platform-grid");
+  const historyList = document.querySelector(".history-list");
+
   try {
     const res = await fetch(`${API_BASE}/api/releases`);
     if (!res.ok) throw new Error("Failed to load");
     const releases = await res.json();
 
     container.innerHTML = "";
+    grid.innerHTML = "";
+    historyList.innerHTML = "";
 
-    releases.forEach((release) => {
-      const date = new Date(release.published_at).toLocaleDateString();
-      const isBeta = release.prerelease;
-
-      // Find APK asset
-      const apkAsset = release.assets.find((a) => a.name.endsWith(".apk"));
-      const size = apkAsset
-        ? (apkAsset.size / 1024 / 1024).toFixed(1) + " MB"
-        : "N/A";
-      const downloadUrl = apkAsset
-        ? `${API_BASE}/downloads/${apkAsset.name}`
-        : release.html_url;
-
-      const item = document.createElement("div");
-      item.className = "download-item glass";
-      item.innerHTML = `
-              <div class="download-info">
-                <h3>${release.name || release.tag_name}</h3>
-                <p>${isBeta ? "Pre-release" : "Stable"} • Released ${date}</p>
-              </div>
-              <div class="download-meta">
-                <span class="download-size">${size}</span>
-                <a href="${downloadUrl}" class="btn-download-small" target="_blank">
-                    ${apkAsset ? "Download APK" : "View on GitHub"}
-                </a>
-              </div>
-            `;
-      container.appendChild(item);
-    });
-
-    // Populate version history list too if needed
-    const historyList = document.querySelector(".history-list");
-    if (historyList) {
-      historyList.innerHTML = releases
-        .slice(0, 5)
-        .map(
-          (r) => `
-                <div class="history-item">
-                    <span class="version-tag">${r.tag_name}</span>
-                    <span class="release-date">${new Date(
-                      r.published_at
-                    ).toLocaleDateString()}</span>
-                    <span class="release-notes" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 200px;">
-                        ${r.body ? r.body.split("\n")[0] : "No notes"}
-                    </span>
-                 </div>
-             `
-        )
-        .join("");
+    // 1. Find Latest Stable
+    const latest = releases.find((r) => !r.prerelease) || releases[0];
+    if (latest) {
+      renderHero(latest, hero, grid);
     }
+
+    // 2. Populate History (All versions)
+    releases.forEach((r) => {
+      const item = document.createElement("div");
+      item.className = "history-item";
+      item.innerHTML = `
+            <span class="version-tag">${r.tag_name}</span>
+            <span class="release-date">${new Date(
+              r.published_at
+            ).toLocaleDateString()}</span>
+            <span class="release-notes" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 200px;">
+                ${r.body ? r.body.split("\n")[0] : "No notes"}
+            </span>
+            <a href="${
+              r.html_url
+            }" target="_blank" style="margin-left: auto; color: var(--aether-blue);">View</a>
+        `;
+      historyList.appendChild(item);
+    });
   } catch (e) {
+    console.error(e);
     container.innerHTML = `
             <div style="text-align: center; padding: 2rem; color: #ef4444;">
                 Failed to load releases. <br>
@@ -434,4 +415,211 @@ async function loadReleases() {
             </div>
         `;
   }
+}
+
+function renderHero(release, hero, grid) {
+  document.getElementById("hero-version").textContent = release.tag_name;
+  document.getElementById("hero-notes").textContent =
+    release.body || "No release notes provided.";
+  hero.style.display = "block";
+
+  // Detect User OS
+  const userOS = detectOS();
+  const osBadge = document.getElementById("os-detected");
+  if (userOS !== "unknown") {
+    document.getElementById("user-os").textContent = formatOSName(userOS);
+    osBadge.style.display = "block";
+  }
+
+  // Clear grid
+  grid.innerHTML = "";
+
+  // Define Platforms & matchers
+  // Prioritize x64 as default if multiple match
+  const platforms = [
+    {
+      id: "android",
+      name: "Android",
+      icon: "🤖",
+      matcher: /android/i,
+      formats: ["apk", "aab"],
+    },
+    {
+      id: "windows",
+      name: "Windows",
+      icon: "🪟",
+      matcher: /windows/i,
+      formats: ["exe", "msi", "zip"],
+    },
+    {
+      id: "macos",
+      name: "macOS",
+      icon: "🍎",
+      matcher: /macos|osx/i,
+      formats: ["dmg", "pkg", "zip"],
+    },
+    {
+      id: "linux",
+      name: "Linux",
+      icon: "🐧",
+      matcher: /linux/i,
+      formats: ["deb", "rpm", "AppImage", "tar.gz", "zip"],
+    },
+  ];
+
+  platforms.forEach((p) => {
+    // Find all assets matching this platform
+    const assets = release.assets.filter((a) => p.matcher.test(a.name));
+
+    // If no assets, skip? or show disabled? Let's skip for now, or show "Source" if absolutely nothing.
+    // Actually, for Linux/Windows we expect matches.
+
+    let primaryAsset = null;
+    if (assets.length > 0) {
+      // Default to x64 if we have it, else first avalailable
+      primaryAsset = assets.find((a) => a.name.includes("x64")) || assets[0];
+    }
+
+    const isRecommended = userOS === p.id;
+
+    // Container for the button group (Main Button + Dropdown Toggle)
+    const btnGroup = document.createElement("div");
+    btnGroup.className = `platform-group glass ${
+      isRecommended ? "recommended" : ""
+    }`;
+    btnGroup.style.cssText = `
+            display: flex; flex-direction: column; position: relative;
+            border-radius: 16px; border: 1px solid rgba(255,255,255,0.1);
+            transition: all 0.3s ease;
+            ${
+              isRecommended
+                ? "border-color: #4ade80; box-shadow: 0 0 20px rgba(74,222,128,0.15); background: rgba(74, 222, 128, 0.05);"
+                : "background: rgba(255,255,255,0.03);"
+            }
+        `;
+
+    // Main Download Area
+    const mainBtn = document.createElement("a");
+    mainBtn.href = primaryAsset
+      ? `${API_BASE}/downloads/${primaryAsset.name}`
+      : release.html_url;
+    mainBtn.target = primaryAsset ? "" : "_blank";
+    mainBtn.style.cssText = `
+            flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+            padding: 1.5rem 1rem; text-decoration: none; color: white; width: 100%; box-sizing: border-box;
+        `;
+
+    const sizeInfo = primaryAsset
+      ? (primaryAsset.size / 1024 / 1024).toFixed(1) + " MB"
+      : "Source";
+    const archInfo =
+      primaryAsset && primaryAsset.name.includes("arm64") ? "ARM64" : "x64";
+
+    mainBtn.innerHTML = `
+            <div style="font-size: 2rem; margin-bottom: 0.5rem;">${p.icon}</div>
+            <div style="font-weight: 600;">${p.name}</div>
+            <div style="font-size: 0.8rem; color: rgba(255,255,255,0.5); margin-top: 0.2rem;">
+                ${archInfo} • ${sizeInfo}
+            </div>
+             ${
+               isRecommended
+                 ? '<div style="margin-top: 0.5rem; font-size: 0.7rem; color: #4ade80; text-transform: uppercase; letter-spacing: 1px;">Recommended</div>'
+                 : ""
+             }
+        `;
+
+    // Dropdown Toggle (if multiple assets for this platform)
+    let dropdownHtml = "";
+    if (assets.length > 1) {
+      dropdownHtml = `
+                <div class="dropdown-toggle" style="
+                    border-top: 1px solid rgba(255,255,255,0.1); padding: 0.5rem;
+                    text-align: center; cursor: pointer; color: rgba(255,255,255,0.7); font-size: 0.8rem;
+                ">
+                    More Options ▼
+                </div>
+                <div class="dropdown-menu glass" style="
+                    display: none; position: absolute; top: 100%; left: 0; width: 100%;
+                    z-index: 10; margin-top: 0.5rem; padding: 0.5rem; border-radius: 12px;
+                    border: 1px solid rgba(255,255,255,0.1); background: rgba(20, 20, 30, 0.95);
+                    box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+                ">
+                    ${assets
+                      .map((a) => {
+                        const isArm = a.name.includes("arm64");
+                        const ext = a.name.split(".").pop();
+                        return `
+                            <a href="${API_BASE}/downloads/${a.name}" style="
+                                display: block; padding: 0.5rem; color: white; text-decoration: none;
+                                font-size: 0.9rem; border-radius: 8px; margin-bottom: 2px;
+                            " onmouseover="this.style.background='rgba(255,255,255,0.1)'" onmouseout="this.style.background='transparent'">
+                                ${
+                                  isArm ? "ARM64" : "x64"
+                                } <span style="opacity:0.5; font-size: 0.8rem;">.${ext}</span>
+                            </a>
+                        `;
+                      })
+                      .join("")}
+                </div>
+            `;
+    }
+
+    btnGroup.appendChild(mainBtn);
+    if (dropdownHtml) {
+      const dropdownContainer = document.createElement("div");
+      dropdownContainer.style.width = "100%";
+      dropdownContainer.innerHTML = dropdownHtml;
+      btnGroup.appendChild(dropdownContainer);
+
+      // Toggle Logic
+      const toggle = dropdownContainer.querySelector(".dropdown-toggle");
+      const menu = dropdownContainer.querySelector(".dropdown-menu");
+      toggle.onclick = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        // Close others
+        document.querySelectorAll(".dropdown-menu").forEach((el) => {
+          if (el !== menu) el.style.display = "none";
+        });
+        menu.style.display = menu.style.display === "block" ? "none" : "block";
+      };
+    }
+
+    // Hover effect for main group
+    btnGroup.onmouseover = () => {
+      btnGroup.style.background = isRecommended
+        ? "rgba(74, 222, 128, 0.1)"
+        : "rgba(255,255,255,0.06)";
+      btnGroup.style.transform = "translateY(-2px)";
+    };
+    btnGroup.onmouseout = () => {
+      btnGroup.style.background = isRecommended
+        ? "rgba(74, 222, 128, 0.05)"
+        : "rgba(255,255,255,0.03)";
+      btnGroup.style.transform = "translateY(0)";
+    };
+
+    grid.appendChild(btnGroup);
+  });
+
+  // Close dropdowns on click outside
+  document.addEventListener("click", () => {
+    document
+      .querySelectorAll(".dropdown-menu")
+      .forEach((el) => (el.style.display = "none"));
+  });
+}
+
+function formatOSName(os) {
+  if (os === "macos") return "macOS";
+  return os.charAt(0).toUpperCase() + os.slice(1);
+}
+
+function detectOS() {
+  const ua = navigator.userAgent.toLowerCase();
+  if (ua.includes("android")) return "android";
+  if (ua.includes("win")) return "windows";
+  if (ua.includes("mac")) return "macos";
+  if (ua.includes("linux")) return "linux";
+  return "unknown";
 }

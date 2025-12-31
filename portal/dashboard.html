@@ -168,23 +168,48 @@
         <section id="downloads" class="dashboard-section" style="display: none">
           <h1 class="dashboard-title">Downloads</h1>
 
-          <div class="download-list" id="download-list-container">
-            <!-- Dynamically populated -->
-            <div style="text-align: center; padding: 2rem; color: var(--aether-text-muted);">
-                Loading releases...
+          <!-- Latest Release Hero -->
+          <div id="latest-release-hero" class="hero-card glass" style="display: none; margin-bottom: 2rem; padding: 2.5rem; border: 1px solid rgba(255,255,255,0.1);">
+            <div class="hero-content" style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 2rem;">
+                <div class="hero-info" style="flex: 1; min-width: 300px;">
+                    <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem;">
+                        <span id="hero-version" class="version-tag" style="font-size: 1.25rem; padding: 0.5rem 1rem;">v2.0.0</span>
+                        <span class="status-indicator active" style="background: #4ade80; box-shadow: 0 0 10px rgba(74,222,128,0.4);"></span>
+                        <span style="color: #4ade80; font-weight: 600; letter-spacing: 1px;">LATEST STABLE</span>
+                    </div>
+                    <h2 style="font-size: 2.5rem; font-weight: 700; margin-bottom: 1rem; color: white;">Get SeedSphere</h2>
+                    <p style="color: var(--aether-text-muted); font-size: 1.1rem; line-height: 1.6; margin-bottom: 2rem;">
+                        Secure, private, and faster than ever. Download the latest version for your device.
+                    </p>
+                    <div style="margin-bottom: 1rem;">
+                        <strong style="color: white; display: block; margin-bottom: 0.5rem;">Release Notes</strong>
+                        <p id="hero-notes" style="color: rgba(255,255,255,0.6); display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;">
+                            Loading notes...
+                        </p>
+                    </div>
+                </div>
+
+                <div class="hero-actions" style="flex: 1; min-width: 300px;">
+                    <h3 style="color: white; margin-bottom: 1.5rem;">Select Platform</h3>
+                    <div id="platform-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 1rem;">
+                        <!-- Buttons injected via JS -->
+                    </div>
+                    <div id="os-detected" style="margin-top: 1rem; font-size: 0.9rem; color: #60a5fa; display: none;">
+                        ✨ We detected your device as <span id="user-os" style="font-weight: bold;">Unknown</span>
+                    </div>
+                </div>
             </div>
+          </div>
+
+          <!-- Legacy List Container -->
+          <div class="download-list" id="download-list-container">
+            <!-- Dynamically populated fallback or older versions -->
           </div>
 
           <div class="version-history">
             <h3>Version History</h3>
             <div class="history-list">
-              <div class="history-item">
-                <span class="version-tag">v2.0.0</span>
-                <span class="release-date">Dec 27, 2025</span>
-                <span class="release-notes"
-                  >Initial 2.0 release with P2P support</span
-                >
-              </div>
+               <!-- Populated by JS -->
             </div>
           </div>
         </section>
