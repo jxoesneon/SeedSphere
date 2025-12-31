@@ -436,15 +436,52 @@ Response _eventsHandler(Request req, String gardenerId) {
   return eventService.sseResponse(stream);
 }
 
-// Heartbeat (Secured via Middleware if applied)
+// Heartbeat (Secured via JWT)
+
+/// Active gardeners mapped by user ID for job dispatch
+final Map<String, DateTime> _activeGardeners = {};
 
 /// Processes heartbeat signals from Gardeners to maintain active status.
+/// Validates JWT Bearer token if provided.
 Future<Response> _heartbeatHandler(Request req, String gardenerId) async {
+  // Validate Bearer token if provided
+  final authHeader = req.headers['authorization'];
+  if (authHeader != null && authHeader.startsWith('Bearer ')) {
+    final token = authHeader.substring(7);
+    final claims = authService.verifyJwt(token);
+
+    if (claims == null) {
+      return Response(
+        401,
+        body: jsonEncode({'ok': false, 'error': 'invalid_token'}),
+      );
+    }
+
+    // Verify the gardener ID matches the token's subject
+    final tokenUserId = claims['sub'] as String?;
+    if (tokenUserId != null && tokenUserId != gardenerId) {
+      return Response(
+        403,
+        body: jsonEncode({'ok': false, 'error': 'user_mismatch'}),
+      );
+    }
+  }
+
+  // Track active gardener
+  _activeGardeners[gardenerId] = DateTime.now();
+
+  // Clean up stale gardeners (inactive > 2 minutes)
+  final cutoff = DateTime.now().subtract(const Duration(minutes: 2));
+  _activeGardeners.removeWhere((_, lastSeen) => lastSeen.isBefore(cutoff));
+
   db.touchGardener(gardenerId);
   eventService.publish(gardenerId, 'heartbeat', {
     't': DateTime.now().millisecondsSinceEpoch,
+    'active': _activeGardeners.length,
   });
-  return Response.ok(jsonEncode({'ok': true}));
+  return Response.ok(
+    jsonEncode({'ok': true, 'activeGardeners': _activeGardeners.length}),
+  );
 }
 
 // Telemetry Collector

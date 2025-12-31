@@ -111,10 +111,16 @@ class _AuthScreenState extends State<AuthScreen> {
         final token = data['token'] as String?;
 
         if (token != null) {
-          // Store token
+          // Store token and extract user ID from JWT
           final prefs = await SharedPreferences.getInstance();
           await prefs.setString('auth_token', token);
           await prefs.setString('user_email', account.email);
+
+          // Extract user ID from JWT payload (base64 decode middle part)
+          final userId = _extractUserIdFromJwt(token);
+          if (userId != null) {
+            await prefs.setString('user_id', userId);
+          }
 
           unawaited(HapticManager.success());
           widget.onAuthenticated();
@@ -131,13 +137,42 @@ class _AuthScreenState extends State<AuthScreen> {
     }
   }
 
+  /// Extracts user ID from JWT token payload.
+  String? _extractUserIdFromJwt(String token) {
+    try {
+      final parts = token.split('.');
+      if (parts.length != 3) return null;
+
+      // Decode the payload (middle part)
+      String payload = parts[1];
+      // Add padding if needed
+      switch (payload.length % 4) {
+        case 2:
+          payload += '==';
+          break;
+        case 3:
+          payload += '=';
+          break;
+      }
+
+      final decoded = utf8.decode(base64Url.decode(payload));
+      final payloadMap = jsonDecode(decoded) as Map<String, dynamic>;
+
+      // Try common JWT claims for user ID
+      return payloadMap['sub'] as String? ??
+          payloadMap['userId'] as String? ??
+          payloadMap['user_id'] as String?;
+    } catch (e) {
+      return null;
+    }
+  }
+
   Future<void> _skipAuth() async {
     // For development/testing: skip auth with a guest token
+    final guestId = 'guest_${DateTime.now().millisecondsSinceEpoch}';
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(
-      'auth_token',
-      'guest_${DateTime.now().millisecondsSinceEpoch}',
-    );
+    await prefs.setString('auth_token', guestId);
+    await prefs.setString('user_id', guestId);
     await prefs.setString('user_email', 'guest@seedsphere.app');
     widget.onAuthenticated();
   }

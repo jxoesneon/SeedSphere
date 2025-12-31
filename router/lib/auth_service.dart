@@ -388,4 +388,14 @@ class AuthService {
     }
     return null;
   }
+
+  /// Verifies a JWT token and returns the claims if valid, null otherwise.
+  Map<String, dynamic>? verifyJwt(String token) {
+    try {
+      final jwt = JWT.verify(token, SecretKey(_jwtSecret));
+      return jwt.payload as Map<String, dynamic>;
+    } catch (e) {
+      return null;
+    }
+  }
 }

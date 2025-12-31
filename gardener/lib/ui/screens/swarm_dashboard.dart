@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:gardener/ui/settings/swarm_settings_menu.dart';
 import 'package:gardener/ui/settings/swarm_uplink_settings.dart';
 import 'package:gardener/ui/theme/aetheric_theme.dart';
@@ -74,18 +75,26 @@ class _SwarmDashboardState extends State<SwarmDashboard> {
     }
   }
 
-  /// Connects to the Router's Event Stream (SSE).
+  /// Connects to the Router's Event Stream (SSE) for user-scoped events.
   void _connectSSE() async {
     try {
+      // Get user ID for user-scoped events
+      final prefs = await SharedPreferences.getInstance();
+      final userId = prefs.getString('user_id') ?? 'swarm';
+      final authToken = prefs.getString('auth_token');
+
       final req = http.Request(
         'GET',
-        Uri.parse('http://127.0.0.1:8080/api/rooms/swarm/events'),
+        Uri.parse('http://127.0.0.1:8080/api/rooms/$userId/events'),
       );
       req.headers['Accept'] = 'text/event-stream';
+      if (authToken != null) {
+        req.headers['Authorization'] = 'Bearer $authToken';
+      }
 
       final resp = await _client.send(req);
       if (mounted) setState(() => _sseConnected = true);
-      _addLog('Connected to Swarm Uplink (SSE)');
+      _addLog('Connected to User Swarm (SSE) - $userId');
 
       _sseSubscription = resp.stream
           .transform(const Utf8Decoder())
