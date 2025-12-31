@@ -1,575 +1,712 @@
-const addonBuilder = require("stremio-addon-sdk")
-const axios = require("axios")
-const pkg = require('../package.json')
-const { isTrackerUrl, unique, filterByHealth } = require("./lib/health.cjs")
-const { setLastFetch } = require("./lib/trackers_meta.cjs")
-const boosts = require("./lib/boosts.cjs")
-const { aggregateStreams } = require('./lib/aggregate.cjs')
-const torrentio = require('./providers/torrentio.cjs')
-const yts = require('./providers/yts.cjs')
-const eztv = require('./providers/eztv.cjs')
-const nyaa = require('./providers/nyaa.cjs')
-const x1337 = require('./providers/x1337.cjs')
-const piratebay = require('./providers/piratebay.cjs')
-const torrentgalaxy = require('./providers/torrentgalaxy.cjs')
-const torlock = require('./providers/torlock.cjs')
-const magnetdl = require('./providers/magnetdl.cjs')
-const anidex = require('./providers/anidex.cjs')
-const tokyotosho = require('./providers/tokyotosho.cjs')
-const zooqle = require('./providers/zooqle.cjs')
-const rutor = require('./providers/rutor.cjs')
+const { addonBuilder, getRouter } = require("stremio-addon-sdk");
+const axios = require("axios");
+const pkg = require("../package.json");
+const { isTrackerUrl, unique, filterByHealth } = require("./lib/health.cjs");
+const { setLastFetch } = require("./lib/trackers_meta.cjs");
+const boosts = require("./lib/boosts.cjs");
+const { aggregateStreams } = require("./lib/aggregate.cjs");
+const torrentio = require("./providers/torrentio.cjs");
+const yts = require("./providers/yts.cjs");
+const eztv = require("./providers/eztv.cjs");
+const nyaa = require("./providers/nyaa.cjs");
+const x1337 = require("./providers/x1337.cjs");
+const piratebay = require("./providers/piratebay.cjs");
+const torrentgalaxy = require("./providers/torrentgalaxy.cjs");
+const torlock = require("./providers/torlock.cjs");
+const magnetdl = require("./providers/magnetdl.cjs");
+const anidex = require("./providers/anidex.cjs");
+const tokyotosho = require("./providers/tokyotosho.cjs");
+const zooqle = require("./providers/zooqle.cjs");
+const rutor = require("./providers/rutor.cjs");
 
 // Docs: https://github.com/Stremio/stremio-addon-sdk/blob/master/docs/api/responses/manifest.md
-const APP_ENV = process.env.APP_ENV || 'prod'
-const isDevEnv = APP_ENV === 'dev'
-const MANIFEST_ID = isDevEnv ? 'community.SeedSphereDev' : 'community.SeedSphere'
-const MANIFEST_NAME = isDevEnv ? 'SeedSphere (Dev)' : 'SeedSphere'
-const MANIFEST_LOGO = isDevEnv ? 'https://seedsphere-dev.fly.dev/assets/icon.png' : 'https://seedsphere.fly.dev/assets/icon.png'
+const APP_ENV = process.env.APP_ENV || "prod";
+const isDevEnv = APP_ENV === "dev";
+const MANIFEST_ID = isDevEnv
+  ? "community.SeedSphereDev"
+  : "community.SeedSphere";
+const MANIFEST_NAME = isDevEnv ? "SeedSphere (Dev)" : "SeedSphere";
+const MANIFEST_LOGO = isDevEnv
+  ? "https://seedsphere-dev.fly.dev/assets/icon.png"
+  : "https://seedsphere.fly.dev/assets/icon.png";
 const manifest = {
-	"id": MANIFEST_ID,
-	"version": pkg.version || "1.0.0",
-	"catalogs": [],
-	"resources": [
-		"stream"
-	],
-	"types": [
-		"movie",
-		"series"
-	],
-	"name": MANIFEST_NAME,
-	"logo": MANIFEST_LOGO,
-	"contactEmail": "joseeduardox@gmail.com",
-	"description": "Say goodbye to buffering. SeedSphere strengthens your stream connections by finding more sources, ensuring faster start times and a smoother playback experience, especially for less common content.",
-	"idPrefixes": [
-		"tt"
-	],
-	"stremioAddonsConfig": {
-		"issuer": "https://stremio-addons.net",
-		"signature": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMTI4Q0JDLUhTMjU2In0..0dhFNY0_5nxeA6QsQHVQAQ.RnUtICPP-vQdh3RH5lmmmFQsfllR6T8tV5gq6puxOICWuKCJlGKqQkhqc9JZwrPbgnnwNIup5xSpH7zfCtkTARkhexamJKe9brEF4Fhm2pHAVmo73yHctqzRbKoNTLYn.lYbSy2Rwzm_kLjcpzjy8dg"
-	},
-	"behaviorHints": {
-		"configurable": true,
-		"p2p": true,
-		"adult": false
-	},
-	"config": [
-		{
-			"key": "auto_proxy",
-			"type": "select",
-			"default": "on",
-			"title": "Proxy upstream streams",
-			"options": [
-				{ "value": "on", "label": "On (aggregate and optimize)" },
-				{ "value": "off", "label": "Off (addon emits only its own demo)" }
-			]
-		},
-		{
-			"key": "variant",
-			"type": "select",
-			"default": "all",
-			"title": "Trackers list variant",
-			"options": [
-				{ "value": "all", "label": "All trackers (default)" },
-				{ "value": "best", "label": "Best curated trackers" },
-				{ "value": "all_udp", "label": "All UDP trackers" },
-				{ "value": "all_http", "label": "All HTTP trackers" },
-				{ "value": "all_ws", "label": "All WebSocket trackers" },
-				{ "value": "all_ip", "label": "All trackers (IP only)" },
-				{ "value": "best_ip", "label": "Best trackers (IP only)" }
-			]
-		},
-		{
-			"key": "trackers_url",
-			"type": "text",
-			"title": "Custom trackers URL (overrides variant)",
-			"default": ""
-		},
-		{
-			"key": "validation_mode",
-			"type": "select",
-			"title": "Validation mode",
-			"default": "basic",
-			"options": [
-				{ "value": "off", "label": "Off (fastest)" },
-				{ "value": "basic", "label": "Basic (DNS + HTTP HEAD)" },
-				{ "value": "aggressive", "label": "Aggressive (more probes)" }
-			]
-		},
-		{
-			"key": "max_trackers",
-			"type": "number",
-			"title": "Max trackers to append (0 = unlimited)",
-			"default": 0
-		},
-        {
-            "key": "desc_append_original",
-            "type": "select",
-            "title": "Append original provider description",
-            "default": "off",
-            "options": [ { "value": "on", "label": "On" }, { "value": "off", "label": "Off" } ]
-        },
-        {
-            "key": "desc_require_details",
-            "type": "select",
-            "title": "Use original description when no details parsed",
-            "default": "on",
-            "options": [ { "value": "on", "label": "On" }, { "value": "off", "label": "Off" } ]
-        },
-        {
-            "key": "ai_descriptions",
-            "type": "select",
-            "title": "AI enhanced descriptions (requires external API key)",
-            "default": "off",
-            "options": [ { "value": "off", "label": "Off" }, { "value": "on", "label": "On" } ]
-        },
-        {
-            "key": "ai_provider",
-            "type": "text",
-            "title": "AI provider (e.g., openai, anthropic, google, groq, mistral)",
-            "default": "openai"
-        },
-        {
-            "key": "ai_model",
-            "type": "text",
-            "title": "AI model (provider-specific)",
-            "default": "gpt-4o"
-        },
-        {
-            "key": "ai_timeout_ms",
-            "type": "number",
-            "title": "AI timeout (ms)",
-            "default": 2500
-        },
-        {
-            "key": "ai_cache_ttl_ms",
-            "type": "number",
-            "title": "AI cache TTL (ms)",
-            "default": 60_000
-        },
-        {
-            "key": "ai_user_id",
-            "type": "text",
-            "title": "AI user id (opaque)",
-            "default": ""
-        },
-        {
-            "key": "probe_providers",
-            "type": "select",
-            "title": "Probe provider responsiveness",
-            "default": "off",
-            "options": [ { "value": "off", "label": "Off" }, { "value": "on", "label": "On" } ]
-        },
-        {
-            "key": "probe_timeout_ms",
-            "type": "number",
-            "title": "Probe timeout (ms)",
-            "default": 500
-        },
-        {
-            "key": "provider_fetch_timeout_ms",
-            "type": "number",
-            "title": "Provider fetch timeout (ms)",
-            "default": 3000
-        },
-        {
-            "key": "sort_order",
-            "type": "select",
-            "title": "Sorting: direction",
-            "default": "desc",
-            "options": [ { "value": "desc", "label": "Descending" }, { "value": "asc", "label": "Ascending" } ]
-        },
-        {
-            "key": "sort_fields",
-            "type": "text",
-            "title": "Sorting: fields order (comma-separated)",
-            "default": "resolution,peers,language"
-        },
-        {
-            "key": "swarm_enabled",
-            "type": "select",
-            "title": "Swarm scraping",
-            "default": "off",
-            "options": [ { "value": "off", "label": "Off" }, { "value": "on", "label": "On" } ]
-        },
-        {
-            "key": "swarm_top_n",
-            "type": "number",
-            "title": "Swarm scraping: top N items",
-            "default": 2
-        },
-        {
-            "key": "swarm_missing_only",
-            "type": "select",
-            "title": "Swarm: enrich only when upstream lacks seeds/peers",
-            "default": "on",
-            "options": [ { "value": "on", "label": "On" }, { "value": "off", "label": "Off" } ]
-        },
-        {
-            "key": "swarm_timeout_ms",
-            "type": "number",
-            "title": "Swarm timeout (ms)",
-            "default": 800
-        },
-		{
-			"key": "providers_torrentio",
-			"type": "select",
-			"default": "on",
-			"title": "Provider: Torrentio",
-			"options": [
-				{ "value": "on", "label": "On" },
-				{ "value": "off", "label": "Off" }
-			]
-		},
-		{
-			"key": "providers_yts",
-			"type": "select",
-			"default": "on",
-			"title": "Provider: YTS (Movies)",
-			"options": [
-				{ "value": "on", "label": "On" },
-				{ "value": "off", "label": "Off" }
-			]
-		},
-		{
-			"key": "providers_eztv",
-			"type": "select",
-			"default": "on",
-			"title": "Provider: EZTV (Series)",
-			"options": [
-				{ "value": "on", "label": "On" },
-				{ "value": "off", "label": "Off" }
-			]
-		},
-		{
-			"key": "providers_nyaa",
-			"type": "select",
-			"default": "on",
-			"title": "Provider: Nyaa (Anime)",
-			"options": [
-				{ "value": "on", "label": "On" },
-				{ "value": "off", "label": "Off" }
-			]
-		},
-		{
-			"key": "providers_1337x",
-			"type": "select",
-			"default": "on",
-			"title": "Provider: 1337x",
-			"options": [
-				{ "value": "on", "label": "On" },
-				{ "value": "off", "label": "Off" }
-			]
-		},
-		{
-			"key": "providers_piratebay",
-			"type": "select",
-			"default": "on",
-			"title": "Provider: Pirate Bay",
-			"options": [
-				{ "value": "on", "label": "On" },
-				{ "value": "off", "label": "Off" }
-			]
-		}
-		,
-		{
-			"key": "providers_torrentgalaxy",
-			"type": "select",
-			"default": "on",
-			"title": "Provider: TorrentGalaxy",
-			"options": [
-				{ "value": "on", "label": "On" },
-				{ "value": "off", "label": "Off" }
-			]
-		},
-		{
-			"key": "providers_torlock",
-			"type": "select",
-			"default": "on",
-			"title": "Provider: Torlock",
-			"options": [
-				{ "value": "on", "label": "On" },
-				{ "value": "off", "label": "Off" }
-			]
-		},
-		{
-			"key": "providers_magnetdl",
-			"type": "select",
-			"default": "on",
-			"title": "Provider: MagnetDL",
-			"options": [
-				{ "value": "on", "label": "On" },
-				{ "value": "off", "label": "Off" }
-			]
-		},
-		{
-			"key": "providers_anidex",
-			"type": "select",
-			"default": "on",
-			"title": "Provider: AniDex (Anime)",
-			"options": [
-				{ "value": "on", "label": "On" },
-				{ "value": "off", "label": "Off" }
-			]
-		},
-		{
-			"key": "providers_tokyotosho",
-			"type": "select",
-			"default": "on",
-			"title": "Provider: TokyoTosho (Anime)",
-			"options": [
-				{ "value": "on", "label": "On" },
-				{ "value": "off", "label": "Off" }
-			]
-		},
-		{
-			"key": "providers_zooqle",
-			"type": "select",
-			"default": "on",
-			"title": "Provider: Zooqle",
-			"options": [
-				{ "value": "on", "label": "On" },
-				{ "value": "off", "label": "Off" }
-			]
-		},
-		{
-			"key": "providers_rutor",
-			"type": "select",
-			"default": "on",
-			"title": "Provider: Rutor",
-			"options": [
-				{ "value": "on", "label": "On" },
-				{ "value": "off", "label": "Off" }
-			]
-		}
-	]
-}
-const builder = addonBuilder(manifest)
+  id: MANIFEST_ID,
+  version: pkg.version || "1.0.0",
+  catalogs: [],
+  resources: ["stream"],
+  types: ["movie", "series"],
+  name: MANIFEST_NAME,
+  logo: MANIFEST_LOGO,
+  contactEmail: "joseeduardox@gmail.com",
+  description:
+    "Say goodbye to buffering. SeedSphere strengthens your stream connections by finding more sources, ensuring faster start times and a smoother playback experience, especially for less common content.",
+  idPrefixes: ["tt"],
+  stremioAddonsConfig: {
+    issuer: "https://stremio-addons.net",
+    signature:
+      "eyJhbGciOiJkaXIiLCJlbmMiOiJBMTI4Q0JDLUhTMjU2In0..0dhFNY0_5nxeA6QsQHVQAQ.RnUtICPP-vQdh3RH5lmmmFQsfllR6T8tV5gq6puxOICWuKCJlGKqQkhqc9JZwrPbgnnwNIup5xSpH7zfCtkTARkhexamJKe9brEF4Fhm2pHAVmo73yHctqzRbKoNTLYn.lYbSy2Rwzm_kLjcpzjy8dg",
+  },
+  behaviorHints: {
+    configurable: true,
+    p2p: true,
+    adult: false,
+  },
+  config: [
+    {
+      key: "auto_proxy",
+      type: "select",
+      default: "on",
+      title: "Proxy upstream streams",
+      options: [
+        { value: "on", label: "On (aggregate and optimize)" },
+        { value: "off", label: "Off (addon emits only its own demo)" },
+      ],
+    },
+    {
+      key: "variant",
+      type: "select",
+      default: "all",
+      title: "Trackers list variant",
+      options: [
+        { value: "all", label: "All trackers (default)" },
+        { value: "best", label: "Best curated trackers" },
+        { value: "all_udp", label: "All UDP trackers" },
+        { value: "all_http", label: "All HTTP trackers" },
+        { value: "all_ws", label: "All WebSocket trackers" },
+        { value: "all_ip", label: "All trackers (IP only)" },
+        { value: "best_ip", label: "Best trackers (IP only)" },
+      ],
+    },
+    {
+      key: "trackers_url",
+      type: "text",
+      title: "Custom trackers URL (overrides variant)",
+      default: "",
+    },
+    {
+      key: "validation_mode",
+      type: "select",
+      title: "Validation mode",
+      default: "basic",
+      options: [
+        { value: "off", label: "Off (fastest)" },
+        { value: "basic", label: "Basic (DNS + HTTP HEAD)" },
+        { value: "aggressive", label: "Aggressive (more probes)" },
+      ],
+    },
+    {
+      key: "max_trackers",
+      type: "number",
+      title: "Max trackers to append (0 = unlimited)",
+      default: 0,
+    },
+    {
+      key: "desc_append_original",
+      type: "select",
+      title: "Append original provider description",
+      default: "off",
+      options: [
+        { value: "on", label: "On" },
+        { value: "off", label: "Off" },
+      ],
+    },
+    {
+      key: "desc_require_details",
+      type: "select",
+      title: "Use original description when no details parsed",
+      default: "on",
+      options: [
+        { value: "on", label: "On" },
+        { value: "off", label: "Off" },
+      ],
+    },
+    {
+      key: "ai_descriptions",
+      type: "select",
+      title: "AI enhanced descriptions (requires external API key)",
+      default: "off",
+      options: [
+        { value: "off", label: "Off" },
+        { value: "on", label: "On" },
+      ],
+    },
+    {
+      key: "ai_provider",
+      type: "text",
+      title: "AI provider (e.g., openai, anthropic, google, groq, mistral)",
+      default: "openai",
+    },
+    {
+      key: "ai_model",
+      type: "text",
+      title: "AI model (provider-specific)",
+      default: "gpt-4o",
+    },
+    {
+      key: "ai_timeout_ms",
+      type: "number",
+      title: "AI timeout (ms)",
+      default: 2500,
+    },
+    {
+      key: "ai_cache_ttl_ms",
+      type: "number",
+      title: "AI cache TTL (ms)",
+      default: 60_000,
+    },
+    {
+      key: "ai_user_id",
+      type: "text",
+      title: "AI user id (opaque)",
+      default: "",
+    },
+    {
+      key: "probe_providers",
+      type: "select",
+      title: "Probe provider responsiveness",
+      default: "off",
+      options: [
+        { value: "off", label: "Off" },
+        { value: "on", label: "On" },
+      ],
+    },
+    {
+      key: "probe_timeout_ms",
+      type: "number",
+      title: "Probe timeout (ms)",
+      default: 500,
+    },
+    {
+      key: "provider_fetch_timeout_ms",
+      type: "number",
+      title: "Provider fetch timeout (ms)",
+      default: 3000,
+    },
+    {
+      key: "sort_order",
+      type: "select",
+      title: "Sorting: direction",
+      default: "desc",
+      options: [
+        { value: "desc", label: "Descending" },
+        { value: "asc", label: "Ascending" },
+      ],
+    },
+    {
+      key: "sort_fields",
+      type: "text",
+      title: "Sorting: fields order (comma-separated)",
+      default: "resolution,peers,language",
+    },
+    {
+      key: "swarm_enabled",
+      type: "select",
+      title: "Swarm scraping",
+      default: "off",
+      options: [
+        { value: "off", label: "Off" },
+        { value: "on", label: "On" },
+      ],
+    },
+    {
+      key: "swarm_top_n",
+      type: "number",
+      title: "Swarm scraping: top N items",
+      default: 2,
+    },
+    {
+      key: "swarm_missing_only",
+      type: "select",
+      title: "Swarm: enrich only when upstream lacks seeds/peers",
+      default: "on",
+      options: [
+        { value: "on", label: "On" },
+        { value: "off", label: "Off" },
+      ],
+    },
+    {
+      key: "swarm_timeout_ms",
+      type: "number",
+      title: "Swarm timeout (ms)",
+      default: 800,
+    },
+    {
+      key: "providers_torrentio",
+      type: "select",
+      default: "on",
+      title: "Provider: Torrentio",
+      options: [
+        { value: "on", label: "On" },
+        { value: "off", label: "Off" },
+      ],
+    },
+    {
+      key: "providers_yts",
+      type: "select",
+      default: "on",
+      title: "Provider: YTS (Movies)",
+      options: [
+        { value: "on", label: "On" },
+        { value: "off", label: "Off" },
+      ],
+    },
+    {
+      key: "providers_eztv",
+      type: "select",
+      default: "on",
+      title: "Provider: EZTV (Series)",
+      options: [
+        { value: "on", label: "On" },
+        { value: "off", label: "Off" },
+      ],
+    },
+    {
+      key: "providers_nyaa",
+      type: "select",
+      default: "on",
+      title: "Provider: Nyaa (Anime)",
+      options: [
+        { value: "on", label: "On" },
+        { value: "off", label: "Off" },
+      ],
+    },
+    {
+      key: "providers_1337x",
+      type: "select",
+      default: "on",
+      title: "Provider: 1337x",
+      options: [
+        { value: "on", label: "On" },
+        { value: "off", label: "Off" },
+      ],
+    },
+    {
+      key: "providers_piratebay",
+      type: "select",
+      default: "on",
+      title: "Provider: Pirate Bay",
+      options: [
+        { value: "on", label: "On" },
+        { value: "off", label: "Off" },
+      ],
+    },
+    {
+      key: "providers_torrentgalaxy",
+      type: "select",
+      default: "on",
+      title: "Provider: TorrentGalaxy",
+      options: [
+        { value: "on", label: "On" },
+        { value: "off", label: "Off" },
+      ],
+    },
+    {
+      key: "providers_torlock",
+      type: "select",
+      default: "on",
+      title: "Provider: Torlock",
+      options: [
+        { value: "on", label: "On" },
+        { value: "off", label: "Off" },
+      ],
+    },
+    {
+      key: "providers_magnetdl",
+      type: "select",
+      default: "on",
+      title: "Provider: MagnetDL",
+      options: [
+        { value: "on", label: "On" },
+        { value: "off", label: "Off" },
+      ],
+    },
+    {
+      key: "providers_anidex",
+      type: "select",
+      default: "on",
+      title: "Provider: AniDex (Anime)",
+      options: [
+        { value: "on", label: "On" },
+        { value: "off", label: "Off" },
+      ],
+    },
+    {
+      key: "providers_tokyotosho",
+      type: "select",
+      default: "on",
+      title: "Provider: TokyoTosho (Anime)",
+      options: [
+        { value: "on", label: "On" },
+        { value: "off", label: "Off" },
+      ],
+    },
+    {
+      key: "providers_zooqle",
+      type: "select",
+      default: "on",
+      title: "Provider: Zooqle",
+      options: [
+        { value: "on", label: "On" },
+        { value: "off", label: "Off" },
+      ],
+    },
+    {
+      key: "providers_rutor",
+      type: "select",
+      default: "on",
+      title: "Provider: Rutor",
+      options: [
+        { value: "on", label: "On" },
+        { value: "off", label: "Off" },
+      ],
+    },
+  ],
+};
+const builder = addonBuilder(manifest);
 // Expose manifest reference for dynamic handlers without duplicating it
-builder.manifestRef = manifest
+builder.manifestRef = manifest;
+// Polyfill for v1.6.10+ where getRouter is standalone
+builder.getRouter = () => getRouter({ ...builder, manifest });
 
 // Trackerslist integration
-const VARIANT = (process.env.TRACKERS_VARIANT || "all").toLowerCase()
+const VARIANT = (process.env.TRACKERS_VARIANT || "all").toLowerCase();
 const VARIANT_URLS = {
-    all: "https://raw.githubusercontent.com/ngosang/trackerslist/master/trackers_all.txt",
-    best: "https://raw.githubusercontent.com/ngosang/trackerslist/master/trackers_best.txt",
-    all_udp: "https://raw.githubusercontent.com/ngosang/trackerslist/master/trackers_all_udp.txt",
-    all_http: "https://raw.githubusercontent.com/ngosang/trackerslist/master/trackers_all_http.txt",
-    all_ws: "https://raw.githubusercontent.com/ngosang/trackerslist/master/trackers_all_ws.txt",
-    all_ip: "https://raw.githubusercontent.com/ngosang/trackerslist/master/trackers_all_ip.txt",
-    best_ip: "https://raw.githubusercontent.com/ngosang/trackerslist/master/trackers_best_ip.txt",
-}
-const DEFAULT_TRACKERS_URL = process.env.TRACKERS_URL || VARIANT_URLS[VARIANT] || VARIANT_URLS.all
-const CACHE_MS = 24 * 60 * 60 * 1000
+  all: "https://raw.githubusercontent.com/ngosang/trackerslist/master/trackers_all.txt",
+  best: "https://raw.githubusercontent.com/ngosang/trackerslist/master/trackers_best.txt",
+  all_udp:
+    "https://raw.githubusercontent.com/ngosang/trackerslist/master/trackers_all_udp.txt",
+  all_http:
+    "https://raw.githubusercontent.com/ngosang/trackerslist/master/trackers_all_http.txt",
+  all_ws:
+    "https://raw.githubusercontent.com/ngosang/trackerslist/master/trackers_all_ws.txt",
+  all_ip:
+    "https://raw.githubusercontent.com/ngosang/trackerslist/master/trackers_all_ip.txt",
+  best_ip:
+    "https://raw.githubusercontent.com/ngosang/trackerslist/master/trackers_best_ip.txt",
+};
+const DEFAULT_TRACKERS_URL =
+  process.env.TRACKERS_URL || VARIANT_URLS[VARIANT] || VARIANT_URLS.all;
+const CACHE_MS = 24 * 60 * 60 * 1000;
 // Variant-specific TTLs (defaults to 24h)
 const VARIANT_TTLS = {
-    all: 12 * 60 * 60 * 1000,
-    best: 6 * 60 * 60 * 1000,
-    all_udp: 12 * 60 * 60 * 1000,
-    all_http: 12 * 60 * 60 * 1000,
-    all_ws: 12 * 60 * 60 * 1000,
-    all_ip: 24 * 60 * 60 * 1000,
-    best_ip: 12 * 60 * 60 * 1000,
-}
-const trackersCacheByUrl = new Map() // url -> { list: string[], ts: number, ttl: number }
-const inFlightByUrl = new Map() // url -> Promise<string[]>
+  all: 12 * 60 * 60 * 1000,
+  best: 6 * 60 * 60 * 1000,
+  all_udp: 12 * 60 * 60 * 1000,
+  all_http: 12 * 60 * 60 * 1000,
+  all_ws: 12 * 60 * 60 * 1000,
+  all_ip: 24 * 60 * 60 * 1000,
+  best_ip: 12 * 60 * 60 * 1000,
+};
+const trackersCacheByUrl = new Map(); // url -> { list: string[], ts: number, ttl: number }
+const inFlightByUrl = new Map(); // url -> Promise<string[]>
 
 function findVariantForUrl(url) {
-    for (const [k, v] of Object.entries(VARIANT_URLS)) {
-        if (v === url) return k
-    }
-    return null
+  for (const [k, v] of Object.entries(VARIANT_URLS)) {
+    if (v === url) return k;
+  }
+  return null;
 }
 
 async function fetchTrackers(url) {
-    const now = Date.now()
-    const entry = trackersCacheByUrl.get(url)
-    if (entry && now - entry.ts < (entry.ttl || CACHE_MS)) return entry.list
-    if (inFlightByUrl.has(url)) return inFlightByUrl.get(url)
-    const ttl = VARIANT_TTLS[findVariantForUrl(url) || 'all'] || CACHE_MS
-    const task = (async () => {
-        const res = await axios.get(url, { timeout: 10000 })
-        const list = res.data
-            .split("\n")
-            .map((t) => t.trim())
-            .filter((t) => t && !t.startsWith("#") && isTrackerUrl(t))
-        const deduped = unique(list)
-        trackersCacheByUrl.set(url, { list: deduped, ts: now, ttl })
-        try { setLastFetch(Date.now()) } catch (_) {}
-        return deduped
-    })()
-    inFlightByUrl.set(url, task)
-    try { return await task } finally { inFlightByUrl.delete(url) }
+  const now = Date.now();
+  const entry = trackersCacheByUrl.get(url);
+  if (entry && now - entry.ts < (entry.ttl || CACHE_MS)) return entry.list;
+  if (inFlightByUrl.has(url)) return inFlightByUrl.get(url);
+  const ttl = VARIANT_TTLS[findVariantForUrl(url) || "all"] || CACHE_MS;
+  const task = (async () => {
+    const res = await axios.get(url, { timeout: 10000 });
+    const list = res.data
+      .split("\n")
+      .map((t) => t.trim())
+      .filter((t) => t && !t.startsWith("#") && isTrackerUrl(t));
+    const deduped = unique(list);
+    trackersCacheByUrl.set(url, { list: deduped, ts: now, ttl });
+    try {
+      setLastFetch(Date.now());
+    } catch (_) {}
+    return deduped;
+  })();
+  inFlightByUrl.set(url, task);
+  try {
+    return await task;
+  } finally {
+    inFlightByUrl.delete(url);
+  }
 }
 
 // Preload trackers on startup (non-blocking)
-Promise.allSettled(Object.values(VARIANT_URLS).map((u) => fetchTrackers(u))).then(() => {
+Promise.allSettled(Object.values(VARIANT_URLS).map((u) => fetchTrackers(u)))
+  .then(() => {
     // noop
-}).catch((e) => console.warn("Initial trackers prefetch failed:", e && e.message ? e.message : String(e)))
+  })
+  .catch((e) =>
+    console.warn(
+      "Initial trackers prefetch failed:",
+      e && e.message ? e.message : String(e)
+    )
+  );
 
 builder.defineStreamHandler(async (args, cb) => {
   try {
-  const { type, id, extra } = args || {}
-  console.log("request for streams:", type, id)
-  // Determine effective URL based on user config (SDK provides extra)
-  const cfg = extra || {}
-  const selectedVariant = (cfg.variant || VARIANT).toLowerCase()
-  const labelName = 'SeedSphere'
-  const descAppendOriginal = String(cfg.desc_append_original || 'off').toLowerCase() === 'on'
-  const descRequireDetails = String(cfg.desc_require_details || 'on').toLowerCase() === 'on'
-  const aiConfig = {
-    enabled: String(cfg.ai_descriptions || 'off').toLowerCase() === 'on',
-    provider: String(cfg.ai_provider || 'openai'),
-    model: String(cfg.ai_model || 'gpt-4o'),
-    timeoutMs: Number(cfg.ai_timeout_ms) || 2500,
-    cacheTtlMs: Number(cfg.ai_cache_ttl_ms) || 60_000,
-    userId: String(cfg.ai_user_id || ''),
-  }
-  const selectedUrl = (cfg.trackers_url && cfg.trackers_url.trim()) || VARIANT_URLS[selectedVariant] || DEFAULT_TRACKERS_URL
+    const { type, id, extra } = args || {};
+    console.log("request for streams:", type, id);
+    // Determine effective URL based on user config (SDK provides extra)
+    const cfg = extra || {};
+    const selectedVariant = (cfg.variant || VARIANT).toLowerCase();
+    const labelName = "SeedSphere";
+    const descAppendOriginal =
+      String(cfg.desc_append_original || "off").toLowerCase() === "on";
+    const descRequireDetails =
+      String(cfg.desc_require_details || "on").toLowerCase() === "on";
+    const aiConfig = {
+      enabled: String(cfg.ai_descriptions || "off").toLowerCase() === "on",
+      provider: String(cfg.ai_provider || "openai"),
+      model: String(cfg.ai_model || "gpt-4o"),
+      timeoutMs: Number(cfg.ai_timeout_ms) || 2500,
+      cacheTtlMs: Number(cfg.ai_cache_ttl_ms) || 60_000,
+      userId: String(cfg.ai_user_id || ""),
+    };
+    const selectedUrl =
+      (cfg.trackers_url && cfg.trackers_url.trim()) ||
+      VARIANT_URLS[selectedVariant] ||
+      DEFAULT_TRACKERS_URL;
 
-  let trackers = []
-  try {
-    trackers = await fetchTrackers(selectedUrl)
-  } catch (e) {
-    console.warn("Falling back to empty trackers due to fetch error:", e.message)
-  }
-
-  // Apply health filtering and limits
-  const mode = (cfg.validation_mode || "basic").toLowerCase()
-  let maxTrackers = Number(cfg.max_trackers)
-  if (!Number.isFinite(maxTrackers) || maxTrackers < 0) maxTrackers = 0 // 0 means unlimited
-  let effective = trackers
-  try {
-    effective = await filterByHealth(trackers, mode, maxTrackers)
-  } catch (e) {
-    console.warn("Health filtering failed:", e.message)
-    effective = maxTrackers > 0 ? trackers.slice(0, maxTrackers) : trackers
-  }
-
-  // Aggregate upstream streams and augment with optimized trackers (if enabled)
-  const autoProxy = String(cfg.auto_proxy || 'on').toLowerCase() !== 'off'
-  if (autoProxy) {
+    let trackers = [];
     try {
-      // Provider prioritization and capping (env-based)
-      const limitDefault = Number(process.env.PROVIDERS_LIMIT_DEFAULT || '6')
-      const limitMovie = Number(process.env.PROVIDERS_LIMIT_MOVIE || '')
-      const limitSeries = Number(process.env.PROVIDERS_LIMIT_SERIES || '')
-      const getLimit = (t) => {
-        let n = limitDefault
-        if (t === 'movie' && Number.isFinite(limitMovie)) n = limitMovie
-        if (t === 'series' && Number.isFinite(limitSeries)) n = limitSeries
-        if (!Number.isFinite(n) || n <= 0) n = 6
-        return Math.max(1, Math.min(20, Math.floor(n)))
-      }
-      const limit = getLimit(type)
-
-      // Build prioritized list per type, honoring config toggles
-      const mods = { torrentio, yts, eztv, nyaa, x1337, piratebay, torrentgalaxy, torlock, magnetdl, anidex, tokyotosho, zooqle, rutor }
-      const toggleOn = (key) => String(cfg[key] || 'on').toLowerCase() !== 'off'
-      const order = (type === 'movie')
-        ? ['torrentio','yts','x1337','piratebay','torrentgalaxy','torlock','magnetdl','zooqle','rutor','nyaa','anidex','tokyotosho']
-        : ['torrentio','eztv','x1337','piratebay','torrentgalaxy','torlock','magnetdl','rutor','nyaa','anidex','tokyotosho','zooqle']
-      const mapKeyForName = {
-        torrentio: 'providers_torrentio',
-        yts: 'providers_yts',
-        eztv: 'providers_eztv',
-        nyaa: 'providers_nyaa',
-        x1337: 'providers_1337x',
-        piratebay: 'providers_piratebay',
-        torrentgalaxy: 'providers_torrentgalaxy',
-        torlock: 'providers_torlock',
-        magnetdl: 'providers_magnetdl',
-        anidex: 'providers_anidex',
-        tokyotosho: 'providers_tokyotosho',
-        zooqle: 'providers_zooqle',
-        rutor: 'providers_rutor',
-      }
-      const providers = []
-      for (const name of order) {
-        const mod = mods[name]
-        const key = mapKeyForName[name]
-        if (!mod || !toggleOn(key)) continue
-        // Avoid mismatched specializations
-        if (type === 'series' && name === 'yts') continue
-        if (type === 'movie' && name === 'eztv') continue
-        providers.push(mod)
-        if (providers.length >= limit) break
-      }
-
-      // Aggregate with optional probe + swarm options (cfg overrides env)
-      const probeProviders = String((cfg.probe_providers ?? process.env.PROBE_PROVIDERS ?? 'off')).toLowerCase()
-      const probeTimeoutMs = Math.max(200, Number(cfg.probe_timeout_ms ?? process.env.PROBE_TIMEOUT_MS ?? 500))
-      const providerFetchTimeoutMs = Math.max(800, Number(cfg.provider_fetch_timeout_ms ?? process.env.PROVIDER_FETCH_TIMEOUT_MS ?? 3000))
-      // Sorting preferences
-      const allowedSortFields = ['resolution','peers','language','size','codec','source','hdr','audio']
-      const sortOrder = (String(cfg.sort_order || 'desc').toLowerCase() === 'asc') ? 'asc' : 'desc'
-      let sortFields = String(cfg.sort_fields || 'resolution,peers,language')
-        .split(',')
-        .map((s) => s && String(s).trim().toLowerCase())
-        .filter(Boolean)
-        .filter((s, i, arr) => arr.indexOf(s) === i)
-        .filter((s) => allowedSortFields.includes(s))
-      if (!Array.isArray(sortFields) || sortFields.length === 0) sortFields = ['resolution','peers','language']
-      const swarmEnabled = (cfg.swarm_enabled !== undefined)
-        ? (String(cfg.swarm_enabled).toLowerCase() === 'on')
-        : /^(1|true|on)$/i.test(String(process.env.SWARM_ENABLED || ''))
-      const swarmTopN = Number.isFinite(Number(cfg.swarm_top_n))
-        ? Number(cfg.swarm_top_n)
-        : (Number.isFinite(Number(process.env.SWARM_TOP_N || '')) ? Number(process.env.SWARM_TOP_N) : 2)
-      const swarmMissingOnly = (cfg.swarm_missing_only !== undefined)
-        ? (String(cfg.swarm_missing_only).toLowerCase() === 'on')
-        : (!process.env.SWARM_MISSING_ONLY || /^(1|true|on)$/i.test(String(process.env.SWARM_MISSING_ONLY || '')))
-      const swarmTimeoutMs = Math.max(400, Number(cfg.swarm_timeout_ms ?? process.env.SWARM_TIMEOUT_MS ?? 800))
-
-      const streams = await aggregateStreams({
-        type,
-        id,
-        providers,
-        trackers: effective,
-        trackersTotal: trackers.length,
-        mode,
-        maxTrackers,
-        bingeGroup: 'seedsphere-optimized',
-        labelName,
-        descAppendOriginal,
-        descRequireDetails,
-        aiConfig,
-        probeProviders,
-        probeTimeoutMs,
-        providerFetchTimeoutMs,
-        swarm: { enabled: swarmEnabled, topN: swarmTopN, timeoutMs: swarmTimeoutMs, missingOnly: swarmMissingOnly },
-        sort: { order: sortOrder, fields: sortFields },
-      })
-      if (Array.isArray(streams) && streams.length > 0) {
-        return cb(null, { streams })
-      }
+      trackers = await fetchTrackers(selectedUrl);
     } catch (e) {
-      console.warn('Aggregation failed:', e && e.message ? e.message : String(e))
+      console.warn(
+        "Falling back to empty trackers due to fetch error:",
+        e.message
+      );
     }
-  }
 
-  // Demo stream for a known IMDb id (note: fake infoHash, non-playable)
-  if ((type === "movie" || type === "series") && id === "tt1254207") {
-    const infoHash = "0000000000000000000000000000000000000000"
-    const sources = effective
-      .filter((t) => /^(?:https?:\/\/|udp:\/\/)/i.test(String(t)))
-      .map((t) => `tracker:${t}`)
-
-    const stream = {
-      name: `${labelName}`,
-      title: `Demo torrent with ${effective.length} trackers`,
-      infoHash,
-      ...(sources && sources.length ? { sources } : {}),
-      behaviorHints: {
-        bingeGroup: "seedsphere-trackers",
-      },
+    // Apply health filtering and limits
+    const mode = (cfg.validation_mode || "basic").toLowerCase();
+    let maxTrackers = Number(cfg.max_trackers);
+    if (!Number.isFinite(maxTrackers) || maxTrackers < 0) maxTrackers = 0; // 0 means unlimited
+    let effective = trackers;
+    try {
+      effective = await filterByHealth(trackers, mode, maxTrackers);
+    } catch (e) {
+      console.warn("Health filtering failed:", e.message);
+      effective = maxTrackers > 0 ? trackers.slice(0, maxTrackers) : trackers;
     }
-    return cb(null, { streams: [stream] })
-  }
 
-  return cb(null, { streams: [] })
+    // Aggregate upstream streams and augment with optimized trackers (if enabled)
+    const autoProxy = String(cfg.auto_proxy || "on").toLowerCase() !== "off";
+    if (autoProxy) {
+      try {
+        // Provider prioritization and capping (env-based)
+        const limitDefault = Number(process.env.PROVIDERS_LIMIT_DEFAULT || "6");
+        const limitMovie = Number(process.env.PROVIDERS_LIMIT_MOVIE || "");
+        const limitSeries = Number(process.env.PROVIDERS_LIMIT_SERIES || "");
+        const getLimit = (t) => {
+          let n = limitDefault;
+          if (t === "movie" && Number.isFinite(limitMovie)) n = limitMovie;
+          if (t === "series" && Number.isFinite(limitSeries)) n = limitSeries;
+          if (!Number.isFinite(n) || n <= 0) n = 6;
+          return Math.max(1, Math.min(20, Math.floor(n)));
+        };
+        const limit = getLimit(type);
+
+        // Build prioritized list per type, honoring config toggles
+        const mods = {
+          torrentio,
+          yts,
+          eztv,
+          nyaa,
+          x1337,
+          piratebay,
+          torrentgalaxy,
+          torlock,
+          magnetdl,
+          anidex,
+          tokyotosho,
+          zooqle,
+          rutor,
+        };
+        const toggleOn = (key) =>
+          String(cfg[key] || "on").toLowerCase() !== "off";
+        const order =
+          type === "movie"
+            ? [
+                "torrentio",
+                "yts",
+                "x1337",
+                "piratebay",
+                "torrentgalaxy",
+                "torlock",
+                "magnetdl",
+                "zooqle",
+                "rutor",
+                "nyaa",
+                "anidex",
+                "tokyotosho",
+              ]
+            : [
+                "torrentio",
+                "eztv",
+                "x1337",
+                "piratebay",
+                "torrentgalaxy",
+                "torlock",
+                "magnetdl",
+                "rutor",
+                "nyaa",
+                "anidex",
+                "tokyotosho",
+                "zooqle",
+              ];
+        const mapKeyForName = {
+          torrentio: "providers_torrentio",
+          yts: "providers_yts",
+          eztv: "providers_eztv",
+          nyaa: "providers_nyaa",
+          x1337: "providers_1337x",
+          piratebay: "providers_piratebay",
+          torrentgalaxy: "providers_torrentgalaxy",
+          torlock: "providers_torlock",
+          magnetdl: "providers_magnetdl",
+          anidex: "providers_anidex",
+          tokyotosho: "providers_tokyotosho",
+          zooqle: "providers_zooqle",
+          rutor: "providers_rutor",
+        };
+        const providers = [];
+        for (const name of order) {
+          const mod = mods[name];
+          const key = mapKeyForName[name];
+          if (!mod || !toggleOn(key)) continue;
+          // Avoid mismatched specializations
+          if (type === "series" && name === "yts") continue;
+          if (type === "movie" && name === "eztv") continue;
+          providers.push(mod);
+          if (providers.length >= limit) break;
+        }
+
+        // Aggregate with optional probe + swarm options (cfg overrides env)
+        const probeProviders = String(
+          cfg.probe_providers ?? process.env.PROBE_PROVIDERS ?? "off"
+        ).toLowerCase();
+        const probeTimeoutMs = Math.max(
+          200,
+          Number(cfg.probe_timeout_ms ?? process.env.PROBE_TIMEOUT_MS ?? 500)
+        );
+        const providerFetchTimeoutMs = Math.max(
+          800,
+          Number(
+            cfg.provider_fetch_timeout_ms ??
+              process.env.PROVIDER_FETCH_TIMEOUT_MS ??
+              3000
+          )
+        );
+        // Sorting preferences
+        const allowedSortFields = [
+          "resolution",
+          "peers",
+          "language",
+          "size",
+          "codec",
+          "source",
+          "hdr",
+          "audio",
+        ];
+        const sortOrder =
+          String(cfg.sort_order || "desc").toLowerCase() === "asc"
+            ? "asc"
+            : "desc";
+        let sortFields = String(cfg.sort_fields || "resolution,peers,language")
+          .split(",")
+          .map((s) => s && String(s).trim().toLowerCase())
+          .filter(Boolean)
+          .filter((s, i, arr) => arr.indexOf(s) === i)
+          .filter((s) => allowedSortFields.includes(s));
+        if (!Array.isArray(sortFields) || sortFields.length === 0)
+          sortFields = ["resolution", "peers", "language"];
+        const swarmEnabled =
+          cfg.swarm_enabled !== undefined
+            ? String(cfg.swarm_enabled).toLowerCase() === "on"
+            : /^(1|true|on)$/i.test(String(process.env.SWARM_ENABLED || ""));
+        const swarmTopN = Number.isFinite(Number(cfg.swarm_top_n))
+          ? Number(cfg.swarm_top_n)
+          : Number.isFinite(Number(process.env.SWARM_TOP_N || ""))
+          ? Number(process.env.SWARM_TOP_N)
+          : 2;
+        const swarmMissingOnly =
+          cfg.swarm_missing_only !== undefined
+            ? String(cfg.swarm_missing_only).toLowerCase() === "on"
+            : !process.env.SWARM_MISSING_ONLY ||
+              /^(1|true|on)$/i.test(
+                String(process.env.SWARM_MISSING_ONLY || "")
+              );
+        const swarmTimeoutMs = Math.max(
+          400,
+          Number(cfg.swarm_timeout_ms ?? process.env.SWARM_TIMEOUT_MS ?? 800)
+        );
+
+        const streams = await aggregateStreams({
+          type,
+          id,
+          providers,
+          trackers: effective,
+          trackersTotal: trackers.length,
+          mode,
+          maxTrackers,
+          bingeGroup: "seedsphere-optimized",
+          labelName,
+          descAppendOriginal,
+          descRequireDetails,
+          aiConfig,
+          probeProviders,
+          probeTimeoutMs,
+          providerFetchTimeoutMs,
+          swarm: {
+            enabled: swarmEnabled,
+            topN: swarmTopN,
+            timeoutMs: swarmTimeoutMs,
+            missingOnly: swarmMissingOnly,
+          },
+          sort: { order: sortOrder, fields: sortFields },
+        });
+        if (Array.isArray(streams) && streams.length > 0) {
+          return cb(null, { streams });
+        }
+      } catch (e) {
+        console.warn(
+          "Aggregation failed:",
+          e && e.message ? e.message : String(e)
+        );
+      }
+    }
+
+    // Demo stream for a known IMDb id (note: fake infoHash, non-playable)
+    if ((type === "movie" || type === "series") && id === "tt1254207") {
+      const infoHash = "0000000000000000000000000000000000000000";
+      const sources = effective
+        .filter((t) => /^(?:https?:\/\/|udp:\/\/)/i.test(String(t)))
+        .map((t) => `tracker:${t}`);
+
+      const stream = {
+        name: `${labelName}`,
+        title: `Demo torrent with ${effective.length} trackers`,
+        infoHash,
+        ...(sources && sources.length ? { sources } : {}),
+        behaviorHints: {
+          bingeGroup: "seedsphere-trackers",
+        },
+      };
+      return cb(null, { streams: [stream] });
+    }
+
+    return cb(null, { streams: [] });
   } catch (e) {
-    try { return cb(null, { streams: [] }) } catch (_) { /* ignore */ }
+    try {
+      return cb(null, { streams: [] });
+    } catch (_) {
+      /* ignore */
+    }
   }
-})
+});
 
-module.exports = builder
+module.exports = builder;
