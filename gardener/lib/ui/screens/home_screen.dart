@@ -1,4 +1,5 @@
 import 'dart:io' as java_io;
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -6,6 +7,13 @@ import 'package:gardener/ui/theme/aetheric_theme.dart';
 import 'package:gardener/ui/widgets/aetheric_glass.dart';
 import 'package:gardener/core/haptic_manager.dart';
 import 'package:gardener/ui/screens/swarm_dashboard.dart';
+
+/// Returns true if running on a mobile platform (Android or iOS).
+bool _isMobilePlatform() {
+  if (kIsWeb) return false;
+  return defaultTargetPlatform == TargetPlatform.android ||
+      defaultTargetPlatform == TargetPlatform.iOS;
+}
 
 /// The entry point/landing screen of the SeedSphere application.
 ///
@@ -47,8 +55,10 @@ class HomeScreen extends StatelessWidget {
               child: AethericGlass(
                 borderRadius: 24,
                 child: Padding(
-                  padding:
-                      const EdgeInsets.symmetric(vertical: 48, horizontal: 32),
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 48,
+                    horizontal: 32,
+                  ),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
@@ -80,7 +90,8 @@ class HomeScreen extends StatelessWidget {
                           HapticManager.heavy();
                           Navigator.of(context).push(
                             MaterialPageRoute(
-                                builder: (_) => const SwarmDashboard()),
+                              builder: (_) => const SwarmDashboard(),
+                            ),
                           );
                         },
                         style: ElevatedButton.styleFrom(
@@ -90,40 +101,49 @@ class HomeScreen extends StatelessWidget {
                             borderRadius: BorderRadius.circular(12),
                           ),
                           elevation: 8,
-                          shadowColor:
-                              AethericTheme.aetherBlue.withValues(alpha: 0.3),
+                          shadowColor: AethericTheme.aetherBlue.withValues(
+                            alpha: 0.3,
+                          ),
                         ),
                         child: const Padding(
                           padding: EdgeInsets.symmetric(
-                              horizontal: 32, vertical: 16),
+                            horizontal: 32,
+                            vertical: 16,
+                          ),
                           child: Text(
                             'ENTER SWARM',
                             style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                letterSpacing: 1.2),
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 1.2,
+                            ),
                           ),
                         ),
                       ),
                       const SizedBox(height: 16),
 
-                      // Secondary Action: Mobile Install (QR)
-                      TextButton.icon(
-                        onPressed: () => _showQrInstallDialog(context),
-                        icon: const Icon(Icons.qr_code_rounded,
-                            color: Colors.white60),
-                        label: Text(
-                          'INSTALL ON MOBILE',
-                          style: GoogleFonts.outfit(
+                      // Secondary Action: Mobile Install (QR) - Only on Desktop
+                      if (!_isMobilePlatform())
+                        TextButton.icon(
+                          onPressed: () => _showQrInstallDialog(context),
+                          icon: const Icon(
+                            Icons.qr_code_rounded,
                             color: Colors.white60,
-                            letterSpacing: 1.5,
-                            fontWeight: FontWeight.w600,
+                          ),
+                          label: Text(
+                            'INSTALL ON MOBILE',
+                            style: GoogleFonts.outfit(
+                              color: Colors.white60,
+                              letterSpacing: 1.5,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          style: TextButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 24,
+                              vertical: 16,
+                            ),
                           ),
                         ),
-                        style: TextButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 24, vertical: 16),
-                        ),
-                      ),
                     ],
                   ),
                 ),
@@ -161,8 +181,9 @@ class HomeScreen extends StatelessWidget {
         context: context,
         builder: (_) => AlertDialog(
           backgroundColor: const Color(0xFF0F172A),
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(24),
+          ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -211,7 +232,9 @@ class HomeScreen extends StatelessWidget {
               SelectableText(
                 url,
                 style: GoogleFonts.firaCode(
-                    color: AethericTheme.aetherBlue, fontSize: 12),
+                  color: AethericTheme.aetherBlue,
+                  fontSize: 12,
+                ),
               ),
             ],
           ),
