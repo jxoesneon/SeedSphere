@@ -11,7 +11,7 @@ All notable changes to this project will be documented in this file.
 
 ## [1.9.4] - 2025-12-31
 
-### Added
+### Added on 2025-12-31
 
 - **Desktop Authentication**: Loopback IP Flow for Windows, Linux, and macOS.
 - **Android Authentication**: Release keystore configuration for consistent signing.
