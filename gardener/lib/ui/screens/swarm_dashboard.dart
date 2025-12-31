@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:gardener/ui/settings/swarm_settings_menu.dart';
+import 'package:gardener/ui/settings/swarm_uplink_settings.dart';
 import 'package:gardener/ui/theme/aetheric_theme.dart';
 import 'package:gardener/ui/widgets/swarm_health_hero.dart';
 import 'package:gardener/ui/widgets/signal_card.dart';
@@ -77,7 +78,9 @@ class _SwarmDashboardState extends State<SwarmDashboard> {
   void _connectSSE() async {
     try {
       final req = http.Request(
-          'GET', Uri.parse('http://127.0.0.1:8080/api/rooms/swarm/events'));
+        'GET',
+        Uri.parse('http://127.0.0.1:8080/api/rooms/swarm/events'),
+      );
       req.headers['Accept'] = 'text/event-stream';
 
       final resp = await _client.send(req);
@@ -87,18 +90,21 @@ class _SwarmDashboardState extends State<SwarmDashboard> {
       _sseSubscription = resp.stream
           .transform(const Utf8Decoder())
           .transform(const LineSplitter())
-          .listen((line) {
-        if (line.startsWith('data: ')) {
-          final payload = line.substring(6);
-          try {
-            final event = jsonDecode(payload);
-            _handleEvent(event);
-          } catch (_) {}
-        }
-      }, onError: (e) {
-        if (mounted) setState(() => _sseConnected = false);
-        _addLog('[ERROR] SSE Disconnected');
-      });
+          .listen(
+            (line) {
+              if (line.startsWith('data: ')) {
+                final payload = line.substring(6);
+                try {
+                  final event = jsonDecode(payload);
+                  _handleEvent(event);
+                } catch (_) {}
+              }
+            },
+            onError: (e) {
+              if (mounted) setState(() => _sseConnected = false);
+              _addLog('[ERROR] SSE Disconnected');
+            },
+          );
     } catch (e) {
       if (mounted) setState(() => _sseConnected = false);
       _addLog('[ERROR] Connection failed: $e');
@@ -140,7 +146,8 @@ class _SwarmDashboardState extends State<SwarmDashboard> {
     if (!mounted) return;
     setState(() {
       _logs.add(
-          '[${DateTime.now().toIso8601String().split('T')[1].substring(0, 8)}] $msg');
+        '[${DateTime.now().toIso8601String().split('T')[1].substring(0, 8)}] $msg',
+      );
       if (_logs.length > 50) _logs.removeAt(0);
     });
   }
@@ -154,14 +161,28 @@ class _SwarmDashboardState extends State<SwarmDashboard> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded,
-              color: Colors.white70),
+          icon: const Icon(
+            Icons.arrow_back_ios_new_rounded,
+            color: Colors.white70,
+          ),
           onPressed: () => Navigator.of(context).pop(),
         ),
         actions: [
+          // Network Diagnostics / P2P Status
           IconButton(
-            icon: const Icon(Icons.settings_input_antenna_rounded,
-                color: Colors.white70),
+            icon: const Icon(Icons.insights_rounded, color: Colors.white70),
+            tooltip: 'Network Diagnostics',
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const SwarmUplinkSettings()),
+            ),
+          ),
+          // Settings Menu
+          IconButton(
+            icon: const Icon(
+              Icons.settings_input_antenna_rounded,
+              color: Colors.white70,
+            ),
+            tooltip: 'Node Configuration',
             onPressed: () => Navigator.of(context).push(
               MaterialPageRoute(builder: (_) => const SwarmSettingsMenu()),
             ),
@@ -196,7 +217,9 @@ class _SwarmDashboardState extends State<SwarmDashboard> {
 
                 // 1. HERO: Swarm Vitality (The Eye)
                 SwarmHealthHero(
-                    peerCount: _peerCount, isHealthy: _sseConnected),
+                  peerCount: _peerCount,
+                  isHealthy: _sseConnected,
+                ),
 
                 const SizedBox(height: 24),
 
@@ -206,9 +229,13 @@ class _SwarmDashboardState extends State<SwarmDashboard> {
                 if (_popularSignals.isEmpty)
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 24),
-                    child: Text('Scanning frequency bands...',
-                        style: GoogleFonts.firaCode(
-                            color: Colors.white30, fontSize: 12)),
+                    child: Text(
+                      'Scanning frequency bands...',
+                      style: GoogleFonts.firaCode(
+                        color: Colors.white30,
+                        fontSize: 12,
+                      ),
+                    ),
                   )
                 else
                   _buildSignalStream(_popularSignals),
@@ -229,12 +256,7 @@ class _SwarmDashboardState extends State<SwarmDashboard> {
           ),
 
           // 4. FOOTER: Ambient Monitor (Ticker)
-          Positioned(
-            left: 0,
-            right: 0,
-            bottom: 0,
-            child: _buildSystemTicker(),
-          ),
+          Positioned(left: 0, right: 0, bottom: 0, child: _buildSystemTicker()),
         ],
       ),
     );
@@ -304,8 +326,9 @@ class _SwarmDashboardState extends State<SwarmDashboard> {
               shape: BoxShape.circle,
               boxShadow: [
                 BoxShadow(
-                    color: AethericTheme.success.withValues(alpha: 0.5),
-                    blurRadius: 4),
+                  color: AethericTheme.success.withValues(alpha: 0.5),
+                  blurRadius: 4,
+                ),
               ],
             ),
           ),
