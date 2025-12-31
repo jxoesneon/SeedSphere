@@ -1,18 +1,56 @@
+import 'dart:async';
 import 'dart:io' as java_io;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:gardener/ui/theme/aetheric_theme.dart';
 import 'package:gardener/ui/widgets/aetheric_glass.dart';
 import 'package:gardener/core/haptic_manager.dart';
 import 'package:gardener/ui/screens/swarm_dashboard.dart';
+import 'package:gardener/ui/screens/auth_screen.dart';
 
 /// Returns true if running on a mobile platform (Android or iOS).
 bool _isMobilePlatform() {
   if (kIsWeb) return false;
   return defaultTargetPlatform == TargetPlatform.android ||
       defaultTargetPlatform == TargetPlatform.iOS;
+}
+
+/// Check if user is authenticated and navigate accordingly.
+Future<void> _navigateToSwarm(BuildContext context) async {
+  unawaited(HapticManager.heavy());
+
+  final prefs = await SharedPreferences.getInstance();
+  final token = prefs.getString('auth_token');
+
+  if (!context.mounted) return;
+
+  if (token != null && token.isNotEmpty) {
+    // User is authenticated, go directly to SwarmDashboard
+    unawaited(
+      Navigator.of(
+        context,
+      ).push(MaterialPageRoute(builder: (_) => const SwarmDashboard())),
+    );
+  } else {
+    // User is not authenticated, show AuthScreen
+    unawaited(
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => AuthScreen(
+            onAuthenticated: () {
+              // After auth, navigate to SwarmDashboard
+              Navigator.of(context).pushReplacement(
+                MaterialPageRoute(builder: (_) => const SwarmDashboard()),
+              );
+            },
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 /// The entry point/landing screen of the SeedSphere application.
@@ -83,17 +121,9 @@ class HomeScreen extends StatelessWidget {
                       ),
                       const SizedBox(height: 48),
 
-                      // Primary Action: Navigate to Dashboard
+                      // Primary Action: Navigate to Dashboard (requires auth)
                       ElevatedButton(
-                        onPressed: () {
-                          // Provide tactile feedback for the important navigation
-                          HapticManager.heavy();
-                          Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder: (_) => const SwarmDashboard(),
-                            ),
-                          );
-                        },
+                        onPressed: () => _navigateToSwarm(context),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AethericTheme.aetherBlue,
                           foregroundColor: Colors.white,
