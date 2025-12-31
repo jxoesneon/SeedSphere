@@ -8,10 +8,12 @@ import 'package:url_launcher/url_launcher.dart';
 /// Handles Google Authentication for Desktop platforms (Windows/Linux/macOS)
 /// using the Loopback IP Address flow (RF 8252).
 class DesktopGoogleAuth {
-  // TODO: The user must configure this Client ID in their code or config.
-  // We use a placeholder that clearly indicates what is needed.
+  // Client ID extracted from live backend configuration.
+  // NOTE: For this to work on Desktop, you MIGHT need to add 'http://127.0.0.1'
+  // to the "Authorized redirect URIs" in the Google Cloud Console for this Client ID.
+  // If this ID is a "Web" client ID, loopback usually works if authorized.
   static const String _clientId =
-      'YOUR_DESKTOP_CLIENT_ID.apps.googleusercontent.com';
+      '550711161426-9b0i08ls5a3fb040p1affj0cjaa6fr4b.apps.googleusercontent.com';
 
   // Scopes required
   static const List<String> _scopes = ['email', 'profile', 'openid'];
