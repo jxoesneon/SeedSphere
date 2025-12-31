@@ -1,4 +1,4 @@
-﻿name: gardener
+name: gardener
 description: "SeedSphere 2.0: The Federated Frontier. A decentralized, P2P-powered media discovery and streaming engine for the IPFS era."
 homepage: https://github.com/seedsphere/seedsphere
 repository: https://github.com/seedsphere/seedsphere
@@ -53,7 +53,7 @@ dependencies:
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  flutter_lints: ^5.0.0
+  flutter_lints: ^6.0.0
   mocktail: ^1.0.4
   flutter_background_service_android: ^6.3.1
 
