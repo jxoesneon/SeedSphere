@@ -1,5 +1,8 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
+import 'package:gardener/core/auth/desktop_google_auth.dart';
+import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -76,6 +79,8 @@ class _AuthScreenState extends State<AuthScreen> {
     }
   }
 
+  // ... inside _signInWithGoogle
+
   Future<void> _signInWithGoogle() async {
     setState(() {
       _isLoading = true;
@@ -83,19 +88,37 @@ class _AuthScreenState extends State<AuthScreen> {
     });
 
     try {
-      final googleSignIn = GoogleSignIn(scopes: ['email', 'profile']);
-      final account = await googleSignIn.signIn();
+      String? idToken;
+      String? email;
 
-      if (account == null) {
-        setState(() => _message = 'Sign-in cancelled.');
-        return;
+      final isDesktop =
+          !kIsWeb &&
+          (Platform.isWindows || Platform.isLinux || Platform.isMacOS);
+
+      if (isDesktop) {
+        // Use custom Desktop implementation
+        idToken = await DesktopGoogleAuth.signIn();
+        // DesktopAuth doesn't return email automatically in our simplified flow,
+        // but the backend will extract it from the token.
+        // We can decode it here if needed for UI, but let's rely on backend verification response.
+        email = null;
+      } else {
+        // Use standard plugin for Mobile/Web
+        final googleSignIn = GoogleSignIn(scopes: ['email', 'profile']);
+        final account = await googleSignIn.signIn();
+
+        if (account == null) {
+          setState(() => _message = 'Sign-in cancelled.');
+          return;
+        }
+
+        email = account.email;
+        final auth = await account.authentication;
+        idToken = auth.idToken;
       }
 
-      final auth = await account.authentication;
-      final idToken = auth.idToken;
-
       if (idToken == null) {
-        setState(() => _message = 'Failed to get authentication token.');
+        setState(() => _message = 'Sign-in cancelled or failed.');
         return;
       }
 
@@ -114,7 +137,14 @@ class _AuthScreenState extends State<AuthScreen> {
           // Store token and extract user ID from JWT
           final prefs = await SharedPreferences.getInstance();
           await prefs.setString('auth_token', token);
-          await prefs.setString('user_email', account.email);
+
+          // If we didn't get email from client SDK (Desktop), try to get from Response or Token
+          if (email != null) {
+            await prefs.setString('user_email', email);
+          } else {
+            // Extract email from token if possible or fetch profile?
+            // For now, let's just let it be missing or null
+          }
 
           // Extract user ID from JWT payload (base64 decode middle part)
           final userId = _extractUserIdFromJwt(token);
@@ -309,45 +339,39 @@ class _AuthScreenState extends State<AuthScreen> {
                           ),
                           const SizedBox(height: 24),
 
-                          // Google Sign-In button (Mobile Only)
-                          if (!kIsWeb &&
-                              (defaultTargetPlatform == TargetPlatform.iOS ||
-                                  defaultTargetPlatform ==
-                                      TargetPlatform.android))
-                            SizedBox(
-                              width: double.infinity,
-                              child: OutlinedButton.icon(
-                                onPressed: _isLoading
-                                    ? null
-                                    : _signInWithGoogle,
-                                icon: Image.network(
-                                  'https://www.google.com/favicon.ico',
-                                  width: 20,
-                                  height: 20,
-                                  errorBuilder: (_, __, ___) =>
-                                      const Icon(Icons.g_mobiledata, size: 24),
+                          // Google Sign-In button
+                          SizedBox(
+                            width: double.infinity,
+                            child: OutlinedButton.icon(
+                              onPressed: _isLoading ? null : _signInWithGoogle,
+                              icon: Image.network(
+                                'https://www.google.com/favicon.ico',
+                                width: 20,
+                                height: 20,
+                                errorBuilder: (_, __, ___) =>
+                                    const Icon(Icons.g_mobiledata, size: 24),
+                              ),
+                              label: const Text(
+                                'CONTINUE WITH GOOGLE',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  letterSpacing: 1.2,
                                 ),
-                                label: const Text(
-                                  'CONTINUE WITH GOOGLE',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    letterSpacing: 1.2,
-                                  ),
+                              ),
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: Colors.white,
+                                side: BorderSide(
+                                  color: Colors.white.withValues(alpha: 0.3),
                                 ),
-                                style: OutlinedButton.styleFrom(
-                                  foregroundColor: Colors.white,
-                                  side: BorderSide(
-                                    color: Colors.white.withValues(alpha: 0.3),
-                                  ),
-                                  padding: const EdgeInsets.symmetric(
-                                    vertical: 16,
-                                  ),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 16,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
                                 ),
                               ),
                             ),
+                          ),
                         ] else ...[
                           // Magic link sent confirmation
                           const Icon(

@@ -59,5 +59,18 @@
 	<array>
 		<string>com.seedsphere.gardener.sentinel</string>
 	</array>
+    <!-- Google Sign-In Configuration -->
+    <key>CFBundleURLTypes</key>
+    <array>
+        <dict>
+            <key>CFBundleTypeRole</key>
+            <string>Editor</string>
+            <key>CFBundleURLSchemes</key>
+            <array>
+                <!-- TODO: Replace this with your REVERSE_CLIENT_ID from GoogleService-Info.plist -->
+                <string>com.googleusercontent.apps.REPLACE_WITH_YOUR_REVERSE_CLIENT_ID</string>
+            </array>
+        </dict>
+    </array>
 </dict>
 </plist>
