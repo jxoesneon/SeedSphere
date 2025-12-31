@@ -42,6 +42,12 @@ jobs:
         with:
           channel: "stable"
           cache: true
+
+      - uses: actions/setup-java@v3
+        with:
+          distribution: "zulu"
+          java-version: "17"
+
       - name: Get Flutter Dependencies
         run: |
           cd gardener
@@ -53,20 +59,15 @@ jobs:
       - name: Build Android (Java/Kotlin)
         if: matrix.language == 'java-kotlin'
         run: |
-          cd gardener/android
-          # Ensure Gradle wrapper is executable
-          chmod +x gradlew
-          ./gradlew assembleDebug
+          cd gardener
+          flutter build apk --debug
 
       # Swift (iOS/macOS)
       - name: Build iOS (Swift)
         if: matrix.language == 'swift'
         run: |
-          cd gardener/ios
-          # Install Pods (Flutter usually handles this, but manual trigger helps)
-          pod install --repo-update
-          # Build via xcodebuild (CodeQL needs to observe the build)
-          xcodebuild -workspace Runner.xcworkspace -scheme Runner CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO
+          cd gardener
+          flutter build ios --release --no-codesign --simulator
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v3
