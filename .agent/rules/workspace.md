@@ -46,3 +46,11 @@
 - **Context Awareness**: Before editing, always check `parity_report.md` to ensure feature completeness.
 - **Logging**: Use `print` for debug, but prefer structured logging for production features.
 - **Testing**: When editing `P2PNode`, usually mock the swarm interactions. Real-world testing is done via `debug_stack.ps1`.
+
+## 7. Agent Operational Protocol
+- **Tool Calling**:
+  - **Argument Order**: Strictly adhere to the parameter order defined in the tool definition/schema.
+  - **Conciseness**: Keep logs brief.
+- **File Editing**:
+  - **Read-First**: Always call view_file immediately before replace_file_content.
+
