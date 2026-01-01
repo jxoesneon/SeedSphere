@@ -67,7 +67,7 @@ jobs:
         if: matrix.language == 'swift'
         run: |
           cd gardener
-          flutter build ios --release --no-codesign --simulator
+          flutter build ios --debug --no-codesign --simulator
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v3
