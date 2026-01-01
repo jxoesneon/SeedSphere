@@ -21,7 +21,7 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
-COPY --from=build /app/build/bin/server /app/bin/
+COPY --from=build /app/build/bundle/bin/server /app/bin/
 RUN chmod +x /app/bin/server
 COPY --from=build /app/portal /app/portal
 
