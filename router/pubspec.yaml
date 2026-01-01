@@ -1,6 +1,6 @@
 ﻿name: router
 description: A server app using the shelf package and Docker.
-version: 1.9.9
+version: 1.9.10
 # repository: https://github.com/my_org/my_repo
 
 environment:

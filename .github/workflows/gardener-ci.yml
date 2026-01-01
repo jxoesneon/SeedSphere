@@ -259,6 +259,9 @@ jobs:
         with:
           path: ./artifacts
 
+      - name: Debug Artifacts
+        run: ls -R artifacts
+
       - name: Prepare Release Assets
         run: |
           mkdir -p dist
@@ -266,10 +269,10 @@ jobs:
           echo "Appending timestamp: $TIMESTAMP"
 
           # Android
-          cp artifacts/gardener-android-apk/gardener/build/app/outputs/flutter-apk/app-release.apk dist/gardener-android-${TIMESTAMP}.apk
+          cp artifacts/gardener-android-apk/app-release.apk dist/gardener-android-${TIMESTAMP}.apk
 
           # Windows
-          cp artifacts/gardener-windows-setup/gardener/build/windows/installer/gardener-setup.exe dist/gardener-windows-setup-${TIMESTAMP}.exe
+          cp artifacts/gardener-windows-setup/gardener-setup.exe dist/gardener-windows-setup-${TIMESTAMP}.exe
 
           # Linux x64
           cd artifacts/gardener-linux-x64-all/gardener/build/linux/x64/release/bundle && zip -r ../../../../../../../dist/gardener-linux-x64-${TIMESTAMP}.zip . && cd ../../../../../../..
