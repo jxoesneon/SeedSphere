@@ -67,7 +67,8 @@ jobs:
         if: matrix.language == 'swift'
         run: |
           cd gardener
-          flutter build ios --debug --no-codesign --simulator
+          cd ios
+          xcodebuild clean build -workspace Runner.xcworkspace -scheme Runner -configuration Debug -sdk iphonesimulator CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v3
