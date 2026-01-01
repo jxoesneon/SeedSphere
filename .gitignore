@@ -65,9 +65,15 @@ bridge/dist/
 !.gemini/antigravity/brain/
 
 # Agent Configuration
-.agent/
+.agent/*
 !.agent/workflows/
 !.agent/rules/
+!.agent/scripts/
+
+# Root Node Garbage
+package.json
+package-lock.json
+
 
 
 

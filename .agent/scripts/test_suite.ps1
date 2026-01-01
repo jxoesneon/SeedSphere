@@ -18,6 +18,8 @@ try {
 } catch {
     Write-Error $_
     Pop-Location
+    Write-Host "Test Failure Detected. Cleaning up dart processes..." -ForegroundColor Red
+    Stop-Process -Name "dart" -Force -ErrorAction SilentlyContinue
     exit 1
 }
 Pop-Location
