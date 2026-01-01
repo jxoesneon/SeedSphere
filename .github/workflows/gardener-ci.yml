@@ -154,7 +154,7 @@ jobs:
             --maintainer "SeedSphere <dev@seedsphere.app>" \
             --prefix /opt/gardener \
             -C build/linux/x64/release/bundle .
-          mv gardener_1.9.3_x86_64.deb dist/gardener-linux-x64.deb
+          mv gardener_*.deb dist/gardener-linux-x64.deb
 
           # Create RPM
           fpm -s dir -t rpm -n gardener -v 1.9.3 -a x86_64 \
@@ -162,7 +162,7 @@ jobs:
             --maintainer "SeedSphere <dev@seedsphere.app>" \
             --prefix /opt/gardener \
             -C build/linux/x64/release/bundle .
-          mv gardener-1.9.3-1.x86_64.rpm dist/gardener-linux-x64.rpm
+          mv gardener-*.rpm dist/gardener-linux-x64.rpm
 
       - name: Upload Linux Build (x64)
         uses: actions/upload-artifact@v4
