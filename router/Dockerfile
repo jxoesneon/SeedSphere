@@ -8,7 +8,7 @@ RUN dart pub get
 
 # Copy app source code (except anything in .dockerignore) and AOT compile app.
 COPY . .
-RUN dart compile exe bin/server.dart -o bin/server
+RUN dart build bin/server.dart -o bin/server
 
 # Build minimal serving image from AOT-compiled `/server`
 FROM debian:stable-slim
