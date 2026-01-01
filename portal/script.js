@@ -204,45 +204,11 @@ function animateNetwork() {
 }
 
 // Download button interactions
-/**
- * Handles the download button click action.
- * @param {string} platform - The target platform name (Android, iOS, Desktop)
- */
-function handleDownload(platform) {
-  console.log(`Downloading for ${platform}...`);
+// Download button interactions
+// We now rely on direct href links in the HTML or dynamically set by detectPlatform()
+// handleDownload interception removed to allow direct navigation.
 
-  // Trigger download
-  const downloadUrls = {
-    Android: "/downloads/seedsphere-gardener-v2.0.0.apk",
-    iOS: "#beta-full",
-    Desktop: "#coming-soon",
-  };
-
-  const url = downloadUrls[platform];
-  if (url && !url.startsWith("#")) {
-    window.location.href = url;
-  } else {
-    if (platform === "iOS") {
-      alert("iOS Beta is currently full. Check back later for new slots!");
-    } else {
-      alert(`${platform} version coming Q2 2026!`);
-    }
-  }
-}
-
-// Add click handlers to download buttons
 document.addEventListener("DOMContentLoaded", () => {
-  const downloadCards = document.querySelectorAll(".download-card");
-
-  downloadCards.forEach((card) => {
-    const btn = card.querySelector(".btn-download-platform");
-    const platform = card.querySelector("h3").textContent;
-
-    if (btn && !btn.disabled) {
-      btn.addEventListener("click", () => handleDownload(platform));
-    }
-  });
-
   // Main hero download button
   const heroDownload = document.querySelector(".btn-download");
   if (heroDownload) {
@@ -301,16 +267,16 @@ async function detectPlatform() {
 
   if (!detectedOS) return;
 
-  // 2. Fetch Latest Release Info
-  let downloadUrl = "https://github.com/jxoesneon/SeedSphere/releases/latest";
+  // 2. Fetch Latest Release Info (Use local proxy to avoid rate limits)
+  let downloadUrl = "/downloads/" + detectedOS; // Default fallback to smart proxy
   let version = "Latest";
 
   try {
-    const res = await fetch(
-      "https://api.github.com/repos/jxoesneon/SeedSphere/releases/latest"
-    );
+    const res = await fetch("/api/releases");
     if (res.ok) {
-      const data = await res.json();
+      const releases = await res.json();
+      // /api/releases returns a list. Find the first (latest) release.
+      const data = Array.isArray(releases) ? releases[0] : releases;
       version = data.tag_name || "v1.9.5";
 
       if (pattern) {
