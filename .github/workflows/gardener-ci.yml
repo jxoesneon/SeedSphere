@@ -266,22 +266,22 @@ jobs:
           echo "Appending timestamp: $TIMESTAMP"
 
           # Android
-          cp artifacts/gardener-android-apk/app-release.apk dist/gardener-android-${TIMESTAMP}.apk
+          cp artifacts/gardener-android-apk/gardener/build/app/outputs/flutter-apk/app-release.apk dist/gardener-android-${TIMESTAMP}.apk
 
           # Windows
-          cp artifacts/gardener-windows-setup/gardener-setup.exe dist/gardener-windows-setup-${TIMESTAMP}.exe
+          cp artifacts/gardener-windows-setup/gardener/build/windows/installer/gardener-setup.exe dist/gardener-windows-setup-${TIMESTAMP}.exe
 
           # Linux x64
-          cd artifacts/gardener-linux-x64-all/bundle && zip -r ../../../dist/gardener-linux-x64-${TIMESTAMP}.zip . && cd ../../..
+          cd artifacts/gardener-linux-x64-all/gardener/build/linux/x64/release/bundle && zip -r ../../../../../../../dist/gardener-linux-x64-${TIMESTAMP}.zip . && cd ../../../../../../..
           # Copy DEB/RPM with timestamp (assuming they have version in name, we append timestamp before extension)
-          for f in artifacts/gardener-linux-x64-all/*.deb; do cp "$f" "dist/$(basename "$f" .deb)-${TIMESTAMP}.deb"; done
-          for f in artifacts/gardener-linux-x64-all/*.rpm; do cp "$f" "dist/$(basename "$f" .rpm)-${TIMESTAMP}.rpm"; done
+          for f in artifacts/gardener-linux-x64-all/gardener/dist/*.deb; do cp "$f" "dist/$(basename "$f" .deb)-${TIMESTAMP}.deb"; done
+          for f in artifacts/gardener-linux-x64-all/gardener/dist/*.rpm; do cp "$f" "dist/$(basename "$f" .rpm)-${TIMESTAMP}.rpm"; done
 
           # Linux ARM64
-          cd artifacts/gardener-linux-arm64 && zip -r ../../dist/gardener-linux-arm64-${TIMESTAMP}.zip . && cd ../..
+          cd artifacts/gardener-linux-arm64/gardener/build/linux/arm64/release/bundle && zip -r ../../../../../../../dist/gardener-linux-arm64-${TIMESTAMP}.zip . && cd ../../../../../../..
 
           # macOS (Universal)
-          cd artifacts/gardener-macos-universal && zip -r ../../dist/gardener-macos-universal-${TIMESTAMP}.zip . && cd ../..
+          cd artifacts/gardener-macos-universal/gardener/build/macos/Build/Products/Release/gardener.app && zip -r ../../../../../../../../dist/gardener-macos-universal-${TIMESTAMP}.zip . && cd ../../../../../../../..
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
