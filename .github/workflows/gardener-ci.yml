@@ -169,9 +169,9 @@ jobs:
         with:
           name: gardener-linux-x64-all
           path: |
-            build/linux/x64/release/bundle
-            dist/*.deb
-            dist/*.rpm
+            gardener/build/linux/x64/release/bundle
+            gardener/dist/*.deb
+            gardener/dist/*.rpm
 
   build-linux-arm64:
     if: ${{ github.event_name == 'push' || inputs.linux == true }}
