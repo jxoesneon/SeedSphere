@@ -153,7 +153,7 @@ jobs:
             --description "SeedSphere Gardener Client" \
             --maintainer "SeedSphere <dev@seedsphere.app>" \
             --prefix /opt/gardener \
-            -C gardener/build/linux/x64/release/bundle .
+            -C build/linux/x64/release/bundle .
           mv gardener_1.9.3_x86_64.deb dist/gardener-linux-x64.deb
 
           # Create RPM
@@ -161,7 +161,7 @@ jobs:
             --description "SeedSphere Gardener Client" \
             --maintainer "SeedSphere <dev@seedsphere.app>" \
             --prefix /opt/gardener \
-            -C gardener/build/linux/x64/release/bundle .
+            -C build/linux/x64/release/bundle .
           mv gardener-1.9.3-1.x86_64.rpm dist/gardener-linux-x64.rpm
 
       - name: Upload Linux Build (x64)
@@ -169,7 +169,7 @@ jobs:
         with:
           name: gardener-linux-x64-all
           path: |
-            gardener/build/linux/x64/release/bundle
+            build/linux/x64/release/bundle
             dist/*.deb
             dist/*.rpm
 
