@@ -90,20 +90,26 @@ class _TorznabManagerState extends State<TorznabManager> {
     return Scaffold(
       backgroundColor: AethericTheme.deepVoid,
       appBar: AppBar(
-        title: Text('TORZNAB INDEXERS',
-            style: GoogleFonts.outfit(letterSpacing: 2)),
+        title: Text(
+          'TORZNAB INDEXERS',
+          style: GoogleFonts.outfit(letterSpacing: 2),
+        ),
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded,
-              color: Colors.white70),
+          icon: const Icon(
+            Icons.arrow_back_ios_new_rounded,
+            color: Colors.white70,
+          ),
           onPressed: () => Navigator.of(context).pop(),
         ),
         actions: [
           // Global add button
           IconButton(
-            icon:
-                const Icon(Icons.add_rounded, color: AethericTheme.aetherBlue),
+            icon: const Icon(
+              Icons.add_rounded,
+              color: AethericTheme.aetherBlue,
+            ),
             onPressed: _addEndpoint,
           ),
         ],
@@ -111,77 +117,89 @@ class _TorznabManagerState extends State<TorznabManager> {
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _endpoints.isEmpty
-              ? Center(
-                  child: Text(
-                    'No indexers configured.\nAdd Prowlarr or Jackett endpoints.',
-                    textAlign: TextAlign.center,
-                    style: GoogleFonts.outfit(color: Colors.white30),
-                  ),
-                )
-              : ListView.separated(
-                  padding: const EdgeInsets.all(16),
-                  itemCount: _endpoints.length,
-                  separatorBuilder: (_, __) => const SizedBox(height: 16),
-                  itemBuilder: (context, index) {
-                    final ep = _endpoints[index];
-                    return AethericGlass(
-                      child: Padding(
-                        padding: const EdgeInsets.all(16),
-                        child: Column(
-                          children: [
-                            // Endpoint URL Input
-                            TextField(
-                              controller: TextEditingController(text: ep['url'])
-                                ..selection = TextSelection.collapsed(
-                                    offset: ep['url']?.length ?? 0),
-                              onChanged: (val) =>
-                                  _updateEndpoint(index, 'url', val),
-                              style: GoogleFonts.outfit(color: Colors.white),
-                              decoration: const InputDecoration(
-                                labelText: 'Torznab URL',
-                                labelStyle: TextStyle(color: Colors.white54),
-                                prefixIcon: Icon(Icons.link_rounded,
-                                    color: Colors.white54),
-                                border: InputBorder.none,
-                              ),
+          ? Center(
+              child: Text(
+                'No indexers configured.\nAdd Prowlarr or Jackett endpoints.',
+                textAlign: TextAlign.center,
+                style: GoogleFonts.outfit(color: Colors.white30),
+              ),
+            )
+          : ListView.separated(
+              padding: const EdgeInsets.all(16),
+              itemCount: _endpoints.length,
+              separatorBuilder: (_, _) => const SizedBox(height: 16),
+              itemBuilder: (context, index) {
+                final ep = _endpoints[index];
+                return AethericGlass(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      children: [
+                        // Endpoint URL Input
+                        TextField(
+                          controller: TextEditingController(text: ep['url'])
+                            ..selection = TextSelection.collapsed(
+                              offset: ep['url']?.length ?? 0,
                             ),
-                            const Divider(color: Colors.white10),
-                            // Endpoint Auth Key Input
-                            TextField(
-                              controller: TextEditingController(text: ep['key'])
-                                ..selection = TextSelection.collapsed(
-                                    offset: ep['key']?.length ?? 0),
-                              onChanged: (val) =>
-                                  _updateEndpoint(index, 'key', val),
-                              obscureText: true,
-                              style: GoogleFonts.outfit(color: Colors.white),
-                              decoration: const InputDecoration(
-                                labelText: 'API Key',
-                                labelStyle: TextStyle(color: Colors.white54),
-                                prefixIcon: Icon(Icons.vpn_key_rounded,
-                                    color: Colors.white54),
-                                border: InputBorder.none,
-                              ),
+                          onChanged: (val) =>
+                              _updateEndpoint(index, 'url', val),
+                          style: GoogleFonts.outfit(color: Colors.white),
+                          decoration: const InputDecoration(
+                            labelText: 'Torznab URL',
+                            labelStyle: TextStyle(color: Colors.white54),
+                            prefixIcon: Icon(
+                              Icons.link_rounded,
+                              color: Colors.white54,
                             ),
-                            const SizedBox(height: 8),
-                            // Removal Action
-                            Align(
-                              alignment: Alignment.centerRight,
-                              child: TextButton.icon(
-                                icon: const Icon(Icons.delete_outline,
-                                    color: Colors.redAccent, size: 16),
-                                label: Text('Remove',
-                                    style: GoogleFonts.outfit(
-                                        color: Colors.redAccent)),
-                                onPressed: () => _removeEndpoint(index),
-                              ),
-                            ),
-                          ],
+                            border: InputBorder.none,
+                          ),
                         ),
-                      ),
-                    );
-                  },
-                ),
+                        const Divider(color: Colors.white10),
+                        // Endpoint Auth Key Input
+                        TextField(
+                          controller: TextEditingController(text: ep['key'])
+                            ..selection = TextSelection.collapsed(
+                              offset: ep['key']?.length ?? 0,
+                            ),
+                          onChanged: (val) =>
+                              _updateEndpoint(index, 'key', val),
+                          obscureText: true,
+                          style: GoogleFonts.outfit(color: Colors.white),
+                          decoration: const InputDecoration(
+                            labelText: 'API Key',
+                            labelStyle: TextStyle(color: Colors.white54),
+                            prefixIcon: Icon(
+                              Icons.vpn_key_rounded,
+                              color: Colors.white54,
+                            ),
+                            border: InputBorder.none,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        // Removal Action
+                        Align(
+                          alignment: Alignment.centerRight,
+                          child: TextButton.icon(
+                            icon: const Icon(
+                              Icons.delete_outline,
+                              color: Colors.redAccent,
+                              size: 16,
+                            ),
+                            label: Text(
+                              'Remove',
+                              style: GoogleFonts.outfit(
+                                color: Colors.redAccent,
+                              ),
+                            ),
+                            onPressed: () => _removeEndpoint(index),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
     );
   }
 }
