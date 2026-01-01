@@ -268,23 +268,49 @@ jobs:
           TIMESTAMP=$(date +%Y%m%d-%H%M%S)
           echo "Appending timestamp: $TIMESTAMP"
 
+          # Function to find and copy
+          find_and_copy() {
+            find artifacts -name "$1" -exec cp "{}" "dist/$2" \;
+          }
+
           # Android
-          cp artifacts/gardener-android-apk/app-release.apk dist/gardener-android-${TIMESTAMP}.apk
+          echo "Processing Android..."
+          find_and_copy "app-release.apk" "gardener-android-${TIMESTAMP}.apk"
 
           # Windows
-          cp artifacts/gardener-windows-setup/gardener-setup.exe dist/gardener-windows-setup-${TIMESTAMP}.exe
+          echo "Processing Windows..."
+          find_and_copy "gardener-setup.exe" "gardener-windows-setup-${TIMESTAMP}.exe"
 
           # Linux x64
-          cd artifacts/gardener-linux-x64-all/gardener/build/linux/x64/release/bundle && zip -r ../../../../../../../dist/gardener-linux-x64-${TIMESTAMP}.zip . && cd ../../../../../../..
-          # Copy DEB/RPM with timestamp (assuming they have version in name, we append timestamp before extension)
-          for f in artifacts/gardener-linux-x64-all/gardener/dist/*.deb; do cp "$f" "dist/$(basename "$f" .deb)-${TIMESTAMP}.deb"; done
-          for f in artifacts/gardener-linux-x64-all/gardener/dist/*.rpm; do cp "$f" "dist/$(basename "$f" .rpm)-${TIMESTAMP}.rpm"; done
+          echo "Processing Linux x64..."
+          BUNDLE_PATH=$(find artifacts/gardener-linux-x64-all -type d -name "bundle" | head -n 1)
+          if [ -d "$BUNDLE_PATH" ]; then
+             cd "$BUNDLE_PATH" && zip -r - . > "$GITHUB_WORKSPACE/dist/gardener-linux-x64-${TIMESTAMP}.zip" && cd -
+          else
+             echo "::error::Linux Bundle not found!"
+             exit 1
+          fi
+          
+          # Linux DEB/RPM
+          find artifacts/gardener-linux-x64-all -name "*.deb" -exec cp "{}" dist/ \;
+          find artifacts/gardener-linux-x64-all -name "*.rpm" -exec cp "{}" dist/ \;
+          # Rename them to include timestamp
+          for f in dist/*.deb; do mv "$f" "${f%.deb}-${TIMESTAMP}.deb"; done
+          for f in dist/*.rpm; do mv "$f" "${f%.rpm}-${TIMESTAMP}.rpm"; done
 
           # Linux ARM64
-          cd artifacts/gardener-linux-arm64/gardener/build/linux/arm64/release/bundle && zip -r ../../../../../../../dist/gardener-linux-arm64-${TIMESTAMP}.zip . && cd ../../../../../../..
+          echo "Processing Linux ARM64..."
+          ARM_BUNDLE=$(find artifacts/gardener-linux-arm64 -type d -name "bundle" | head -n 1)
+          if [ -d "$ARM_BUNDLE" ]; then
+             cd "$ARM_BUNDLE" && zip -r - . > "$GITHUB_WORKSPACE/dist/gardener-linux-arm64-${TIMESTAMP}.zip" && cd -
+          fi
 
           # macOS (Universal)
-          cd artifacts/gardener-macos-universal/gardener/build/macos/Build/Products/Release/gardener.app && zip -r ../../../../../../../../dist/gardener-macos-universal-${TIMESTAMP}.zip . && cd ../../../../../../../..
+          echo "Processing macOS..."
+          MAC_APP=$(find artifacts/gardener-macos-universal -type d -name "gardener.app" | head -n 1)
+          if [ -d "$MAC_APP" ]; then
+             cd "$MAC_APP" && zip -r - . > "$GITHUB_WORKSPACE/dist/gardener-macos-universal-${TIMESTAMP}.zip" && cd -
+          fi
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
