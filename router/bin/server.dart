@@ -317,8 +317,113 @@ Response _rootHandler(Request req) {
   );
 }
 
-/// Dynamic Download Proxy (Redirects to GitHub Releases)
+/// Caching for Release Data to avoid GitHub API Rate Limits
+Map<String, dynamic>? _cachedRelease;
+DateTime? _lastCacheTime;
+
+/// Fetch latest release from GitHub (Cached for 15 minutes)
+Future<Map<String, dynamic>?> _getLatestRelease() async {
+  if (_cachedRelease != null &&
+      _lastCacheTime != null &&
+      DateTime.now().difference(_lastCacheTime!).inMinutes < 15) {
+    return _cachedRelease;
+  }
+
+  try {
+    print('Fetching latest release from GitHub...');
+    final url = Uri.https(
+      'api.github.com',
+      '/repos/jxoesneon/SeedSphere/releases/latest',
+    );
+    final response = await http.get(
+      url,
+      headers: {'User-Agent': 'SeedSphere-Router'},
+    );
+
+    if (response.statusCode == 200) {
+      _cachedRelease = jsonDecode(response.body);
+      _lastCacheTime = DateTime.now();
+      return _cachedRelease;
+    } else {
+      print('GitHub API Error: ${response.statusCode} ${response.body}');
+    }
+  } catch (e) {
+    print('Failed to fetch release: $e');
+  }
+  return null;
+}
+
+/// Dynamic Download Proxy (Smart Resolution)
+/// Supports aliases: 'android', 'windows', 'macos', 'linux'
+/// Supports explicit filenames: 'gardener-windows-setup-2025...exe'
 Future<Response> _handleDownload(Request req, String file) async {
+  final release = await _getLatestRelease();
+  if (release == null) {
+    // Fallback to blind redirect if API fails
+    final fallback = Uri.https(
+      'github.com',
+      '/jxoesneon/SeedSphere/releases/latest/download/$file',
+    );
+    return Response.found(fallback);
+  }
+
+  final assets = (release['assets'] as List).cast<Map<String, dynamic>>();
+  String? targetUrl;
+
+  // 1. Check for Aliases
+  if (file == 'android') {
+    // Prefer .apk over .aab if both exist, or just find the first android asset
+    final asset = assets.firstWhere(
+      (a) => a['name'].toString().endsWith('.apk'),
+      orElse: () => assets.firstWhere(
+        (a) => a['name'].toString().contains('android'),
+        orElse: () => {},
+      ),
+    );
+    if (asset.isNotEmpty) targetUrl = asset['browser_download_url'];
+  } else if (file == 'windows') {
+    final asset = assets.firstWhere(
+      (a) => a['name'].toString().endsWith('.exe'),
+      orElse: () => assets.firstWhere(
+        (a) => a['name'].toString().contains('windows'),
+        orElse: () => {},
+      ),
+    );
+    if (asset.isNotEmpty) targetUrl = asset['browser_download_url'];
+  } else if (file == 'macos') {
+    final asset = assets.firstWhere(
+      (a) => a['name'].toString().contains('macos'),
+      orElse: () => assets.firstWhere(
+        (a) => a['name'].toString().endsWith('.zip'), // Fallback
+        orElse: () => {},
+      ),
+    );
+    if (asset.isNotEmpty) targetUrl = asset['browser_download_url'];
+  } else if (file == 'linux') {
+    // Prefer .deb, then .rpm, then .zip
+    final asset = assets.firstWhere(
+      (a) => a['name'].toString().endsWith('.deb'),
+      orElse: () => assets.firstWhere(
+        (a) => a['name'].toString().endsWith('.rpm'),
+        orElse: () => assets.firstWhere(
+          (a) => a['name'].toString().contains('linux'),
+          orElse: () => {},
+        ),
+      ),
+    );
+    if (asset.isNotEmpty) targetUrl = asset['browser_download_url'];
+  }
+  // 2. Check for Exact Filename Match
+  else {
+    final asset = assets.firstWhere((a) => a['name'] == file, orElse: () => {});
+    if (asset.isNotEmpty) targetUrl = asset['browser_download_url'];
+  }
+
+  if (targetUrl != null) {
+    return Response.found(targetUrl);
+  }
+
+  // 3. Fallback: Blind Redirect (e.g. if file is not found in assets list but might exist)
   final redirect = Uri.https(
     'github.com',
     '/jxoesneon/SeedSphere/releases/latest/download/$file',
@@ -326,8 +431,10 @@ Future<Response> _handleDownload(Request req, String file) async {
   return Response.found(redirect);
 }
 
-/// Dynamic Releases Proxy (Fetches from GitHub API)
+/// Dynamic Releases Proxy
 Future<Response> _handleReleases(Request req) async {
+  // We can return the cached latest release wrapped in a list for compatibility if needed,
+  // or fetch the full list. Dashboard expects a list.
   try {
     final url = Uri.https(
       'api.github.com',
