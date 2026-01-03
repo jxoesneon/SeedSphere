@@ -1,0 +1,48 @@
+name: Dynamic CI
+
+on:
+  pull_request:
+    branches: [ main ]
+  push:
+    branches: [ main ]
+
+jobs:
+  analyze:
+    runs-on: windows-latest
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Generate Matrix
+        id: set-matrix
+        shell: pwsh
+        run: |
+          $Matrix = ./.agent/scripts/ci_analyze.ps1 -BaseRef ${{ github.base_ref || 'HEAD~1' }}
+          echo "matrix=$Matrix" >> $env:GITHUB_OUTPUT
+
+  build:
+    needs: analyze
+    if: ${{ fromJson(needs.analyze.outputs.matrix).include[0] }} # Only run if matrix is not empty
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJson(needs.analyze.outputs.matrix) }}
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Flutter
+        if: matrix.project == 'gardener'
+        uses: subosito/flutter-action@v2
+        
+      - name: Setup Dart
+        if: matrix.project == 'router'
+        uses: dart-lang/setup-dart@v1
+
+      - name: Run Tests
+        run: |
+          cd ${{ matrix.project }}
+          flutter pub get || dart pub get
+          ${{ matrix.cmd }}
