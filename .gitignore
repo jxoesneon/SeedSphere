@@ -78,3 +78,15 @@ package-lock.json
 
 
 
+
+# Dev Tools
+gardener/devtools_options.yaml
+gardener/.metadata
+**/ephemeral/
+
+# Archive Artifacts
+*.zip
+*.tar.gz
+*.deb
+*.rpm
+*.msix
