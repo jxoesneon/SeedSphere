@@ -265,51 +265,53 @@ jobs:
       - name: Prepare Release Assets
         run: |
           mkdir -p dist
-          TIMESTAMP=$(date +%Y%m%d-%H%M%S)
-          echo "Appending timestamp: $TIMESTAMP"
-
-          # Function to find and copy
+          
+          # Function to find and copy safely
           find_and_copy() {
-            find artifacts -name "$1" -exec cp "{}" "dist/$2" \;
+            local pattern="$1"
+            local destination="$2"
+            echo "Searching for $pattern..."
+            # Find the file and copy to dist with the new name
+            local found_path=$(find artifacts -name "$pattern" -type f | head -n 1)
+            if [ -n "$found_path" ]; then
+                cp "$found_path" "dist/$destination"
+                echo "Copied $found_path to dist/$destination"
+            else
+                echo "::warning::Could not find $pattern"
+            fi
           }
 
           # Android
-          echo "Processing Android..."
-          find_and_copy "app-release.apk" "gardener-android-${TIMESTAMP}.apk"
+          find_and_copy "app-release.apk" "gardener-android-arm64.apk"
 
           # Windows
-          echo "Processing Windows..."
-          find_and_copy "gardener-setup.exe" "gardener-windows-setup-${TIMESTAMP}.exe"
+          find_and_copy "gardener-setup.exe" "gardener-windows-x64-setup.exe"
 
           # Linux x64
+          # We need to zip the bundle directory if found, or copy the package
           echo "Processing Linux x64..."
-          BUNDLE_PATH=$(find artifacts/gardener-linux-x64-all -type d -name "bundle" | head -n 1)
-          if [ -d "$BUNDLE_PATH" ]; then
-             cd "$BUNDLE_PATH" && zip -r - . > "$GITHUB_WORKSPACE/dist/gardener-linux-x64-${TIMESTAMP}.zip" && cd -
-          else
-             echo "::error::Linux Bundle not found!"
-             exit 1
+          BUNDLE_X64=$(find artifacts/gardener-linux-x64-all -type d -name "bundle" | head -n 1)
+          if [ -d "$BUNDLE_X64" ]; then
+             (cd "$BUNDLE_X64" && zip -r - . > "$GITHUB_WORKSPACE/dist/gardener-linux-x64.zip")
           fi
-
-          # Linux DEB/RPM
-          find artifacts/gardener-linux-x64-all -name "*.deb" -exec cp "{}" dist/ \;
-          find artifacts/gardener-linux-x64-all -name "*.rpm" -exec cp "{}" dist/ \;
-          # Rename them to include timestamp
-          for f in dist/*.deb; do mv "$f" "${f%.deb}-${TIMESTAMP}.deb"; done
-          for f in dist/*.rpm; do mv "$f" "${f%.rpm}-${TIMESTAMP}.rpm"; done
+          find_and_copy "gardener-linux-x64.deb" "gardener-linux-x64.deb"
+          find_and_copy "gardener-linux-x64.rpm" "gardener-linux-x64.rpm"
 
           # Linux ARM64
           echo "Processing Linux ARM64..."
-          ARM_BUNDLE=$(find artifacts/gardener-linux-arm64 -type d -name "bundle" | head -n 1)
-          if [ -d "$ARM_BUNDLE" ]; then
-             cd "$ARM_BUNDLE" && zip -r - . > "$GITHUB_WORKSPACE/dist/gardener-linux-arm64-${TIMESTAMP}.zip" && cd -
+          BUNDLE_ARM=$(find artifacts/gardener-linux-arm64 -type d -name "bundle" | head -n 1)
+          if [ -d "$BUNDLE_ARM" ]; then
+             (cd "$BUNDLE_ARM" && zip -r - . > "$GITHUB_WORKSPACE/dist/gardener-linux-arm64.zip")
           fi
 
           # macOS (Universal)
           echo "Processing macOS..."
+          # The artifact might be the .app directory itself or nested
           MAC_APP=$(find artifacts/gardener-macos-universal -type d -name "gardener.app" | head -n 1)
           if [ -d "$MAC_APP" ]; then
-             cd "$MAC_APP" && zip -r - . > "$GITHUB_WORKSPACE/dist/gardener-macos-universal-${TIMESTAMP}.zip" && cd -
+             (cd "$MAC_APP" && zip -r - . > "$GITHUB_WORKSPACE/dist/gardener-macos-universal.zip")
+          else
+             echo "::error::macOS App not found!"
           fi
 
       - name: Create Release
@@ -317,12 +319,12 @@ jobs:
         with:
           files: |
             dist/gardener-android-*.apk
-            dist/gardener-windows-setup-*.exe
-            dist/gardener-linux-x64-*.zip
-            dist/gardener-linux-arm64-*.zip
+            dist/gardener-windows-*-setup.exe
+            dist/gardener-linux-x64.zip
+            dist/gardener-linux-arm64.zip
             dist/*.deb
             dist/*.rpm
-            dist/gardener-macos-universal-*.zip
+            dist/gardener-macos-universal.zip
           draft: false
           prerelease: false
           generate_release_notes: true

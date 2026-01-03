@@ -512,8 +512,13 @@ function renderHero(release, hero, grid) {
     const sizeInfo = primaryAsset
       ? (primaryAsset.size / 1024 / 1024).toFixed(1) + " MB"
       : "Source";
-    const archInfo =
-      primaryAsset && primaryAsset.name.includes("arm64") ? "ARM64" : "x64";
+
+    let archInfo = "x64";
+    if (primaryAsset) {
+      if (primaryAsset.name.includes("arm64")) archInfo = "ARM64";
+      else if (primaryAsset.name.includes("universal")) archInfo = "Universal";
+      else if (primaryAsset.name.includes("android")) archInfo = "ARM64/x64"; // Android APKs are fat
+    }
 
     mainBtn.innerHTML = `
             <div style="font-size: 2rem; margin-bottom: 0.5rem;">${p.icon}</div>
@@ -554,7 +559,11 @@ function renderHero(release, hero, grid) {
                                 font-size: 0.9rem; border-radius: 8px; margin-bottom: 2px;
                             " onmouseover="this.style.background='rgba(255,255,255,0.1)'" onmouseout="this.style.background='transparent'">
                                 ${
-                                  isArm ? "ARM64" : "x64"
+                                  a.name.includes("arm64")
+                                    ? "ARM64"
+                                    : a.name.includes("universal")
+                                    ? "Universal"
+                                    : "x64"
                                 } <span style="opacity:0.5; font-size: 0.8rem;">.${ext}</span>
                             </a>
                         `;
