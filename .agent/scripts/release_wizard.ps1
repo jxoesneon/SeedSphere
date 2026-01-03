@@ -72,9 +72,11 @@ if (Test-Path $GardenerPubspec) {
     $CurrentRaw = Get-Content $GardenerPubspec -Raw
     
     Write-Host "Bumping Gardener to v$Version..."
-    # Note: If user provided 1.9.7, we replace 1.9.6+196 with 1.9.7
-    # For advanced usage, ideally we increment build number, but stripping is safer for basic flow.
+    # Dynamic Versioning Policy: We explicitly STRIP existing build numbers (e.g. +123)
+    # because CI/CD pipelines (GitHub Actions) inject the build number dynamically.
+    # We do NOT want hardcoded build numbers in the repo.
     $New = $CurrentRaw -replace 'version: \d+\.\d+\.\d+.*', "version: $Version"
+    Write-Host "  -> Set to $Version (Build number stripped for dynamic CI)" -ForegroundColor Cyan
     Set-Content -Path $GardenerPubspec -Value $New -Encoding utf8
     $Updated += "gardener/pubspec.yaml"
     
