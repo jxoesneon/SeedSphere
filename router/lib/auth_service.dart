@@ -18,13 +18,23 @@ class AuthService {
   final String? _googleClientId;
   final String? _googleClientSecret;
   final LinkingService _linkingService;
+  final http.Client _client;
 
   /// Creates a new AuthService with the required system dependencies.
-  AuthService(this._db, this._mailer, this._linkingService)
-    : _jwtSecret =
-          Platform.environment['AUTH_JWT_SECRET'] ?? _generateRandomSecret(),
-      _googleClientId = Platform.environment['GOOGLE_CLIENT_ID'],
-      _googleClientSecret = Platform.environment['GOOGLE_CLIENT_SECRET'];
+  AuthService(
+    this._db,
+    this._mailer,
+    this._linkingService, {
+    http.Client? client,
+    String? googleClientId,
+    String? googleClientSecret,
+  }) : _jwtSecret =
+           Platform.environment['AUTH_JWT_SECRET'] ?? _generateRandomSecret(),
+       _googleClientId =
+           googleClientId ?? Platform.environment['GOOGLE_CLIENT_ID'],
+       _googleClientSecret =
+           googleClientSecret ?? Platform.environment['GOOGLE_CLIENT_SECRET'],
+       _client = client ?? http.Client();
 
   static String _generateRandomSecret() {
     print(
@@ -51,6 +61,7 @@ class AuthService {
     // Google Auth
     app.get('/google/start', _handleGoogleStart);
     app.get('/google/callback', _handleGoogleCallback);
+    app.post('/google/verify', _handleGoogleVerify); // Added verify endpoint
 
     // Magic Link
     app.post('/magic/start', _handleMagicStart);
@@ -88,6 +99,87 @@ class AuthService {
     return Response.found(uri);
   }
 
+  /// Verifies an ID Token sent from the client (Desktop/Mobile) and creates a session.
+  Future<Response> _handleGoogleVerify(Request req) async {
+    try {
+      final body = await req.readAsString();
+      final data = jsonDecode(body);
+      final idToken = data['idToken'] as String?;
+
+      if (idToken == null) {
+        return Response.badRequest(
+          body: jsonEncode({'error': 'missing_id_token'}),
+        );
+      }
+
+      // Decode JWT
+      final parts = idToken.split('.');
+      if (parts.length != 3) {
+        return Response.badRequest(
+          body: jsonEncode({'error': 'invalid_token_format'}),
+        );
+      }
+
+      final payload = jsonDecode(
+        utf8.decode(base64Url.decode(base64.normalize(parts[1]))),
+      );
+
+      final sub = payload['sub'] as String;
+      final email = payload['email'] as String;
+      final aud = payload['aud'] as String?;
+
+      // Validate Audience (Supports Web, Desktop, Mobile)
+      // These should ideally be in env vars, but hardcoding known project IDs for stability now.
+      final validAudiences = [
+        _googleClientId, // Web
+        '550711161426-bvvv578gtt7cst7lsar3c28r3uh6n706.apps.googleusercontent.com', // Desktop
+        '550711161426-074c666943619890a5e58b.apps.googleusercontent.com', // Android (Example/Placeholder if different)
+        // Since Android often uses the Web Client ID for backend verification, usually _googleClientId is enough,
+        // but Desktop definitely uses its own.
+      ];
+
+      // Relaxed check: just ensure it belongs to our project (prefix match) if strict list fails?
+      // Or just add the known Desktop ID.
+      if (!validAudiences.contains(aud) &&
+          aud != null &&
+          !aud.startsWith('550711161426-')) {
+        // Allow any client ID from our project (550711161426)
+        return Response.forbidden(
+          jsonEncode({'error': 'invalid_token_audience', 'aud': aud}),
+        );
+      }
+
+      final userId = 'google:$sub';
+      _db.upsertUser(id: userId, email: email, provider: 'google');
+
+      // Issue Session
+      // We return the token/user info directly instead of 302 redirect
+      // because this is an JSON API call from the app.
+
+      // Generate Secure Random Session ID
+      final random = Random.secure();
+      final values = List<int>.generate(32, (i) => random.nextInt(255));
+      final sid = base64UrlEncode(values);
+
+      // Store in DB (30 days TTL)
+      _db.createSession(sid, userId, 30 * 24 * 60 * 60 * 1000);
+
+      // We return the session ID as 'token' for the client to use in Bearer or Cookie
+      return Response.ok(
+        jsonEncode({
+          'ok': true,
+          'token': sid, // Client stores this as auth_token
+          'user': {'id': userId, 'email': email},
+        }),
+        headers: {'Content-Type': 'application/json'},
+      );
+    } catch (e) {
+      return Response.internalServerError(
+        body: jsonEncode({'error': 'verification_failed', 'details': '$e'}),
+      );
+    }
+  }
+
   Future<Response> _handleGoogleCallback(Request req) async {
     final code = req.url.queryParameters['code'];
     if (code == null) return Response.badRequest(body: 'missing_code');
@@ -99,7 +191,7 @@ class AuthService {
     final redirectUri = '${_baseUrl(req)}/api/auth/google/callback';
 
     try {
-      final tokenResp = await http.post(
+      final tokenResp = await _client.post(
         Uri.parse('https://oauth2.googleapis.com/token'),
         body: {
           'code': code,

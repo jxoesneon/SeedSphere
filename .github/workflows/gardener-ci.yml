@@ -102,7 +102,7 @@ jobs:
         run: flutter pub get
 
       - name: Build Windows (x64)
-        run: flutter build windows --release
+        run: flutter build windows --release --dart-define=GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET_DESKTOP }}
 
       - name: Create Installer (Inno Setup)
         run: |
@@ -143,7 +143,7 @@ jobs:
           sudo gem install --no-document fpm
 
       - name: Build Linux (x64)
-        run: flutter build linux --release
+        run: flutter build linux --release --dart-define=GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET_DESKTOP }}
 
       - name: Package Linux (x64 DEB/RPM)
         run: |
@@ -201,7 +201,7 @@ jobs:
             cd gardener
             flutter config --no-analytics
             flutter pub get
-            flutter build linux --release
+            flutter build linux --release --dart-define=GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET_DESKTOP }}
 
             # Packaging would go here ideally, but simplified for now
 
@@ -230,7 +230,7 @@ jobs:
 
       - name: Build macOS (Universal)
         # Flutter builds universal binary by default on macOS
-        run: flutter build macos --release
+        run: flutter build macos --release --dart-define=GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET_DESKTOP }}
 
       - name: Upload macOS Build
         uses: actions/upload-artifact@v4
@@ -290,7 +290,7 @@ jobs:
              echo "::error::Linux Bundle not found!"
              exit 1
           fi
-          
+
           # Linux DEB/RPM
           find artifacts/gardener-linux-x64-all -name "*.deb" -exec cp "{}" dist/ \;
           find artifacts/gardener-linux-x64-all -name "*.rpm" -exec cp "{}" dist/ \;

@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:gardener/ui/settings/swarm_settings_menu.dart';
 import 'package:gardener/ui/settings/swarm_uplink_settings.dart';
+import 'package:gardener/ui/widgets/user_profile_dialog.dart';
 import 'package:gardener/ui/theme/aetheric_theme.dart';
 import 'package:gardener/ui/widgets/swarm_health_hero.dart';
 import 'package:gardener/ui/widgets/signal_card.dart';
@@ -209,6 +210,16 @@ class _SwarmDashboardState extends State<SwarmDashboard> {
             tooltip: 'Node Configuration',
             onPressed: () => Navigator.of(context).push(
               MaterialPageRoute(builder: (_) => const SwarmSettingsMenu()),
+            ),
+          ),
+          // User Profile
+          IconButton(
+            icon: const Icon(Icons.account_circle_rounded, color: Colors.white),
+            tooltip: 'User Profile',
+            onPressed: () => showDialog(
+              context: context,
+              barrierColor: Colors.black.withValues(alpha: 0.8),
+              builder: (_) => const UserProfileDialog(),
             ),
           ),
         ],

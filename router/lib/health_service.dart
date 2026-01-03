@@ -10,6 +10,10 @@ import 'package:http/http.dart' as http;
 class HealthService {
   final Map<String, _HealthEntry> _cache = {};
   static const _ttl = Duration(hours: 24);
+  final http.Client _client;
+
+  /// Creates a new HealthService.
+  HealthService({http.Client? client}) : _client = client ?? http.Client();
 
   /// Checks if a given [urlStr] is reachable and healthy.
   ///
@@ -60,9 +64,9 @@ class HealthService {
 
   Future<bool> _checkHttp(Uri uri) async {
     try {
-      final res = await http.head(uri).timeout(const Duration(seconds: 3));
+      final res = await _client.head(uri).timeout(const Duration(seconds: 3));
       if (res.statusCode >= 200 && res.statusCode < 400) return true;
-      final res2 = await http.get(uri).timeout(const Duration(seconds: 3));
+      final res2 = await _client.get(uri).timeout(const Duration(seconds: 3));
       return res2.statusCode >= 200 && res2.statusCode < 400;
     } catch (_) {
       return false;

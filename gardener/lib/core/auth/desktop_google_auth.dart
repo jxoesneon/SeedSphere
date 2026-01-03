@@ -14,6 +14,11 @@ class DesktopGoogleAuth {
   static const String _clientId =
       '550711161426-bvvv578gtt7cst7lsar3c28r3uh6n706.apps.googleusercontent.com';
 
+  // Secret is now injected via --dart-define in launch.json
+  static const String _clientSecret = String.fromEnvironment(
+    'GOOGLE_CLIENT_SECRET',
+  );
+
   static const List<String> _scopes = ['email', 'profile', 'openid'];
 
   /// Starts the authentication flow.
@@ -27,6 +32,11 @@ class DesktopGoogleAuth {
   }
 
   static Future<String?> _performLoopbackAuth() async {
+    if (_clientSecret.isEmpty) {
+      throw StateError(
+        'Google Client Secret is missing. Run with --dart-define=GOOGLE_CLIENT_SECRET=...',
+      );
+    }
     HttpServer? server;
     StreamSubscription<HttpRequest>? sub;
     try {
@@ -129,7 +139,7 @@ class DesktopGoogleAuth {
         body: {
           'code': code,
           'client_id': _clientId,
-          // 'client_secret': '', // NOT sending secret, relying on PKCE or Public Client config
+          'client_secret': _clientSecret,
           'redirect_uri': redirectUri,
           'grant_type': 'authorization_code',
           'code_verifier': codeVerifier,

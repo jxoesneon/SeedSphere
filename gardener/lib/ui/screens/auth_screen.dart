@@ -36,7 +36,9 @@ class _AuthScreenState extends State<AuthScreen> {
   String? _message;
   bool _magicLinkSent = false;
 
-  static const _apiBase = 'https://seedsphere.fly.dev';
+  static const _prodUrl = 'https://seedsphere.fly.dev';
+  String get _apiBase =>
+      (kDebugMode && !kIsWeb) ? 'http://localhost:8080' : _prodUrl;
 
   @override
   void dispose() {
@@ -88,7 +90,6 @@ class _AuthScreenState extends State<AuthScreen> {
 
     try {
       String? idToken;
-      String? email;
 
       final isDesktop =
           !kIsWeb &&
@@ -100,7 +101,6 @@ class _AuthScreenState extends State<AuthScreen> {
         // DesktopAuth doesn't return email automatically in our simplified flow,
         // but the backend will extract it from the token.
         // We can decode it here if needed for UI, but let's rely on backend verification response.
-        email = null;
       } else {
         // Use standard plugin for Mobile/Web
         final googleSignIn = GoogleSignIn(scopes: ['email', 'profile']);
@@ -111,7 +111,6 @@ class _AuthScreenState extends State<AuthScreen> {
           return;
         }
 
-        email = account.email;
         final auth = await account.authentication;
         idToken = auth.idToken;
       }
@@ -133,22 +132,23 @@ class _AuthScreenState extends State<AuthScreen> {
         final token = data['token'] as String?;
 
         if (token != null) {
-          // Store token and extract user ID from JWT
+          // Store token
           final prefs = await SharedPreferences.getInstance();
           await prefs.setString('auth_token', token);
 
-          // If we didn't get email from client SDK (Desktop), try to get from Response or Token
-          if (email != null) {
-            await prefs.setString('user_email', email);
-          } else {
-            // Extract email from token if possible or fetch profile?
-            // For now, let's just let it be missing or null
-          }
+          // Extract user info from Backend Response (Session User Object)
+          if (data['user'] != null) {
+            final userId = data['user']['id'];
+            final userEmail = data['user']['email'];
 
-          // Extract user ID from JWT payload (base64 decode middle part)
-          final userId = _extractUserIdFromJwt(token);
-          if (userId != null) {
-            await prefs.setString('user_id', userId);
+            if (userId != null) {
+              await prefs.setString('user_id', userId);
+            }
+            if (userEmail != null) {
+              await prefs.setString('user_email', userEmail);
+            }
+          } else {
+            // Fallback: This shouldn't happen with new backend
           }
 
           unawaited(HapticManager.success());
@@ -157,42 +157,14 @@ class _AuthScreenState extends State<AuthScreen> {
           setState(() => _message = 'Authentication failed.');
         }
       } else {
-        setState(() => _message = 'Server authentication failed.');
+        setState(() {
+          _message = 'Failed: ${response.statusCode} - ${response.body}';
+        });
       }
     } catch (e) {
       setState(() => _message = 'Sign-in failed: $e');
     } finally {
       setState(() => _isLoading = false);
-    }
-  }
-
-  /// Extracts user ID from JWT token payload.
-  String? _extractUserIdFromJwt(String token) {
-    try {
-      final parts = token.split('.');
-      if (parts.length != 3) return null;
-
-      // Decode the payload (middle part)
-      String payload = parts[1];
-      // Add padding if needed
-      switch (payload.length % 4) {
-        case 2:
-          payload += '==';
-          break;
-        case 3:
-          payload += '=';
-          break;
-      }
-
-      final decoded = utf8.decode(base64Url.decode(payload));
-      final payloadMap = jsonDecode(decoded) as Map<String, dynamic>;
-
-      // Try common JWT claims for user ID
-      return payloadMap['sub'] as String? ??
-          payloadMap['userId'] as String? ??
-          payloadMap['user_id'] as String?;
-    } catch (e) {
-      return null;
     }
   }
 

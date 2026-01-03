@@ -13,11 +13,13 @@ class ScraperService {
   final ScraperEngine _engine;
   final TrackerService _trackers;
   final AiService _ai;
+  final http.Client _client;
 
   /// Creates a new ScraperService instance.
-  ScraperService(this._trackers, {AiService? aiService})
+  ScraperService(this._trackers, {AiService? aiService, http.Client? client})
     : _engine = ScraperEngine.defaults(),
-      _ai = aiService ?? AiService();
+      _ai = aiService ?? AiService(),
+      _client = client ?? http.Client();
 
   /// Map of known providers to probe.
   static const _providers = {
@@ -35,9 +37,14 @@ class ScraperService {
       final url = e.value;
       final sw = Stopwatch()..start();
       try {
-        final res = await http
+        final res = await _client
             .head(Uri.parse(url))
             .timeout(const Duration(seconds: 5));
+
+        if (res.statusCode == 405) {
+          throw Exception('HEAD not allowed');
+        }
+
         sw.stop();
         return {
           'name': name,
@@ -49,7 +56,7 @@ class ScraperService {
         sw.stop();
         // Try GET if HEAD fails (some block HEAD)
         try {
-          final res = await http
+          final res = await _client
               .get(Uri.parse(url))
               .timeout(const Duration(seconds: 5));
           return {

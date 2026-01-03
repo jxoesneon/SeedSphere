@@ -19,8 +19,8 @@ void main() {
   setUp(() async {
     p = await Process.start(
       'dart',
-      ['run', 'bin/server.dart'],
-      environment: {'PORT': '0'},
+      ['--enable-vm-service=0', 'run', 'bin/server.dart'],
+      environment: {'PORT': '0', 'P2P_PORT': '0'},
     );
     // Guaranteed cleanup even if test times out
     addTearDown(() => p?.kill());

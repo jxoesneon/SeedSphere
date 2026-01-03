@@ -44,11 +44,15 @@ void main() {
 
   group('P2PManager Client Side', () {
     test('start initializes gardenerId if missing', () async {
-      when(() => mockStorage.read(key: 'ss_gardener_id'))
-          .thenAnswer((_) async => null);
-      when(() => mockStorage.write(
+      when(
+        () => mockStorage.read(key: 'ss_gardener_id'),
+      ).thenAnswer((_) async => null);
+      when(
+        () => mockStorage.write(
           key: 'ss_gardener_id',
-          value: any(named: 'value'))).thenAnswer((_) async {});
+          value: any(named: 'value'),
+        ),
+      ).thenAnswer((_) async {});
 
       // Since start() spawns isolate, testing it fully is hard.
       // But we can verify logic *before* spawn if we could partially mock.
@@ -63,12 +67,13 @@ void main() {
 
       final msg = receivePort.first;
       expectLater(
-          msg,
-          completion({
-            'type': P2PCommandType.search.index,
-            'imdbId': 'tt12345',
-            'data': null
-          }));
+        msg,
+        completion({
+          'type': P2PCommandType.search.index,
+          'imdbId': 'tt12345',
+          'data': null,
+        }),
+      );
     });
   });
 
@@ -92,7 +97,11 @@ void main() {
     test('handleWorkerMessage Search', () async {
       final cmd = P2PCommand(type: P2PCommandType.search, imdbId: 'tt12345');
       await P2PManager.handleWorkerMessage(
-          cmd.toJson(), mockNode, fromMainPort.sendPort);
+        cmd.toJson(),
+        mockNode,
+        fromMainPort.sendPort,
+        null,
+      );
 
       // We expect sequential messages
       expect(await events.next, contains('Searching for tt12345'));
@@ -102,7 +111,11 @@ void main() {
     test('handleWorkerMessage Publish', () async {
       final cmd = P2PCommand(type: P2PCommandType.publish, imdbId: 'tt12345');
       await P2PManager.handleWorkerMessage(
-          cmd.toJson(), mockNode, fromMainPort.sendPort);
+        cmd.toJson(),
+        mockNode,
+        fromMainPort.sendPort,
+        null,
+      );
 
       expect(await events.next, contains('Seeding metadata'));
     });
@@ -110,7 +123,11 @@ void main() {
     test('handleWorkerMessage Status', () async {
       final cmd = P2PCommand(type: P2PCommandType.status, imdbId: '');
       await P2PManager.handleWorkerMessage(
-          cmd.toJson(), mockNode, fromMainPort.sendPort);
+        cmd.toJson(),
+        mockNode,
+        fromMainPort.sendPort,
+        null,
+      );
 
       expect(await events.next, contains('2 active peers'));
     });
@@ -125,17 +142,20 @@ class StreamQueue<T> {
   late StreamSubscription<T> _sub;
 
   StreamQueue(this._stream) {
-    _sub = _stream.listen((data) {
-      if (_completers.isNotEmpty) {
-        _completers.removeFirst().complete(data);
-      } else {
-        _queue.add(data);
-      }
-    }, onError: (e) {
-      if (_completers.isNotEmpty) {
-        _completers.removeFirst().completeError(e);
-      }
-    });
+    _sub = _stream.listen(
+      (data) {
+        if (_completers.isNotEmpty) {
+          _completers.removeFirst().complete(data);
+        } else {
+          _queue.add(data);
+        }
+      },
+      onError: (e) {
+        if (_completers.isNotEmpty) {
+          _completers.removeFirst().completeError(e);
+        }
+      },
+    );
   }
 
   Future<T> get next {

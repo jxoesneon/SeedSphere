@@ -6,6 +6,16 @@ import 'package:http/http.dart' as http;
 
 /// Service for interacting with the BitTorrent swarm via HTTP trackers.
 class SwarmService {
+  final http.Client _client;
+  final Future<List<InternetAddress>> Function(String host) _dnsResolver;
+
+  /// Creates a new SwarmService.
+  SwarmService({
+    http.Client? client,
+    Future<List<InternetAddress>> Function(String host)? dnsResolver,
+  }) : _client = client ?? http.Client(),
+       _dnsResolver = dnsResolver ?? InternetAddress.lookup;
+
   /// Scrapes the specified [trackers] for a given [infoHash] to find peer counts.
   ///
   /// Returns a map with 'seeds' and 'leechers' on the first successful scrape,
@@ -68,9 +78,9 @@ class SwarmService {
       request.followRedirects = false;
       request.headers['Host'] = originalUri.host;
 
-      final streamedRef = await request.send().timeout(
-        Duration(milliseconds: timeoutMs),
-      );
+      final streamedRef = await _client
+          .send(request)
+          .timeout(Duration(milliseconds: timeoutMs));
       final response = await http.Response.fromStream(streamedRef);
 
       if (response.statusCode != 200) return null;
@@ -144,7 +154,7 @@ class SwarmService {
       }
 
       // Resolve DNS
-      final ips = await InternetAddress.lookup(host);
+      final ips = await _dnsResolver(host);
       for (final ip in ips) {
         bool isSafe = true;
 

@@ -10,6 +10,7 @@ import 'package:http/http.dart' as http;
 import 'package:uuid/uuid.dart';
 import 'package:gardener/core/security_manager.dart';
 import 'package:gardener/p2p/p2p_protocol.dart';
+import 'package:ed25519_edwards/ed25519_edwards.dart' as ed;
 
 /// Provider for the [P2PManager] instance.
 ///
@@ -40,8 +41,8 @@ class P2PManager {
   String? _gardenerId;
 
   P2PManager({FlutterSecureStorage? storage, SecurityManager? security})
-      : _storage = storage ?? const FlutterSecureStorage(),
-        _security = security ?? SecurityManager();
+    : _storage = storage ?? const FlutterSecureStorage(),
+      _security = security ?? SecurityManager();
 
   /// Whether the P2P isolate is started and the handshake is complete.
   bool get isInitialized => _isInitialized;
@@ -67,9 +68,13 @@ class P2PManager {
       _gardenerId = savedId;
     }
 
+    // Load Security Keys
+    final keyPair = await _security.getKeyPair();
+    final privateKey = keyPair.privateKey.bytes;
+
     _p2pIsolate = await Isolate.spawn(
       _p2pIsolateEntryPoint,
-      _fromIsolatePort.sendPort,
+      P2PInitData(sendPort: _fromIsolatePort.sendPort, privateKey: privateKey),
       debugName: 'SS_P2P_Isolate',
     );
 
@@ -182,16 +187,21 @@ class P2PManager {
   }
 
   /// Entry point for the P2P background isolate.
-  ///
-  /// [fromMainPort] - SendPort to communicate back with the main thread.
-  ///
-  /// This method is responsible for:
-  /// 1. Setting up a [ReceivePort] to receive commands from the main thread.
-  /// 2. Initializing the [IPFSNode] with a Federated configuration.
-  /// 3. Listening for and dispatching incoming [P2PCommand]s.
-  static void _p2pIsolateEntryPoint(SendPort fromMainPort) async {
+  static void _p2pIsolateEntryPoint(dynamic initMessage) async {
     // coverage:ignore-start
     final ReceivePort toIsolatePort = ReceivePort();
+    SendPort fromMainPort;
+    List<int>? privateKey;
+
+    if (initMessage is P2PInitData) {
+      fromMainPort = initMessage.sendPort;
+      privateKey = initMessage.privateKey;
+    } else if (initMessage is SendPort) {
+      fromMainPort = initMessage;
+    } else {
+      throw ArgumentError('Invalid init message: $initMessage');
+    }
+
     fromMainPort.send(toIsolatePort.sendPort);
 
     try {
@@ -219,12 +229,12 @@ class P2PManager {
           network: const NetworkConfig(
             listenAddresses: [
               '/ip4/0.0.0.0/tcp/4001',
-              '/ip4/0.0.0.0/udp/4001/quic'
+              '/ip4/0.0.0.0/udp/4001/quic',
             ],
             // PRIVACY FIX: Only connect to trusted SeedSphere routers.
-            bootstrapPeers: [
-              '/dnsaddr/seedsphere-router.fly.dev/tcp/4001',
-            ],
+            bootstrapPeers: ['/dnsaddr/seedsphere-router.fly.dev/tcp/4001'],
+            // TODO: Add iceServers support upstream in dart_ipfs package
+            // iceServers: [...],
           ),
         ),
       );
@@ -233,7 +243,7 @@ class P2PManager {
       fromMainPort.send('P2P: Federated Node Active | PeerID: ${node.peerId}');
 
       toIsolatePort.listen((message) async {
-        await handleWorkerMessage(message, node, fromMainPort);
+        await handleWorkerMessage(message, node, fromMainPort, privateKey);
       });
     } catch (e) {
       fromMainPort.send('P2P Error: ${e.toString()}');
@@ -247,7 +257,11 @@ class P2PManager {
   /// Reports results back to the main thread via [fromMainPort].
   @visibleForTesting
   static Future<void> handleWorkerMessage(
-      dynamic message, dynamic node, SendPort fromMainPort) async {
+    dynamic message,
+    dynamic node,
+    SendPort fromMainPort,
+    List<int>? privateKey,
+  ) async {
     if (message is Map<String, dynamic>) {
       final command = P2PCommand.fromJson(message);
 
@@ -272,18 +286,53 @@ class P2PManager {
 
         case P2PCommandType.boost:
           final topic = P2PProtocol.getTopic(command.imdbId);
-          final payload = jsonEncode(command.data);
+          String payload;
+
+          if (privateKey != null) {
+            // Sign the payload before broadcasting
+            final priv = ed.PrivateKey(privateKey);
+
+            // Derive public key explicitly
+            final pub = ed.public(priv);
+            final pubKey = base64Encode(pub.bytes);
+
+            // Re-sign with full context if needed, but for now just sign the 'data'
+            // Actually, let's sign 'imdbId + timestamp' or similar.
+            // To match "Build the Ed25519 signing layer", we should be robust.
+            // Let's sign the jsonEncode of {type, id, data}.
+            final baseMap = {
+              'type': command.type.index,
+              'imdbId': command.imdbId,
+              'data': command.data,
+            };
+            final baseJson = jsonEncode(baseMap);
+            final sig = base64Encode(ed.sign(priv, utf8.encode(baseJson)));
+
+            final finalCmd = P2PCommand(
+              type: command.type,
+              imdbId: command.imdbId,
+              data: command.data,
+              signature: sig,
+              senderPubKey: pubKey,
+            );
+            payload = jsonEncode(finalCmd.toJson());
+          } else {
+            payload = jsonEncode(command.data);
+          }
+
           await node.publish(topic, payload);
           break;
 
         case P2PCommandType.get:
-          fromMainPort
-              .send('P2P: Fetching block ${command.imdbId} via Bitswap...');
+          fromMainPort.send(
+            'P2P: Fetching block ${command.imdbId} via Bitswap...',
+          );
           try {
             final blockData = await node.get(command.imdbId);
             if (blockData != null) {
-              fromMainPort
-                  .send('P2P: Recieved block data: ${blockData.length} bytes');
+              fromMainPort.send(
+                'P2P: Recieved block data: ${blockData.length} bytes',
+              );
             } else {
               fromMainPort.send('P2P: Block not found');
             }

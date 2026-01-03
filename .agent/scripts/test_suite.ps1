@@ -1,4 +1,16 @@
-﻿Write-Host " Running SeedSphere Test Suite..." -ForegroundColor Cyan
+﻿param(
+    [switch]$Quarantine
+)
+
+Write-Host " Running SeedSphere Test Suite..." -ForegroundColor Cyan
+
+if ($Quarantine) {
+    Write-Host "☣️  RUNNING IN QUARANTINE MODE (Flaky Tests Only)" -ForegroundColor Red
+    $TagArg = "--tags flaky"
+} else {
+    $TagArg = "--exclude-tags flaky"
+}
+
 
 # 0. Cleanup Zombies
 Write-Host "Cleaning up zombie Dart processes..." -ForegroundColor Gray
@@ -12,8 +24,8 @@ try {
     dart analyze
     if ($LASTEXITCODE -ne 0) { throw "Router analysis failed" }
 
-    Write-Host "Running dart test..."
-    dart test
+    Write-Host "Running dart test $TagArg..."
+    dart test $TagArg
     if ($LASTEXITCODE -ne 0) { throw "Router tests failed" }
 } catch {
     Write-Error $_
@@ -32,8 +44,8 @@ try {
     flutter analyze
     if ($LASTEXITCODE -ne 0) { throw "Gardener analysis failed" }
 
-    Write-Host "Running flutter test..."
-    flutter test
+    Write-Host "Running flutter test $TagArg..."
+    flutter test $TagArg
     if ($LASTEXITCODE -ne 0) { throw "Gardener tests failed" }
 } catch {
     Write-Error $_

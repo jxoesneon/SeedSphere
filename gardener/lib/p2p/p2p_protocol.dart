@@ -53,25 +53,37 @@ class P2PCommand {
   /// Optional additional data payload (command-specific).
   final Map<String, dynamic>? data;
 
+  /// The cryptographic signature of the command (Ed25519).
+  final String? signature;
+
+  /// The public key of the sender (Base64).
+  final String? senderPubKey;
+
   /// Creates a new P2P command.
   ///
   /// [type] - The command type.
   /// [imdbId] - The target IMDB ID.
   /// [data] - Optional payload data.
+  /// [signature] - Optional Ed25519 signature.
+  /// [senderPubKey] - Optional sender public key.
   P2PCommand({
     required this.type,
     required this.imdbId,
     this.data,
+    this.signature,
+    this.senderPubKey,
   });
 
   /// Serializes this command to JSON for network transmission.
   ///
-  /// Returns a JSON map with 'type' (as integer index), 'imdbId', and 'data'.
+  /// Returns a JSON map with 'type' (as integer index), 'imdbId', 'data', 'sig', and 'pub'.
   Map<String, dynamic> toJson() => {
-        'type': type.index,
-        'imdbId': imdbId,
-        'data': data,
-      };
+    'type': type.index,
+    'imdbId': imdbId,
+    'data': data,
+    if (signature != null) 'sig': signature,
+    if (senderPubKey != null) 'pub': senderPubKey,
+  };
 
   /// Deserializes a P2P command from JSON.
   ///
@@ -83,6 +95,8 @@ class P2PCommand {
       type: P2PCommandType.values[json['type']],
       imdbId: json['imdbId'],
       data: json['data'],
+      signature: json['sig'],
+      senderPubKey: json['pub'],
     );
   }
 }
@@ -119,4 +133,16 @@ class P2PProtocol {
     final bytes = utf8.encode('ss:stream:v1:$imdbId');
     return sha256.convert(bytes).toString();
   }
+}
+
+/// Initialization data passed to the P2P isolate spawned by P2PManager.
+class P2PInitData {
+  /// The SendPort to communicate back to the main isolate.
+  final dynamic
+  sendPort; // Use dynamic to avoid import issues or cast later, but SendPort is in isolate.
+
+  /// The private key bytes (Ed25519) for signing.
+  final List<int> privateKey;
+
+  P2PInitData({required this.sendPort, required this.privateKey});
 }

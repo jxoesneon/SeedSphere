@@ -40,6 +40,15 @@ void main() async {
   // Initialize background sentinel for P2P network stability
   await initializeService();
 
+  // Ensure logs are visible in debug console
+  if (kDebugMode) {
+    debugPrint('Gardener: Launching app...');
+    FlutterError.onError = (details) {
+      FlutterError.dumpErrorToConsole(details);
+      debugPrint(details.toString());
+    };
+  }
+
   runApp(const ProviderScope(child: GardenerApp()));
 }
 

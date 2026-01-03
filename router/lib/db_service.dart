@@ -112,6 +112,13 @@ class DbService {
         created_at INTEGER NOT NULL
       );
     ''');
+
+    // MIGRATIONS (Since we don't have a versioning system yet)
+    try {
+      _db.execute('ALTER TABLE users ADD COLUMN settings_json TEXT');
+    } catch (_) {
+      // Ignore "duplicate column name" error
+    }
   }
 
   // --- Trackers (Distributed Reputation) ---

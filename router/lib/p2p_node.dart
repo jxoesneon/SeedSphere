@@ -54,11 +54,15 @@ class P2PNode {
         }
       }
 
+      final p2pPort = Platform.environment['P2P_PORT'] ?? '2022';
       _node = await _nodeFactory(
         IPFSConfig(
           offline: false,
-          network: const NetworkConfig(
-            listenAddresses: ['/ip4/0.0.0.0/udp/2022', '/ip6/::/udp/2022'],
+          network: NetworkConfig(
+            listenAddresses: [
+              '/ip4/0.0.0.0/udp/$p2pPort',
+              '/ip6/::/udp/$p2pPort',
+            ],
             // Use default public bootstrap nodes (Protocol Labs, etc.)
           ),
         ),

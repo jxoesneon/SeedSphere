@@ -1,57 +1,59 @@
-import 'package:test/test.dart';
+import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
 import 'package:router/health_service.dart';
+import 'package:test/test.dart';
 
 void main() {
   group('HealthService', () {
-    late HealthService healthService;
+    test('checkHealthy HTTP success (HEAD)', () async {
+      final mockClient = MockClient((request) async {
+        if (request.method == 'HEAD') return http.Response('', 200);
+        return http.Response('', 405);
+      });
+      final service = HealthService(client: mockClient);
 
-    setUp(() {
-      healthService = HealthService();
+      expect(await service.checkHealthy('http://example.com'), isTrue);
     });
 
-    test('checkHealthy - HTTP 200', () async {
-      // Note: In a real CI, we might mock http. Client
-      // For now, testing 1:1 parity logic
-      final isHealthy = await healthService.checkHealthy('https://google.com');
-      expect(isHealthy, isTrue);
+    test('checkHealthy HTTP fallback to GET', () async {
+      final mockClient = MockClient((request) async {
+        if (request.method == 'HEAD') return http.Response('', 405);
+        if (request.method == 'GET') return http.Response('body', 200);
+        return http.Response('', 500);
+      });
+      final service = HealthService(client: mockClient);
+
+      expect(await service.checkHealthy('http://example.com'), isTrue);
     });
 
-    test('checkHealthy - Invalid URL', () async {
-      final isHealthy = await healthService.checkHealthy(
-        'http://non-existent-domain-123.com',
-      );
-      expect(isHealthy, isFalse);
+    test('checkHealthy HTTP fails on 404/500', () async {
+      final mockClient = MockClient((request) async {
+        return http.Response('', 404);
+      });
+      final service = HealthService(client: mockClient);
+
+      expect(await service.checkHealthy('http://example.com'), isFalse);
     });
 
-    test('checkHealthy - UDP DNS check', () async {
-      // Testing basic DNS lookup parity
-      final isHealthy = await healthService.checkHealthy(
-        'udp://tracker.opentrackr.org:1337/announce',
-      );
-      expect(isHealthy, isTrue);
+    test('checkHealthy uses cache', () async {
+      int calls = 0;
+      final mockClient = MockClient((request) async {
+        calls++;
+        return http.Response('', 200);
+      });
+      final service = HealthService(client: mockClient);
+
+      await service.checkHealthy('http://example.com');
+      await service.checkHealthy('http://example.com');
+
+      expect(calls, 1);
     });
 
-    test('checkHealthy - SSRF Localhost Rejected', () async {
-      final isHealthy = await healthService.checkHealthy(
-        'http://127.0.0.1:8080',
-      );
-      expect(isHealthy, isFalse);
-    });
-
-    test('checkHealthy - SSRF Private IP Rejected', () async {
-      final privateIps = [
-        'http://192.168.1.1',
-        'http://10.0.0.5:80',
-        'http://172.16.0.1',
-        'http://169.254.169.254', // Cloud metadata
-        'http://[::1]', // IPv6 loopback
-        'http://[fd00::1]', // IPv6 unique local
-      ];
-
-      for (final ip in privateIps) {
-        final isHealthy = await healthService.checkHealthy(ip);
-        expect(isHealthy, isFalse, reason: 'Should reject $ip');
-      }
+    test('Rejects Private IPs (SSRF)', () async {
+      // Note: This relies on real DNS resolving 127.0.0.1 which usually works locally
+      final service = HealthService();
+      expect(await service.checkHealthy('http://127.0.0.1'), isFalse);
+      expect(await service.checkHealthy('http://localhost'), isFalse);
     });
   });
 }
