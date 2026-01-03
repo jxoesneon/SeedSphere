@@ -36,9 +36,19 @@ class _AuthScreenState extends State<AuthScreen> {
   String? _message;
   bool _magicLinkSent = false;
 
-  static const _prodUrl = 'https://seedsphere.fly.dev';
-  String get _apiBase =>
-      (kDebugMode && !kIsWeb) ? 'http://localhost:8080' : _prodUrl;
+  String get _apiBase {
+    if (kDebugMode) {
+      // For local development, point to the local router instance.
+      // Android emulators connect to the host machine's localhost via 10.0.2.2.
+      // Other platforms (iOS simulator, desktop, web) can use localhost directly.
+      if (!kIsWeb && Platform.isAndroid) {
+        return 'http://10.0.2.2:8080';
+      }
+      return 'http://localhost:8080';
+    }
+    // For release builds, use the production URL.
+    return 'https://seedsphere.fly.dev';
+  }
 
   @override
   void dispose() {

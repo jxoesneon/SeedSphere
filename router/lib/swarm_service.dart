@@ -86,17 +86,15 @@ class SwarmService {
       if (response.statusCode != 200) return null;
 
       final decoded = _decodeBencode(response.bodyBytes);
+      if (decoded is! Map) return null;
+
       final files = decoded['files'];
-      if (files == null) return null;
+      if (files is! Map) return null;
 
-      // The key is a binary string of the 20-byte infohash
       final targetKey = _hexToBinary(ihHex);
-      dynamic rec;
-      files.forEach((k, v) {
-        if (k == targetKey) rec = v;
-      });
+      final rec = files[targetKey];
 
-      if (rec == null) return null;
+      if (rec is! Map) return null;
 
       return {
         'ok': true,
@@ -202,10 +200,12 @@ class SwarmService {
     int i = 0;
 
     dynamic parse() {
+      if (i >= data.length) throw Exception('Unexpected end of bencode');
       final char = String.fromCharCode(data[i]);
       if (char == 'i') {
         i++;
         final end = data.indexOf(101, i); // 'e'
+        if (end == -1) throw Exception('Missing integer terminator');
         final val = int.parse(utf8.decode(data.sublist(i, end)));
         i = end + 1;
         return val;
@@ -213,7 +213,7 @@ class SwarmService {
       if (char == 'l') {
         i++;
         final list = [];
-        while (String.fromCharCode(data[i]) != 'e') {
+        while (i < data.length && String.fromCharCode(data[i]) != 'e') {
           list.add(parse());
         }
         i++;
@@ -222,7 +222,7 @@ class SwarmService {
       if (char == 'd') {
         i++;
         final dict = <String, dynamic>{};
-        while (String.fromCharCode(data[i]) != 'e') {
+        while (i < data.length && String.fromCharCode(data[i]) != 'e') {
           final key = parse() as String;
           final val = parse();
           dict[key] = val;
@@ -230,20 +230,20 @@ class SwarmService {
         i++;
         return dict;
       }
-      if (char.contains(RegExp(r'[0-9]'))) {
+      if (RegExp(r'[0-9]').hasMatch(char)) {
         final colon = data.indexOf(58, i); // ':'
+        if (colon == -1) throw Exception('Missing string colon');
         final len = int.parse(utf8.decode(data.sublist(i, colon)));
         i = colon + 1;
+        if (i + len > data.length) throw Exception('String overflow');
         final val = data.sublist(i, i + len);
         i += len;
-        // Check if it's likely a string or binary
-        try {
-          return utf8.decode(val);
-        } catch (_) {
-          return String.fromCharCodes(val);
-        }
+
+        // For Bencode, it's safer to treat strings as raw byte sequences
+        // to avoid UTF-8 decoding errors with binary keys (like infohashes).
+        return String.fromCharCodes(val);
       }
-      throw Exception('Invalid bencode at $i');
+      throw Exception('Invalid bencode at $i: $char');
     }
 
     return parse();

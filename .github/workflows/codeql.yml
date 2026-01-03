@@ -7,8 +7,8 @@ on:
 jobs:
   analyze:
     name: Analyze
-    runs-on: 'ubuntu-latest'
-    timeout-minutes: 360
+    runs-on: ${{ (matrix.language == 'swift' && 'macos-latest') || 'ubuntu-latest' }}
+    timeout-minutes: ${{ (matrix.language == 'swift' && 120) || 360 }}
     permissions:
       actions: read
       contents: read
@@ -17,7 +17,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        language: ["java-kotlin"]
+        language: ["swift", "java-kotlin"]
         # CodeQL supports [ 'c-cpp', 'csharp', 'go', 'java-kotlin', 'javascript-typescript', 'python', 'ruby', 'swift' ]
         # Learn more about CodeQL language support at https://aka.ms/codeql-docs/language-support
 
@@ -52,6 +52,9 @@ jobs:
         run: |
           cd gardener
           flutter pub get
+          if [ "${{ matrix.language }}" == "swift" ]; then
+            flutter precache --ios
+          fi
 
       # --- Manual Build Steps ---
 

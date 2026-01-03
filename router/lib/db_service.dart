@@ -427,24 +427,15 @@ class DbService {
         for (final key in _sensitiveKeys) {
           if (settings.containsKey(key)) {
             try {
-              // Only decrypt if it looks encrypted (optional check, or just try-catch)
-              // For now we assume everything in these keys IS encrypted by us.
               settings[key] = CryptoHelper.decrypt(
                 settings[key],
                 _encryptionKey,
               );
-            } catch (e) {
-              // If decryption fails, it might be old plain-text data. Return as is.
-              // print('Warn: Could not decrypt $key for user $id');
-            }
+            } catch (_) {}
           }
         }
-        user['settings_json'] = jsonEncode(
-          settings,
-        ); // Re-encode with decrypted values for consumer transparency?
-        // Or better: The consumer (AddonService) expects a Map or string?
-        // AddonService accesses settings_json then decodes it.
-        // So yes, we re-encode the decrypted map into the blob so the consumer sees plain text.
+        // Map to 'settings' key for the consumer (and tests)
+        user['settings'] = settings;
       } catch (_) {}
     }
     return user;

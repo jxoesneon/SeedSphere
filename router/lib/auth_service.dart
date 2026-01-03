@@ -61,7 +61,7 @@ class AuthService {
     // Google Auth
     app.get('/google/start', _handleGoogleStart);
     app.get('/google/callback', _handleGoogleCallback);
-    app.post('/google/verify', _handleGoogleVerify); // Added verify endpoint
+    app.post('/google/verify', _handleGoogleVerify);
 
     // Magic Link
     app.post('/magic/start', _handleMagicStart);
