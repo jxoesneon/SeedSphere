@@ -283,7 +283,7 @@ jobs:
           name: gardener-macos-universal
           path: |
             gardener/build/macos/Build/Products/Release/gardener.app
-            gardener.dmg
+            gardener/gardener.dmg
           if-no-files-found: error
 
   release:
@@ -378,12 +378,12 @@ jobs:
           files: |
             dist/gardener-android-*.apk
             dist/gardener-windows-*.exe
-            dist/gardener-linux-x64.zip
-            dist/gardener-linux-arm64.zip
+            dist/gardener-linux-x64-*.zip
+            dist/gardener-linux-arm64-*.zip
             dist/*.deb
             dist/*.rpm
             dist/*.dmg
-            dist/gardener-macos-universal.zip
+            dist/gardener-macos-universal-*.zip
           draft: false
           prerelease: false
           generate_release_notes: true
