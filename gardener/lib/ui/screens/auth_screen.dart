@@ -128,7 +128,7 @@ class _AuthScreenState extends State<AuthScreen> {
             scopeHint: ['email', 'profile'],
           );
 
-          final auth = await account.authentication;
+          final auth = account.authentication;
           idToken = auth.idToken;
         } catch (error) {
           debugPrint('Google Sign-In error: $error');
