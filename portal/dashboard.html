@@ -221,40 +221,62 @@
           <div class="settings-card glass">
             <h3>API Credentials</h3>
             <form class="form-group" onsubmit="return false;">
-              <label for="rd-key">Real-Debrid API Key</label>
+              <div style="display: flex; justify-content: space-between; align-items: baseline;">
+                <label for="rd-key">Real-Debrid API Key</label>
+                <a href="https://real-debrid.com/apitoken" target="_blank" style="font-size: 0.8rem; color: var(--aether-blue);">Where to find this?</a>
+              </div>
               <!-- Accessibility: Hidden username -->
-              <input
-                type="text"
-                name="username"
-                autocomplete="username"
-                style="display: none"
-              />
-              <input
-                type="password"
-                class="form-input"
-                placeholder="••••••••"
-                id="rd-key"
-                autocomplete="new-password"
-              />
+              <input type="text" name="username" autocomplete="username" style="display: none" />
+              <div class="input-wrapper" style="position: relative;">
+                <input
+                  type="password"
+                  class="form-input"
+                  placeholder="••••••••"
+                  id="rd-key"
+                  autocomplete="new-password"
+                  pattern="[a-zA-Z0-9]+"
+                  title="Alphanumeric characters only"
+                  style="padding-right: 2.5rem;"
+                />
+                <button 
+                    type="button" 
+                    class="btn-toggle-visibility" 
+                    data-target="rd-key"
+                    style="position: absolute; right: 0.5rem; top: 50%; transform: translateY(-50%); background: none; border: none; color: rgba(255,255,255,0.5); cursor: pointer; padding: 0.25rem;"
+                >
+                    👁️
+                </button>
+              </div>
               <button class="btn-save">Save</button>
             </form>
 
             <form class="form-group" onsubmit="return false;">
-              <label for="ad-key">AllDebrid API Key</label>
+              <div style="display: flex; justify-content: space-between; align-items: baseline;">
+                <label for="ad-key">AllDebrid API Key</label>
+                <a href="https://alldebrid.com/apikeys" target="_blank" style="font-size: 0.8rem; color: var(--aether-blue);">Where to find this?</a>
+              </div>
               <!-- Accessibility: Hidden username -->
-              <input
-                type="text"
-                name="username"
-                autocomplete="username"
-                style="display: none"
-              />
-              <input
-                type="password"
-                class="form-input"
-                placeholder="••••••••"
-                id="ad-key"
-                autocomplete="new-password"
-              />
+              <input type="text" name="username" autocomplete="username" style="display: none" />
+              <div class="input-wrapper" style="position: relative;">
+                <input
+                  type="password"
+                  class="form-input"
+                  placeholder="••••••••"
+                  id="ad-key"
+                  autocomplete="new-password"
+                  pattern="[a-zA-Z0-9]+"
+                  title="Alphanumeric characters only"
+                  style="padding-right: 2.5rem;"
+                />
+                <button 
+                    type="button" 
+                    class="btn-toggle-visibility" 
+                    data-target="ad-key"
+                    style="position: absolute; right: 0.5rem; top: 50%; transform: translateY(-50%); background: none; border: none; color: rgba(255,255,255,0.5); cursor: pointer; padding: 0.25rem;"
+                >
+                    👁️
+                </button>
+              </div>
               <button class="btn-save">Save</button>
             </form>
           </div>

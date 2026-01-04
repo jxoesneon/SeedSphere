@@ -199,33 +199,70 @@ function setupInteractions() {
 
   // Logout/Login button logic moved to updateUI for dynamic state handling
 
-  // Save API keys
+  // Visibility Toggles
+  document.querySelectorAll(".btn-toggle-visibility").forEach((btn) => {
+    btn.addEventListener("click", (e) => {
+      e.preventDefault();
+      const targetId = btn.getAttribute("data-target");
+      const input = document.getElementById(targetId);
+      if (input) {
+        if (input.type === "password") {
+          input.type = "text";
+          btn.textContent = "🔒";
+        } else {
+          input.type = "password";
+          btn.textContent = "👁️";
+        }
+      }
+    });
+  });
+
   // Save API keys
   const saveBtns = document.querySelectorAll(".btn-save");
   saveBtns.forEach((btn) => {
     btn.addEventListener("click", async (e) => {
       e.preventDefault();
-      const input = btn.previousElementSibling;
+      // Navigate up to form then find input
+      const form = btn.closest(".form-group");
+      const input = form.querySelector(".form-input");
       const keyId = input.id;
       const keyMap = { "rd-key": "rd_key", "ad-key": "ad_key" };
       const keyType = keyMap[keyId];
 
       if (!keyType) return;
 
+      // Validation
+      const keyVal = input.value.trim();
+      const alphanumericRegex = /^[a-zA-Z0-9]+$/;
+      
+      if (keyVal.length > 0 && !alphanumericRegex.test(keyVal)) {
+        btn.textContent = "Invalid Format";
+        btn.style.background = "#ef4444";
+        setTimeout(() => {
+            btn.textContent = "Save";
+            btn.style.background = "";
+        }, 2000);
+        showToast("API Key must be alphanumeric (no spaces or special chars)", "error");
+        return;
+      }
+
       btn.textContent = "Saving...";
       try {
         await fetch(`${API_BASE}/api/auth/settings`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ [keyType]: input.value }),
+          body: JSON.stringify({ [keyType]: keyVal }),
         });
         btn.textContent = "Saved!";
+        btn.style.background = "#4ade80";
       } catch (err) {
         btn.textContent = "Error";
+         btn.style.background = "#ef4444";
       }
 
       setTimeout(() => {
         btn.textContent = "Save";
+        btn.style.background = "";
       }, 2000);
     });
   });
