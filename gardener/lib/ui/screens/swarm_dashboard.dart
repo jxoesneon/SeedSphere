@@ -9,7 +9,6 @@ import 'package:gardener/ui/widgets/user_profile_dialog.dart';
 import 'package:gardener/ui/theme/aetheric_theme.dart';
 import 'package:gardener/ui/widgets/swarm_health_hero.dart';
 import 'package:gardener/ui/widgets/signal_card.dart';
-import 'package:gardener/core/haptic_manager.dart';
 import 'package:gardener/core/network_constants.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -37,8 +36,6 @@ class _SwarmDashboardState extends State<SwarmDashboard> {
 
   StreamSubscription? _sseSubscription;
   late final http.Client _client;
-
-  String get _apiBase => NetworkConstants.apiBase;
 
   @override
   void initState() {
