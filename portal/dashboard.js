@@ -287,22 +287,34 @@ function setupInteractions() {
   if (dangerBtns.length >= 2) {
     // Unlink
     dangerBtns[0].addEventListener("click", async () => {
-      if (confirm("Unlink all devices from this account?")) {
-        await fetch(`${API_BASE}/api/auth/unlink`, { method: "POST" });
-        alert("Devices unlinked.");
-        window.location.reload();
-      }
+      showConfirm(
+        "Unlink All Devices?", 
+        "This will disconnect all devices from your account. You will need to re-link them manually.",
+        async () => {
+             await fetch(`${API_BASE}/api/auth/unlink`, { method: "POST" });
+             showToast("Devices unlinked successfully.", "success");
+             setTimeout(() => window.location.reload(), 1500);
+        },
+        null, // cancel callback
+        "Unlink", // confirm text
+        true // isDanger
+      );
     });
 
     // Delete
     dangerBtns[1].addEventListener("click", async () => {
-      const confirmed = prompt(
-        'Type "DELETE" to confirm account deletion. This cannot be undone.'
-      );
-      if (confirmed === "DELETE") {
-        await fetch(`${API_BASE}/api/auth/account`, { method: "DELETE" });
-        window.location.reload();
-      }
+        // Custom Prompt Logic for Deletion
+        showPrompt(
+            "Delete Account",
+            "This action is irreversible. Type <strong>DELETE</strong> to confirm.",
+            "DELETE",
+            async () => {
+                 await fetch(`${API_BASE}/api/auth/account`, { method: "DELETE" });
+                 showToast("Account deleted.", "success");
+                 setTimeout(() => window.location.reload(), 1500);
+            },
+            true // isDanger
+        );
     });
   }
 
@@ -366,10 +378,11 @@ function setupInteractions() {
 
           window.location.href = manifestUrl;
         } else {
-          alert("Please sign in first.");
+          showToast("Please sign in to install addons.", "info");
         }
       } catch (e) {
         console.error("Install failed", e);
+        showToast("Failed to initiate install.", "error");
       }
     });
   }
@@ -379,27 +392,131 @@ function setupInteractions() {
 function showToast(message, type = "info") {
   const container = document.getElementById("toast-container");
   const toast = document.createElement("div");
+  
+  // Icon based on type
+  let icon = "ℹ️";
+  if (type === "success") icon = "✅";
+  if (type === "error") icon = "⚠️";
+
   toast.className = `toast toast-${type}`;
-  toast.textContent = message;
+  toast.innerHTML = `<span>${icon}</span> <span>${message}</span>`; // Use innerHTML for flex layout
 
-  // Add glass effect and animation styles dynamically if not in CSS
-  toast.style.background = "rgba(255, 255, 255, 0.9)";
-  toast.style.backdropFilter = "blur(10px)";
-  toast.style.padding = "1rem 1.5rem";
-  toast.style.borderRadius = "12px";
-  toast.style.margin = "0.5rem";
-  toast.style.boxShadow = "0 4px 6px rgba(0,0,0,0.1)";
-  toast.style.borderLeft =
-    type === "success" ? "4px solid #4ade80" : "4px solid #60a5fa";
-  toast.style.animation = "slideIn 0.3s ease-out";
-
+  // Remove inline styles as we moved to CSS
+  
   container.appendChild(toast);
 
+  // Auto remove
   setTimeout(() => {
-    toast.style.opacity = "0";
-    toast.style.transform = "translateX(100%)";
-    setTimeout(() => toast.remove(), 300);
-  }, 3000);
+    toast.classList.add("hiding");
+    // Wait for transition
+    setTimeout(() => toast.remove(), 400);
+  }, 4000);
+}
+
+// --- Dynamic Modal System ---
+function showConfirm(title, message, onConfirm, onCancel, confirmText="Confirm", isDanger=false) {
+    createModal(title, message, [
+        {
+            text: "Cancel",
+            class: "btn-modal-cancel",
+            action: (modal) => {
+                if(onCancel) onCancel();
+                closeModal(modal);
+            }
+        },
+        {
+            text: confirmText,
+            class: isDanger ? "btn-modal-danger" : "btn-modal-confirm",
+            action: (modal) => {
+                if(onConfirm) onConfirm();
+                closeModal(modal);
+            }
+        }
+    ]);
+}
+
+function showPrompt(title, message, expectedValue, onCheck, isDanger=false) {
+     const inputId = "modal-input-" + Date.now();
+     const htmlMessage = `
+        <p>${message}</p>
+        <input type="text" id="${inputId}" class="form-input" style="margin-top: 1rem; text-transform: uppercase;" placeholder="Type ${expectedValue}">
+     `;
+
+    createModal(title, htmlMessage, [
+        {
+            text: "Cancel",
+            class: "btn-modal-cancel",
+            action: (modal) => closeModal(modal)
+        },
+        {
+            text: "Confirm",
+            class: isDanger ? "btn-modal-danger" : "btn-modal-confirm",
+            action: (modal) => {
+                const val = document.getElementById(inputId).value;
+                if (val === expectedValue) {
+                    if(onCheck) onCheck();
+                    closeModal(modal);
+                } else {
+                    showToast(`Incorrect confirmation. Type ${expectedValue}`, "error");
+                    // Don't close modal
+                }
+            }
+        }
+    ]);
+}
+
+function createModal(title, content, buttons) {
+    const existing = document.getElementById("active-modal");
+    if(existing) existing.remove();
+
+    const overlay = document.createElement("div");
+    overlay.id = "active-modal";
+    overlay.className = "modal-overlay";
+    
+    // Check if content implies HTML (e.g. for prompt input)
+    const isHtml = content.includes("<") && content.includes(">");
+
+    let btnsHtml = "";
+    // We attach listeners after render, so just placeholders for now? 
+    // Actually cleaner to build DOM elements
+    
+    const card = document.createElement("div");
+    card.className = "modal-card glass";
+    
+    // Title
+    const h3 = document.createElement("h3");
+    h3.className = "modal-title";
+    h3.textContent = title;
+    
+    // Body
+    const body = document.createElement("div");
+    body.className = "modal-body";
+    if(isHtml) body.innerHTML = content;
+    else body.textContent = content;
+
+    // Actions
+    const actionContainer = document.createElement("div");
+    actionContainer.className = "modal-actions";
+    
+    buttons.forEach(btnConfig => {
+        const btn = document.createElement("button");
+        btn.className = `btn-modal ${btnConfig.class}`;
+        btn.textContent = btnConfig.text;
+        btn.onclick = () => btnConfig.action(overlay);
+        actionContainer.appendChild(btn);
+    });
+
+    card.appendChild(h3);
+    card.appendChild(body);
+    card.appendChild(actionContainer);
+    overlay.appendChild(card);
+    
+    document.body.appendChild(overlay);
+}
+
+function closeModal(modalElement) {
+    modalElement.style.opacity = "0";
+    setTimeout(() => modalElement.remove(), 200);
 }
 
 function showQrModal(tokenRaw) {
