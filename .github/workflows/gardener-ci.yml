@@ -264,9 +264,9 @@ jobs:
         run: |
           brew install create-dmg
           test -f gardener.dmg && rm gardener.dmg
+          ls -R gardener/build/macos/Build/Products/Release/gardener.app
           create-dmg \
             --volname "Gardener Installer" \
-            --volicon "gardener/build/macos/Build/Products/Release/gardener.app/Contents/Resources/AppIcon.icns" \
             --window-pos 200 120 \
             --window-size 800 400 \
             --icon-size 100 \
