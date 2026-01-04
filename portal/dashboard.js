@@ -519,7 +519,7 @@ function createModal(title, content, buttons) {
 
 function closeModal(modalElement) {
     modalElement.style.opacity = "0";
-    setTimeout(() => modalElement.remove()  }, 3000);
+    setTimeout(() => modalElement.remove(), 200);
 }
 
 // --- Activity & Devices ---
