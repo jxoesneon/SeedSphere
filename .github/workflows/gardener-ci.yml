@@ -192,8 +192,9 @@ jobs:
           distro: ubuntu22.04
           githubToken: ${{ github.token }}
           install: |
+            # Install build dependencies
             apt-get update
-            apt-get install -y git curl unzip clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev libstdc++-12-dev libsecret-1-dev
+            apt-get install -y curl git unzip xz-utils zip libglu1-mesa clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev ruby ruby-dev build-essential rpm-1-dev
 
             # Install Flutter manually in ARM container
             git clone https://github.com/flutter/flutter.git -b stable --depth 1 /opt/flutter
