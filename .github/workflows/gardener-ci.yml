@@ -266,7 +266,7 @@ jobs:
           test -f gardener.dmg && rm gardener.dmg
           create-dmg \
             --volname "Gardener Installer" \
-            --volicon "gardener/assets/app_icon.icns" \
+            --volicon "gardener/build/macos/Build/Products/Release/gardener.app/Contents/Resources/AppIcon.icns" \
             --window-pos 200 120 \
             --window-size 800 400 \
             --icon-size 100 \
