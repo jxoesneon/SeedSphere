@@ -9,6 +9,8 @@ import 'package:gardener/ui/widgets/user_profile_dialog.dart';
 import 'package:gardener/ui/theme/aetheric_theme.dart';
 import 'package:gardener/ui/widgets/swarm_health_hero.dart';
 import 'package:gardener/ui/widgets/signal_card.dart';
+import 'package:gardener/core/haptic_manager.dart';
+import 'package:gardener/core/network_constants.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 /// "The Observatory" - Central hub for swarm monitoring and discovery.
@@ -36,6 +38,8 @@ class _SwarmDashboardState extends State<SwarmDashboard> {
   StreamSubscription? _sseSubscription;
   late final http.Client _client;
 
+  String get _apiBase => NetworkConstants.apiBase;
+
   @override
   void initState() {
     super.initState();
@@ -56,7 +60,9 @@ class _SwarmDashboardState extends State<SwarmDashboard> {
     try {
       // SeedSphere router exposes standard Stremio addon catalog at root
       // 'top' catalog for 'movie' type
-      final uri = Uri.parse('http://127.0.0.1:8080/catalog/movie/top.json');
+      final uri = Uri.parse(
+        '${NetworkConstants.catalogEndpoint}/movie/top.json',
+      );
       final resp = await _client.get(uri);
 
       if (resp.statusCode == 200) {
@@ -71,7 +77,6 @@ class _SwarmDashboardState extends State<SwarmDashboard> {
                 'subtitle': m['releaseInfo'] ?? 'Unknown',
                 'source': 'Popular',
                 'magnet': null,
-                'seeders': 0,
                 'poster': m['poster'],
               };
             }).toList();
@@ -93,7 +98,7 @@ class _SwarmDashboardState extends State<SwarmDashboard> {
 
       final req = http.Request(
         'GET',
-        Uri.parse('http://127.0.0.1:8080/api/rooms/$userId/events'),
+        Uri.parse('${NetworkConstants.eventsEndpoint}/$userId/events'),
       );
       req.headers['Accept'] = 'text/event-stream';
       if (authToken != null) {
