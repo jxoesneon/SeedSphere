@@ -42,7 +42,10 @@ async function loadUserData() {
       document.getElementById("login-overlay").style.display = "none";
       document.getElementById("main-dashboard").style.filter = "none";
       updateUI(data.user);
+      updateUI(data.user);
       fetchStats();
+      fetchActivity(); // New: Load real activity
+      fetchDevices();  // New: Load real linked devices
 
       // Load Linking Token & Settings
       try {
@@ -516,9 +519,128 @@ function createModal(title, content, buttons) {
 
 function closeModal(modalElement) {
     modalElement.style.opacity = "0";
-    setTimeout(() => modalElement.remove(), 200);
+    setTimeout(() => modalElement.remove()  }, 3000);
 }
 
+// --- Activity & Devices ---
+async function fetchActivity() {
+    try {
+        const res = await fetch(`${API_BASE}/api/auth/activity`);
+        const data = await res.json();
+        const container = document.querySelector(".activity-feed");
+        
+        if (data.ok && data.activity && container) {
+            container.innerHTML = ""; // Clear fake data
+            
+            if(data.activity.length === 0) {
+                 container.innerHTML = `<div style="padding: 2rem; text-align: center; color: var(--text-secondary);">No activity functionality yet.</div>`;
+                 return;
+            }
+
+            data.activity.forEach(item => {
+                const el = document.createElement("div");
+                el.className = "activity-item glass";
+                el.innerHTML = `
+                    <span class="activity-icon">${item.icon || '📝'}</span>
+                    <div class="activity-content">
+                        <div>
+                             <strong>${item.title}</strong>
+                             ${ item.details ? `<div style="font-size: 0.85rem; opacity: 0.8;">${item.details}</div>` : ''}
+                        </div>
+                        <span class="activity-time">${timeAgo(item.timestamp)}</span>
+                    </div>
+                `;
+                container.appendChild(el);
+            });
+        }
+    } catch(e) {
+        console.error("Failed to load activity", e);
+    }
+}
+
+async function fetchDevices() {
+    // We don't have a specific "Linked Devices" container in the HTML overview yet, 
+    // but the user asked for "Device Linked [tab?]... linked device doesn't show my actual...".
+    // I will append a "Linked Devices" card TO THE SETTINGS tab or modify the overview.
+    // Actually, let's put it in the "Settings" tab for now as "Linked Devices" list, 
+    // or maybe a new section in "Activity" tab?
+    // The user mentioned "for the next tab still on portal under activity... device linked doesn't show my actual devices".
+    // The activity feed itself shows "Device Linked" events. 
+    // I should also list the active devices somewhere.
+    // I'll add a "Active Devices" list to the Settings tab dynamically.
+    
+    try {
+        const res = await fetch(`${API_BASE}/api/auth/devices`);
+        const data = await res.json();
+        
+        // Find a place to inject. The 'Linking Token' card in settings is good.
+        // Or render in the Activity tab if there's space?
+        // Let's add it to Settings -> Linking Token card (append).
+        
+        const settingsCard = document.querySelectorAll(".settings-card")[1]; // Linking Token card
+        if (data.ok && data.devices && settingsCard) {
+            // Remove old device list if any
+            const oldList = document.getElementById("device-list-container");
+            if(oldList) oldList.remove();
+
+            const devContainer = document.createElement("div");
+            devContainer.id = "device-list-container";
+            devContainer.style.marginTop = "1.5rem";
+            devContainer.style.borderTop = "1px solid rgba(255,255,255,0.1)";
+            devContainer.style.paddingTop = "1rem";
+            
+            devContainer.innerHTML = `<h4 style="margin-bottom: 1rem; color: var(--text-secondary); font-size: 0.9rem; text-transform: uppercase; letter-spacing: 1px;">ACTIVE DEVICES (${data.devices.length})</h4>`;
+            
+            if(data.devices.length === 0) {
+                 devContainer.innerHTML += `<div style="font-size: 0.9rem; color: rgba(255,255,255,0.4);">No devices linked yet.</div>`;
+            } else {
+                 data.devices.forEach(d => {
+                     const row = document.createElement("div");
+                     row.style.display = "flex";
+                     row.style.justifyContent = "space-between";
+                     row.style.padding = "0.75rem";
+                     row.style.background = "rgba(255,255,255,0.03)";
+                     row.style.borderRadius = "8px";
+                     row.style.marginBottom = "0.5rem";
+                     
+                     // Mask ID for privacy? Or show first chunk.
+                     const shortId = d.device_id.substring(0, 8) + "...";
+                     
+                     row.innerHTML = `
+                        <div style="display: flex; align-items: center; gap: 0.5rem;">
+                             <span>📱</span>
+                             <span>${shortId}</span>
+                        </div>
+                        <div style="font-size: 0.8rem; color: var(--text-secondary);">
+                            ${timeAgo(d.linked_at)}
+                        </div>
+                     `;
+                     devContainer.appendChild(row);
+                 });
+            }
+            
+            settingsCard.appendChild(devContainer);
+        }
+    } catch(e) {
+        console.error("Failed to load devices", e);
+    }
+}
+
+function timeAgo(timestamp) {
+    const seconds = Math.floor((Date.now() - timestamp) / 1000);
+    
+    let interval = seconds / 31536000;
+    if (interval > 1) return Math.floor(interval) + " years ago";
+    interval = seconds / 2592000;
+    if (interval > 1) return Math.floor(interval) + " months ago";
+    interval = seconds / 86400;
+    if (interval > 1) return Math.floor(interval) + " days ago";
+    interval = seconds / 3600;
+    if (interval > 1) return Math.floor(interval) + " hours ago";
+    interval = seconds / 60;
+    if (interval > 1) return Math.floor(interval) + " minutes ago";
+    return Math.floor(seconds) + " seconds ago";
+}
 function showQrModal(tokenRaw) {
   const modal = document.getElementById("qr-modal");
   const img = document.getElementById("qr-image");

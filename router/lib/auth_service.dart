@@ -77,6 +77,10 @@ class AuthService {
     app.delete('/account', _handleDeleteAccount);
     app.post('/unlink', _handleUnlinkDevices);
 
+    // Profile Data
+    app.get('/activity', _handleGetActivity);
+    app.get('/devices', _handleGetDevices);
+
     return app;
   }
 
@@ -407,6 +411,26 @@ class AuthService {
     // Actually, I can just not implement it perfectly, or use `_db.createBinding` to overwrite? No.
     // I'll return OK but todo.
     return Response.ok(jsonEncode({'ok': true, 'message': 'unlinked_all'}));
+  }
+
+  Future<Response> _handleGetActivity(Request req) async {
+    final userId = _getSessionId(req);
+    if (userId == null) {
+      return Response.forbidden(jsonEncode({'error': 'unauthorized'}));
+    }
+
+    final activity = _db.getUserActivity(userId);
+    return Response.ok(jsonEncode({'ok': true, 'activity': activity}));
+  }
+
+  Future<Response> _handleGetDevices(Request req) async {
+    final userId = _getSessionId(req);
+    if (userId == null) {
+      return Response.forbidden(jsonEncode({'error': 'unauthorized'}));
+    }
+
+    final devices = _db.getBindings(userId);
+    return Response.ok(jsonEncode({'ok': true, 'devices': devices}));
   }
 
   // --- Helpers ---

@@ -398,6 +398,59 @@ class DbService {
     return result.first['cnt'] as int;
   }
 
+  /// Returns a list of all devices (seedlings) bound to this Gardener.
+  List<Map<String, dynamic>> getBindings(String gardenerId) {
+    final result = _db.select(
+      'SELECT seedling_id, created_at FROM bindings WHERE gardener_id = ? ORDER BY created_at DESC',
+      [gardenerId],
+    );
+    return result
+        .map(
+          (row) => {
+            'device_id': row['seedling_id'],
+            'linked_at': row['created_at'],
+          },
+        )
+        .toList();
+  }
+
+  /// Aggregates user activity from various tables (Account creation, Bindings).
+  List<Map<String, dynamic>> getUserActivity(String userId) {
+    final activities = <Map<String, dynamic>>[];
+
+    // 1. Account Creation
+    final userRes = _db.select('SELECT created_at FROM users WHERE id = ?', [
+      userId,
+    ]);
+    if (userRes.isNotEmpty) {
+      activities.add({
+        'type': 'account_created',
+        'title': 'Account Created',
+        'timestamp': userRes.first['created_at'],
+        'icon': '🌱',
+      });
+    }
+
+    // 2. Linked Devices
+    final bindings = getBindings(userId);
+    for (final b in bindings) {
+      activities.add({
+        'type': 'device_linked',
+        'title': 'Device Linked',
+        'details': 'Linked device ${b['device_id']}',
+        'timestamp': b['linked_at'],
+        'icon': '🔗',
+      });
+    }
+
+    // Sort by timestamp descending
+    activities.sort(
+      (a, b) => (b['timestamp'] as int).compareTo(a['timestamp'] as int),
+    );
+
+    return activities;
+  }
+
   // --- Encryption Support ---
   String get _encryptionKey {
     final key = Platform.environment['DB_ENCRYPTION_KEY'];
