@@ -264,7 +264,7 @@ jobs:
         run: |
           brew install create-dmg
           test -f gardener.dmg && rm gardener.dmg
-          ls -R gardener/build/macos/Build/Products/Release/gardener.app
+          ls -R build/macos/Build/Products/Release/gardener.app
           create-dmg \
             --volname "Gardener Installer" \
             --window-pos 200 120 \
@@ -274,7 +274,7 @@ jobs:
             --hide-extension "gardener.app" \
             --app-drop-link 600 185 \
             "gardener.dmg" \
-            "gardener/build/macos/Build/Products/Release/gardener.app"
+            "build/macos/Build/Products/Release/gardener.app"
 
       - name: Upload macOS Build
         uses: actions/upload-artifact@v4
