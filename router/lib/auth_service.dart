@@ -401,23 +401,7 @@ class AuthService {
       return Response.forbidden(jsonEncode({'error': 'csrf_violation'}));
     }
 
-    // For now, this just unlinks all bindings where this user is the gardener
-    // Ideally we'd have a specific method in DbService, but deleteUser does it too.
-    // For simple unlink, we can execute SQL here or add method.
-    // Let's add explicit SQL call for safety or reuse logic.
-    // Since we don't have explicit 'deleteAllBindings' in DB service exposed,
-    // we will rely on deleting token for now or skipping implementation nuance,
-    // BUT user asked for it.
-    // Actually, deleteUser deletes bindings.
-    // Let's implement a 'unlinkAll' specific query here or assume it's acceptable for now.
-    // Wait, I can't run raw SQL here easily without DbService exposure.
-    // I already edited DbService to add `deleteUser`. I didn't add `unlinkAll`.
-    // I'll stick to delete account working fully. Unlink might be a no-op for now unless I add it.
-    // Let's verify DbService again. It has `deleteUser` which cascades.
-    // I'll leave unlink as a placeholder or mapped to delete bindings on the fly?
-    // Let's map Unlink to returning OK for parity, maybe implement later if critical.
-    // Actually, I can just not implement it perfectly, or use `_db.createBinding` to overwrite? No.
-    // I'll return OK but todo.
+    _db.deleteUserBindings(userId);
     return Response.ok(jsonEncode({'ok': true, 'message': 'unlinked_all'}));
   }
 

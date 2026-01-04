@@ -28,7 +28,9 @@ async function loadUserData() {
   // API_BASE is global
 
   try {
-    const res = await fetch(`${API_BASE}/api/auth/session`, { credentials: 'include' });
+    const res = await fetch(`${API_BASE}/api/auth/session`, {
+      credentials: "include",
+    });
     const data = await res.json();
 
     // Check for login triggers
@@ -45,7 +47,7 @@ async function loadUserData() {
       updateUI(data.user);
       fetchStats();
       fetchActivity(); // New: Load real activity
-      fetchDevices();  // New: Load real linked devices
+      fetchDevices(); // New: Load real linked devices
 
       // Load Linking Token & Settings
       try {
@@ -177,19 +179,19 @@ function setupDashboardNav() {
   // Profile Navigation (User Badge)
   const userBadge = document.querySelector(".user-badge");
   if (userBadge) {
-      userBadge.addEventListener("click", (e) => {
-          e.preventDefault();
-          
-           // Remove active class from all items
-          navItems.forEach((nav) => nav.classList.remove("active"));
-          sections.forEach((section) => (section.style.display = "none"));
+    userBadge.addEventListener("click", (e) => {
+      e.preventDefault();
 
-          const profileSection = document.getElementById("profile");
-          if(profileSection) {
-              profileSection.style.display = "block";
-              loadProfile(); // Fetch fresh data
-          }
-      });
+      // Remove active class from all items
+      navItems.forEach((nav) => nav.classList.remove("active"));
+      sections.forEach((section) => (section.style.display = "none"));
+
+      const profileSection = document.getElementById("profile");
+      if (profileSection) {
+        profileSection.style.display = "block";
+        loadProfile(); // Fetch fresh data
+      }
+    });
   }
 }
 
@@ -213,8 +215,10 @@ function setupInteractions() {
           body: JSON.stringify({ email }),
         });
         if (!res.ok) {
-            const errData = await res.json().catch(() => ({ error: res.statusText }));
-            throw new Error(errData.error || "Request failed");
+          const errData = await res
+            .json()
+            .catch(() => ({ error: res.statusText }));
+          throw new Error(errData.error || "Request failed");
         }
         statusFn.textContent = "Check your email for the sign-in link!";
         statusFn.style.color = "#4ade80";
@@ -256,11 +260,11 @@ function setupInteractions() {
       const input = form.querySelector(".form-input");
       const keyId = input.id;
       // Map IDs to API fields
-      const keyMap = { 
-          "rd-key": "rd_key", 
-          "ad-key": "ad_key",
-          "profile-rd-key": "rd_key",
-          "profile-ad-key": "ad_key"
+      const keyMap = {
+        "rd-key": "rd_key",
+        "ad-key": "ad_key",
+        "profile-rd-key": "rd_key",
+        "profile-ad-key": "ad_key",
       };
       const keyType = keyMap[keyId];
 
@@ -269,15 +273,18 @@ function setupInteractions() {
       // Validation
       const keyVal = input.value.trim();
       const alphanumericRegex = /^[a-zA-Z0-9]+$/;
-      
+
       if (keyVal.length > 0 && !alphanumericRegex.test(keyVal)) {
         btn.textContent = "Invalid Format";
         btn.style.background = "#ef4444";
         setTimeout(() => {
-            btn.textContent = "Save";
-            btn.style.background = "";
+          btn.textContent = "Save";
+          btn.style.background = "";
         }, 2000);
-        showToast("API Key must be alphanumeric (no spaces or special chars)", "error");
+        showToast(
+          "API Key must be alphanumeric (no spaces or special chars)",
+          "error"
+        );
         return;
       }
 
@@ -291,15 +298,14 @@ function setupInteractions() {
         btn.textContent = "Securely Saved";
         btn.style.background = "#4ade80";
         showToast("API Key encrypted and saved to your profile.", "success");
-        
-        // Sync values if multiple inputs exist for same key
-        document.querySelectorAll(`input`).forEach(el => {
-            if(keyMap[el.id] === keyType) el.value = keyVal;
-        });
 
+        // Sync values if multiple inputs exist for same key
+        document.querySelectorAll(`input`).forEach((el) => {
+          if (keyMap[el.id] === keyType) el.value = keyVal;
+        });
       } catch (err) {
         btn.textContent = "Error";
-         btn.style.background = "#ef4444";
+        btn.style.background = "#ef4444";
       }
 
       setTimeout(() => {
@@ -326,12 +332,23 @@ function setupInteractions() {
     // Unlink
     dangerBtns[0].addEventListener("click", async () => {
       showConfirm(
-        "Unlink All Devices?", 
+        "Unlink All Devices?",
         "This will disconnect all devices from your account. You will need to re-link them manually.",
         async () => {
-             await fetch(`${API_BASE}/api/auth/unlink`, { method: "POST" });
-             showToast("Devices unlinked successfully.", "success");
-             setTimeout(() => window.location.reload(), 1500);
+          try {
+            const res = await fetch(`${API_BASE}/api/auth/unlink`, {
+              method: "POST",
+            });
+            if (res.ok) {
+              showToast("Devices unlinked successfully.", "success");
+              fetchDevices();
+              fetchActivity();
+            } else {
+              showToast("Failed to unlink devices.", "error");
+            }
+          } catch (e) {
+            showToast("Network error.", "error");
+          }
         },
         null, // cancel callback
         "Unlink", // confirm text
@@ -341,18 +358,18 @@ function setupInteractions() {
 
     // Delete
     dangerBtns[1].addEventListener("click", async () => {
-        // Custom Prompt Logic for Deletion
-        showPrompt(
-            "Delete Account",
-            "This action is irreversible. Type <strong>DELETE</strong> to confirm.",
-            "DELETE",
-            async () => {
-                 await fetch(`${API_BASE}/api/auth/account`, { method: "DELETE" });
-                 showToast("Account deleted.", "success");
-                 setTimeout(() => window.location.reload(), 1500);
-            },
-            true // isDanger
-        );
+      // Custom Prompt Logic for Deletion
+      showPrompt(
+        "Delete Account",
+        "This action is irreversible. Type <strong>DELETE</strong> to confirm.",
+        "DELETE",
+        async () => {
+          await fetch(`${API_BASE}/api/auth/account`, { method: "DELETE" });
+          showToast("Account deleted.", "success");
+          setTimeout(() => window.location.reload(), 1500);
+        },
+        true // isDanger
+      );
     });
   }
 
@@ -397,17 +414,17 @@ function setupInteractions() {
       try {
         if (currentUser) {
           const userId = currentUser.id.split(":")[1] || currentUser.id;
-          
+
           // Determine Host: Use API_BASE host if set, otherwise current window host
           let host;
           if (API_BASE) {
-             try {
-                 host = new URL(API_BASE).host;
-             } catch (e) {
-                 host = window.location.host;
-             }
+            try {
+              host = new URL(API_BASE).host;
+            } catch (e) {
+              host = window.location.host;
+            }
           } else {
-             host = window.location.host;
+            host = window.location.host;
           }
 
           // Format: stremio://<host>/u/<userId>/manifest.json
@@ -428,107 +445,122 @@ function setupInteractions() {
 // --- Profile Management ---
 
 async function loadProfile() {
-    if (!currentUser) return;
+  if (!currentUser) return;
 
-    // 1. Update Identity
-    const idEl = document.getElementById("profile-user-id");
-    const emailEl = document.getElementById("profile-email");
-    if(idEl) idEl.textContent = currentUser.email ? currentUser.email.split("@")[0] : "User";
-    if(emailEl) emailEl.textContent = currentUser.email || currentUser.id;
+  // 1. Update Identity
+  const idEl = document.getElementById("profile-user-id");
+  const emailEl = document.getElementById("profile-email");
+  if (idEl)
+    idEl.textContent = currentUser.email
+      ? currentUser.email.split("@")[0]
+      : "User";
+  if (emailEl) emailEl.textContent = currentUser.email || currentUser.id;
 
-    // 2. Load Sessions
-    const list = document.getElementById("sessions-list");
-    if(list) {
-        list.innerHTML = `<div class="session-item loading">Loading active sessions...</div>`;
-        try {
-            const res = await fetch(`${API_BASE}/api/auth/sessions`);
-            const data = await res.json();
-            if(data.ok && data.sessions) {
-                renderSessions(data.sessions, list);
-            } else {
-                list.innerHTML = `<div class="text-muted">Failed to load sessions.</div>`;
-            }
-        } catch(e) {
-            console.error("Session load failed", e);
-             list.innerHTML = `<div class="text-muted">Error loading sessions.</div>`;
-        }
+  // 2. Load Sessions
+  const list = document.getElementById("sessions-list");
+  if (list) {
+    list.innerHTML = `<div class="session-item loading">Loading active sessions...</div>`;
+    try {
+      const res = await fetch(`${API_BASE}/api/auth/sessions`);
+      const data = await res.json();
+      if (data.ok && data.sessions) {
+        renderSessions(data.sessions, list);
+      } else {
+        list.innerHTML = `<div class="text-muted">Failed to load sessions.</div>`;
+      }
+    } catch (e) {
+      console.error("Session load failed", e);
+      list.innerHTML = `<div class="text-muted">Error loading sessions.</div>`;
     }
-    
-    // 3. Sync Settings (API Keys)
-    // Already loaded in loadUserData, but we can refresh?
-    // The inputs are populated on init, so we should be good.
-    // Ensure inputs in profile match user settings if they exist
-     if (currentUser.settings) {
-          if (currentUser.settings.rd_key) {
-               const el = document.getElementById("profile-rd-key");
-               if(el) el.value = currentUser.settings.rd_key;
-          }
-          if (currentUser.settings.ad_key) {
-               const el = document.getElementById("profile-ad-key");
-               if(el) el.value = currentUser.settings.ad_key;
-          }
-        }
+  }
+
+  // 3. Sync Settings (API Keys)
+  // Already loaded in loadUserData, but we can refresh?
+  // The inputs are populated on init, so we should be good.
+  // Ensure inputs in profile match user settings if they exist
+  if (currentUser.settings) {
+    if (currentUser.settings.rd_key) {
+      const el = document.getElementById("profile-rd-key");
+      if (el) el.value = currentUser.settings.rd_key;
+    }
+    if (currentUser.settings.ad_key) {
+      const el = document.getElementById("profile-ad-key");
+      if (el) el.value = currentUser.settings.ad_key;
+    }
+  }
 }
 
 function renderSessions(sessions, container) {
-    container.innerHTML = "";
-    if (sessions.length === 0) {
-        container.innerHTML = `<div class="text-muted">No active sessions.</div>`;
-        return;
-    }
+  container.innerHTML = "";
+  if (sessions.length === 0) {
+    container.innerHTML = `<div class="text-muted">No active sessions.</div>`;
+    return;
+  }
 
-    sessions.forEach(s => {
-        const item = document.createElement("div");
-        item.className = "session-item glass";
-        item.style.display = "flex";
-        item.style.justifyContent = "space-between";
-        item.style.alignItems = "center";
-        item.style.padding = "1rem";
-        item.style.marginBottom = "0.5rem";
-        item.style.background = s.is_current ? "rgba(74, 222, 128, 0.1)" : "rgba(255,255,255,0.03)";
-        item.style.border = s.is_current ? "1px solid rgba(74, 222, 128, 0.3)" : "none";
-        item.style.borderRadius = "8px";
+  sessions.forEach((s) => {
+    const item = document.createElement("div");
+    item.className = "session-item glass";
+    item.style.display = "flex";
+    item.style.justifyContent = "space-between";
+    item.style.alignItems = "center";
+    item.style.padding = "1rem";
+    item.style.marginBottom = "0.5rem";
+    item.style.background = s.is_current
+      ? "rgba(74, 222, 128, 0.1)"
+      : "rgba(255,255,255,0.03)";
+    item.style.border = s.is_current
+      ? "1px solid rgba(74, 222, 128, 0.3)"
+      : "none";
+    item.style.borderRadius = "8px";
 
-        item.innerHTML = `
+    item.innerHTML = `
             <div class="session-info">
-                <div style="font-weight: bold; color: ${s.is_current ? '#4ade80' : 'white'};">
-                    ${s.is_current ? 'Current Session' : 'Active Session'}
+                <div style="font-weight: bold; color: ${
+                  s.is_current ? "#4ade80" : "white"
+                };">
+                    ${s.is_current ? "Current Session" : "Active Session"}
                 </div>
                 <div style="font-size: 0.8rem; color: var(--text-secondary);">
                     Created ${timeAgo(s.created_at)}
                 </div>
             </div>
-            ${!s.is_current ? `
+            ${
+              !s.is_current
+                ? `
                 <button class="btn-revoke" data-sid="${s.sid}" style="background: rgba(239, 68, 68, 0.2); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.3); padding: 0.25rem 0.75rem; border-radius: 4px; cursor: pointer;">
                     Revoke
                 </button>
-            ` : ''}
+            `
+                : ""
+            }
         `;
-        
-        container.appendChild(item);
 
-        // Revoke Handler
-        const revokeBtn = item.querySelector(".btn-revoke");
-        if(revokeBtn) {
-            revokeBtn.addEventListener("click", () => revokeSession(s.sid));
-        }
-    });
+    container.appendChild(item);
+
+    // Revoke Handler
+    const revokeBtn = item.querySelector(".btn-revoke");
+    if (revokeBtn) {
+      revokeBtn.addEventListener("click", () => revokeSession(s.sid));
+    }
+  });
 }
 
 async function revokeSession(sid) {
-    if(!confirm("Are you sure you want to revoke this session?")) return;
+  if (!confirm("Are you sure you want to revoke this session?")) return;
 
-    try {
-        const res = await fetch(`${API_BASE}/api/auth/sessions/${sid}`, { method: 'DELETE' });
-        if(res.ok) {
-            showToast("Session revoked.", "success");
-            loadProfile(); // Refresh list
-        } else {
-            showToast("Failed to revoke session.", "error");
-        }
-    } catch(e) {
-        showToast("Error revoking session.", "error");
+  try {
+    const res = await fetch(`${API_BASE}/api/auth/sessions/${sid}`, {
+      method: "DELETE",
+    });
+    if (res.ok) {
+      showToast("Session revoked.", "success");
+      loadProfile(); // Refresh list
+    } else {
+      showToast("Failed to revoke session.", "error");
     }
+  } catch (e) {
+    showToast("Error revoking session.", "error");
+  }
 }
 
 // --- UI Helpers ---
@@ -536,7 +568,7 @@ async function revokeSession(sid) {
 function showToast(message, type = "info") {
   const container = document.getElementById("toast-container");
   const toast = document.createElement("div");
-  
+
   // Icon based on type
   let icon = "ℹ️";
   if (type === "success") icon = "✅";
@@ -546,7 +578,7 @@ function showToast(message, type = "info") {
   toast.innerHTML = `<span>${icon}</span> <span>${message}</span>`; // Use innerHTML for flex layout
 
   // Remove inline styles as we moved to CSS
-  
+
   container.appendChild(toast);
 
   // Auto remove
@@ -558,224 +590,240 @@ function showToast(message, type = "info") {
 }
 
 // --- Dynamic Modal System ---
-function showConfirm(title, message, onConfirm, onCancel, confirmText="Confirm", isDanger=false) {
-    createModal(title, message, [
-        {
-            text: "Cancel",
-            class: "btn-modal-cancel",
-            action: (modal) => {
-                if(onCancel) onCancel();
-                closeModal(modal);
-            }
-        },
-        {
-            text: confirmText,
-            class: isDanger ? "btn-modal-danger" : "btn-modal-confirm",
-            action: (modal) => {
-                if(onConfirm) onConfirm();
-                closeModal(modal);
-            }
-        }
-    ]);
+function showConfirm(
+  title,
+  message,
+  onConfirm,
+  onCancel,
+  confirmText = "Confirm",
+  isDanger = false
+) {
+  createModal(title, message, [
+    {
+      text: "Cancel",
+      class: "btn-modal-cancel",
+      action: (modal) => {
+        if (onCancel) onCancel();
+        closeModal(modal);
+      },
+    },
+    {
+      text: confirmText,
+      class: isDanger ? "btn-modal-danger" : "btn-modal-confirm",
+      action: (modal) => {
+        if (onConfirm) onConfirm();
+        closeModal(modal);
+      },
+    },
+  ]);
 }
 
-function showPrompt(title, message, expectedValue, onCheck, isDanger=false) {
-     const inputId = "modal-input-" + Date.now();
-     const htmlMessage = `
+function showPrompt(title, message, expectedValue, onCheck, isDanger = false) {
+  const inputId = "modal-input-" + Date.now();
+  const htmlMessage = `
         <p>${message}</p>
         <input type="text" id="${inputId}" class="form-input" style="margin-top: 1rem; text-transform: uppercase;" placeholder="Type ${expectedValue}">
      `;
 
-    createModal(title, htmlMessage, [
-        {
-            text: "Cancel",
-            class: "btn-modal-cancel",
-            action: (modal) => closeModal(modal)
-        },
-        {
-            text: "Confirm",
-            class: isDanger ? "btn-modal-danger" : "btn-modal-confirm",
-            action: (modal) => {
-                const val = document.getElementById(inputId).value;
-                if (val === expectedValue) {
-                    if(onCheck) onCheck();
-                    closeModal(modal);
-                } else {
-                    showToast(`Incorrect confirmation. Type ${expectedValue}`, "error");
-                    // Don't close modal
-                }
-            }
+  createModal(title, htmlMessage, [
+    {
+      text: "Cancel",
+      class: "btn-modal-cancel",
+      action: (modal) => closeModal(modal),
+    },
+    {
+      text: "Confirm",
+      class: isDanger ? "btn-modal-danger" : "btn-modal-confirm",
+      action: (modal) => {
+        const val = document.getElementById(inputId).value;
+        if (val === expectedValue) {
+          if (onCheck) onCheck();
+          closeModal(modal);
+        } else {
+          showToast(`Incorrect confirmation. Type ${expectedValue}`, "error");
+          // Don't close modal
         }
-    ]);
+      },
+    },
+  ]);
 }
 
 function createModal(titleOrConfig, content, buttons) {
-    const existing = document.getElementById("active-modal");
-    if(existing) existing.remove();
+  const existing = document.getElementById("active-modal");
+  if (existing) existing.remove();
 
-    // 1. Resolve Config (Polyfill for object signature)
-    let config = {};
-    if (typeof titleOrConfig === 'object' && titleOrConfig !== null) {
-        config = titleOrConfig;
-    } else {
-        config = {
-            title: titleOrConfig,
-            body: content,
-            actions: buttons
-        };
-    }
-
-    // 2. Create Overlay
-    const overlay = document.createElement("div");
-    overlay.id = "active-modal";
-    overlay.className = "modal-overlay";
-    
-    // CLICK OUTSIDE TO DISMISS
-    overlay.onclick = (e) => {
-        if (e.target === overlay) {
-            closeModal(overlay);
-        }
+  // 1. Resolve Config (Polyfill for object signature)
+  let config = {};
+  if (typeof titleOrConfig === "object" && titleOrConfig !== null) {
+    config = titleOrConfig;
+  } else {
+    config = {
+      title: titleOrConfig,
+      body: content,
+      actions: buttons,
     };
+  }
 
-    const card = document.createElement("div");
-    card.className = "modal-card glass";
-    
-    // 3. Title
-    const h3 = document.createElement("h3");
-    h3.className = "modal-title";
-    h3.textContent = config.title;
-    
-    // 4. Body
-    const body = document.createElement("div");
-    body.className = "modal-body";
-    // Check if body implies HTML
-    const bodyContent = config.body || config.content || "";
-    if(bodyContent.includes("<") && bodyContent.includes(">")) {
-        body.innerHTML = bodyContent;
-    } else {
-        body.textContent = bodyContent;
+  // 2. Create Overlay
+  const overlay = document.createElement("div");
+  overlay.id = "active-modal";
+  overlay.className = "modal-overlay";
+
+  // CLICK OUTSIDE TO DISMISS
+  overlay.onclick = (e) => {
+    if (e.target === overlay) {
+      closeModal(overlay);
     }
+  };
 
-    // 5. Actions
-    const actionContainer = document.createElement("div");
-    actionContainer.className = "modal-actions";
-    
-    const actionList = config.actions || config.buttons || [];
-    actionList.forEach(btnConfig => {
-        const btn = document.createElement("button");
-        // Handle mapped properties (text vs label, class, action vs onClick)
-        btn.className = `btn-modal ${btnConfig.class || (btnConfig.primary ? 'btn-modal-confirm' : 'btn-modal-cancel')}`;
-        btn.textContent = btnConfig.text || btnConfig.label;
-        
-        // Action wraper
-        btn.onclick = () => {
-             if (btnConfig.action) btnConfig.action(overlay);
-             else if (btnConfig.onClick) {
-                 btnConfig.onClick();
-                 closeModal(overlay);
-             }
-        };
-        actionContainer.appendChild(btn);
-    });
+  const card = document.createElement("div");
+  card.className = "modal-card glass";
 
-    card.appendChild(h3);
-    card.appendChild(body);
-    card.appendChild(actionContainer);
-    overlay.appendChild(card);
-    
-    document.body.appendChild(overlay);
+  // 3. Title
+  const h3 = document.createElement("h3");
+  h3.className = "modal-title";
+  h3.textContent = config.title;
+
+  // 4. Body
+  const body = document.createElement("div");
+  body.className = "modal-body";
+  // Check if body implies HTML
+  const bodyContent = config.body || config.content || "";
+  if (bodyContent.includes("<") && bodyContent.includes(">")) {
+    body.innerHTML = bodyContent;
+  } else {
+    body.textContent = bodyContent;
+  }
+
+  // 5. Actions
+  const actionContainer = document.createElement("div");
+  actionContainer.className = "modal-actions";
+
+  const actionList = config.actions || config.buttons || [];
+  actionList.forEach((btnConfig) => {
+    const btn = document.createElement("button");
+    // Handle mapped properties (text vs label, class, action vs onClick)
+    btn.className = `btn-modal ${
+      btnConfig.class ||
+      (btnConfig.primary ? "btn-modal-confirm" : "btn-modal-cancel")
+    }`;
+    btn.textContent = btnConfig.text || btnConfig.label;
+
+    // Action wraper
+    btn.onclick = () => {
+      if (btnConfig.action) btnConfig.action(overlay);
+      else if (btnConfig.onClick) {
+        btnConfig.onClick();
+        closeModal(overlay);
+      }
+    };
+    actionContainer.appendChild(btn);
+  });
+
+  card.appendChild(h3);
+  card.appendChild(body);
+  card.appendChild(actionContainer);
+  overlay.appendChild(card);
+
+  document.body.appendChild(overlay);
 }
 
 function closeModal(modalElement) {
-    modalElement.style.opacity = "0";
-    setTimeout(() => modalElement.remove(), 200);
+  modalElement.style.opacity = "0";
+  setTimeout(() => modalElement.remove(), 200);
 }
 
 // --- Activity & Devices ---
 async function fetchActivity() {
-    try {
-        const res = await fetch(`${API_BASE}/api/auth/activity`);
-        const data = await res.json();
-        const container = document.querySelector(".activity-feed");
-        
-        if (data.ok && data.activity && container) {
-            container.innerHTML = ""; // Clear fake data
-            
-            if(data.activity.length === 0) {
-                 container.innerHTML = `<div style="padding: 2rem; text-align: center; color: var(--text-secondary);">No activity functionality yet.</div>`;
-                 return;
-            }
+  try {
+    const res = await fetch(`${API_BASE}/api/auth/activity`);
+    const data = await res.json();
+    const container = document.querySelector(".activity-feed");
 
-            data.activity.forEach(item => {
-                const el = document.createElement("div");
-                el.className = "activity-item glass";
-                el.innerHTML = `
-                    <span class="activity-icon">${item.icon || '📝'}</span>
+    if (data.ok && data.activity && container) {
+      container.innerHTML = ""; // Clear fake data
+
+      if (data.activity.length === 0) {
+        container.innerHTML = `<div style="padding: 2rem; text-align: center; color: var(--text-secondary);">No activity functionality yet.</div>`;
+        return;
+      }
+
+      data.activity.forEach((item) => {
+        const el = document.createElement("div");
+        el.className = "activity-item glass";
+        el.innerHTML = `
+                    <span class="activity-icon">${item.icon || "📝"}</span>
                     <div class="activity-content">
                         <div>
                              <strong>${item.title}</strong>
-                             ${ item.details ? `<div style="font-size: 0.85rem; opacity: 0.8;">${item.details}</div>` : ''}
+                             ${
+                               item.details
+                                 ? `<div style="font-size: 0.85rem; opacity: 0.8;">${item.details}</div>`
+                                 : ""
+                             }
                         </div>
-                        <span class="activity-time">${timeAgo(item.timestamp)}</span>
+                        <span class="activity-time">${timeAgo(
+                          item.timestamp
+                        )}</span>
                     </div>
                 `;
-                container.appendChild(el);
-            });
-        }
-    } catch(e) {
-        console.error("Failed to load activity", e);
+        container.appendChild(el);
+      });
     }
+  } catch (e) {
+    console.error("Failed to load activity", e);
+  }
 }
 
 async function fetchDevices() {
-    // We don't have a specific "Linked Devices" container in the HTML overview yet, 
-    // but the user asked for "Device Linked [tab?]... linked device doesn't show my actual...".
-    // I will append a "Linked Devices" card TO THE SETTINGS tab or modify the overview.
-    // Actually, let's put it in the "Settings" tab for now as "Linked Devices" list, 
-    // or maybe a new section in "Activity" tab?
-    // The user mentioned "for the next tab still on portal under activity... device linked doesn't show my actual devices".
-    // The activity feed itself shows "Device Linked" events. 
-    // I should also list the active devices somewhere.
-    // I'll add a "Active Devices" list to the Settings tab dynamically.
-    
-    try {
-        const res = await fetch(`${API_BASE}/api/auth/devices`);
-        const data = await res.json();
-        
-        // Find a place to inject. The 'Linking Token' card in settings is good.
-        // Or render in the Activity tab if there's space?
-        // Let's add it to Settings -> Linking Token card (append).
-        
-        const settingsCard = document.querySelectorAll(".settings-card")[1]; // Linking Token card
-        if (data.ok && data.devices && settingsCard) {
-            // Remove old device list if any
-            const oldList = document.getElementById("device-list-container");
-            if(oldList) oldList.remove();
+  // We don't have a specific "Linked Devices" container in the HTML overview yet,
+  // but the user asked for "Device Linked [tab?]... linked device doesn't show my actual...".
+  // I will append a "Linked Devices" card TO THE SETTINGS tab or modify the overview.
+  // Actually, let's put it in the "Settings" tab for now as "Linked Devices" list,
+  // or maybe a new section in "Activity" tab?
+  // The user mentioned "for the next tab still on portal under activity... device linked doesn't show my actual devices".
+  // The activity feed itself shows "Device Linked" events.
+  // I should also list the active devices somewhere.
+  // I'll add a "Active Devices" list to the Settings tab dynamically.
 
-            const devContainer = document.createElement("div");
-            devContainer.id = "device-list-container";
-            devContainer.style.marginTop = "1.5rem";
-            devContainer.style.borderTop = "1px solid rgba(255,255,255,0.1)";
-            devContainer.style.paddingTop = "1rem";
-            
-            devContainer.innerHTML = `<h4 style="margin-bottom: 1rem; color: var(--text-secondary); font-size: 0.9rem; text-transform: uppercase; letter-spacing: 1px;">ACTIVE DEVICES (${data.devices.length})</h4>`;
-            
-            if(data.devices.length === 0) {
-                 devContainer.innerHTML += `<div style="font-size: 0.9rem; color: rgba(255,255,255,0.4);">No devices linked yet.</div>`;
-            } else {
-                 data.devices.forEach(d => {
-                     const row = document.createElement("div");
-                     row.style.display = "flex";
-                     row.style.justifyContent = "space-between";
-                     row.style.padding = "0.75rem";
-                     row.style.background = "rgba(255,255,255,0.03)";
-                     row.style.borderRadius = "8px";
-                     row.style.marginBottom = "0.5rem";
-                     
-                     // Mask ID for privacy? Or show first chunk.
-                     const shortId = d.device_id.substring(0, 8) + "...";
-                     
-                     row.innerHTML = `
+  try {
+    const res = await fetch(`${API_BASE}/api/auth/devices`);
+    const data = await res.json();
+
+    // Find a place to inject. The 'Linking Token' card in settings is good.
+    // Or render in the Activity tab if there's space?
+    // Let's add it to Settings -> Linking Token card (append).
+
+    const settingsCard = document.querySelectorAll(".settings-card")[1]; // Linking Token card
+    if (data.ok && data.devices && settingsCard) {
+      // Remove old device list if any
+      const oldList = document.getElementById("device-list-container");
+      if (oldList) oldList.remove();
+
+      const devContainer = document.createElement("div");
+      devContainer.id = "device-list-container";
+      devContainer.style.marginTop = "1.5rem";
+      devContainer.style.borderTop = "1px solid rgba(255,255,255,0.1)";
+      devContainer.style.paddingTop = "1rem";
+
+      devContainer.innerHTML = `<h4 style="margin-bottom: 1rem; color: var(--text-secondary); font-size: 0.9rem; text-transform: uppercase; letter-spacing: 1px;">ACTIVE DEVICES (${data.devices.length})</h4>`;
+
+      if (data.devices.length === 0) {
+        devContainer.innerHTML += `<div style="font-size: 0.9rem; color: rgba(255,255,255,0.4);">No devices linked yet.</div>`;
+      } else {
+        data.devices.forEach((d) => {
+          const row = document.createElement("div");
+          row.style.display = "flex";
+          row.style.justifyContent = "space-between";
+          row.style.padding = "0.75rem";
+          row.style.background = "rgba(255,255,255,0.03)";
+          row.style.borderRadius = "8px";
+          row.style.marginBottom = "0.5rem";
+
+          // Mask ID for privacy? Or show first chunk.
+          const shortId = d.device_id.substring(0, 8) + "...";
+
+          row.innerHTML = `
                         <div style="display: flex; align-items: center; gap: 0.5rem;">
                              <span>📱</span>
                              <span>${shortId}</span>
@@ -784,37 +832,39 @@ async function fetchDevices() {
                             ${timeAgo(d.linked_at)}
                         </div>
                      `;
-                     devContainer.appendChild(row);
-                 });
-            }
-            
-            settingsCard.appendChild(devContainer);
-        }
-    } catch(e) {
-        console.error("Failed to load devices", e);
+          devContainer.appendChild(row);
+        });
+      }
+
+      settingsCard.appendChild(devContainer);
     }
+  } catch (e) {
+    console.error("Failed to load devices", e);
+  }
 }
 
 function timeAgo(timestamp) {
-    const seconds = Math.floor((Date.now() - timestamp) / 1000);
-    
-    let interval = seconds / 31536000;
-    if (interval > 1) return Math.floor(interval) + " years ago";
-    interval = seconds / 2592000;
-    if (interval > 1) return Math.floor(interval) + " months ago";
-    interval = seconds / 86400;
-    if (interval > 1) return Math.floor(interval) + " days ago";
-    interval = seconds / 3600;
-    if (interval > 1) return Math.floor(interval) + " hours ago";
-    interval = seconds / 60;
-    if (interval > 1) return Math.floor(interval) + " minutes ago";
-    return Math.floor(seconds) + " seconds ago";
+  const seconds = Math.floor((Date.now() - timestamp) / 1000);
+
+  let interval = seconds / 31536000;
+  if (interval > 1) return Math.floor(interval) + " years ago";
+  interval = seconds / 2592000;
+  if (interval > 1) return Math.floor(interval) + " months ago";
+  interval = seconds / 86400;
+  if (interval > 1) return Math.floor(interval) + " days ago";
+  interval = seconds / 3600;
+  if (interval > 1) return Math.floor(interval) + " hours ago";
+  interval = seconds / 60;
+  if (interval > 1) return Math.floor(interval) + " minutes ago";
+  return Math.floor(seconds) + " seconds ago";
 }
 function showQrModal(tokenRaw) {
-    const linkUrl = `${window.location.origin}/link?token=${tokenRaw}`;
-    const qrSrc = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(linkUrl)}`;
+  const linkUrl = `${window.location.origin}/link?token=${tokenRaw}`;
+  const qrSrc = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(
+    linkUrl
+  )}`;
 
-    const content = `
+  const content = `
         <div style="display: flex; flex-direction: column; align-items: center; gap: 1.5rem; padding: 1rem 0;">
             <div style="background: white; padding: 1rem; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.3);">
                 <img src="${qrSrc}" alt="Scan QR Code" style="width: 200px; height: 200px; display: block;">
@@ -830,17 +880,17 @@ function showQrModal(tokenRaw) {
         </div>
     `;
 
-    createModal({
-        title: "Link New Device",
-        body: content,
-        actions: [
-            {
-                label: "Done",
-                primary: true,
-                onClick: () => {} // Closes by default
-            }
-        ]
-    });
+  createModal({
+    title: "Link New Device",
+    body: content,
+    actions: [
+      {
+        label: "Done",
+        primary: true,
+        onClick: () => {}, // Closes by default
+      },
+    ],
+  });
 }
 
 async function loadReleases() {
@@ -954,7 +1004,8 @@ function renderHero(release, hero, grid) {
     let primaryAsset = null;
     if (assets.length > 0) {
       // Prioritize the arch-specific asset if defined, else first
-      primaryAsset = assets.find((a) => p.archMatcher.test(a.name)) || assets[0];
+      primaryAsset =
+        assets.find((a) => p.archMatcher.test(a.name)) || assets[0];
     }
 
     const isRecommended = userOS === p.id;

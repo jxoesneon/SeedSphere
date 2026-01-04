@@ -609,11 +609,19 @@ class DbService {
     // Delete user
     _db.execute('DELETE FROM users WHERE id = ?', [id]);
     // Also delete associated bindings
-    _db.execute('DELETE FROM bindings WHERE gardener_id = ?', [id]);
+    deleteUserBindings(id);
     // And tokens
     _db.execute('DELETE FROM link_tokens WHERE gardener_id = ?', [id]);
     // And sessions
     _db.execute('DELETE FROM sessions WHERE user_id = ?', [id]);
+  }
+
+  /// Removes all associated bindings for a user/gardener.
+  void deleteUserBindings(String userId) {
+    _db.execute(
+      'DELETE FROM bindings WHERE gardener_id = ? OR seedling_id = ?',
+      [userId, userId],
+    );
   }
 
   /// Executes a block within a database transaction.

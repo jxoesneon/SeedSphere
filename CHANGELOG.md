@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.9.18] - 2026-01-03
+
+### Fixed
+
+- **Auth**: Corrected SMTP authentication logic to prefer `BREVO_API_KEY` when available, resolving Magic Link failures.
+- **Security**: Fully implemented "Unlink All Devices" backend functionality.
+- **UI**: Improved Magic Link error reporting and automatic device list refresh after unlinking.
+
 ## [1.9.17] - 2026-01-03
 
 ### Added

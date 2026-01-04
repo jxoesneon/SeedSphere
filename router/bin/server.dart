@@ -38,13 +38,21 @@ final eventService = EventService();
 final linkingService = LinkingService(db);
 final healthService = HealthService();
 final swarmService = SwarmService();
-final mailerService = MailerService.custom(
-  host: Platform.environment['SMTP_HOST'] ?? 'smtp-relay.brevo.com',
-  port: int.parse(Platform.environment['SMTP_PORT'] ?? '587'),
-  username: Platform.environment['SMTP_USER'] ?? '',
-  password: Platform.environment['SMTP_PASS'] ?? '',
-  fromEmail: Platform.environment['SMTP_FROM'] ?? 'noreply@seedsphere.app',
-);
+final mailerService =
+    (Platform.environment['BREVO_API_KEY'] != null &&
+        Platform.environment['SMTP_FROM'] != null)
+    ? MailerService.brevo(
+        apiKey: Platform.environment['BREVO_API_KEY']!,
+        fromEmail: Platform.environment['SMTP_FROM']!,
+      )
+    : MailerService.custom(
+        host: Platform.environment['SMTP_HOST'] ?? 'smtp-relay.brevo.com',
+        port: int.parse(Platform.environment['SMTP_PORT'] ?? '587'),
+        username: Platform.environment['SMTP_USER'] ?? '',
+        password: Platform.environment['SMTP_PASS'] ?? '',
+        fromEmail:
+            Platform.environment['SMTP_FROM'] ?? 'noreply@seedsphere.app',
+      );
 final trackerService = TrackerService(db, healthService)..init();
 final scraperService = ScraperService(trackerService);
 final addonService = AddonService(scraperService);
