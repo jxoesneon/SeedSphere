@@ -372,9 +372,11 @@ Future<Response> _handleDownload(Request req, String file) async {
 
   // 1. Check for Aliases
   if (file == 'android') {
-    // Prefer .apk over .aab if both exist, or just find the first android asset
+    // Prefer .apk over .aab if both exist
     final asset = assets.firstWhere(
-      (a) => a['name'].toString().endsWith('.apk'),
+      (a) =>
+          a['name'].toString().startsWith('gardener-android') &&
+          a['name'].toString().endsWith('.apk'),
       orElse: () => assets.firstWhere(
         (a) => a['name'].toString().contains('android'),
         orElse: () => {},
@@ -383,7 +385,9 @@ Future<Response> _handleDownload(Request req, String file) async {
     if (asset.isNotEmpty) targetUrl = asset['browser_download_url'];
   } else if (file == 'windows') {
     final asset = assets.firstWhere(
-      (a) => a['name'].toString().endsWith('.exe'),
+      (a) =>
+          a['name'].toString().contains('windows') &&
+          a['name'].toString().endsWith('.exe'),
       orElse: () => assets.firstWhere(
         (a) => a['name'].toString().contains('windows'),
         orElse: () => {},
@@ -392,7 +396,9 @@ Future<Response> _handleDownload(Request req, String file) async {
     if (asset.isNotEmpty) targetUrl = asset['browser_download_url'];
   } else if (file == 'macos') {
     final asset = assets.firstWhere(
-      (a) => a['name'].toString().contains('macos'),
+      (a) =>
+          a['name'].toString().contains('macos') ||
+          a['name'].toString().contains('universal'),
       orElse: () => assets.firstWhere(
         (a) => a['name'].toString().endsWith('.zip'), // Fallback
         orElse: () => {},
@@ -402,11 +408,17 @@ Future<Response> _handleDownload(Request req, String file) async {
   } else if (file == 'linux') {
     // Prefer .deb, then .rpm, then .zip
     final asset = assets.firstWhere(
-      (a) => a['name'].toString().endsWith('.deb'),
+      (a) =>
+          a['name'].toString().contains('linux') &&
+          a['name'].toString().endsWith('.deb'),
       orElse: () => assets.firstWhere(
-        (a) => a['name'].toString().endsWith('.rpm'),
+        (a) =>
+            a['name'].toString().contains('linux') &&
+            a['name'].toString().endsWith('.rpm'),
         orElse: () => assets.firstWhere(
-          (a) => a['name'].toString().contains('linux'),
+          (a) =>
+              a['name'].toString().contains('linux') &&
+              a['name'].toString().endsWith('.zip'),
           orElse: () => {},
         ),
       ),

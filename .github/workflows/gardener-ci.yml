@@ -265,6 +265,8 @@ jobs:
       - name: Prepare Release Assets
         run: |
           mkdir -p dist
+          TIMESTAMP=$(date +%Y%m%d-%H%M%S)
+          echo "Appending timestamp: $TIMESTAMP"
           
           # Function to find and copy safely
           find_and_copy() {
@@ -274,8 +276,12 @@ jobs:
             # Find the file and copy to dist with the new name
             local found_path=$(find artifacts -name "$pattern" -type f | head -n 1)
             if [ -n "$found_path" ]; then
-                cp "$found_path" "dist/$destination"
-                echo "Copied $found_path to dist/$destination"
+                # Handle extension correctly for timestamp insertion
+                local ext="${destination##*.}"
+                local base="${destination%.*}"
+                local final_name="${base}-${TIMESTAMP}.${ext}"
+                cp "$found_path" "dist/$final_name"
+                echo "Copied $found_path to dist/$final_name"
             else
                 echo "::warning::Could not find $pattern"
             fi
@@ -292,7 +298,7 @@ jobs:
           echo "Processing Linux x64..."
           BUNDLE_X64=$(find artifacts/gardener-linux-x64-all -type d -name "bundle" | head -n 1)
           if [ -d "$BUNDLE_X64" ]; then
-             (cd "$BUNDLE_X64" && zip -r - . > "$GITHUB_WORKSPACE/dist/gardener-linux-x64.zip")
+             (cd "$BUNDLE_X64" && zip -r - . > "$GITHUB_WORKSPACE/dist/gardener-linux-x64-${TIMESTAMP}.zip")
           fi
           find_and_copy "gardener-linux-x64.deb" "gardener-linux-x64.deb"
           find_and_copy "gardener-linux-x64.rpm" "gardener-linux-x64.rpm"
@@ -301,7 +307,7 @@ jobs:
           echo "Processing Linux ARM64..."
           BUNDLE_ARM=$(find artifacts/gardener-linux-arm64 -type d -name "bundle" | head -n 1)
           if [ -d "$BUNDLE_ARM" ]; then
-             (cd "$BUNDLE_ARM" && zip -r - . > "$GITHUB_WORKSPACE/dist/gardener-linux-arm64.zip")
+             (cd "$BUNDLE_ARM" && zip -r - . > "$GITHUB_WORKSPACE/dist/gardener-linux-arm64-${TIMESTAMP}.zip")
           fi
 
           # macOS (Universal)
@@ -309,7 +315,7 @@ jobs:
           # The artifact might be the .app directory itself or nested
           MAC_APP=$(find artifacts/gardener-macos-universal -type d -name "gardener.app" | head -n 1)
           if [ -d "$MAC_APP" ]; then
-             (cd "$MAC_APP" && zip -r - . > "$GITHUB_WORKSPACE/dist/gardener-macos-universal.zip")
+             (cd "$MAC_APP" && zip -r - . > "$GITHUB_WORKSPACE/dist/gardener-macos-universal-${TIMESTAMP}.zip")
           else
              echo "::error::macOS App not found!"
           fi

@@ -442,6 +442,7 @@ function renderHero(release, hero, grid) {
       name: "Android",
       icon: "🤖",
       matcher: /android/i,
+      archMatcher: /arm64/i,
       formats: ["apk", "aab"],
     },
     {
@@ -449,21 +450,24 @@ function renderHero(release, hero, grid) {
       name: "Windows",
       icon: "🪟",
       matcher: /windows/i,
+      archMatcher: /x64/i,
       formats: ["exe", "msi", "zip"],
     },
     {
       id: "macos",
       name: "macOS",
       icon: "🍎",
-      matcher: /macos|osx/i,
-      formats: ["dmg", "pkg", "zip"],
+      matcher: /macos|universal/i,
+      archMatcher: /universal/i,
+      formats: ["zip"],
     },
     {
       id: "linux",
       name: "Linux",
       icon: "🐧",
       matcher: /linux/i,
-      formats: ["deb", "rpm", "AppImage", "tar.gz", "zip"],
+      archMatcher: /x64/i,
+      formats: ["deb", "rpm", "zip"],
     },
   ];
 
@@ -471,13 +475,10 @@ function renderHero(release, hero, grid) {
     // Find all assets matching this platform
     const assets = release.assets.filter((a) => p.matcher.test(a.name));
 
-    // If no assets, skip? or show disabled? Let's skip for now, or show "Source" if absolutely nothing.
-    // Actually, for Linux/Windows we expect matches.
-
     let primaryAsset = null;
     if (assets.length > 0) {
-      // Default to x64 if we have it, else first avalailable
-      primaryAsset = assets.find((a) => a.name.includes("x64")) || assets[0];
+      // Prioritize the arch-specific asset if defined, else first
+      primaryAsset = assets.find((a) => p.archMatcher.test(a.name)) || assets[0];
     }
 
     const isRecommended = userOS === p.id;
