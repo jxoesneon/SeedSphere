@@ -225,10 +225,32 @@ class DbService {
     return row;
   }
 
+  /// Retrieves active sessions for a [userId].
+  List<Map<String, dynamic>> getSessions(String userId) {
+    final now = DateTime.now().millisecondsSinceEpoch;
+    final stmt = _db.prepare(
+      'SELECT sid, created_at, expires_at FROM sessions WHERE user_id = ? AND expires_at > ? ORDER BY created_at DESC',
+    );
+    final result = stmt.select([userId, now]);
+    return result
+        .map(
+          (row) => {
+            'sid': row['sid'],
+            'created_at': row['created_at'],
+            'expires_at': row['expires_at'],
+            // We could add user_agent/ip here if we stored it in the future
+          },
+        )
+        .toList();
+  }
+
   /// Deletes a session by [sid].
   void deleteSession(String sid) {
     _db.execute('DELETE FROM sessions WHERE sid = ?', [sid]);
   }
+
+  /// Alias for deleteSession
+  void revokeSession(String sid) => deleteSession(sid);
 
   /// Retrieves the binding secret between a [gardenerId] and [seedlingId].
   String? getBindingSecret(String gardenerId, String seedlingId) {
@@ -398,16 +420,33 @@ class DbService {
     return result.first['cnt'] as int;
   }
 
-  /// Returns a list of all devices (seedlings) bound to this Gardener.
-  List<Map<String, dynamic>> getBindings(String gardenerId) {
-    final result = _db.select(
-      'SELECT seedling_id, created_at FROM bindings WHERE gardener_id = ? ORDER BY created_at DESC',
-      [gardenerId],
+  /// Returns a list of all devices (seedlings or gardeners) bound to this Entity (User/Gardener).
+  List<Map<String, dynamic>> getBindings(String entityId) {
+    final results = <Map<String, dynamic>>[];
+
+    // 1. Entity is the Gardener -> Show Seedlings
+    final asGardener = _db.select(
+      'SELECT seedling_id as device_id, created_at FROM bindings WHERE gardener_id = ?',
+      [entityId],
     );
-    return result
+    results.addAll(asGardener);
+
+    // 2. Entity is the Seedling -> Show Gardeners
+    final asSeedling = _db.select(
+      'SELECT gardener_id as device_id, created_at FROM bindings WHERE seedling_id = ?',
+      [entityId],
+    );
+    results.addAll(asSeedling);
+
+    // Sort by timestamp descending
+    results.sort(
+      (a, b) => (b['created_at'] as int).compareTo(a['created_at'] as int),
+    );
+
+    return results
         .map(
           (row) => {
-            'device_id': row['seedling_id'],
+            'device_id': row['device_id'],
             'linked_at': row['created_at'],
           },
         )

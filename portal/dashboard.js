@@ -28,7 +28,7 @@ async function loadUserData() {
   // API_BASE is global
 
   try {
-    const res = await fetch(`${API_BASE}/api/auth/session`);
+    const res = await fetch(`${API_BASE}/api/auth/session`, { credentials: 'include' });
     const data = await res.json();
 
     // Check for login triggers
@@ -173,6 +173,24 @@ function setupDashboardNav() {
       }
     });
   });
+
+  // Profile Navigation (User Badge)
+  const userBadge = document.querySelector(".user-badge");
+  if (userBadge) {
+      userBadge.addEventListener("click", (e) => {
+          e.preventDefault();
+          
+           // Remove active class from all items
+          navItems.forEach((nav) => nav.classList.remove("active"));
+          sections.forEach((section) => (section.style.display = "none"));
+
+          const profileSection = document.getElementById("profile");
+          if(profileSection) {
+              profileSection.style.display = "block";
+              loadProfile(); // Fetch fresh data
+          }
+      });
+  }
 }
 
 /**
@@ -194,11 +212,15 @@ function setupInteractions() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ email }),
         });
-        if (!res.ok) throw new Error("Request failed");
+        if (!res.ok) {
+            const errData = await res.json().catch(() => ({ error: res.statusText }));
+            throw new Error(errData.error || "Request failed");
+        }
         statusFn.textContent = "Check your email for the sign-in link!";
         statusFn.style.color = "#4ade80";
       } catch (err) {
-        statusFn.textContent = "Failed to send link. Try again.";
+        console.error(err);
+        statusFn.textContent = `Error: ${err.message}`;
         statusFn.style.color = "#ef4444";
       }
     });
@@ -233,7 +255,13 @@ function setupInteractions() {
       const form = btn.closest(".form-group");
       const input = form.querySelector(".form-input");
       const keyId = input.id;
-      const keyMap = { "rd-key": "rd_key", "ad-key": "ad_key" };
+      // Map IDs to API fields
+      const keyMap = { 
+          "rd-key": "rd_key", 
+          "ad-key": "ad_key",
+          "profile-rd-key": "rd_key",
+          "profile-ad-key": "ad_key"
+      };
       const keyType = keyMap[keyId];
 
       if (!keyType) return;
@@ -260,8 +288,15 @@ function setupInteractions() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ [keyType]: keyVal }),
         });
-        btn.textContent = "Saved!";
+        btn.textContent = "Securely Saved";
         btn.style.background = "#4ade80";
+        showToast("API Key encrypted and saved to your profile.", "success");
+        
+        // Sync values if multiple inputs exist for same key
+        document.querySelectorAll(`input`).forEach(el => {
+            if(keyMap[el.id] === keyType) el.value = keyVal;
+        });
+
       } catch (err) {
         btn.textContent = "Error";
          btn.style.background = "#ef4444";
@@ -390,6 +425,112 @@ function setupInteractions() {
     });
   }
 }
+// --- Profile Management ---
+
+async function loadProfile() {
+    if (!currentUser) return;
+
+    // 1. Update Identity
+    const idEl = document.getElementById("profile-user-id");
+    const emailEl = document.getElementById("profile-email");
+    if(idEl) idEl.textContent = currentUser.email ? currentUser.email.split("@")[0] : "User";
+    if(emailEl) emailEl.textContent = currentUser.email || currentUser.id;
+
+    // 2. Load Sessions
+    const list = document.getElementById("sessions-list");
+    if(list) {
+        list.innerHTML = `<div class="session-item loading">Loading active sessions...</div>`;
+        try {
+            const res = await fetch(`${API_BASE}/api/auth/sessions`);
+            const data = await res.json();
+            if(data.ok && data.sessions) {
+                renderSessions(data.sessions, list);
+            } else {
+                list.innerHTML = `<div class="text-muted">Failed to load sessions.</div>`;
+            }
+        } catch(e) {
+            console.error("Session load failed", e);
+             list.innerHTML = `<div class="text-muted">Error loading sessions.</div>`;
+        }
+    }
+    
+    // 3. Sync Settings (API Keys)
+    // Already loaded in loadUserData, but we can refresh?
+    // The inputs are populated on init, so we should be good.
+    // Ensure inputs in profile match user settings if they exist
+     if (currentUser.settings) {
+          if (currentUser.settings.rd_key) {
+               const el = document.getElementById("profile-rd-key");
+               if(el) el.value = currentUser.settings.rd_key;
+          }
+          if (currentUser.settings.ad_key) {
+               const el = document.getElementById("profile-ad-key");
+               if(el) el.value = currentUser.settings.ad_key;
+          }
+        }
+}
+
+function renderSessions(sessions, container) {
+    container.innerHTML = "";
+    if (sessions.length === 0) {
+        container.innerHTML = `<div class="text-muted">No active sessions.</div>`;
+        return;
+    }
+
+    sessions.forEach(s => {
+        const item = document.createElement("div");
+        item.className = "session-item glass";
+        item.style.display = "flex";
+        item.style.justifyContent = "space-between";
+        item.style.alignItems = "center";
+        item.style.padding = "1rem";
+        item.style.marginBottom = "0.5rem";
+        item.style.background = s.is_current ? "rgba(74, 222, 128, 0.1)" : "rgba(255,255,255,0.03)";
+        item.style.border = s.is_current ? "1px solid rgba(74, 222, 128, 0.3)" : "none";
+        item.style.borderRadius = "8px";
+
+        item.innerHTML = `
+            <div class="session-info">
+                <div style="font-weight: bold; color: ${s.is_current ? '#4ade80' : 'white'};">
+                    ${s.is_current ? 'Current Session' : 'Active Session'}
+                </div>
+                <div style="font-size: 0.8rem; color: var(--text-secondary);">
+                    Created ${timeAgo(s.created_at)}
+                </div>
+            </div>
+            ${!s.is_current ? `
+                <button class="btn-revoke" data-sid="${s.sid}" style="background: rgba(239, 68, 68, 0.2); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.3); padding: 0.25rem 0.75rem; border-radius: 4px; cursor: pointer;">
+                    Revoke
+                </button>
+            ` : ''}
+        `;
+        
+        container.appendChild(item);
+
+        // Revoke Handler
+        const revokeBtn = item.querySelector(".btn-revoke");
+        if(revokeBtn) {
+            revokeBtn.addEventListener("click", () => revokeSession(s.sid));
+        }
+    });
+}
+
+async function revokeSession(sid) {
+    if(!confirm("Are you sure you want to revoke this session?")) return;
+
+    try {
+        const res = await fetch(`${API_BASE}/api/auth/sessions/${sid}`, { method: 'DELETE' });
+        if(res.ok) {
+            showToast("Session revoked.", "success");
+            loadProfile(); // Refresh list
+        } else {
+            showToast("Failed to revoke session.", "error");
+        }
+    } catch(e) {
+        showToast("Error revoking session.", "error");
+    }
+}
+
 // --- UI Helpers ---
 
 function showToast(message, type = "info") {
@@ -468,44 +609,72 @@ function showPrompt(title, message, expectedValue, onCheck, isDanger=false) {
     ]);
 }
 
-function createModal(title, content, buttons) {
+function createModal(titleOrConfig, content, buttons) {
     const existing = document.getElementById("active-modal");
     if(existing) existing.remove();
 
+    // 1. Resolve Config (Polyfill for object signature)
+    let config = {};
+    if (typeof titleOrConfig === 'object' && titleOrConfig !== null) {
+        config = titleOrConfig;
+    } else {
+        config = {
+            title: titleOrConfig,
+            body: content,
+            actions: buttons
+        };
+    }
+
+    // 2. Create Overlay
     const overlay = document.createElement("div");
     overlay.id = "active-modal";
     overlay.className = "modal-overlay";
     
-    // Check if content implies HTML (e.g. for prompt input)
-    const isHtml = content.includes("<") && content.includes(">");
+    // CLICK OUTSIDE TO DISMISS
+    overlay.onclick = (e) => {
+        if (e.target === overlay) {
+            closeModal(overlay);
+        }
+    };
 
-    let btnsHtml = "";
-    // We attach listeners after render, so just placeholders for now? 
-    // Actually cleaner to build DOM elements
-    
     const card = document.createElement("div");
     card.className = "modal-card glass";
     
-    // Title
+    // 3. Title
     const h3 = document.createElement("h3");
     h3.className = "modal-title";
-    h3.textContent = title;
+    h3.textContent = config.title;
     
-    // Body
+    // 4. Body
     const body = document.createElement("div");
     body.className = "modal-body";
-    if(isHtml) body.innerHTML = content;
-    else body.textContent = content;
+    // Check if body implies HTML
+    const bodyContent = config.body || config.content || "";
+    if(bodyContent.includes("<") && bodyContent.includes(">")) {
+        body.innerHTML = bodyContent;
+    } else {
+        body.textContent = bodyContent;
+    }
 
-    // Actions
+    // 5. Actions
     const actionContainer = document.createElement("div");
     actionContainer.className = "modal-actions";
     
-    buttons.forEach(btnConfig => {
+    const actionList = config.actions || config.buttons || [];
+    actionList.forEach(btnConfig => {
         const btn = document.createElement("button");
-        btn.className = `btn-modal ${btnConfig.class}`;
-        btn.textContent = btnConfig.text;
-        btn.onclick = () => btnConfig.action(overlay);
+        // Handle mapped properties (text vs label, class, action vs onClick)
+        btn.className = `btn-modal ${btnConfig.class || (btnConfig.primary ? 'btn-modal-confirm' : 'btn-modal-cancel')}`;
+        btn.textContent = btnConfig.text || btnConfig.label;
+        
+        // Action wraper
+        btn.onclick = () => {
+             if (btnConfig.action) btnConfig.action(overlay);
+             else if (btnConfig.onClick) {
+                 btnConfig.onClick();
+                 closeModal(overlay);
+             }
+        };
         actionContainer.appendChild(btn);
     });
 
@@ -642,18 +811,36 @@ function timeAgo(timestamp) {
     return Math.floor(seconds) + " seconds ago";
 }
 function showQrModal(tokenRaw) {
-  const modal = document.getElementById("qr-modal");
-  const img = document.getElementById("qr-image");
+    const linkUrl = `${window.location.origin}/link?token=${tokenRaw}`;
+    const qrSrc = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(linkUrl)}`;
 
-  // Construct Universal Link: https://seedsphere.fly.dev/link?token=...
-  // Uses window.location.origin to ensure it works on both localhost and prod
-  const linkUrl = `${window.location.origin}/link?token=${tokenRaw}`;
+    const content = `
+        <div style="display: flex; flex-direction: column; align-items: center; gap: 1.5rem; padding: 1rem 0;">
+            <div style="background: white; padding: 1rem; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.3);">
+                <img src="${qrSrc}" alt="Scan QR Code" style="width: 200px; height: 200px; display: block;">
+            </div>
+            <div style="text-align: center; color: rgba(255,255,255,0.8);">
+                <p style="margin-bottom: 0.5rem; font-size: 1rem;">Scan with the <strong>Gardener App</strong></p>
+                <p style="font-size: 0.9rem; opacity: 0.7;">to link this device to your swarm.</p>
+            </div>
+            <div style="background: rgba(255,255,255,0.1); padding: 0.75rem 1rem; border-radius: 8px; font-family: monospace; font-size: 0.9rem; display: flex; align-items: center; gap: 0.5rem; max-width: 100%; overflow: hidden;">
+                <span style="opacity: 0.6;">Token:</span>
+                <span style="color: #4ade80;">${tokenRaw}</span>
+            </div>
+        </div>
+    `;
 
-  // Using a public QR API for simplicity locally.
-  img.src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(
-    linkUrl
-  )}`;
-  modal.style.display = "flex";
+    createModal({
+        title: "Link New Device",
+        body: content,
+        actions: [
+            {
+                label: "Done",
+                primary: true,
+                onClick: () => {} // Closes by default
+            }
+        ]
+    });
 }
 
 async function loadReleases() {

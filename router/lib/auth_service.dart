@@ -68,7 +68,9 @@ class AuthService {
     app.get('/magic/callback', _handleMagicCallback);
 
     // Session
-    app.get('/session', _handleSession);
+    app.get('/session', _handleSession); // Current session check
+    app.get('/sessions', _handleGetSessions); // List all sessions
+    app.delete('/sessions/<sid>', _handleRevokeSession); // Revoke specific
     app.post('/logout', _handleLogout);
 
     // User Management
@@ -276,13 +278,19 @@ class AuthService {
       );
 
       if (!sent) {
-        return Response.internalServerError(body: 'email_send_failed');
+        return Response.internalServerError(
+          body: jsonEncode({
+            'ok': false,
+            'error': 'SMTP Send Failed. Check logs.',
+          }),
+        );
       }
 
       return Response.ok(jsonEncode({'ok': true}));
     } catch (e) {
+      print('Magic Link Error: $e');
       return Response.internalServerError(
-        body: jsonEncode({'ok': false, 'error': '$e'}),
+        body: jsonEncode({'ok': false, 'error': 'Server Error: $e'}),
       );
     }
   }
@@ -431,6 +439,49 @@ class AuthService {
 
     final devices = _db.getBindings(userId);
     return Response.ok(jsonEncode({'ok': true, 'devices': devices}));
+  }
+
+  Future<Response> _handleGetSessions(Request req) async {
+    final userId = _getSessionId(req);
+    if (userId == null) {
+      return Response.forbidden(jsonEncode({'error': 'unauthorized'}));
+    }
+
+    // Get all sessions
+    final sessions = _db.getSessions(userId);
+
+    // Mark current session
+    final currentSid = _getSessionIdFromCookie(req);
+    final enriched = sessions
+        .map((s) => {...s, 'is_current': s['sid'] == currentSid})
+        .toList();
+
+    return Response.ok(jsonEncode({'ok': true, 'sessions': enriched}));
+  }
+
+  Future<Response> _handleRevokeSession(Request req, String sid) async {
+    final userId = _getSessionId(req);
+    if (userId == null) {
+      return Response.forbidden(jsonEncode({'error': 'unauthorized'}));
+    }
+
+    if (!_checkCsrf(req)) {
+      return Response.forbidden(jsonEncode({'error': 'csrf_violation'}));
+    }
+
+    // Verify session belongs to user (Security Check)
+    // We fetch the session first to check owner
+    final session = _db.getSession(sid);
+    if (session == null) {
+      return Response.notFound(jsonEncode({'error': 'session_not_found'}));
+    }
+
+    if (session['user_id'] != userId) {
+      return Response.forbidden(jsonEncode({'error': 'forbidden'}));
+    }
+
+    _db.revokeSession(sid);
+    return Response.ok(jsonEncode({'ok': true}));
   }
 
   // --- Helpers ---

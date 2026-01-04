@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.9.17] - 2026-01-03
+
+### Added
+
+- **User Profile**: Dedicated section in Portal for managing Identity, Sessions, and Security.
+- **Session Management**: View active sessions and remotely revoke them (`GET /sessions`, `DELETE /sessions/:id`).
+- **Debrid Integrations**: Secure UI for managing Real-Debrid and AllDebrid API keys with visibility toggles.
+- **Account Security**: "Danger Zone" for account deletion and device unlinking.
+- **Docs**: Updated documentation to reflect "Stremio Companion/OS" positioning.
+
 ## [1.9.5] - 2025-12-31
 
 ### Added
