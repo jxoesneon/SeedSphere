@@ -16,7 +16,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
 // Dynamic API Base URL
 // Dynamic API Base URL
+// Dynamic API Base URL
 const API_BASE = "";
+let currentUser = null; // Cache for user session
 
 /**
  * Fetches the current user session and updates the dashboard state.
@@ -36,6 +38,7 @@ async function loadUserData() {
 
     if (data.ok && data.user) {
       // Logged in
+      currentUser = data.user;
       document.getElementById("login-overlay").style.display = "none";
       document.getElementById("main-dashboard").style.filter = "none";
       updateUI(data.user);
@@ -74,6 +77,7 @@ async function loadUserData() {
         );
       }
 
+      currentUser = null;
       updateUI(null);
     }
   } catch (e) {
@@ -337,18 +341,27 @@ function setupInteractions() {
     });
   });
   // Install Addon (Stremio)
-  const installBtn = document.querySelector(".btn-install-addon"); // We need to add this class to the button in dashboard.html
+  const installBtn = document.querySelector(".btn-install-addon");
   if (installBtn) {
-    installBtn.addEventListener("click", async () => {
+    installBtn.addEventListener("click", () => {
       try {
-        const res = await fetch(`${API_BASE}/api/auth/session`);
-        const data = await res.json();
-        if (data.ok && data.user) {
-          const userId = data.user.id.split(":")[1] || data.user.id;
-          // Format: stremio://<host>/u/<userId>/manifest.json
-          const host = new URL(API_BASE).host;
+        if (currentUser) {
+          const userId = currentUser.id.split(":")[1] || currentUser.id;
+          
+          // Determine Host: Use API_BASE host if set, otherwise current window host
+          let host;
+          if (API_BASE) {
+             try {
+                 host = new URL(API_BASE).host;
+             } catch (e) {
+                 host = window.location.host;
+             }
+          } else {
+             host = window.location.host;
+          }
 
-          // For localhost dev, usage: stremio://localhost:8080/u/magic:xxx/manifest.json
+          // Format: stremio://<host>/u/<userId>/manifest.json
+          // Ensure we don't duplicate protocol if host has it (mostly host shouldn't)
           const manifestUrl = `stremio://${host}/u/${userId}/manifest.json`;
 
           window.location.href = manifestUrl;
