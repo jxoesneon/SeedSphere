@@ -84,6 +84,15 @@ gardener/devtools_options.yaml
 gardener/.metadata
 **/ephemeral/
 
+# Podfile Lock
+**/Podfile.lock
+
+# Xcode user data
+**/xcuserdata/
+**/*.xcworkspace/
+!**/contents.xcworkspacedata
+**/*.moved-aside
+
 # Archive Artifacts
 *.zip
 *.tar.gz

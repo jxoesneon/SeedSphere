@@ -12,7 +12,7 @@ import 'package:url_launcher/url_launcher.dart';
 class DesktopGoogleAuth {
   // Desktop Client ID provided by user.
   static const String _clientId =
-      '550711161426-bvvv578gtt7cst7lsar3c28r3uh6n706.apps.googleusercontent.com';
+      '550711161426-lk1vk3hf44amas66mk22dvv1235673uk.apps.googleusercontent.com';
 
   // Secret is now injected via --dart-define in launch.json
   static const String _clientSecret = String.fromEnvironment(

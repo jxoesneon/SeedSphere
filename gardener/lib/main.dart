@@ -1,4 +1,6 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:gardener/core/debug_logger.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -25,31 +27,165 @@ import 'package:gardener/ui/screens/home_screen.dart';
 /// The application uses Riverpod for dependency injection and state management.
 /// Heavy P2P logic is offloaded to a background isolate (managed by `P2PManager`).
 // coverage:ignore-start
-void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
+void main() {
+  runZonedGuarded(
+    () {
+      WidgetsFlutterBinding.ensureInitialized();
 
-  // Request runtime permissions for background service (Android 13+)
-  await _requestBackgroundPermissions();
+      runApp(
+        const ProviderScope(child: BootstrapWrapper(child: GardenerApp())),
+      );
+    },
+    (error, stack) {
+      DebugLogger.error(
+        'Uncaught Asynchronous Error',
+        error: error,
+        stackTrace: stack,
+      );
+    },
+  );
+}
 
-  // Initialize minimal core services before UI launch
-  final kms = LocalKMS();
+/// A wrapper that handles the application bootstrap sequence.
+///
+/// Shows a loading indicator while initialization is running, and
+/// displays an error screen if initialization fails.
+class BootstrapWrapper extends StatefulWidget {
+  final Widget child;
 
-  // Prevent app crash on first launch by ensuring placeholder keys exist
-  await keys_helper.ensureKeysExist(kms);
+  const BootstrapWrapper({super.key, required this.child});
 
-  // Initialize background sentinel for P2P network stability
-  await initializeService();
+  @override
+  State<BootstrapWrapper> createState() => _BootstrapWrapperState();
+}
 
-  // Ensure logs are visible in debug console
-  if (kDebugMode) {
-    debugPrint('Gardener: Launching app...');
-    FlutterError.onError = (details) {
-      FlutterError.dumpErrorToConsole(details);
-      debugPrint(details.toString());
-    };
+class _BootstrapWrapperState extends State<BootstrapWrapper> {
+  bool _initialized = false;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _bootstrap();
   }
 
-  runApp(const ProviderScope(child: GardenerApp()));
+  Future<void> _bootstrap() async {
+    try {
+      DebugLogger.info('Gardener: Starting bootstrap sequence...');
+
+      // Request runtime permissions for background service (Android 13+)
+      await _requestBackgroundPermissions();
+
+      // Initialize minimal core services before UI launch
+      final kms = LocalKMS();
+
+      // Prevent app crash on first launch by ensuring placeholder keys exist
+      DebugLogger.debug('Gardener: Ensuring API keys exist...');
+      await keys_helper.ensureKeysExist(kms);
+
+      // Initialize background sentinel for P2P network stability
+      DebugLogger.debug('Gardener: Initializing background services...');
+      await initializeService();
+
+      // Ensure logs are visible in debug console
+      if (kDebugMode) {
+        DebugLogger.info('Gardener: Bootstrap complete');
+        FlutterError.onError = (details) {
+          FlutterError.dumpErrorToConsole(details);
+          DebugLogger.error(
+            'Flutter Framework Error',
+            error: details.exception,
+            stackTrace: details.stack,
+          );
+        };
+      }
+
+      if (mounted) {
+        setState(() {
+          _initialized = true;
+        });
+      }
+    } catch (e, stack) {
+      DebugLogger.error('Bootstrap failed', error: e, stackTrace: stack);
+      if (mounted) {
+        setState(() {
+          _error = e.toString();
+        });
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_error != null) {
+      return MaterialApp(
+        debugShowCheckedModeBanner: false,
+        theme: AethericTheme.darkTheme,
+        home: Scaffold(
+          body: Center(
+            child: Padding(
+              padding: const EdgeInsets.all(24.0),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.error_outline, color: Colors.red, size: 64),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Failed to start Gardener',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    _error!,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(color: Colors.white70),
+                  ),
+                  const SizedBox(height: 24),
+                  ElevatedButton(
+                    onPressed: () {
+                      setState(() {
+                        _error = null;
+                      });
+                      _bootstrap();
+                    },
+                    child: const Text('Retry'),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    if (!_initialized) {
+      return MaterialApp(
+        debugShowCheckedModeBanner: false,
+        theme: AethericTheme.darkTheme,
+        home: const Scaffold(
+          body: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                CircularProgressIndicator(color: Colors.deepPurpleAccent),
+                SizedBox(height: 24),
+                Text(
+                  'Initializing SeedSphere...',
+                  style: TextStyle(color: Colors.white70, letterSpacing: 1.2),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    return widget.child;
+  }
 }
 
 /// Request runtime permissions for background service operation.

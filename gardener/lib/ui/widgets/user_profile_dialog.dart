@@ -1,4 +1,7 @@
+import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:gardener/ui/theme/aetheric_theme.dart';
 import 'package:gardener/ui/widgets/aetheric_glass.dart';
@@ -18,6 +21,17 @@ class UserProfileDialog extends StatefulWidget {
 class _UserProfileDialogState extends State<UserProfileDialog> {
   String? _userId;
   String? _userEmail;
+  bool _isUnlinking = false;
+
+  String get _apiBase {
+    if (kDebugMode) {
+      if (!kIsWeb && Platform.isAndroid) {
+        return 'http://10.0.2.2:8080';
+      }
+      return 'http://localhost:8080';
+    }
+    return 'https://seedsphere.fly.dev';
+  }
 
   @override
   void initState() {
@@ -44,6 +58,73 @@ class _UserProfileDialogState extends State<UserProfileDialog> {
       Navigator.pop(context);
       // Pop the SwarmDashboard to return to HomeScreen (which will then show AuthScreen if triggered)
       Navigator.pop(context);
+    }
+  }
+
+  Future<void> _unlinkAllDevices() async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AethericTheme.deepVoid,
+        title: const Text(
+          'UNLINK ALL DEVICES?',
+          style: TextStyle(color: Colors.white, letterSpacing: 2),
+        ),
+        content: const Text(
+          'This will sign out all your devices. You will need to sign back in everywhere.',
+          style: TextStyle(color: Colors.white70),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('CANCEL'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text(
+              'UNLINK ALL',
+              style: TextStyle(color: AethericTheme.error),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
+    setState(() => _isUnlinking = true);
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('auth_token');
+
+      final response = await http.post(
+        Uri.parse('$_apiBase/api/auth/unlink'),
+        headers: {
+          'Content-Type': 'application/json',
+          'x-seedsphere-client': 'gardener-v1', // CSRF Protection
+          if (token != null) 'cookie': 'seedsphere_session=$token',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        // Success - log out this session too as it's now invalid
+        if (mounted) await _logout(context);
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Failed to unlink devices.')),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: $e')));
+      }
+    } finally {
+      if (mounted) setState(() => _isUnlinking = false);
     }
   }
 
@@ -86,6 +167,28 @@ class _UserProfileDialogState extends State<UserProfileDialog> {
                   child: const Text(
                     'CLOSE',
                     style: TextStyle(color: Colors.white54, letterSpacing: 1.2),
+                  ),
+                ),
+                ElevatedButton(
+                  onPressed: _isUnlinking ? null : _unlinkAllDevices,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.white.withValues(alpha: 0.05),
+                    foregroundColor: Colors.white70,
+                    side: BorderSide(
+                      color: Colors.white.withValues(alpha: 0.2),
+                      width: 0.5,
+                    ),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
+                  ),
+                  child: Text(
+                    _isUnlinking ? 'UNLINKING...' : 'UNLINK ALL',
+                    style: const TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
                 ElevatedButton(

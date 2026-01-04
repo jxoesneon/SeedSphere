@@ -81,7 +81,14 @@ class _AuthScreenState extends State<AuthScreen> {
           _message = 'Check your email for the magic link!';
         });
       } else {
-        setState(() => _message = 'Failed to send magic link. Try again.');
+        String errorMsg = 'Failed to send magic link.';
+        try {
+          final data = jsonDecode(response.body);
+          if (data['error'] != null) {
+            errorMsg = '${data['error']}';
+          }
+        } catch (_) {}
+        setState(() => _message = '$errorMsg Try again.');
       }
     } catch (e) {
       setState(() => _message = 'Network error. Check your connection.');
@@ -112,17 +119,22 @@ class _AuthScreenState extends State<AuthScreen> {
         // but the backend will extract it from the token.
         // We can decode it here if needed for UI, but let's rely on backend verification response.
       } else {
-        // Use standard plugin for Mobile/Web
-        final googleSignIn = GoogleSignIn(scopes: ['email', 'profile']);
-        final account = await googleSignIn.signIn();
+        // Use standard plugin for Mobile/Web (v7.x API)
+        // Ensure the singleton is initialized
+        await GoogleSignIn.instance.initialize();
 
-        if (account == null) {
-          setState(() => _message = 'Sign-in cancelled.');
+        try {
+          final account = await GoogleSignIn.instance.authenticate(
+            scopeHint: ['email', 'profile'],
+          );
+
+          final auth = await account.authentication;
+          idToken = auth.idToken;
+        } catch (error) {
+          debugPrint('Google Sign-In error: $error');
+          setState(() => _message = 'Sign-in cancelled or failed.');
           return;
         }
-
-        final auth = await account.authentication;
-        idToken = auth.idToken;
       }
 
       if (idToken == null) {

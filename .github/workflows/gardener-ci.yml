@@ -63,6 +63,7 @@ jobs:
         with:
           name: gardener-android-apk
           path: gardener/build/app/outputs/flutter-apk/app-release.apk
+          if-no-files-found: error
 
   build-ios:
     if: ${{ github.event_name == 'push' || inputs.ios == true }}
@@ -104,16 +105,18 @@ jobs:
       - name: Build Windows (x64)
         run: flutter build windows --release --dart-define=GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET_DESKTOP }}
 
+      - name: Install Inno Setup
+        run: choco install innosetup --no-progress
+
       - name: Create Installer (Inno Setup)
-        run: |
-          choco install innosetup
-          iscc windows/installer.iss
+        run: iscc windows/installer.iss
 
       - name: Upload Windows Installer
         uses: actions/upload-artifact@v4
         with:
           name: gardener-windows-setup
           path: gardener/build/windows/installer/gardener-setup.exe
+          if-no-files-found: error
 
   build-linux:
     if: ${{ github.event_name == 'push' || inputs.linux == true }}
@@ -172,6 +175,7 @@ jobs:
             gardener/build/linux/x64/release/bundle
             gardener/dist/*.deb
             gardener/dist/*.rpm
+          if-no-files-found: error
 
   build-linux-arm64:
     if: ${{ github.event_name == 'push' || inputs.linux == true }}
@@ -203,13 +207,37 @@ jobs:
             flutter pub get
             flutter build linux --release --dart-define=GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET_DESKTOP }}
 
-            # Packaging would go here ideally, but simplified for now
+            # Install Packaging Tools in container
+            apt-get install -y ruby ruby-dev rubygems build-essential
+            gem install --no-document fpm
+
+            mkdir -p dist
+
+            # Create DEB (ARM64)
+            fpm -s dir -t deb -n gardener -v 1.9.3 -a aarch64 \
+              --description "SeedSphere Gardener Client" \
+              --maintainer "SeedSphere <dev@seedsphere.app>" \
+              --prefix /opt/gardener \
+              -C build/linux/arm64/release/bundle .
+            mv gardener_*.deb dist/gardener-linux-arm64.deb
+
+            # Create RPM (ARM64)
+            fpm -s dir -t rpm -n gardener -v 1.9.3 -a aarch64 \
+              --description "SeedSphere Gardener Client" \
+              --maintainer "SeedSphere <dev@seedsphere.app>" \
+              --prefix /opt/gardener \
+              -C build/linux/arm64/release/bundle .
+            mv gardener-*.rpm dist/gardener-linux-arm64.rpm
 
       - name: Upload Linux Build (ARM64)
         uses: actions/upload-artifact@v4
         with:
           name: gardener-linux-arm64
-          path: gardener/build/linux/arm64/release/bundle
+          path: |
+            gardener/build/linux/arm64/release/bundle
+            gardener/dist/*.deb
+            gardener/dist/*.rpm
+          if-no-files-found: error
 
   build-macos:
     if: ${{ github.event_name == 'push' || inputs.macos == true }}
@@ -232,11 +260,30 @@ jobs:
         # Flutter builds universal binary by default on macOS
         run: flutter build macos --release --dart-define=GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET_DESKTOP }}
 
+      - name: Create DMG (Universal)
+        run: |
+          brew install create-dmg
+          test -f gardener.dmg && rm gardener.dmg
+          create-dmg \
+            --volname "Gardener Installer" \
+            --volicon "gardener/assets/app_icon.icns" \
+            --window-pos 200 120 \
+            --window-size 800 400 \
+            --icon-size 100 \
+            --icon "gardener.app" 200 190 \
+            --hide-extension "gardener.app" \
+            --app-drop-link 600 185 \
+            "gardener.dmg" \
+            "gardener/build/macos/Build/Products/Release/gardener.app"
+
       - name: Upload macOS Build
         uses: actions/upload-artifact@v4
         with:
           name: gardener-macos-universal
-          path: gardener/build/macos/Build/Products/Release/gardener.app
+          path: |
+            gardener/build/macos/Build/Products/Release/gardener.app
+            gardener.dmg
+          if-no-files-found: error
 
   release:
     if: startsWith(github.ref, 'refs/tags/v')
@@ -267,7 +314,7 @@ jobs:
           mkdir -p dist
           TIMESTAMP=$(date +%Y%m%d-%H%M%S)
           echo "Appending timestamp: $TIMESTAMP"
-          
+
           # Function to find and copy safely
           find_and_copy() {
             local pattern="$1"
@@ -309,9 +356,13 @@ jobs:
           if [ -d "$BUNDLE_ARM" ]; then
              (cd "$BUNDLE_ARM" && zip -r - . > "$GITHUB_WORKSPACE/dist/gardener-linux-arm64-${TIMESTAMP}.zip")
           fi
+          find_and_copy "gardener-linux-arm64.deb" "gardener-linux-arm64.deb"
+          find_and_copy "gardener-linux-arm64.rpm" "gardener-linux-arm64.rpm"
 
           # macOS (Universal)
           echo "Processing macOS..."
+          find_and_copy "gardener.dmg" "gardener-macos-universal.dmg"
+
           # The artifact might be the .app directory itself or nested
           MAC_APP=$(find artifacts/gardener-macos-universal -type d -name "gardener.app" | head -n 1)
           if [ -d "$MAC_APP" ]; then
@@ -325,11 +376,12 @@ jobs:
         with:
           files: |
             dist/gardener-android-*.apk
-            dist/gardener-windows-*-setup.exe
+            dist/gardener-windows-*.exe
             dist/gardener-linux-x64.zip
             dist/gardener-linux-arm64.zip
             dist/*.deb
             dist/*.rpm
+            dist/*.dmg
             dist/gardener-macos-universal.zip
           draft: false
           prerelease: false

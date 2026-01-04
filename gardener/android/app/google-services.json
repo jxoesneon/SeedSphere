@@ -14,7 +14,15 @@
       },
       "oauth_client": [
         {
-          "client_id": "550711161426-9b0i08ls5a3fb040p1affj0cjaa6fr4b.apps.googleusercontent.com",
+          "client_id": "550711161426-2se9i9p6p7o3pk1els6b60mooait9b0f.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.seedsphere.gardener",
+            "certificate_hash": "195bc6217fec8593772c9e58a52f1814df59cb0e"
+          }
+        },
+        {
+          "client_id": "550711161426-4e31ii3n1kmpbuenf5u9vrjnj6vajb82.apps.googleusercontent.com",
           "client_type": 3
         }
       ],
@@ -27,8 +35,15 @@
         "appinvite_service": {
           "other_platform_oauth_client": [
             {
-              "client_id": "550711161426-9b0i08ls5a3fb040p1affj0cjaa6fr4b.apps.googleusercontent.com",
+              "client_id": "550711161426-4e31ii3n1kmpbuenf5u9vrjnj6vajb82.apps.googleusercontent.com",
               "client_type": 3
+            },
+            {
+              "client_id": "550711161426-bkup98581nj5jsuq38cutigtc0q58idk.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.seedsphere.gardener"
+              }
             }
           ]
         }

@@ -73,3 +73,11 @@ windows/flutter/ephemeral/
 *.iws
 *.ipr
 .last_build_id
+
+# Xcode user data
+**/xcuserdata/
+**/*.xcworkspace/
+!**/contents.xcworkspacedata
+
+# Podfile locks
+**/Podfile.lock
