@@ -9,6 +9,8 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 import 'package:uuid/uuid.dart';
 import 'package:gardener/core/security_manager.dart';
+import 'package:gardener/core/network_constants.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:gardener/p2p/p2p_protocol.dart';
 import 'package:ed25519_edwards/ed25519_edwards.dart' as ed;
 
@@ -117,9 +119,18 @@ class P2PManager {
     // if it's a "solo" announcement, or the real seedlingId if known.
     const seedlingId = 'self';
 
+    final prefs = await SharedPreferences.getInstance();
+    final userId = prefs.getString('user_id');
+
+    // The "room" we publish to. If logged in, use userId so dashboard sees us.
+    // Otherwise fallback to gardenerId.
+    final roomId = (userId != null && userId.isNotEmpty)
+        ? userId
+        : _gardenerId!;
+
     final sig = await _security.generateHmacSignature(
       method: 'POST',
-      path: '/api/rooms/$_gardenerId/heartbeat',
+      path: '/api/rooms/$roomId/heartbeat',
       query: '',
       body: body,
       timestamp: ts,
@@ -129,9 +140,9 @@ class P2PManager {
     if (sig == null) return;
 
     try {
-      const baseUrl = 'https://seedsphere-router.fly.dev';
+      final endpoint = NetworkConstants.getHeartbeatEndpoint(roomId);
       await http.post(
-        Uri.parse('$baseUrl/api/rooms/$_gardenerId/heartbeat'),
+        Uri.parse(endpoint),
         headers: {
           'Content-Type': 'application/json',
           'X-SeedSphere-Sig': sig,
@@ -142,7 +153,7 @@ class P2PManager {
         },
         body: body,
       );
-      debugPrint('P2P: Heartbeat sent to Router');
+      debugPrint('P2P: Heartbeat sent to room: $roomId');
     } catch (e) {
       debugPrint('P2P: Heartbeat failed: $e');
     }

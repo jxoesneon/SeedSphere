@@ -3,12 +3,13 @@ import 'dart:ui';
 import 'package:flutter_background_service/flutter_background_service.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:http/http.dart' as http;
+import 'package:gardener/core/network_constants.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:flutter/foundation.dart';
 
 /// Router endpoint for heartbeat (local dev or production)
-const String _routerBase = 'https://seedsphere.fly.dev';
+// --- REPLACED HARDCODED URLS WITH NETWORKCONSTANTS ---
 
 Future<void> initializeService() async {
   // coverage:ignore-start
@@ -94,7 +95,7 @@ Future<void> _sendHeartbeat() async {
       return; // Not logged in, skip heartbeat
     }
 
-    final uri = Uri.parse('$_routerBase/api/rooms/$userId/heartbeat');
+    final uri = Uri.parse(NetworkConstants.getHeartbeatEndpoint(userId));
     await http.post(
       uri,
       headers: {

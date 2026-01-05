@@ -25,7 +25,13 @@ class NetworkConstants {
   }
 
   /// The Stremio-compatible catalog endpoint.
+  /// Router mounts AddonService under /addon/
   static String get catalogEndpoint {
-    return '$apiBase/catalog';
+    return '$apiBase/addon/catalog';
+  }
+
+  /// The heartbeat endpoint for a specific ID.
+  static String getHeartbeatEndpoint(String id) {
+    return '$apiBase/api/rooms/$id/heartbeat';
   }
 }

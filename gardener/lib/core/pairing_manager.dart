@@ -4,6 +4,7 @@ import 'package:gardener/p2p/p2p_manager.dart';
 import 'package:gardener/p2p/p2p_protocol.dart';
 import 'package:gardener/core/local_kms.dart';
 import 'package:gardener/core/security_manager.dart';
+import 'package:gardener/core/network_constants.dart';
 import 'package:http/http.dart' as http;
 
 /// Manages device pairing and server-side linking for authenticated communication.
@@ -15,8 +16,8 @@ class PairingManager {
 
   /// Creates a [PairingManager] instance.
   PairingManager(this.p2p, {SecurityManager? security, http.Client? client})
-      : _security = security ?? SecurityManager(),
-        _client = client ?? http.Client();
+    : _security = security ?? SecurityManager(),
+      _client = client ?? http.Client();
 
   /// Generates a base64-encoded pairing payload containing credentials.
   ///
@@ -50,11 +51,13 @@ class PairingManager {
   /// Other devices can respond to this specific pairing topic.
   void startPairingListener(String pairingId) {
     // Listen to the unique pairing topic in the Gossipsub swarm
-    p2p.sendCommand(P2PCommand(
-      type: P2PCommandType.boost, // Reusing boost for signaling
-      imdbId: 'pairing:$pairingId',
-      data: {'status': 'waiting'},
-    ));
+    p2p.sendCommand(
+      P2PCommand(
+        type: P2PCommandType.boost, // Reusing boost for signaling
+        imdbId: 'pairing:$pairingId',
+        data: {'status': 'waiting'},
+      ),
+    );
   }
 
   /// Completes the pairing process by decoding and storing received credentials.
@@ -69,7 +72,8 @@ class PairingManager {
     final decoded = jsonDecode(utf8.decode(base64Decode(payloadBase64)));
     // TODO: Store the received credentials in LocalKMS
     debugPrint(
-        'PAIRING: Successfully paired via P2P with ${decoded['gardenerId']}');
+      'PAIRING: Successfully paired via P2P with ${decoded['gardenerId']}',
+    );
   }
 
   /// Requests a linking token from the Federated Router.
@@ -79,13 +83,13 @@ class PairingManager {
     if (gardenerId == null) return null;
 
     try {
-      const baseUrl = 'https://seedsphere-router.fly.dev';
+      final endpoint = '${NetworkConstants.apiBase}/api/link/start';
       final response = await _client.post(
-        Uri.parse('$baseUrl/api/linking/start'),
+        Uri.parse(endpoint),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'gardener_id': gardenerId,
-          'platform': defaultTargetPlatform.name
+          'platform': defaultTargetPlatform.name,
         }),
       );
 
@@ -102,9 +106,9 @@ class PairingManager {
   /// Polls the Router to complete the linking process and obtain the secret.
   Future<bool> completeLinkingWithToken(String token) async {
     try {
-      const baseUrl = 'https://seedsphere-router.fly.dev';
+      final endpoint = '${NetworkConstants.apiBase}/api/link/complete';
       final response = await _client.post(
-        Uri.parse('$baseUrl/api/linking/complete'),
+        Uri.parse(endpoint),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'token': token, 'seedling_id': 'mobile-app'}),
       );

@@ -1,10 +1,9 @@
-import 'dart:io';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:gardener/ui/theme/aetheric_theme.dart';
 import 'package:gardener/ui/widgets/aetheric_glass.dart';
+import 'package:gardener/core/network_constants.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 /// A premium glassmorphic dialog for user profile management.
@@ -23,15 +22,7 @@ class _UserProfileDialogState extends State<UserProfileDialog> {
   String? _userEmail;
   bool _isUnlinking = false;
 
-  String get _apiBase {
-    if (kDebugMode) {
-      if (!kIsWeb && Platform.isAndroid) {
-        return 'http://10.0.2.2:8080';
-      }
-      return 'http://localhost:8080';
-    }
-    return 'https://seedsphere.fly.dev';
-  }
+  String get _apiBase => NetworkConstants.apiBase;
 
   @override
   void initState() {
