@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/foundation.dart';
+import 'package:gardener/core/debug_logger.dart';
 
 /// Centralized networking constants for SeedSphere.
 class NetworkConstants {
@@ -41,11 +42,55 @@ class NetworkConstants {
     return [
       '/dns4/seedsphere-router.fly.dev/tcp/4001',
       '/dns4/seedsphere-router.fly.dev/udp/4001/quic',
-      // Fallback to public bootstrap nodes to ensure connectivity
+      '/dns6/seedsphere-router.fly.dev/tcp/4001',
+      '/dns6/seedsphere-router.fly.dev/udp/4001/quic',
+      // Fallback to public bootstrap nodes
       '/dnsaddr/bootstrap.libp2p.io/p2p/QmNnooDu7bfjPFoTZYxMNLWUQJyrVwtbZg5gBMjTezGAJN',
       '/dnsaddr/bootstrap.libp2p.io/p2p/QmQCU2EcMqAqQPR2i9bChDtGNJchTbq5TbXJJ16u19uLTa',
       '/ip4/104.131.131.82/tcp/4001/p2p/QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ',
     ];
+  }
+
+  /// Pings bootstrap nodes to verify raw socket reachability.
+  /// Logs results to [DebugLogger] with NET category.
+  static Future<void> pingBootstrapPeers() async {
+    DebugLogger.info(
+      'Forensics: Starting raw connectivity check...',
+      category: 'NET',
+    );
+
+    // Extract hosts and ports from multiaddrs
+    final targets = [
+      {'host': 'seedsphere-router.fly.dev', 'port': 4001},
+      {'host': 'bootstrap.libp2p.io', 'port': 4001},
+      {'host': '104.131.131.82', 'port': 4001},
+    ];
+
+    for (final target in targets) {
+      final host = target['host'] as String;
+      final port = target['port'] as int;
+
+      try {
+        final stopwatch = Stopwatch()..start();
+        final socket = await Socket.connect(
+          host,
+          port,
+          timeout: const Duration(seconds: 3),
+        );
+        stopwatch.stop();
+        socket.destroy();
+
+        DebugLogger.info(
+          'NET: Reachable: $host:$port (${stopwatch.elapsedMilliseconds}ms)',
+          category: 'NET',
+        );
+      } catch (e) {
+        DebugLogger.warn(
+          'NET: UNREACHABLE: $host:$port | Error: $e',
+          category: 'NET',
+        );
+      }
+    }
   }
 
   /// External API base for Real-Debrid.

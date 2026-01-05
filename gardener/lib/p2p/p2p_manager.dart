@@ -49,6 +49,17 @@ class P2PManager {
   /// Notifier for the number of active physical P2P peers.
   final ValueNotifier<int> peerCount = ValueNotifier<int>(0);
 
+  /// Stores current diagnostic metadata for reporting.
+  final Map<String, String> _diagnosticMetadata = {
+    'peerId': 'Unknown',
+    'addresses': 'None',
+    'status': 'Starting...',
+  };
+
+  /// Returns a copy of the current diagnostic metadata.
+  Map<String, String> get diagnosticMetadata =>
+      Map.unmodifiable(_diagnosticMetadata);
+
   P2PManager({FlutterSecureStorage? storage, SecurityManager? security})
     : _storage = storage ?? const FlutterSecureStorage(),
       _security = security ?? SecurityManager();
@@ -91,6 +102,9 @@ class P2PManager {
     final scrapeSwarm = prefs.getBool('p2p_scrape_swarm') ?? true;
     final swarmTopN = prefs.getInt('p2p_swarm_top_n') ?? 20;
 
+    // Run raw network diagnostics in background
+    unawaited(NetworkConstants.pingBootstrapPeers());
+
     _p2pIsolate = await Isolate.spawn(
       _p2pIsolateEntryPoint,
       P2PInitData(
@@ -115,9 +129,43 @@ class P2PManager {
         _startStatusPolling();
       } else if (message is int) {
         peerCount.value = message;
+      } else if (message is Map && message.containsKey('msg')) {
+        final msg = message['msg'] as String;
+        final category = message['cat'] as String?;
+        final level = message['level'] as String? ?? 'INFO';
+        final error = message['error'];
+
+        // Update diagnostic metadata based on key messages
+        if (category == 'NET') {
+          if (msg.contains('Identity:')) {
+            _diagnosticMetadata['peerId'] = msg.split('Identity: ')[1];
+            _diagnosticMetadata['status'] = 'Active';
+          } else if (msg.contains('Listening on:')) {
+            _diagnosticMetadata['addresses'] = msg.split('Listening on: ')[1];
+          }
+        }
+
+        switch (level) {
+          case 'ERROR':
+            DebugLogger.error(msg, category: category, error: error);
+            break;
+          case 'WARN':
+            DebugLogger.warn(msg, category: category, error: error);
+            break;
+          case 'SECURITY':
+            DebugLogger.security(msg, category: category, error: error);
+            break;
+          case 'DEBUG':
+            DebugLogger.debug(msg, category: category, error: error);
+            break;
+          default:
+            DebugLogger.info(msg, category: category, error: error);
+        }
       } else if (message is String) {
         if (message.contains('Error')) {
           DebugLogger.error(message);
+        } else if (message.contains('Warning')) {
+          DebugLogger.warn(message);
         } else if (message.contains('SECURITY')) {
           DebugLogger.security(message);
         } else {
@@ -246,8 +294,10 @@ class P2PManager {
       sendCommand(P2PCommand(type: P2PCommandType.get, imdbId: cid));
 
   /// Forces the node to re-bootstrap and optimize connectivity.
-  void optimize() =>
-      sendCommand(P2PCommand(type: P2PCommandType.optimize, imdbId: ''));
+  void optimize() {
+    unawaited(NetworkConstants.pingBootstrapPeers());
+    sendCommand(P2PCommand(type: P2PCommandType.optimize, imdbId: ''));
+  }
 
   /// Stops the background isolate and releases network resources.
   ///
@@ -332,7 +382,53 @@ class P2PManager {
       );
 
       await node.start();
-      fromMainPort.send('P2P: Federated Node Active | PeerID: ${node.peerId}');
+
+      final peerId = node.peerId;
+      final addresses = node.addresses;
+
+      fromMainPort.send({
+        'msg': 'Federated Node Active | Connectivity: High',
+        'cat': 'NET',
+      });
+      fromMainPort.send({'msg': 'Identity: $peerId', 'cat': 'NET'});
+      fromMainPort.send({
+        'msg': 'Listening on: ${addresses.join(', ')}',
+        'cat': 'NET',
+      });
+      fromMainPort.send({
+        'msg': 'Bootstrap list contains ${finalBootstrapPeers.length} nodes',
+        'cat': 'NET',
+      });
+
+      // Initial active bootstrap
+      try {
+        await (node as dynamic).network.bootstrap();
+        final initialPeers = await node.connectedPeers;
+        fromMainPort.send({
+          'msg': 'Initial bootstrap complete. Peers: ${initialPeers.length}',
+          'cat': 'NET',
+        });
+      } catch (e) {
+        fromMainPort.send({
+          'msg': 'P2P Bootstrap Warning: ${e.toString()}',
+          'level': 'WARN',
+          'cat': 'NET',
+        });
+      }
+
+      // Start Periodic Performance Logging
+      Timer.periodic(const Duration(minutes: 1), (timer) async {
+        try {
+          final peers = await node.connectedPeers;
+          // We can't easily get memory in pure Dart isolate without ffi/platform,
+          // but we can log connection counts and latency if we had metrics.
+          // For now, log connection health.
+          fromMainPort.send({
+            'msg': 'P2P Health Check | Connections: ${peers.length}',
+            'cat': 'PERF',
+          });
+        } catch (_) {}
+      });
 
       toIsolatePort.listen((message) async {
         await handleWorkerMessage(message, node, fromMainPort, privateKey);
@@ -359,15 +455,25 @@ class P2PManager {
 
       switch (command.type) {
         case P2PCommandType.search:
-          fromMainPort.send('P2P: Searching for ${command.imdbId}...');
+          fromMainPort.send({
+            'msg': 'Searching for ${command.imdbId} via DHT...',
+            'cat': 'DHT',
+          });
           // 1. Subscribe to IMDB topic (Gossipsub)
           final topic = P2PProtocol.getTopic(command.imdbId);
           await node.subscribe(topic);
 
           // 2. DHT Find Providers
           final dhtKey = P2PProtocol.getDhtKey(command.imdbId);
+          final startTime = DateTime.now();
           final providers = await node.dhtClient.findProviders(dhtKey);
-          fromMainPort.send('P2P: Found ${providers.length} swarm providers');
+          final duration = DateTime.now().difference(startTime).inMilliseconds;
+
+          fromMainPort.send({
+            'msg':
+                'DHT Query Complete | Resolved ${providers.length} providers in ${duration}ms',
+            'cat': 'DHT',
+          });
           break;
 
         case P2PCommandType.publish:
@@ -459,7 +565,7 @@ class P2PManager {
           fromMainPort.send('P2P: Optimizing network connections...');
           try {
             // Re-trigger bootstrap process
-            await node.network.bootstrap();
+            await (node as dynamic).network.bootstrap();
             final peers = await node.connectedPeers;
             fromMainPort.send(
               'P2P: Optimization complete. Active peers: ${peers.length}',

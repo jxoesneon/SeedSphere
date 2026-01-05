@@ -60,7 +60,12 @@ class _SwarmDashboardState extends ConsumerState<SwarmDashboard> {
     try {
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('auth_token');
-      if (token == null) return;
+      if (token == null) {
+        DebugLogger.warn(
+          'Swarm: No auth token found. Session healing skipped.',
+        );
+        return;
+      }
 
       final gardenerId = ref.read(p2pManagerProvider).gardenerId;
       if (gardenerId == null) return; // P2P not ready?
@@ -101,7 +106,7 @@ class _SwarmDashboardState extends ConsumerState<SwarmDashboard> {
         }
       }
     } catch (e) {
-      DebugLogger.error('Session check failed: $e');
+      DebugLogger.error('Swarm: Session check critical failure', error: e);
     }
   }
 
@@ -170,6 +175,7 @@ class _SwarmDashboardState extends ConsumerState<SwarmDashboard> {
 
       final resp = await _client.send(req);
       if (mounted) setState(() => _sseConnected = true);
+      DebugLogger.info('Swarm: Connected to User Event Stream (SSE) - $userId');
       _addLog('Connected to User Swarm (SSE) - $userId');
 
       _sseSubscription = resp.stream
@@ -187,6 +193,7 @@ class _SwarmDashboardState extends ConsumerState<SwarmDashboard> {
             },
             onError: (e) {
               if (mounted) setState(() => _sseConnected = false);
+              DebugLogger.error('Swarm: User Event Stream (SSE) Disconnected');
               _addLog('[ERROR] SSE Disconnected');
             },
           );

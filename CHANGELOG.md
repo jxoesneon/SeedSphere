@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.9.39] - 2026-01-05 (Forensic Diagnostics)
+
+### Forensic Suite
+
+- **Diagnostic Reporting**: Added "Generate Diagnostic Report" in Debug Logs to capture P2P identity, network addresses, and auth state for troubleshooting.
+- **Categorical Logging**: System logs are now tagged with `[NET]`, `[DHT]`, `[PERF]`, and `[AUTH]` for granular filtering.
+- **Network Path Verification**: Implemented raw socket pings to bootstrap nodes to identify infrastructure-level blockages.
+- **Performance Tracking**: Added periodic isolate health checks (connection counts and status) every 60 seconds.
+
+### Logic Fixes
+
+- **Auth Service**: [CRITICAL] Restored Bearer token support for session verification on the router, enabling automatic "sharedSecret" recovery for mobile heartbeats.
+- **UI**: Added category filters to the `DebugLogsScreen` for more efficient debugging.
+- **P2P Manager**: Optimized isolate message listener to handle structured forensic data.
+
 ## [1.9.38] - 2026-01-05 (Emergency P2P Repair)
 
 ### Connectivity Fixes

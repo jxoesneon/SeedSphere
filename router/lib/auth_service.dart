@@ -552,13 +552,22 @@ class AuthService {
   ///
   /// Returns `null` if no valid session is found.
   String? getSessionId(Request req) {
+    // 1. Try Cookie (Web Portal)
     final sid = _getSessionIdFromCookie(req);
-    if (sid == null) return null;
+    if (sid != null) {
+      final session = _db.getSession(sid);
+      if (session != null) return session['user_id'] as String;
+    }
 
-    final session = _db.getSession(sid);
-    if (session == null) return null;
+    // 2. Try Authorization Header (Mobile/Gardener)
+    final authHeader = req.headers['authorization'];
+    if (authHeader != null && authHeader.startsWith('Bearer ')) {
+      final token = authHeader.substring(7);
+      final session = _db.getSession(token);
+      if (session != null) return session['user_id'] as String;
+    }
 
-    return session['user_id'] as String;
+    return null;
   }
 
   String? _getSessionIdFromCookie(Request req) {

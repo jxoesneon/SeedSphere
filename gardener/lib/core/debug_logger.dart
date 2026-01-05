@@ -6,6 +6,7 @@ class LogEntry {
   final DateTime timestamp;
   final String message;
   final int level;
+  final String? category;
   final Object? error;
   final StackTrace? stackTrace;
 
@@ -13,6 +14,7 @@ class LogEntry {
     required this.timestamp,
     required this.message,
     required this.level,
+    this.category,
     this.error,
     this.stackTrace,
   });
@@ -44,38 +46,84 @@ class DebugLogger {
   static List<LogEntry> get logs => List.unmodifiable(_logs);
 
   /// Log an informational message.
-  static void info(String message, {Object? error, StackTrace? stackTrace}) {
-    _log(message, level: 800, error: error, stackTrace: stackTrace);
+  static void info(
+    String message, {
+    String? category,
+    Object? error,
+    StackTrace? stackTrace,
+  }) {
+    _log(
+      message,
+      level: 800,
+      category: category,
+      error: error,
+      stackTrace: stackTrace,
+    );
   }
 
   /// Log a warning message.
-  static void warn(String message, {Object? error, StackTrace? stackTrace}) {
-    _log(message, level: 900, error: error, stackTrace: stackTrace);
+  static void warn(
+    String message, {
+    String? category,
+    Object? error,
+    StackTrace? stackTrace,
+  }) {
+    _log(
+      message,
+      level: 900,
+      category: category,
+      error: error,
+      stackTrace: stackTrace,
+    );
   }
 
   /// Log an error message.
-  static void error(String message, {Object? error, StackTrace? stackTrace}) {
-    _log(message, level: 1000, error: error, stackTrace: stackTrace);
+  static void error(
+    String message, {
+    String? category,
+    Object? error,
+    StackTrace? stackTrace,
+  }) {
+    _log(
+      message,
+      level: 1000,
+      category: category,
+      error: error,
+      stackTrace: stackTrace,
+    );
   }
 
   /// Log a security-related message.
   static void security(
     String message, {
+    String? category,
     Object? error,
     StackTrace? stackTrace,
   }) {
     _log(
       '[SECURITY] $message',
       level: 1200,
+      category: category,
       error: error,
       stackTrace: stackTrace,
     );
   }
 
   /// Log a verbose debug message (only in debug mode).
-  static void debug(String message, {Object? error, StackTrace? stackTrace}) {
+  static void debug(
+    String message, {
+    String? category,
+    Object? error,
+    StackTrace? stackTrace,
+  }) {
     if (kDebugMode) {
-      _log(message, level: 500, error: error, stackTrace: stackTrace);
+      _log(
+        message,
+        level: 500,
+        category: category,
+        error: error,
+        stackTrace: stackTrace,
+      );
     }
   }
 
@@ -88,6 +136,7 @@ class DebugLogger {
   static void _log(
     String message, {
     required int level,
+    String? category,
     Object? error,
     StackTrace? stackTrace,
   }) {
@@ -98,6 +147,7 @@ class DebugLogger {
       timestamp: now,
       message: message,
       level: level,
+      category: category,
       error: error,
       stackTrace: stackTrace,
     );
