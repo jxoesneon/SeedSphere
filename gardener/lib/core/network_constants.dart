@@ -34,4 +34,21 @@ class NetworkConstants {
   static String getHeartbeatEndpoint(String id) {
     return '$apiBase/api/rooms/$id/heartbeat';
   }
+
+  /// P2P Bootstrap nodes.
+  static List<String> get p2pBootstrapPeers {
+    // Note: /dnsaddr typically resolves to the fly.dev instance's multiaddr
+    return ['/dnsaddr/seedsphere-router.fly.dev/tcp/4001'];
+  }
+
+  /// External API base for Real-Debrid.
+  static const String debridApiBase = 'https://api.real-debrid.com/rest/1.0';
+
+  /// External URL for Real-Debrid streaming.
+  static String getDebridStreamingUrl(String id) {
+    return 'https://real-debrid.com/streaming/$id';
+  }
+
+  /// Default port for local Stremio manifest server.
+  static const int stremioManifestPort = 7000;
 }

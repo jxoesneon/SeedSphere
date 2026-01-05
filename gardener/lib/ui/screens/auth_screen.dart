@@ -11,6 +11,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:gardener/ui/theme/aetheric_theme.dart';
 import 'package:gardener/ui/widgets/aetheric_glass.dart';
 import 'package:gardener/core/haptic_manager.dart';
+import 'package:gardener/core/network_constants.dart';
 
 /// Authentication screen for SeedSphere.
 ///
@@ -36,19 +37,7 @@ class _AuthScreenState extends State<AuthScreen> {
   String? _message;
   bool _magicLinkSent = false;
 
-  String get _apiBase {
-    if (kDebugMode) {
-      // For local development, point to the local router instance.
-      // Android emulators connect to the host machine's localhost via 10.0.2.2.
-      // Other platforms (iOS simulator, desktop, web) can use localhost directly.
-      if (!kIsWeb && Platform.isAndroid) {
-        return 'http://10.0.2.2:8080';
-      }
-      return 'http://localhost:8080';
-    }
-    // For release builds, use the production URL.
-    return 'https://seedsphere.fly.dev';
-  }
+  String get _apiBase => NetworkConstants.apiBase;
 
   @override
   void dispose() {

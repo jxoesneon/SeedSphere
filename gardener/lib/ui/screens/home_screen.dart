@@ -10,6 +10,7 @@ import 'package:gardener/ui/widgets/aetheric_glass.dart';
 import 'package:gardener/core/haptic_manager.dart';
 import 'package:gardener/ui/screens/swarm_dashboard.dart';
 import 'package:gardener/ui/screens/auth_screen.dart';
+import 'package:gardener/core/network_constants.dart';
 
 /// Returns true if running on a mobile platform (Android or iOS).
 bool _isMobilePlatform() {
@@ -204,7 +205,8 @@ class HomeScreen extends StatelessWidget {
       }
     } catch (_) {}
 
-    final url = 'stremio://$ip:7000/manifest.json';
+    final url =
+        'stremio://$ip:${NetworkConstants.stremioManifestPort}/manifest.json';
 
     if (context.mounted) {
       await showDialog(

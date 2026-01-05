@@ -237,13 +237,13 @@ class P2PManager {
       final IPFSNode node = await IPFSNode.create(
         IPFSConfig(
           offline: false,
-          network: const NetworkConfig(
+          network: NetworkConfig(
             listenAddresses: [
               '/ip4/0.0.0.0/tcp/4001',
               '/ip4/0.0.0.0/udp/4001/quic',
             ],
             // PRIVACY FIX: Only connect to trusted SeedSphere routers.
-            bootstrapPeers: ['/dnsaddr/seedsphere-router.fly.dev/tcp/4001'],
+            bootstrapPeers: NetworkConstants.p2pBootstrapPeers,
             // TODO: Add iceServers support upstream in dart_ipfs package
             // iceServers: [...],
           ),

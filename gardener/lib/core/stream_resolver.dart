@@ -1,22 +1,11 @@
 import 'package:gardener/core/debrid_client.dart';
+import 'package:gardener/core/network_constants.dart';
 
 /// High-level resolver for converting magnet links into direct playback URLs.
 ///
 /// Orchestrates the workflow of adding magnet links to Real-Debrid and
 /// obtaining direct streaming URLs for media playback. Handles both
 /// magnet URIs and raw infohashes.
-///
-/// Example:
-/// ```dart
-/// final resolver = StreamResolver();
-/// final url = await resolver.resolveStream('magnet:?xt=urn:btih:...');
-/// if (url != null) {
-///   player.play(url);
-/// }
-/// ```
-///
-/// See also:
-/// * [DebridClient] for the underlying Real-Debrid API integration
 class StreamResolver {
   final DebridClient _debrid;
 
@@ -36,20 +25,10 @@ class StreamResolver {
   /// **Workflow:**
   /// 1. Converts infohash to magnet URI if needed
   /// 2. Adds magnet to Real-Debrid account
-  /// 3. Returns streaming URL (currently simplified - full implementation
-  ///    would poll torrent status and select largest video file)
+  /// 3. Returns streaming URL (currently simplified)
   ///
   /// **Note:** Current implementation assumes instant/cached availability.
   /// Production version should poll torrent status and handle file selection.
-  ///
-  /// Example:
-  /// ```dart
-  /// // From magnet URI
-  /// final url1 = await resolver.resolveStream('magnet:?xt=urn:btih:ABC123...');
-  ///
-  /// // From infohash
-  /// final url2 = await resolver.resolveStream('ABC123DEF456...');
-  /// ```
   Future<String?> resolveStream(String magnetOrHash) async {
     try {
       // Convert raw infohash to magnet URI if needed
@@ -64,9 +43,9 @@ class StreamResolver {
       // TODO: Poll torrent status for non-cached torrents
       // TODO: Select largest video file from torrent
       // TODO: Unrestrict the selected file link
-      // For now, return placeholder streaming URL
+      // For now, return placeholder streaming URL from constants
 
-      return 'https://real-debrid.com/streaming/$id';
+      return NetworkConstants.getDebridStreamingUrl(id);
     } catch (e) {
       // Silent failure - caller checks for null
       return null;
