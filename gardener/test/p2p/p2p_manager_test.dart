@@ -129,7 +129,7 @@ void main() {
         null,
       );
 
-      expect(await events.next, contains('2 active peers'));
+      expect(await events.next, equals(2));
     });
   });
 }

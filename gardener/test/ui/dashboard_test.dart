@@ -1,4 +1,6 @@
 import 'dart:convert';
+import 'package:gardener/p2p/p2p_manager.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gardener/ui/screens/swarm_dashboard.dart';
@@ -10,6 +12,8 @@ import 'package:mocktail/mocktail.dart';
 import 'package:http/http.dart' as http;
 
 class MockClient extends Mock implements http.Client {}
+
+class MockP2PManager extends Mock implements P2PManager {}
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -40,12 +44,19 @@ void main() {
     });
 
     testWidgets('Dashboard renders main sections', (WidgetTester tester) async {
+      final mockP2P = MockP2PManager();
+      when(() => mockP2P.peerCount).thenReturn(ValueNotifier(5));
+      when(() => mockP2P.start()).thenAnswer((_) async {});
+
       await tester.pumpWidget(
-        MaterialApp(
-          home: SwarmDashboard(client: mockClient),
-          routes: {
-            '/settings': (_) => const Scaffold(body: Text('Settings Screen')),
-          },
+        ProviderScope(
+          overrides: [p2pManagerProvider.overrideWithValue(mockP2P)],
+          child: MaterialApp(
+            home: SwarmDashboard(client: mockClient),
+            routes: {
+              '/settings': (_) => const Scaffold(body: Text('Settings Screen')),
+            },
+          ),
         ),
       );
 
@@ -53,7 +64,7 @@ void main() {
 
       // Verify Headers and Stats
       expect(find.text('SYSTEM OPTIMAL'), findsOneWidget);
-      expect(find.text('CONNECTED TO 0 ACTIVE PEERS'), findsOneWidget);
+      expect(find.text('CONNECTED TO 5 ACTIVE PEERS'), findsOneWidget);
       expect(find.text('POPULAR STREAMS'), findsOneWidget);
 
       // Verify Content
