@@ -1,5 +1,4 @@
 import 'package:gardener/core/debrid_client.dart';
-import 'package:gardener/core/network_constants.dart';
 
 /// High-level resolver for converting magnet links into direct playback URLs.
 ///
@@ -25,27 +24,97 @@ class StreamResolver {
   /// **Workflow:**
   /// 1. Converts infohash to magnet URI if needed
   /// 2. Adds magnet to Real-Debrid account
-  /// 3. Returns streaming URL (currently simplified)
-  ///
-  /// **Note:** Current implementation assumes instant/cached availability.
-  /// Production version should poll torrent status and handle file selection.
+  /// 3. Polls until torrent is ready and files are listed
+  /// 4. Selects the largest video file
+  /// 5. Unrestricts the link for direct streaming
   Future<String?> resolveStream(String magnetOrHash) async {
     try {
-      // Convert raw infohash to magnet URI if needed
+      // 1. Convert raw infohash to magnet URI if needed
       final magnet = magnetOrHash.startsWith('magnet:')
           ? magnetOrHash
           : 'magnet:?xt=urn:btih:$magnetOrHash';
 
-      // Add magnet to Real-Debrid
+      // 2. Add magnet to Real-Debrid
       final addResult = await _debrid.addMagnet(magnet);
       final id = addResult['id'];
 
-      // TODO: Poll torrent status for non-cached torrents
-      // TODO: Select largest video file from torrent
-      // TODO: Unrestrict the selected file link
-      // For now, return placeholder streaming URL from constants
+      // 3. Initial fetch of torrent info
+      Map<String, dynamic> info = await _debrid.getTorrentInfo(id);
 
-      return NetworkConstants.getDebridStreamingUrl(id);
+      // 3. Wait for torrent to be ready for file selection if needed
+      int infoAttempts = 0;
+      while (info['status'] == 'magnet_conversion' && infoAttempts < 5) {
+        await Future.delayed(const Duration(seconds: 1));
+        info = await _debrid.getTorrentInfo(id);
+        infoAttempts++;
+      }
+
+      // 4. Handle file selection if needed
+      if (info['status'] == 'waiting_files_selection') {
+        final List files = info['files'] ?? [];
+        if (files.isEmpty) return null;
+
+        // Select largest video file (filter by extension for quality)
+        int largestSize = 0;
+        int targetIdx = -1;
+        final videoExtensions = ['.mkv', '.mp4', '.avi', '.mov', '.wmv'];
+
+        for (int i = 0; i < files.length; i++) {
+          final f = files[i];
+          final path = (f['path'] as String? ?? '').toLowerCase();
+          final size = (f['bytes'] as num?)?.toInt() ?? 0;
+
+          final isVideo = videoExtensions.any((ext) => path.endsWith(ext));
+          if (isVideo && size > largestSize) {
+            largestSize = size;
+            targetIdx = (f['id'] as num?)?.toInt() ?? (i + 1);
+          }
+        }
+
+        // Fallback to largest file if no video extension matched
+        if (targetIdx == -1) {
+          for (int i = 0; i < files.length; i++) {
+            final f = files[i];
+            final size = (f['bytes'] as num?)?.toInt() ?? 0;
+            if (size > largestSize) {
+              largestSize = size;
+              targetIdx = (f['id'] as num?)?.toInt() ?? (i + 1);
+            }
+          }
+        }
+
+        if (targetIdx != -1) {
+          await _debrid.selectFiles(id, targetIdx.toString());
+          info = await _debrid.getTorrentInfo(id); // Refresh after selection
+        }
+      }
+
+      // 5. Poll until downloaded or ready (robust polling with backoff)
+      int attempts = 0;
+      const maxAttempts = 15; // Increased timeout to 30s+
+      while (info['status'] != 'downloaded' && attempts < maxAttempts) {
+        // Check for error statuses
+        if (info['status'] == 'error' ||
+            info['status'] == 'dead' ||
+            info['status'] == 'virus') {
+          return null;
+        }
+
+        await Future.delayed(
+          Duration(seconds: 1 + (attempts ~/ 5)),
+        ); // Slight backoff
+        info = await _debrid.getTorrentInfo(id);
+        attempts++;
+      }
+
+      if (info['status'] != 'downloaded') return null;
+
+      // 6. Unrestrict the first link (usually corresponds to the selected file)
+      final List links = info['links'] ?? [];
+      if (links.isEmpty) return null;
+
+      final unrestrictRes = await _debrid.unrestrictLink(links.first);
+      return unrestrictRes['download']; // Direct streaming URL
     } catch (e) {
       // Silent failure - caller checks for null
       return null;

@@ -10,24 +10,29 @@ import 'package:gardener/ui/theme/aetheric_theme.dart';
 import 'package:gardener/ui/widgets/swarm_health_hero.dart';
 import 'package:gardener/ui/widgets/signal_card.dart';
 import 'package:gardener/core/network_constants.dart';
+import 'package:gardener/p2p/p2p_manager.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:gardener/core/stream_history_manager.dart';
+import 'package:gardener/core/activity_manager.dart';
+import 'package:gardener/scrapers/scraper_engine.dart';
+import 'package:uuid/uuid.dart';
 
 /// "The Observatory" - Central hub for swarm monitoring and discovery.
-class SwarmDashboard extends StatefulWidget {
+class SwarmDashboard extends ConsumerStatefulWidget {
   final http.Client? client;
 
   const SwarmDashboard({super.key, this.client});
 
   @override
-  State<SwarmDashboard> createState() => _SwarmDashboardState();
+  ConsumerState<SwarmDashboard> createState() => _SwarmDashboardState();
 }
 
-class _SwarmDashboardState extends State<SwarmDashboard> {
+class _SwarmDashboardState extends ConsumerState<SwarmDashboard> {
   // State
   bool _sseConnected = false;
-  int _peerCount = 0;
   final List<String> _logs = [];
-  final List<Map<String, dynamic>> _recentResults = [];
+  List<Map<String, dynamic>> _myStreams = []; // Local resolution history
   List<Map<String, dynamic>> _popularSignals = [];
 
   // Heartbeat tracking for graph visualization
@@ -42,7 +47,15 @@ class _SwarmDashboardState extends State<SwarmDashboard> {
     super.initState();
     _client = widget.client ?? http.Client();
     _connectSSE();
+    _fetchHistory();
     _fetchPopular();
+  }
+
+  Future<void> _fetchHistory() async {
+    final history = await StreamHistoryManager.getHistory();
+    if (mounted) {
+      setState(() => _myStreams = history);
+    }
   }
 
   @override
@@ -55,8 +68,6 @@ class _SwarmDashboardState extends State<SwarmDashboard> {
   /// Fetches popular content from the local SeedSphere Addon.
   Future<void> _fetchPopular() async {
     try {
-      // SeedSphere router exposes standard Stremio addon catalog at root
-      // 'top' catalog for 'movie' type
       final uri = Uri.parse(
         '${NetworkConstants.catalogEndpoint}/movie/top.json',
       );
@@ -70,10 +81,12 @@ class _SwarmDashboardState extends State<SwarmDashboard> {
           setState(() {
             _popularSignals = metas.map<Map<String, dynamic>>((m) {
               return {
+                'id': m['imdbId'] ?? m['id'],
                 'title': m['name'],
                 'subtitle': m['releaseInfo'] ?? 'Unknown',
                 'source': 'Popular',
-                'magnet': null,
+                'magnet': null, // Marks as "Needs Resolution"
+                'seeders': 0,
                 'poster': m['poster'],
               };
             }).toList();
@@ -88,7 +101,6 @@ class _SwarmDashboardState extends State<SwarmDashboard> {
   /// Connects to the Router's Event Stream (SSE) for user-scoped events.
   void _connectSSE() async {
     try {
-      // Get user ID for user-scoped events
       final prefs = await SharedPreferences.getInstance();
       final userId = prefs.getString('user_id') ?? 'swarm';
       final authToken = prefs.getString('auth_token');
@@ -131,12 +143,9 @@ class _SwarmDashboardState extends State<SwarmDashboard> {
   }
 
   void _handleEvent(Map<String, dynamic> event) {
-    // Simple logic to interpret events for visualization
     if (event.containsKey('t')) {
-      // heartbeat or generic - track timestamp for graph
       if (mounted) {
         setState(() {
-          _peerCount = (_peerCount + 1) % 100 + 10;
           // Track heartbeat timestamps for sparkline visualization
           _heartbeatTimestamps.add(DateTime.now());
           // Keep only last 60 heartbeats (30 min at 30s intervals)
@@ -150,22 +159,73 @@ class _SwarmDashboardState extends State<SwarmDashboard> {
     // Result event (Task Completion)
     if (event['ok'] == true && event.containsKey('result')) {
       final res = event['result'];
-      // If result looks like a stream/meta
       if (res is Map && res.containsKey('title')) {
-        if (mounted) {
-          setState(() {
-            _recentResults.insert(0, {
-              'title': res['title'],
-              'subtitle': res['infoHash']?.substring(0, 8) ?? 'Unknown Hash',
-              'source': 'Swarm',
-              'magnet': res['magnet'],
-              'seeders': res['seeders'] ?? 0,
-            });
-            if (_recentResults.length > 10) _recentResults.removeLast();
-          });
-          _addLog('Received stream: ${res['title']}');
+        final newStream = {
+          'id': res['id'] ?? res['imdbId'] ?? const Uuid().v4(),
+          'title': res['title'],
+          'subtitle': res['infoHash']?.substring(0, 8) ?? 'Unknown Hash',
+          'source': 'Swarm',
+          'magnet': res['magnet'],
+          'seeders': res['seeders'] ?? 0,
+        };
+
+        StreamHistoryManager.addStream(newStream).then((_) => _fetchHistory());
+        _addLog('Received stream: ${res['title']}');
+      }
+    }
+
+    // Task event (Coordinated Signaling)
+    if (event.containsKey('type') && event['type'] == 'task') {
+      _handleTask(event);
+    }
+  }
+
+  Future<void> _handleTask(Map<String, dynamic> task) async {
+    final type = task['type'];
+    final params = task['params'] as Map<String, dynamic>?;
+    final token = task['task_token']; // Optional token if provided by server
+
+    _addLog('Router issued task: $type');
+
+    if (type == 'resolve' && params != null) {
+      final imdbId = params['imdbId'];
+      if (imdbId != null) {
+        _addLog('Executing resolution for $imdbId...');
+        // 1. Scrape
+        final ScraperEngine engine = ScraperEngine.defaults();
+        final results = await engine.scrapeAll(imdbId);
+
+        if (results.isNotEmpty) {
+          final best = results.first;
+          _addLog('Resolved $imdbId => ${best['title']}');
+
+          // 2. Report result back to Router
+          await _postTaskResult(token, best);
+
+          // 3. Local activity logging
+          await ActivityManager().reportActivity(
+            type: 'task',
+            title: 'Automated Resolution: ${best['title']}',
+            meta: {'imdbId': imdbId, 'source': 'router_signal'},
+          );
         }
       }
+    }
+  }
+
+  Future<void> _postTaskResult(
+    String? token,
+    Map<String, dynamic> result,
+  ) async {
+    try {
+      final url = Uri.parse('${NetworkConstants.apiBase}/api/tasks/result');
+      await _client.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'token': token, 'result': result}),
+      );
+    } catch (e) {
+      _addLog('[ERROR] Failed to post task result: $e');
     }
   }
 
@@ -181,6 +241,9 @@ class _SwarmDashboardState extends State<SwarmDashboard> {
 
   @override
   Widget build(BuildContext context) {
+    // Watch peer count from riverpod to ensure health UI updates
+    final realPeerCount = ref.watch(p2pManagerProvider).peerCount.value;
+
     return Scaffold(
       backgroundColor: AethericTheme.deepVoid,
       extendBodyBehindAppBar: true,
@@ -195,7 +258,6 @@ class _SwarmDashboardState extends State<SwarmDashboard> {
           onPressed: () => Navigator.of(context).pop(),
         ),
         actions: [
-          // Network Diagnostics / P2P Status
           IconButton(
             icon: const Icon(Icons.insights_rounded, color: Colors.white70),
             tooltip: 'Network Diagnostics',
@@ -203,7 +265,6 @@ class _SwarmDashboardState extends State<SwarmDashboard> {
               MaterialPageRoute(builder: (_) => const SwarmUplinkSettings()),
             ),
           ),
-          // Settings Menu
           IconButton(
             icon: const Icon(
               Icons.settings_input_antenna_rounded,
@@ -214,7 +275,6 @@ class _SwarmDashboardState extends State<SwarmDashboard> {
               MaterialPageRoute(builder: (_) => const SwarmSettingsMenu()),
             ),
           ),
-          // User Profile
           IconButton(
             icon: const Icon(Icons.account_circle_rounded, color: Colors.white),
             tooltip: 'User Profile',
@@ -228,7 +288,6 @@ class _SwarmDashboardState extends State<SwarmDashboard> {
       ),
       body: Stack(
         children: [
-          // Deep Void Gradient
           Positioned.fill(
             child: Container(
               decoration: const BoxDecoration(
@@ -244,8 +303,6 @@ class _SwarmDashboardState extends State<SwarmDashboard> {
               ),
             ),
           ),
-
-          // Main Scrollable Content
           SingleChildScrollView(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -253,9 +310,11 @@ class _SwarmDashboardState extends State<SwarmDashboard> {
                 const SizedBox(height: 80),
 
                 // 1. HERO: Swarm Vitality (The Eye)
+                // Logical Health = SSE + Physical Health = Peers > 0
                 SwarmHealthHero(
-                  peerCount: _peerCount,
-                  isHealthy: _sseConnected,
+                  peerCount: realPeerCount,
+                  isHealthy: _sseConnected && realPeerCount > 0,
+                  heartbeats: _heartbeatTimestamps,
                 ),
 
                 const SizedBox(height: 24),
@@ -279,23 +338,32 @@ class _SwarmDashboardState extends State<SwarmDashboard> {
 
                 const SizedBox(height: 32),
 
-                // 3. RECENT STREAMS (Active History)
-                if (_recentResults.isNotEmpty) ...[
-                  _buildSectionHeader('RECENT STREAMS'),
-                  const SizedBox(height: 16),
-                  _buildSignalStream(_recentResults),
-                  const SizedBox(height: 32),
-                ],
+                // 3. MY STREAMS (Local History)
+                _buildSectionHeader('MY STREAMS'),
+                const SizedBox(height: 16),
+                if (_myStreams.isEmpty)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    child: Text(
+                      'No resolved streams found in the hive.',
+                      style: GoogleFonts.firaCode(
+                        color: Colors.white24,
+                        fontSize: 11,
+                      ),
+                    ),
+                  )
+                else
+                  _buildSignalStream(_myStreams),
 
-                const SizedBox(height: 100), // Spacing for footer
+                const SizedBox(height: 32),
+
+                const SizedBox(height: 40), // Sufficient bottom spacing
               ],
             ),
           ),
-
-          // 4. FOOTER: Ambient Monitor (Ticker)
-          Positioned(left: 0, right: 0, bottom: 0, child: _buildSystemTicker()),
         ],
       ),
+      bottomNavigationBar: SafeArea(child: _buildSystemTicker()),
     );
   }
 
@@ -336,24 +404,24 @@ class _SwarmDashboardState extends State<SwarmDashboard> {
             source: sig['source'],
             magnet: sig['magnet'],
             posterUrl: sig['poster'],
+            id: sig['id'], // Pass ID for resolution
           );
         },
       ),
     );
   }
 
-  /// Builds a minimal heartbeat sparkline ticker (2025 PhD-level UX)
-  /// - Default: Shows heartbeat activity as a subtle sparkline graph
-  /// - On tap: Toggles to show the last log entry
   Widget _buildSystemTicker() {
     return GestureDetector(
       onTap: () => setState(() => _showLogMode = !_showLogMode),
       child: Container(
         width: double.infinity,
-        height: 32, // Same compact height as before
+        height: 42,
         decoration: BoxDecoration(
-          color: Colors.black.withValues(alpha: 0.9),
-          border: const Border(top: BorderSide(color: Colors.white10)),
+          color: Colors.black.withValues(alpha: 0.85),
+          border: const Border(
+            top: BorderSide(color: Colors.white10, width: 0.5),
+          ),
         ),
         child: AnimatedSwitcher(
           duration: const Duration(milliseconds: 200),
@@ -363,9 +431,7 @@ class _SwarmDashboardState extends State<SwarmDashboard> {
     );
   }
 
-  /// Heartbeat sparkline visualization
   Widget _buildHeartbeatGraph() {
-    // Generate sparkline data points from heartbeat intervals
     final dataPoints = _generateHeartbeatData();
 
     return Padding(
@@ -373,7 +439,6 @@ class _SwarmDashboardState extends State<SwarmDashboard> {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       child: Row(
         children: [
-          // Subtle label
           Text(
             'PULSE',
             style: GoogleFonts.outfit(
@@ -384,7 +449,6 @@ class _SwarmDashboardState extends State<SwarmDashboard> {
             ),
           ),
           const SizedBox(width: 12),
-          // Sparkline graph
           Expanded(
             child: CustomPaint(
               painter: _HeartbeatSparklinePainter(
@@ -395,7 +459,6 @@ class _SwarmDashboardState extends State<SwarmDashboard> {
             ),
           ),
           const SizedBox(width: 12),
-          // Heartbeat count indicator
           Text(
             '${_heartbeatTimestamps.length}',
             style: GoogleFonts.firaCode(
@@ -408,7 +471,6 @@ class _SwarmDashboardState extends State<SwarmDashboard> {
     );
   }
 
-  /// Log view (shown on tap)
   Widget _buildLogView() {
     final lastLog = _logs.isEmpty ? 'System initialized...' : _logs.last;
     return Padding(
@@ -426,30 +488,24 @@ class _SwarmDashboardState extends State<SwarmDashboard> {
     );
   }
 
-  /// Generates normalized data points for the sparkline
   List<double> _generateHeartbeatData() {
     if (_heartbeatTimestamps.isEmpty) {
-      // Show flat line when no data
       return List.filled(30, 0.5);
     }
 
-    // Calculate intervals between heartbeats (normalized)
     final intervals = <double>[];
     for (int i = 1; i < _heartbeatTimestamps.length; i++) {
       final diff = _heartbeatTimestamps[i]
           .difference(_heartbeatTimestamps[i - 1])
           .inMilliseconds;
-      // Normalize: 30000ms (30s) = 0.5, faster = higher, slower = lower
       final normalized = (1.0 - (diff / 60000.0)).clamp(0.1, 1.0);
       intervals.add(normalized);
     }
 
-    // Ensure minimum 30 data points for smooth visualization
     while (intervals.length < 30) {
       intervals.insert(0, 0.5);
     }
 
-    // Return only the last 60 data points
     if (intervals.length > 60) {
       return intervals.skip(intervals.length - 60).toList();
     }
@@ -457,7 +513,6 @@ class _SwarmDashboardState extends State<SwarmDashboard> {
   }
 }
 
-/// Custom painter for the heartbeat sparkline
 class _HeartbeatSparklinePainter extends CustomPainter {
   final List<double> dataPoints;
   final Color color;
@@ -495,7 +550,6 @@ class _HeartbeatSparklinePainter extends CustomPainter {
 
     canvas.drawPath(path, paint);
 
-    // Draw subtle glow under the line
     final glowPaint = Paint()
       ..color = color.withValues(alpha: 0.1)
       ..style = PaintingStyle.fill;

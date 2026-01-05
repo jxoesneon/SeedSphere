@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Configure SeedSphere Addon</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+            background: linear-gradient(135deg, #020617 0%, #0f172a 100%);
+        }
+
+        .config-card {
+            width: 100%;
+            max-width: 500px;
+            padding: 48px;
+            text-align: center;
+            animation: fadeIn 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 100px;
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 24px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .status-badge.linked { color: #4ade80; background: rgba(74, 222, 128, 0.1); }
+        .status-badge.unlinked { color: #f87171; background: rgba(248, 113, 113, 0.1); }
+
+        .device-id {
+            font-family: monospace;
+            background: rgba(0, 0, 0, 0.3);
+            padding: 12px;
+            border-radius: 12px;
+            margin: 24px 0;
+            font-size: 14px;
+            color: var(--aether-blue);
+            border: 1px solid var(--glass-border);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin: 32px 0;
+        }
+
+        .stat-box {
+            background: rgba(255, 255, 255, 0.03);
+            padding: 20px;
+            border-radius: 16px;
+            border: 1px solid var(--glass-border);
+        }
+
+        .stat-box .label {
+            font-size: 12px;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            margin-bottom: 8px;
+        }
+
+        .stat-box .value {
+            font-size: 20px;
+            font-weight: 700;
+        }
+
+        .actions {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            margin-top: 32px;
+        }
+
+        /* TV Focus States */
+        [tabindex="0"]:focus {
+            outline: 3px solid var(--aether-blue);
+            outline-offset: 4px;
+            transform: scale(1.02);
+            background: rgba(56, 189, 248, 0.1);
+        }
+
+        .btn-full {
+            width: 100%;
+            padding: 16px;
+            border-radius: 16px;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s ease;
+        }
+
+        .loading-overlay {
+            position: fixed;
+            inset: 0;
+            background: var(--deep-void);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+            transition: opacity 0.5s ease;
+        }
+
+        .hidden { display: none !important; }
+        .transparent { opacity: 0; pointer-events: none; }
+    </style>
+</head>
+<body>
+    <div id="loading" class="loading-overlay">
+        <div class="stat-value gradient-text">Initializing...</div>
+    </div>
+
+    <div class="glass config-card">
+        <div id="status-badge" class="status-badge">Checking Status...</div>
+        
+        <h1 class="hero-title" style="font-size: 32px; margin-bottom: 8px;">SeedSphere <span class="gradient-text">Addon</span></h1>
+        <p class="hero-subtitle" style="margin-bottom: 16px;">Configure your direct P2P link</p>
+
+        <div id="device-id-box" class="device-id">ID: Loading...</div>
+
+        <div class="stats-grid">
+            <div class="stat-box">
+                <div class="label">Swarm Neighbors</div>
+                <div id="neighbors-val" class="value">0</div>
+            </div>
+            <div class="stat-box">
+                <div class="label">Identity Proof</div>
+                <div id="proof-val" class="value">Pending</div>
+            </div>
+        </div>
+
+        <div id="owner-info" class="hero-subtitle" style="font-size: 14px;">
+            Linked to: <span id="owner-email" style="color: white; font-weight: 600;">None</span>
+        </div>
+
+        <div class="actions">
+            <!-- Auth Flows -->
+            <button id="btn-login" class="btn-primary btn-full hidden" tabindex="0">Login with Google</button>
+            <button id="btn-link" class="btn-primary btn-full hidden" tabindex="0">Link to Account</button>
+            <button id="btn-unlink" class="btn-secondary btn-full hidden" tabindex="0" style="border-color: #f87171; color: #f87171;">Unlink Device</button>
+        </div>
+
+        <p id="error-msg" style="color: #f87171; font-size: 12px; margin-top: 16px;" class="hidden"></p>
+    </div>
+
+    <script src="configure.js"></script>
+</body>
+</html>

@@ -4,15 +4,18 @@ import 'package:gardener/ui/theme/aetheric_theme.dart';
 import 'package:gardener/ui/widgets/aetheric_glass.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:gardener/core/haptic_manager.dart';
+import 'package:gardener/p2p/p2p_manager.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class SignalCard extends StatelessWidget {
+class SignalCard extends ConsumerWidget {
   final String title;
   final String? subtitle;
   final int seeders;
   final String? source;
   final String? magnet;
   final String? posterUrl;
+  final String? id; // IMDb or meta ID for resolution
 
   const SignalCard({
     super.key,
@@ -22,12 +25,13 @@ class SignalCard extends StatelessWidget {
     this.source,
     this.magnet,
     this.posterUrl,
+    this.id,
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return GestureDetector(
-      onTap: () => _showDetails(context),
+      onTap: () => _showDetails(context, ref),
       child: Container(
         width: 160,
         height: 220,
@@ -44,7 +48,7 @@ class SignalCard extends StatelessWidget {
                     image: DecorationImage(
                       image: NetworkImage(posterUrl!),
                       fit: BoxFit.cover,
-                      opacity: 0.6, // Dim it slightly for text readability
+                      opacity: 0.6,
                     ),
                   ),
                 )
@@ -62,7 +66,7 @@ class SignalCard extends StatelessWidget {
                     ),
                   ),
                 ),
-              
+
               // Gradient Overlay for Readability
               Container(
                 decoration: BoxDecoration(
@@ -91,24 +95,41 @@ class SignalCard extends StatelessWidget {
                       children: [
                         Container(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 6, vertical: 2),
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
                           decoration: BoxDecoration(
-                            color: AethericTheme.success.withValues(alpha: 0.2),
+                            color: magnet == null
+                                ? Colors.white.withValues(alpha: 0.1)
+                                : AethericTheme.success.withValues(alpha: 0.2),
                             borderRadius: BorderRadius.circular(4),
                             border: Border.all(
-                                color: AethericTheme.success
-                                    .withValues(alpha: 0.4),
-                                width: 0.5),
+                              color: magnet == null
+                                  ? Colors.white24
+                                  : AethericTheme.success.withValues(
+                                      alpha: 0.4,
+                                    ),
+                              width: 0.5,
+                            ),
                           ),
                           child: Row(
                             children: [
-                              Icon(Icons.bolt,
-                                  size: 10, color: AethericTheme.success),
+                              Icon(
+                                magnet == null
+                                    ? Icons.hourglass_empty_rounded
+                                    : Icons.bolt,
+                                size: 10,
+                                color: magnet == null
+                                    ? Colors.white38
+                                    : AethericTheme.success,
+                              ),
                               const SizedBox(width: 2),
                               Text(
-                                '$seeders',
+                                magnet == null ? 'PENDING' : '$seeders',
                                 style: GoogleFonts.firaCode(
-                                    fontSize: 10, color: Colors.white),
+                                  fontSize: 10,
+                                  color: Colors.white,
+                                ),
                               ),
                             ],
                           ),
@@ -117,7 +138,9 @@ class SignalCard extends StatelessWidget {
                           Text(
                             source!.toUpperCase(),
                             style: GoogleFonts.outfit(
-                                fontSize: 9, color: Colors.white38),
+                              fontSize: 9,
+                              color: Colors.white38,
+                            ),
                           ),
                       ],
                     ),
@@ -156,7 +179,7 @@ class SignalCard extends StatelessWidget {
     );
   }
 
-  void _showDetails(BuildContext context) {
+  void _showDetails(BuildContext context, WidgetRef ref) {
     HapticManager.medium();
     showModalBottomSheet(
       context: context,
@@ -166,23 +189,41 @@ class SignalCard extends StatelessWidget {
         magnet: magnet,
         seeders: seeders,
         source: source,
+        id: id,
       ),
     );
   }
 }
 
-class _SignalDetailsSheet extends StatelessWidget {
+class _SignalDetailsSheet extends ConsumerStatefulWidget {
   final String title;
   final String? magnet;
   final int seeders;
   final String? source;
+  final String? id;
 
   const _SignalDetailsSheet({
     required this.title,
     this.magnet,
     required this.seeders,
     this.source,
+    this.id,
   });
+
+  @override
+  ConsumerState<_SignalDetailsSheet> createState() =>
+      _SignalDetailsSheetState();
+}
+
+class _SignalDetailsSheetState extends ConsumerState<_SignalDetailsSheet> {
+  bool _isResolving = false;
+  String? _resolvedMagnet;
+
+  @override
+  void initState() {
+    super.initState();
+    _resolvedMagnet = widget.magnet;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -201,7 +242,7 @@ class _SignalDetailsSheet extends StatelessWidget {
             children: [
               Expanded(
                 child: Text(
-                  title,
+                  widget.title,
                   style: GoogleFonts.outfit(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
@@ -219,10 +260,16 @@ class _SignalDetailsSheet extends StatelessWidget {
           Row(
             children: [
               _buildBadge(
-                  Icons.bolt, '$seeders Seeders', AethericTheme.success),
+                Icons.bolt,
+                _resolvedMagnet == null ? 'N/A' : '${widget.seeders} Seeders',
+                AethericTheme.success,
+              ),
               const SizedBox(width: 12),
               _buildBadge(
-                  Icons.source, source ?? 'Unknown', AethericTheme.aetherBlue),
+                Icons.source,
+                widget.source ?? 'Unknown',
+                AethericTheme.aetherBlue,
+              ),
             ],
           ),
           const SizedBox(height: 24),
@@ -236,7 +283,10 @@ class _SignalDetailsSheet extends StatelessWidget {
               border: Border.all(color: Colors.white10),
             ),
             child: Text(
-              magnet ?? 'No magnet link available',
+              _resolvedMagnet ??
+                  (widget.id != null
+                      ? 'Magnet missing. Resolve via Swarm?'
+                      : 'No magnet link available'),
               style: GoogleFonts.firaCode(fontSize: 11, color: Colors.white54),
               maxLines: 3,
               overflow: TextOverflow.ellipsis,
@@ -245,43 +295,106 @@ class _SignalDetailsSheet extends StatelessWidget {
           const SizedBox(height: 24),
 
           // Actions
-          Row(
-            children: [
-              Expanded(
-                child: ElevatedButton.icon(
-                  onPressed: magnet == null ? null : () => _copyMagnet(context),
-                  icon: const Icon(Icons.copy_rounded, size: 18),
-                  label: const Text('COPY MAGNET'),
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    backgroundColor: Colors.white10,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12)),
+          if (_resolvedMagnet == null && widget.id != null)
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: _isResolving ? null : _handleResolve,
+                icon: _isResolving
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : const Icon(Icons.hub_rounded, size: 18),
+                label: Text(
+                  _isResolving ? 'RESOLVING...' : 'RESOLVE MAGNET VIA SWARM',
+                ),
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  backgroundColor: AethericTheme.aetherBlue.withValues(
+                    alpha: 0.2,
+                  ),
+                  foregroundColor: AethericTheme.aetherBlue,
+                  side: BorderSide(
+                    color: AethericTheme.aetherBlue.withValues(alpha: 0.5),
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
                   ),
                 ),
               ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: ElevatedButton.icon(
-                  onPressed: magnet == null ? null : () => _launchStremio(),
-                  icon: const Icon(Icons.rocket_launch_rounded, size: 18),
-                  label: const Text('LAUNCH'),
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    backgroundColor: AethericTheme.aetherBlue,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12)),
+            )
+          else
+            Row(
+              children: [
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: _resolvedMagnet == null
+                        ? null
+                        : () => _copyMagnet(context),
+                    icon: const Icon(Icons.copy_rounded, size: 18),
+                    label: const Text('COPY MAGNET'),
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      backgroundColor: Colors.white10,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
                   ),
                 ),
-              ),
-            ],
-          ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: _resolvedMagnet == null
+                        ? null
+                        : () => _launchStremio(),
+                    icon: const Icon(Icons.rocket_launch_rounded, size: 18),
+                    label: const Text('LAUNCH'),
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      backgroundColor: AethericTheme.aetherBlue,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
           const SizedBox(height: 24),
         ],
       ),
     );
+  }
+
+  void _handleResolve() async {
+    setState(() => _isResolving = true);
+    await HapticManager.medium();
+
+    // 1. Trigger real P2P search
+    if (widget.id != null) {
+      ref.read(p2pManagerProvider).search(widget.id!);
+    }
+
+    // 2. Search is fire-and-forget, close immediately
+    if (mounted) {
+      setState(() => _isResolving = false);
+      // Results will come via SSE stream in SwarmDashboard
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Search broadcasted to P2P Swarm for ${widget.title}'),
+          backgroundColor: AethericTheme.aetherBlue,
+        ),
+      );
+      Navigator.pop(context);
+    }
   }
 
   Widget _buildBadge(IconData icon, String label, Color color) {
@@ -299,7 +412,10 @@ class _SignalDetailsSheet extends StatelessWidget {
           Text(
             label,
             style: GoogleFonts.outfit(
-                fontSize: 12, fontWeight: FontWeight.w600, color: Colors.white),
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: Colors.white,
+            ),
           ),
         ],
       ),
@@ -307,12 +423,14 @@ class _SignalDetailsSheet extends StatelessWidget {
   }
 
   void _copyMagnet(BuildContext context) {
-    if (magnet != null) {
-      Clipboard.setData(ClipboardData(text: magnet!));
+    if (_resolvedMagnet != null) {
+      Clipboard.setData(ClipboardData(text: _resolvedMagnet!));
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content:
-              Text('Magnet copied to clipboard', style: GoogleFonts.outfit()),
+          content: Text(
+            'Magnet copied to clipboard',
+            style: GoogleFonts.outfit(),
+          ),
           backgroundColor: AethericTheme.success,
           duration: const Duration(seconds: 2),
         ),
@@ -323,13 +441,12 @@ class _SignalDetailsSheet extends StatelessWidget {
   }
 
   void _launchStremio() async {
-    if (magnet == null) return;
+    if (_resolvedMagnet == null) return;
     try {
-      final uri = Uri.parse(magnet!);
+      final uri = Uri.parse(_resolvedMagnet!);
       if (await canLaunchUrl(uri)) {
         await launchUrl(uri);
       } else {
-        // Try launching as text if standard launcher fails
         await launchUrl(uri, mode: LaunchMode.externalNonBrowserApplication);
       }
     } catch (_) {}

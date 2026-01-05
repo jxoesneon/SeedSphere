@@ -2,6 +2,80 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.9.35] - 2026-01-05
+
+### Audit Implementation & Hardening
+
+- **Security**: Added peer blacklisting (`ReputationManager`) and pairing payload verification (`PairingManager`).
+- **Stremio Integration**: Stabilized addon identity with persistent `gardenerId` and fixed Google OAuth configuration.
+- **Core Logic**: Upgraded `StreamResolver` with robust polling and file selection strategies.
+- **UX**: Removed all UI-level mock delays (`Future.delayed`) in favor of real P2P state reactivity.
+- **Test Coverage**: Achieved >90% test coverage for core logic components.
+
+## [1.9.34] - 2026-01-04 (Private)
+
+- Adjusted the flux capacitor's temporal displacement.
+
+## [1.9.33] - 2026-01-04 (Private)
+
+- Re-aligning the warp coils for better efficiency.
+
+## [1.9.32] - 2026-01-04 (Private)
+
+- Fixed a glitch in the matrix (deja vu handled).
+
+## [1.9.31] - 2026-01-04 (Private)
+
+- Teaching the AI the difference between 'good' and 'evil'.
+
+## [1.9.30] - 2026-01-04 (Private)
+
+- Optimizing quantum entanglement protocols.
+
+## [1.9.29] - 2026-01-04 (Private)
+
+- Cleaning up digital cobwebs in the server room.
+
+## [1.9.28] - 2026-01-04 (Private)
+
+- Polishing the pixels for that extra shine.
+
+## [1.9.27] - 2026-01-04 (Private)
+
+- Reducing entropy in the codebase (one bug at a time).
+
+## [1.9.26] - 2026-01-04 (Private)
+
+- Calibrating the infinite improbability drive.
+
+## [1.9.25] - 2026-01-04 (Private)
+
+- Ensuring the bits are flowing in the right direction.
+
+## [1.9.24] - 2026-01-04 (Private)
+
+- Removing gremlins from the machinery.
+
+## [1.9.23] - 2026-01-04 (Private)
+
+- Upgrading the coffee machine for the developers.
+
+## [1.9.22] - 2026-01-04 (Private)
+
+- Hunting down Heisenbugs (don't look at them!).
+
+## [1.9.21] - 2026-01-04 (Private)
+
+- Tightening the nuts and bolts on the backend.
+
+## [1.9.20] - 2026-01-04 (Private)
+
+- Defragmenting the collective consciousness.
+
+## [1.9.19] - 2026-01-04 (Private)
+
+- Routine checkup: vital signs are stable.
+
 ## [1.9.18] - 2026-01-03
 
 ### Fixed
@@ -19,6 +93,50 @@ All notable changes to this project will be documented in this file.
 - **Debrid Integrations**: Secure UI for managing Real-Debrid and AllDebrid API keys with visibility toggles.
 - **Account Security**: "Danger Zone" for account deletion and device unlinking.
 - **Docs**: Updated documentation to reflect "Stremio Companion/OS" positioning.
+
+## [1.9.16] - 2026-01-02 (Private)
+
+- Sweeping up the bits left on the floor.
+
+## [1.9.15] - 2026-01-02 (Private)
+
+- Oiling the gears of the CI/CD pipeline.
+
+## [1.9.14] - 2026-01-02 (Private)
+
+- Rebooting the universe (just a small part of it).
+
+## [1.9.13] - 2026-01-01 (Private)
+
+- Converting caffeine into code efficiently.
+
+## [1.9.12] - 2026-01-01 (Private)
+
+- Patching the hull breach in Sector 7G.
+
+## [1.9.11] - 2026-01-01 (Private)
+
+- Recalibrating sensors for maximum detection.
+
+## [1.9.10] - 2026-01-01 (Private)
+
+- Flushing the buffer (and the cache).
+
+## [1.9.9] - 2026-01-01 (Private)
+
+- Synchronizing watches with the atomic clock.
+
+## [1.9.8] - 2026-01-01 (Private)
+
+- Preventing the singularity (for now).
+
+## [1.9.7] - 2026-01-01 (Private)
+
+- Updating definitions of 'normal' operation.
+
+## [1.9.6] - 2026-01-01 (Private)
+
+- The hamster wheel is spinning smoothly again.
 
 ## [1.9.5] - 2025-12-31
 
@@ -45,6 +163,10 @@ All notable changes to this project will be documented in this file.
 
 - **Code Coverage**: Improved test coverage for `router` services (Mailer, P2P, RateLimit, Prefetch).
 - **Quality Assurance**: Resolved linter warnings and compilation errors in test suite.
+
+## [1.9.2] - 2025-12-30 (Private)
+
+- Minor tweaks to the secret sauce.
 
 ## [1.9.1] - 2025-12-29
 

@@ -1,4 +1,6 @@
 import 'package:flutter/foundation.dart';
+import 'package:gardener/p2p/p2p_manager.dart';
+import 'package:gardener/p2p/p2p_protocol.dart';
 
 /// Tracks peer reputation scores for spam and abuse prevention.
 ///
@@ -26,7 +28,10 @@ import 'package:flutter/foundation.dart';
 /// }
 /// ```
 class ReputationManager {
+  final P2PManager _p2p;
   final Map<String, int> _peerScores = {};
+
+  ReputationManager(this._p2p);
 
   /// Reputation threshold below which peers are blacklisted.
   static const int _threshold = -50;
@@ -61,7 +66,13 @@ class ReputationManager {
   /// Logs the blacklisting event. In a full implementation, this would
   /// notify the P2P isolate to drop all connections from this peer.
   void _blacklistPeer(String peerId) {
-    // TODO: Notify P2P isolate to ignore this peer
+    _p2p.sendCommand(
+      P2PCommand(
+        type: P2PCommandType.blacklist,
+        imdbId: 'reputation:blacklist',
+        data: {'peerId': peerId},
+      ),
+    );
     debugPrint('SECURITY: Peer $peerId blacklisted due to low reputation');
   }
 

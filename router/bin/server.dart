@@ -121,7 +121,9 @@ final _router = Router()
   // User-specific addon manifest at root for legacy compatibility
   ..get('/u/<userId>/manifest.json', _userManifestHandler)
   ..get('/u/<userId>/catalog/<type>/<id>.json', _userCatalogHandler)
-  ..get('/u/<userId>/stream/<type>/<id>.json', _userStreamHandler);
+  ..get('/u/<userId>/stream/<type>/<id>.json', _userStreamHandler)
+  ..get('/api/devices/<id>/status', _deviceStatusHandler)
+  ..post('/api/devices/<id>/unlink', _deviceUnlinkHandler);
 
 /// Mobile Interstitial Page (Deep Linking)
 Response _linkHandler(Request req) {
@@ -561,6 +563,67 @@ Response _linkStatusHandler(Request req) {
 Response _eventsHandler(Request req, String gardenerId) {
   final stream = eventService.subscribe(gardenerId);
   return eventService.sseResponse(stream);
+}
+
+// Device Management (Portal)
+
+/// Returns status and ownership info for a specific device.
+Future<Response> _deviceStatusHandler(Request req, String id) async {
+  final ownerId = db.getOwnerForDevice(id);
+  final isLinked = ownerId != null;
+
+  var neighbors = 0;
+  var ownerDisplay = 'None';
+
+  if (isLinked) {
+    final bindings = db.getBindings(ownerId);
+    neighbors = bindings.length - 1; // Others in the swarm
+
+    final owner = db.getUser(ownerId);
+    if (owner != null) {
+      final email = owner['email'] as String?;
+      if (email != null) {
+        final parts = email.split('@');
+        ownerDisplay = '${parts[0].substring(0, 1)}***@${parts[1]}';
+      } else {
+        ownerDisplay = 'User: ${ownerId.substring(0, 8)}...';
+      }
+    }
+  }
+
+  return Response.ok(
+    jsonEncode({
+      'ok': true,
+      'id': id,
+      'linked': isLinked,
+      'owner': ownerDisplay,
+      'neighbors': neighbors,
+    }),
+    headers: {'content-type': 'application/json'},
+  );
+}
+
+/// Revokes a specific device binding.
+Future<Response> _deviceUnlinkHandler(Request req, String id) async {
+  final userId = authService.getSessionId(req);
+  if (userId == null) {
+    return Response.forbidden(
+      jsonEncode({'ok': false, 'error': 'unauthorized'}),
+    );
+  }
+
+  // Check if device belongs to user
+  final ownerId = db.getOwnerForDevice(id);
+  if (ownerId != userId) {
+    return Response.forbidden(jsonEncode({'ok': false, 'error': 'forbidden'}));
+  }
+
+  // Delete the binding
+  db.deleteBinding(userId, id);
+
+  db.writeAudit('device_unlinked_portal', {'user_id': userId, 'device_id': id});
+
+  return Response.ok(jsonEncode({'ok': true}));
 }
 
 // Heartbeat (Secured via JWT)

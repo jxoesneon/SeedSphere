@@ -135,13 +135,14 @@ class AuthService {
       final aud = payload['aud'] as String?;
 
       // Validate Audience (Supports Web, Desktop, Mobile)
-      // These should ideally be in env vars, but hardcoding known project IDs for stability now.
       final validAudiences = [
-        _googleClientId, // Web
-        '550711161426-bvvv578gtt7cst7lsar3c28r3uh6n706.apps.googleusercontent.com', // Desktop
-        '550711161426-074c666943619890a5e58b.apps.googleusercontent.com', // Android (Example/Placeholder if different)
-        // Since Android often uses the Web Client ID for backend verification, usually _googleClientId is enough,
-        // but Desktop definitely uses its own.
+        _googleClientId, // Web (Primary)
+        Platform.environment['GOOGLE_CLIENT_ID_DESKTOP'] ??
+            '550711161426-bvvv578gtt7cst7lsar3c28r3uh6n706.apps.googleusercontent.com',
+        Platform.environment['GOOGLE_CLIENT_ID_ANDROID'] ??
+            '550711161426-2se9i9p6p7o3pk1els6b60mooait9b0f.apps.googleusercontent.com',
+        Platform.environment['GOOGLE_CLIENT_ID_IOS'] ??
+            '550711161426-bkup98581nj5jsuq38cutigtc0q58idk.apps.googleusercontent.com',
       ];
 
       // Relaxed check: just ensure it belongs to our project (prefix match) if strict list fails?
@@ -319,7 +320,7 @@ class AuthService {
   }
 
   Response _handleSession(Request req) {
-    final userId = _getSessionId(req);
+    final userId = getSessionId(req);
     if (userId == null) {
       return Response.ok(jsonEncode({'ok': true, 'user': null}));
     }
@@ -347,7 +348,7 @@ class AuthService {
   // --- User Management ---
 
   Future<Response> _handleUpdateSettings(Request req) async {
-    final userId = _getSessionId(req);
+    final userId = getSessionId(req);
     if (userId == null) {
       return Response.forbidden(jsonEncode({'error': 'unauthorized'}));
     }
@@ -367,7 +368,7 @@ class AuthService {
   }
 
   Future<Response> _handleGetToken(Request req) async {
-    final userId = _getSessionId(req);
+    final userId = getSessionId(req);
     if (userId == null) {
       return Response.forbidden(jsonEncode({'error': 'unauthorized'}));
     }
@@ -378,7 +379,7 @@ class AuthService {
   }
 
   Future<Response> _handleDeleteAccount(Request req) async {
-    final userId = _getSessionId(req);
+    final userId = getSessionId(req);
     if (userId == null) {
       return Response.forbidden(jsonEncode({'error': 'unauthorized'}));
     }
@@ -392,7 +393,7 @@ class AuthService {
   }
 
   Future<Response> _handleUnlinkDevices(Request req) async {
-    final userId = _getSessionId(req);
+    final userId = getSessionId(req);
     if (userId == null) {
       return Response.forbidden(jsonEncode({'error': 'unauthorized'}));
     }
@@ -406,7 +407,7 @@ class AuthService {
   }
 
   Future<Response> _handleGetActivity(Request req) async {
-    final userId = _getSessionId(req);
+    final userId = getSessionId(req);
     if (userId == null) {
       return Response.forbidden(jsonEncode({'error': 'unauthorized'}));
     }
@@ -416,7 +417,7 @@ class AuthService {
   }
 
   Future<Response> _handleGetDevices(Request req) async {
-    final userId = _getSessionId(req);
+    final userId = getSessionId(req);
     if (userId == null) {
       return Response.forbidden(jsonEncode({'error': 'unauthorized'}));
     }
@@ -426,7 +427,7 @@ class AuthService {
   }
 
   Future<Response> _handleGetSessions(Request req) async {
-    final userId = _getSessionId(req);
+    final userId = getSessionId(req);
     if (userId == null) {
       return Response.forbidden(jsonEncode({'error': 'unauthorized'}));
     }
@@ -444,7 +445,7 @@ class AuthService {
   }
 
   Future<Response> _handleRevokeSession(Request req, String sid) async {
-    final userId = _getSessionId(req);
+    final userId = getSessionId(req);
     if (userId == null) {
       return Response.forbidden(jsonEncode({'error': 'unauthorized'}));
     }
@@ -517,7 +518,10 @@ class AuthService {
     );
   }
 
-  String? _getSessionId(Request req) {
+  /// Retrieves the authenticated user's ID from the request cookies.
+  ///
+  /// Returns `null` if no valid session is found.
+  String? getSessionId(Request req) {
     final sid = _getSessionIdFromCookie(req);
     if (sid == null) return null;
 

@@ -18,35 +18,12 @@ enum NetworkStatus {
 }
 
 /// A status card displaying real-time network health for P2P connectivity.
-///
-/// Features:
-/// - Connection state indicator (Optimal/Degraded/Offline)
-/// - Animated peer count
-/// - Real-time metrics (latency, region)
-/// - Quick action buttons (Optimize, Details)
-/// - Status-driven CTAs based on network health
-///
-/// Following 2025 UX principles:
-/// - Status-first design
-/// - Real-time feedback
-/// - Contextual actions
 class NetworkStatusCard extends StatefulWidget {
-  /// Current network status
   final NetworkStatus status;
-
-  /// Number of connected peers
   final int peerCount;
-
-  /// Network latency in milliseconds
   final int? latencyMs;
-
-  /// Geographic region of connection
   final String? region;
-
-  /// Callback for optimize action
   final VoidCallback? onOptimize;
-
-  /// Callback for details action
   final VoidCallback? onShowDetails;
 
   const NetworkStatusCard({
@@ -88,7 +65,9 @@ class _NetworkStatusCardState extends State<NetworkStatusCard>
   void didUpdateWidget(NetworkStatusCard oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.peerCount != widget.peerCount) {
-      _animatePeerCount(oldWidget.peerCount, widget.peerCount);
+      setState(() {
+        _displayedPeerCount = widget.peerCount;
+      });
     }
   }
 
@@ -98,31 +77,14 @@ class _NetworkStatusCardState extends State<NetworkStatusCard>
     super.dispose();
   }
 
-  void _animatePeerCount(int from, int to) {
-    final duration = const Duration(milliseconds: 500);
-    final steps = 20;
-    final stepDuration = duration.inMilliseconds ~/ steps;
-    final diff = to - from;
-
-    for (int i = 1; i <= steps; i++) {
-      Future.delayed(Duration(milliseconds: stepDuration * i), () {
-        if (mounted) {
-          setState(() {
-            _displayedPeerCount = from + ((diff * i) ~/ steps);
-          });
-        }
-      });
-    }
-  }
-
   Color get _statusColor {
     switch (widget.status) {
       case NetworkStatus.optimal:
-        return const Color(0xFF10B981); // Green
+        return const Color(0xFF10B981);
       case NetworkStatus.degraded:
-        return const Color(0xFFF59E0B); // Amber
+        return const Color(0xFFF59E0B);
       case NetworkStatus.offline:
-        return const Color(0xFFEF4444); // Red
+        return const Color(0xFFEF4444);
       case NetworkStatus.checking:
         return Colors.white38;
     }
@@ -183,35 +145,20 @@ class _NetworkStatusCardState extends State<NetworkStatusCard>
           ],
         ),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: AethericTheme.glassBorder,
-          width: 1,
-        ),
+        border: Border.all(color: AethericTheme.glassBorder, width: 1),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Status indicator and text
           Row(
             children: [
-              // Status icon with optional pulse
               shouldPulse
                   ? ScaleTransition(
                       scale: _pulseAnimation,
-                      child: Icon(
-                        _statusIcon,
-                        size: 36,
-                        color: _statusColor,
-                      ),
+                      child: Icon(_statusIcon, size: 36, color: _statusColor),
                     )
-                  : Icon(
-                      _statusIcon,
-                      size: 36,
-                      color: _statusColor,
-                    ),
+                  : Icon(_statusIcon, size: 36, color: _statusColor),
               const SizedBox(width: 16),
-
-              // Status text
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -239,15 +186,17 @@ class _NetworkStatusCardState extends State<NetworkStatusCard>
               ),
             ],
           ),
-
-          // Metrics (if available)
           if (widget.status == NetworkStatus.optimal &&
               (widget.latencyMs != null || widget.region != null)) ...[
             const SizedBox(height: 12),
             Row(
               children: [
                 if (widget.latencyMs != null) ...[
-                  Icon(Icons.speed_rounded, size: 14, color: Colors.white38),
+                  const Icon(
+                    Icons.speed_rounded,
+                    size: 14,
+                    color: Colors.white38,
+                  ),
                   const SizedBox(width: 4),
                   Text(
                     '${widget.latencyMs}ms',
@@ -259,7 +208,11 @@ class _NetworkStatusCardState extends State<NetworkStatusCard>
                   const SizedBox(width: 12),
                 ],
                 if (widget.region != null) ...[
-                  Icon(Icons.public_rounded, size: 14, color: Colors.white38),
+                  const Icon(
+                    Icons.public_rounded,
+                    size: 14,
+                    color: Colors.white38,
+                  ),
                   const SizedBox(width: 4),
                   Text(
                     widget.region!,
@@ -272,13 +225,10 @@ class _NetworkStatusCardState extends State<NetworkStatusCard>
               ],
             ),
           ],
-
-          // Action buttons
           if (widget.status != NetworkStatus.checking) ...[
             const SizedBox(height: 16),
             Row(
               children: [
-                // Primary action (status-driven)
                 if (widget.status == NetworkStatus.degraded ||
                     widget.status == NetworkStatus.offline)
                   Expanded(
@@ -296,9 +246,7 @@ class _NetworkStatusCardState extends State<NetworkStatusCard>
                         widget.status == NetworkStatus.offline
                             ? 'Troubleshoot'
                             : 'Optimize',
-                        style: GoogleFonts.outfit(
-                          fontWeight: FontWeight.w600,
-                        ),
+                        style: GoogleFonts.outfit(fontWeight: FontWeight.w600),
                       ),
                     ),
                   )
@@ -314,16 +262,10 @@ class _NetworkStatusCardState extends State<NetworkStatusCard>
                           borderRadius: BorderRadius.circular(12),
                         ),
                       ),
-                      child: Text(
-                        'Optimize',
-                        style: GoogleFonts.outfit(),
-                      ),
+                      child: Text('Optimize', style: GoogleFonts.outfit()),
                     ),
                   ),
-
                 const SizedBox(width: 12),
-
-                // Secondary action
                 OutlinedButton(
                   onPressed: widget.onShowDetails,
                   style: OutlinedButton.styleFrom(

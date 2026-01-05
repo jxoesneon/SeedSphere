@@ -9,6 +9,8 @@ import 'package:gardener/ui/theme/aetheric_theme.dart';
 import 'package:gardener/core/local_kms.dart';
 import 'package:gardener/core/keys_helper.dart' as keys_helper;
 import 'package:gardener/background_sentinel.dart';
+import 'package:gardener/core/stremio_server.dart';
+import 'package:gardener/p2p/p2p_manager.dart';
 
 import 'package:gardener/ui/screens/home_screen.dart';
 
@@ -50,16 +52,16 @@ void main() {
 ///
 /// Shows a loading indicator while initialization is running, and
 /// displays an error screen if initialization fails.
-class BootstrapWrapper extends StatefulWidget {
+class BootstrapWrapper extends ConsumerStatefulWidget {
   final Widget child;
 
   const BootstrapWrapper({super.key, required this.child});
 
   @override
-  State<BootstrapWrapper> createState() => _BootstrapWrapperState();
+  ConsumerState<BootstrapWrapper> createState() => _BootstrapWrapperState();
 }
 
-class _BootstrapWrapperState extends State<BootstrapWrapper> {
+class _BootstrapWrapperState extends ConsumerState<BootstrapWrapper> {
   bool _initialized = false;
   String? _error;
 
@@ -86,6 +88,16 @@ class _BootstrapWrapperState extends State<BootstrapWrapper> {
       // Initialize background sentinel for P2P network stability
       DebugLogger.debug('Gardener: Initializing background services...');
       await initializeService();
+
+      // Initialize P2P Manager to get stable identity
+      DebugLogger.debug('Gardener: Initializing P2P Networking...');
+      final p2p = ref.read(p2pManagerProvider);
+      await p2p.start();
+      final gardenerId = p2p.gardenerId;
+
+      // Start Stremio Manifest Server
+      DebugLogger.debug('Gardener: Starting Stremio Manifest Server...');
+      await StremioServer().start(gardenerId: gardenerId);
 
       // Ensure logs are visible in debug console
       if (kDebugMode) {

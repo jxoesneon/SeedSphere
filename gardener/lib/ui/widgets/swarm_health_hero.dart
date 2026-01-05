@@ -6,11 +6,13 @@ import 'package:google_fonts/google_fonts.dart';
 class SwarmHealthHero extends StatefulWidget {
   final int peerCount;
   final bool isHealthy;
+  final List<DateTime>? heartbeats;
 
   const SwarmHealthHero({
     super.key,
     required this.peerCount,
     this.isHealthy = true,
+    this.heartbeats,
   });
 
   @override
@@ -38,6 +40,12 @@ class _SwarmHealthHeroState extends State<SwarmHealthHero>
 
   @override
   Widget build(BuildContext context) {
+    // Dynamic intensity based on heartbeats
+    final pulseFrequency =
+        widget.heartbeats != null && widget.heartbeats!.isNotEmpty
+        ? (widget.heartbeats!.length / 60.0).clamp(0.2, 1.0)
+        : 0.5;
+
     return SizedBox(
       height: 240,
       child: Stack(
@@ -53,6 +61,7 @@ class _SwarmHealthHeroState extends State<SwarmHealthHero>
                   color: widget.isHealthy
                       ? AethericTheme.success
                       : AethericTheme.warning,
+                  intensity: pulseFrequency,
                 ),
                 size: const Size(double.infinity, 240),
               );
@@ -65,8 +74,10 @@ class _SwarmHealthHeroState extends State<SwarmHealthHero>
             child: AethericGlass(
               borderRadius: 24,
               child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 32,
+                  vertical: 24,
+                ),
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     begin: Alignment.topLeft,
@@ -101,7 +112,9 @@ class _SwarmHealthHeroState extends State<SwarmHealthHero>
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      'CONNECTED TO ${widget.peerCount} ACTIVE PEERS',
+                      widget.peerCount == 0
+                          ? 'WAITING FOR FEDERATED PEERS...'
+                          : 'CONNECTED TO ${widget.peerCount} ACTIVE PEERS',
                       style: GoogleFonts.outfit(
                         fontSize: 12,
                         letterSpacing: 1.5,
@@ -123,18 +136,25 @@ class _SwarmHealthHeroState extends State<SwarmHealthHero>
 class _PulsePainter extends CustomPainter {
   final double animationValue;
   final Color color;
+  final double intensity;
 
-  _PulsePainter({required this.animationValue, required this.color});
+  _PulsePainter({
+    required this.animationValue,
+    required this.color,
+    this.intensity = 1.0,
+  });
 
   @override
   void paint(Canvas canvas, Size size) {
     final center = Offset(size.width / 2, size.height / 2);
-    final maxRadius = size.height * 0.8;
+    final maxRadius = size.height * 0.8 * intensity;
 
     // Draw multiple ripples
     for (int i = 0; i < 3; i++) {
-      final opacity =
-          (1.0 - ((animationValue + i * 0.33) % 1.0)).clamp(0.0, 1.0);
+      final opacity = (1.0 - ((animationValue + i * 0.33) % 1.0)).clamp(
+        0.0,
+        1.0,
+      );
       final radius = ((animationValue + i * 0.33) % 1.0) * maxRadius;
 
       final paint = Paint()

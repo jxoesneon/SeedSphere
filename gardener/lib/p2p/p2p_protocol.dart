@@ -20,6 +20,9 @@ enum P2PCommandType {
 
   /// Retrieve specific data from DHT or peers.
   get,
+
+  /// Blacklist a peer and terminate connection.
+  blacklist,
 }
 
 /// A command sent over the P2P network.

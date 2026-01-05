@@ -5,24 +5,33 @@ import 'package:gardener/core/identity_manager.dart';
 import 'package:gardener/core/security_manager.dart';
 import 'package:gardener/core/reputation_manager.dart';
 import 'package:gardener/core/local_kms.dart';
+import 'package:gardener/p2p/p2p_manager.dart';
 import 'dart:convert';
 
 class MockSecureStorage extends Mock implements FlutterSecureStorage {}
 
+class MockP2PManager extends Mock implements P2PManager {}
+
 void main() {
   late MockSecureStorage mockStorage;
+  late MockP2PManager mockP2P;
 
   setUp(() {
     mockStorage = MockSecureStorage();
+    mockP2P = MockP2PManager();
   });
 
   group('IdentityManager', () {
     test('Generates new IDs if storage is empty', () async {
-      when(() => mockStorage.read(key: any(named: 'key')))
-          .thenAnswer((_) async => null);
-      when(() => mockStorage.write(
+      when(
+        () => mockStorage.read(key: any(named: 'key')),
+      ).thenAnswer((_) async => null);
+      when(
+        () => mockStorage.write(
           key: any(named: 'key'),
-          value: any(named: 'value'))).thenAnswer((_) async => {});
+          value: any(named: 'value'),
+        ),
+      ).thenAnswer((_) async => {});
 
       final manager = IdentityManager(storage: mockStorage);
       final peerId = await manager.getPeerId();
@@ -31,16 +40,21 @@ void main() {
       expect(peerId, isNotEmpty);
       expect(gardenerId, startsWith('gardener-'));
       // Verify storage writes occurred
-      verify(() =>
-              mockStorage.write(key: 'ss_peer_id', value: any(named: 'value')))
-          .called(1);
+      verify(
+        () => mockStorage.write(
+          key: 'ss_peer_id',
+          value: any(named: 'value'),
+        ),
+      ).called(1);
     });
 
     test('Returns existing IDs from storage', () async {
-      when(() => mockStorage.read(key: 'ss_peer_id'))
-          .thenAnswer((_) async => 'existing-peer');
-      when(() => mockStorage.read(key: 'ss_gardener_id'))
-          .thenAnswer((_) async => 'existing-gardener');
+      when(
+        () => mockStorage.read(key: 'ss_peer_id'),
+      ).thenAnswer((_) async => 'existing-peer');
+      when(
+        () => mockStorage.read(key: 'ss_gardener_id'),
+      ).thenAnswer((_) async => 'existing-gardener');
 
       final manager = IdentityManager(storage: mockStorage);
 
@@ -51,18 +65,26 @@ void main() {
 
   group('SecurityManager', () {
     test('Sign and Verify Message', () async {
-      when(() => mockStorage.read(key: any(named: 'key')))
-          .thenAnswer((_) async => null);
-      when(() => mockStorage.write(
+      when(
+        () => mockStorage.read(key: any(named: 'key')),
+      ).thenAnswer((_) async => null);
+      when(
+        () => mockStorage.write(
           key: any(named: 'key'),
-          value: any(named: 'value'))).thenAnswer((_) async => {});
+          value: any(named: 'value'),
+        ),
+      ).thenAnswer((_) async => {});
 
       final manager = SecurityManager(storage: mockStorage);
       final keyPair = await manager.getKeyPair();
 
       // Should write private and public keys
-      verify(() => mockStorage.write(
-          key: any(named: 'key'), value: any(named: 'value'))).called(2);
+      verify(
+        () => mockStorage.write(
+          key: any(named: 'key'),
+          value: any(named: 'value'),
+        ),
+      ).called(2);
       const message = 'Hello Swarm';
 
       final signature = await manager.signMessage(message);
@@ -75,14 +97,14 @@ void main() {
 
   group('ReputationManager', () {
     test('Blacklists peer after threshold', () {
-      final manager = ReputationManager();
+      final manager = ReputationManager(mockP2P);
       manager.adjustScore('peer-bad', -60);
       expect(manager.isBlacklisted('peer-bad'), true);
       expect(manager.getScore('peer-bad'), -60);
     });
 
     test('Keeps peer valid above threshold', () {
-      final manager = ReputationManager();
+      final manager = ReputationManager(mockP2P);
       manager.adjustScore('peer-good', -10);
       expect(manager.isBlacklisted('peer-good'), false);
     });
@@ -90,18 +112,23 @@ void main() {
 
   group('LocalKMS', () {
     test('Stores and Retrieves Keys', () async {
-      when(() => mockStorage.read(key: 'ss_ai_kms_key'))
-          .thenAnswer((_) async => 'sk-12345');
-      when(() => mockStorage.write(
+      when(
+        () => mockStorage.read(key: 'ss_ai_kms_key'),
+      ).thenAnswer((_) async => 'sk-12345');
+      when(
+        () => mockStorage.write(
           key: any(named: 'key'),
-          value: any(named: 'value'))).thenAnswer((_) async => {});
+          value: any(named: 'value'),
+        ),
+      ).thenAnswer((_) async => {});
 
       final kms = LocalKMS(storage: mockStorage);
       await kms.storeAIKey('sk-12345');
 
       expect(await kms.getAIKey(), 'sk-12345');
-      verify(() => mockStorage.write(key: 'ss_ai_kms_key', value: 'sk-12345'))
-          .called(1);
+      verify(
+        () => mockStorage.write(key: 'ss_ai_kms_key', value: 'sk-12345'),
+      ).called(1);
     });
   });
 }

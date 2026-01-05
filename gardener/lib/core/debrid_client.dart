@@ -63,6 +63,39 @@ class DebridClient {
     }
   }
 
+  /// Selects specific files in a torrent to start downloading.
+  Future<void> selectFiles(String id, String fileIds) async {
+    final token = await _getApiKey();
+    if (token == null) throw Exception('No Debrid API Key found');
+
+    final response = await _client.post(
+      Uri.parse('$_baseUrl/torrents/selectFiles/$id'),
+      headers: {'Authorization': 'Bearer $token'},
+      body: {'files': fileIds},
+    );
+
+    if (response.statusCode != 204) {
+      throw Exception('Failed to select files: ${response.statusCode}');
+    }
+  }
+
+  /// Retrieves detailed information about a specific torrent.
+  Future<Map<String, dynamic>> getTorrentInfo(String id) async {
+    final token = await _getApiKey();
+    if (token == null) throw Exception('No Debrid API Key found');
+
+    final response = await _client.get(
+      Uri.parse('$_baseUrl/torrents/info/$id'),
+      headers: {'Authorization': 'Bearer $token'},
+    );
+
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    } else {
+      throw Exception('Failed to get torrent info: ${response.statusCode}');
+    }
+  }
+
   /// Converts a restricted link to an unrestricted direct download link.
   Future<Map<String, dynamic>> unrestrictLink(String link) async {
     final token = await _getApiKey();

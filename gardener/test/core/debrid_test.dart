@@ -25,24 +25,27 @@ void main() {
   group('DebridClient', () {
     test('addMagnet posts to correct endpoint', () async {
       when(() => mockKMS.getDebridKey()).thenAnswer((_) async => 'key123');
-      when(() => mockClient.post(
-                any(),
-                headers: any(named: 'headers'),
-                body: any(named: 'body'),
-              ))
-          .thenAnswer(
-              (_) async => http.Response(jsonEncode({'id': 'magnet123'}), 201));
+      when(
+        () => mockClient.post(
+          any(),
+          headers: any(named: 'headers'),
+          body: any(named: 'body'),
+        ),
+      ).thenAnswer(
+        (_) async => http.Response(jsonEncode({'id': 'magnet123'}), 201),
+      );
 
       final client = DebridClient(kms: mockKMS, client: mockClient);
       final result = await client.addMagnet('magnet:?xt=urn:btih:hash');
 
       expect(result['id'], 'magnet123');
-      verify(() => mockClient.post(
-            Uri.parse(
-                'https://api.real-debrid.com/rest/1.0/torrents/addMagnet'),
-            headers: {'Authorization': 'Bearer key123'},
-            body: {'magnet': 'magnet:?xt=urn:btih:hash'},
-          )).called(1);
+      verify(
+        () => mockClient.post(
+          Uri.parse('https://api.real-debrid.com/rest/1.0/torrents/addMagnet'),
+          headers: {'Authorization': 'Bearer key123'},
+          body: {'magnet': 'magnet:?xt=urn:btih:hash'},
+        ),
+      ).called(1);
     });
 
     test('Throws if no key', () async {
@@ -52,26 +55,36 @@ void main() {
     });
     test('getUser calls correct endpoint', () async {
       when(() => mockKMS.getDebridKey()).thenAnswer((_) async => 'key123');
-      when(() => mockClient.get(any(), headers: any(named: 'headers')))
-          .thenAnswer((_) async =>
-              http.Response(jsonEncode({'username': 'Eduardo'}), 200));
+      when(
+        () => mockClient.get(any(), headers: any(named: 'headers')),
+      ).thenAnswer(
+        (_) async => http.Response(jsonEncode({'username': 'Eduardo'}), 200),
+      );
 
       final client = DebridClient(kms: mockKMS, client: mockClient);
       final result = await client.getUser();
 
       expect(result['username'], 'Eduardo');
-      verify(() => mockClient.get(
-            Uri.parse('https://api.real-debrid.com/rest/1.0/user'),
-            headers: {'Authorization': 'Bearer key123'},
-          )).called(1);
+      verify(
+        () => mockClient.get(
+          Uri.parse('https://api.real-debrid.com/rest/1.0/user'),
+          headers: {'Authorization': 'Bearer key123'},
+        ),
+      ).called(1);
     });
 
     test('unrestrictLink posts correctly', () async {
       when(() => mockKMS.getDebridKey()).thenAnswer((_) async => 'key123');
-      when(() => mockClient.post(any(),
-              headers: any(named: 'headers'), body: any(named: 'body')))
-          .thenAnswer((_) async =>
-              http.Response(jsonEncode({'download': 'http://link'}), 200));
+      when(
+        () => mockClient.post(
+          any(),
+          headers: any(named: 'headers'),
+          body: any(named: 'body'),
+        ),
+      ).thenAnswer(
+        (_) async =>
+            http.Response(jsonEncode({'download': 'http://link'}), 200),
+      );
 
       final client = DebridClient(kms: mockKMS, client: mockClient);
       final result = await client.unrestrictLink('http://source');
@@ -81,8 +94,9 @@ void main() {
 
     test('Throws on API error', () async {
       when(() => mockKMS.getDebridKey()).thenAnswer((_) async => 'key123');
-      when(() => mockClient.get(any(), headers: any(named: 'headers')))
-          .thenAnswer((_) async => http.Response('Error', 403));
+      when(
+        () => mockClient.get(any(), headers: any(named: 'headers')),
+      ).thenAnswer((_) async => http.Response('Error', 403));
 
       final client = DebridClient(kms: mockKMS, client: mockClient);
       expect(() => client.getUser(), throwsException);
@@ -92,15 +106,53 @@ void main() {
   group('StreamResolver', () {
     test('Resolves magnet to stream link', () async {
       final mockDebrid = MockDebridClient();
-      when(() => mockDebrid.addMagnet(any()))
-          .thenAnswer((_) async => {'id': 'stream123'});
+      when(
+        () => mockDebrid.addMagnet(any()),
+      ).thenAnswer((_) async => {'id': 'torrent123'});
+
+      // Mock polling: magnet_conversion -> waiting_files_selection
+      int callCount = 0;
+      when(() => mockDebrid.getTorrentInfo(any())).thenAnswer((_) async {
+        callCount++;
+        if (callCount == 1) return {'status': 'magnet_conversion'};
+        if (callCount == 2) {
+          return {
+            'status': 'waiting_files_selection',
+            'files': [
+              {'id': 1, 'path': 'movie.mp4', 'bytes': 1000},
+              {'id': 2, 'path': 'sample.txt', 'bytes': 100},
+            ],
+          };
+        }
+        if (callCount == 3) return {'status': 'downloading'};
+        return {
+          'status': 'downloaded',
+          'links': ['https://real-debrid.com/d/LINK123'],
+        };
+      });
+
+      when(
+        () => mockDebrid.selectFiles(any(), any()),
+      ).thenAnswer((_) async => {});
+
+      when(() => mockDebrid.unrestrictLink(any())).thenAnswer(
+        (_) async => {
+          'download': 'https://real-debrid.com/streaming/stream123',
+        },
+      );
 
       final resolver = StreamResolver(debrid: mockDebrid);
       final url = await resolver.resolveStream('hash123');
 
       expect(url, 'https://real-debrid.com/streaming/stream123');
-      verify(() => mockDebrid.addMagnet('magnet:?xt=urn:btih:hash123'))
-          .called(1);
+
+      // Verify correct flow
+      verify(
+        () => mockDebrid.addMagnet('magnet:?xt=urn:btih:hash123'),
+      ).called(1);
+      verify(
+        () => mockDebrid.selectFiles('torrent123', '1'),
+      ).called(1); // Should select largest video
     });
 
     test('Returns null on error', () async {

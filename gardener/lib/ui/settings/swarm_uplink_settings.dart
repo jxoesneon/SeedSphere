@@ -1,41 +1,32 @@
 import 'package:flutter/material.dart';
+import 'package:gardener/p2p/p2p_manager.dart';
 import 'package:gardener/ui/theme/aetheric_theme.dart';
 import 'package:gardener/ui/widgets/network_status_card.dart';
 import 'package:gardener/ui/widgets/network_mode_toggle.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 /// Advanced network settings for the P2P swarm uplink.
-///
-/// This redesigned screen (2025 UX principles) features:
-/// - **Status-First Design**: Network health front and center
-/// - **Progressive Disclosure**: Advanced settings collapsed by default
-/// - **Smart Defaults**: Auto mode for 90% of users
-/// - **Contextual Help**: Tooltips explain every option
-/// - **Real-time Feedback**: Live peer count and status updates
-///
-/// Target Personas:
-/// - Privacy Advocates: Clear security indicators
-/// - P2P Enthusiasts: Advanced metrics and controls
-/// - Streamers: "Just works" with smart defaults
-class SwarmUplinkSettings extends StatefulWidget {
+class SwarmUplinkSettings extends ConsumerStatefulWidget {
   /// Creates a [SwarmUplinkSettings] widget.
   const SwarmUplinkSettings({super.key});
 
   @override
-  State<SwarmUplinkSettings> createState() => _SwarmUplinkSettingsState();
+  ConsumerState<SwarmUplinkSettings> createState() =>
+      _SwarmUplinkSettingsState();
 }
 
-class _SwarmUplinkSettingsState extends State<SwarmUplinkSettings> {
-  // Network status (mock - replace with real API)
+class _SwarmUplinkSettingsState extends ConsumerState<SwarmUplinkSettings> {
+  // Network status (real-time from P2PManager)
   NetworkStatus _networkStatus = NetworkStatus.optimal;
-  int _peerCount = 12;
+  int _peerCount = 0;
   final int _latencyMs = 45;
   final String _region = 'NA';
 
   // Network mode
   NetworkMode _networkMode = NetworkMode.automatic;
 
-  // Advanced settings (only shown in Manual mode)
+  // Advanced settings
   bool _autoBootstrap = true;
   String _trackerPreset = 'auto';
   bool _useCustomTrackers = false;
@@ -49,17 +40,59 @@ class _SwarmUplinkSettingsState extends State<SwarmUplinkSettings> {
   bool _isSweeping = false;
 
   @override
+  void initState() {
+    super.initState();
+    // Listen to real peer count
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final manager = ref.read(p2pManagerProvider);
+      _peerCount = manager.peerCount.value;
+      manager.peerCount.addListener(_onPeerCountChanged);
+      _updateStatus();
+    });
+  }
+
+  @override
+  void dispose() {
+    ref.read(p2pManagerProvider).peerCount.removeListener(_onPeerCountChanged);
+    _trackerUrlController.dispose();
+    super.dispose();
+  }
+
+  void _onPeerCountChanged() {
+    if (mounted) {
+      setState(() {
+        _peerCount = ref.read(p2pManagerProvider).peerCount.value;
+        _updateStatus();
+      });
+    }
+  }
+
+  void _updateStatus() {
+    if (_peerCount == 0) {
+      _networkStatus = NetworkStatus.degraded;
+    } else if (_peerCount < 3) {
+      _networkStatus = NetworkStatus.degraded;
+    } else {
+      _networkStatus = NetworkStatus.optimal;
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AethericTheme.deepVoid,
       appBar: AppBar(
-        title:
-            Text('SWARM UPLINK', style: GoogleFonts.outfit(letterSpacing: 2)),
+        title: Text(
+          'SWARM UPLINK',
+          style: GoogleFonts.outfit(letterSpacing: 2),
+        ),
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded,
-              color: Colors.white70),
+          icon: const Icon(
+            Icons.arrow_back_ios_new_rounded,
+            color: Colors.white70,
+          ),
           onPressed: () => Navigator.of(context).pop(),
         ),
       ),
@@ -85,7 +118,6 @@ class _SwarmUplinkSettingsState extends State<SwarmUplinkSettings> {
               onModeChanged: (mode) {
                 setState(() {
                   _networkMode = mode;
-                  // Auto mode collapses advanced settings
                   if (mode == NetworkMode.automatic) {
                     _isAdvancedExpanded = false;
                   }
@@ -94,13 +126,13 @@ class _SwarmUplinkSettingsState extends State<SwarmUplinkSettings> {
             ),
             const SizedBox(height: 24),
 
-            // Advanced Configuration (Progressive Disclosure)
+            // Advanced Configuration
             if (_networkMode == NetworkMode.manual) ...[
               _buildAdvancedSection(),
               const SizedBox(height: 24),
             ],
 
-            // Diagnostics (always visible)
+            // Diagnostics
             _buildDiagnosticsSection(),
           ],
         ),
@@ -108,7 +140,6 @@ class _SwarmUplinkSettingsState extends State<SwarmUplinkSettings> {
     );
   }
 
-  /// Advanced configuration section (collapsible)
   Widget _buildAdvancedSection() {
     return Container(
       decoration: BoxDecoration(
@@ -121,21 +152,18 @@ class _SwarmUplinkSettingsState extends State<SwarmUplinkSettings> {
           ],
         ),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: AethericTheme.glassBorder,
-          width: 1,
-        ),
+        border: Border.all(color: AethericTheme.glassBorder, width: 1),
       ),
       child: Column(
         children: [
-          // Header
           Material(
             color: Colors.transparent,
             child: InkWell(
               onTap: () =>
                   setState(() => _isAdvancedExpanded = !_isAdvancedExpanded),
-              borderRadius:
-                  const BorderRadius.vertical(top: Radius.circular(16)),
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(16),
+              ),
               child: Padding(
                 padding: const EdgeInsets.all(16),
                 child: Row(
@@ -183,8 +211,6 @@ class _SwarmUplinkSettingsState extends State<SwarmUplinkSettings> {
               ),
             ),
           ),
-
-          // Expandable content
           if (_isAdvancedExpanded) ...[
             const Divider(color: Colors.white10, height: 1),
             Padding(
@@ -192,7 +218,6 @@ class _SwarmUplinkSettingsState extends State<SwarmUplinkSettings> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Bootstrap Nodes
                   _buildSubsectionHeader('Bootstrap Nodes'),
                   const SizedBox(height: 8),
                   _buildTooltipSwitch(
@@ -203,8 +228,6 @@ class _SwarmUplinkSettingsState extends State<SwarmUplinkSettings> {
                     onChanged: (val) => setState(() => _autoBootstrap = val),
                   ),
                   const SizedBox(height: 20),
-
-                  // Tracker Configuration
                   _buildSubsectionHeader('Tracker Sources'),
                   const SizedBox(height: 8),
                   _buildTrackerSelector(),
@@ -213,8 +236,6 @@ class _SwarmUplinkSettingsState extends State<SwarmUplinkSettings> {
                     _buildCustomTrackerInput(),
                   ],
                   const SizedBox(height: 20),
-
-                  // Performance Tuning
                   _buildSubsectionHeader('Performance'),
                   const SizedBox(height: 8),
                   _buildValidationSelector(),
@@ -260,10 +281,7 @@ class _SwarmUplinkSettingsState extends State<SwarmUplinkSettings> {
               children: [
                 Text(
                   title,
-                  style: GoogleFonts.outfit(
-                    color: Colors.white,
-                    fontSize: 14,
-                  ),
+                  style: GoogleFonts.outfit(color: Colors.white, fontSize: 14),
                 ),
                 const SizedBox(height: 2),
                 Text(
@@ -302,16 +320,13 @@ class _SwarmUplinkSettingsState extends State<SwarmUplinkSettings> {
               dropdownColor: const Color(0xFF1E293B),
               style: GoogleFonts.outfit(color: Colors.white),
               icon: const Icon(Icons.arrow_drop_down, color: Colors.white54),
-              items: [
-                'auto',
-                'best',
-                'fast (udp)',
-                'private (https)',
-              ]
-                  .map((preset) => DropdownMenuItem(
-                        value: preset,
-                        child: Text(preset.toUpperCase()),
-                      ))
+              items: ['auto', 'best', 'fast (udp)', 'private (https)']
+                  .map(
+                    (preset) => DropdownMenuItem(
+                      value: preset,
+                      child: Text(preset.toUpperCase()),
+                    ),
+                  )
                   .toList(),
               onChanged: (val) => setState(() => _trackerPreset = val!),
             ),
@@ -370,15 +385,13 @@ class _SwarmUplinkSettingsState extends State<SwarmUplinkSettings> {
           dropdownColor: const Color(0xFF1E293B),
           style: GoogleFonts.outfit(color: Colors.white),
           icon: const Icon(Icons.arrow_drop_down, color: Colors.white54),
-          items: [
-            'off',
-            'basic',
-            'strict',
-          ]
-              .map((level) => DropdownMenuItem(
-                    value: level,
-                    child: Text('Content Verification: ${level.toUpperCase()}'),
-                  ))
+          items: ['off', 'basic', 'strict']
+              .map(
+                (level) => DropdownMenuItem(
+                  value: level,
+                  child: Text('Content Verification: ${level.toUpperCase()}'),
+                ),
+              )
               .toList(),
           onChanged: (val) => setState(() => _validationLevel = val!),
         ),
@@ -444,18 +457,18 @@ class _SwarmUplinkSettingsState extends State<SwarmUplinkSettings> {
           ],
         ),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: AethericTheme.glassBorder,
-          width: 1,
-        ),
+        border: Border.all(color: AethericTheme.glassBorder, width: 1),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Icon(Icons.speed_rounded,
-                  color: AethericTheme.aetherBlue, size: 20),
+              Icon(
+                Icons.speed_rounded,
+                color: AethericTheme.aetherBlue,
+                size: 20,
+              ),
               const SizedBox(width: 12),
               Text(
                 'DIAGNOSTICS',
@@ -503,15 +516,17 @@ class _SwarmUplinkSettingsState extends State<SwarmUplinkSettings> {
     setState(() => _isSweeping = true);
     final messenger = ScaffoldMessenger.of(context);
 
-    // Simulate optimization
-    await Future.delayed(const Duration(seconds: 3));
+    // Trigger real optimization in P2P Node
+    // For now we just poll status more aggressively or re-bootstrap
+    await ref.read(p2pManagerProvider).start(); // Ensure started
+
+    // Optimization is fire-and-forget (isolate handles it)
 
     if (!mounted) return;
 
     setState(() {
       _isSweeping = false;
-      _networkStatus = NetworkStatus.optimal;
-      _peerCount = 18; // Improved peer count
+      _updateStatus();
     });
 
     messenger.showSnackBar(
@@ -527,8 +542,10 @@ class _SwarmUplinkSettingsState extends State<SwarmUplinkSettings> {
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: const Color(0xFF1E293B),
-        title: Text('Network Details',
-            style: GoogleFonts.outfit(color: Colors.white)),
+        title: Text(
+          'Network Details',
+          style: GoogleFonts.outfit(color: Colors.white),
+        ),
         content: Text(
           'Status: $_networkStatus\n'
           'Peers: $_peerCount\n'
@@ -540,8 +557,10 @@ class _SwarmUplinkSettingsState extends State<SwarmUplinkSettings> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text('Close',
-                style: GoogleFonts.outfit(color: AethericTheme.aetherBlue)),
+            child: Text(
+              'Close',
+              style: GoogleFonts.outfit(color: AethericTheme.aetherBlue),
+            ),
           ),
         ],
       ),

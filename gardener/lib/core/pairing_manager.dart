@@ -13,11 +13,17 @@ class PairingManager {
   final P2PManager p2p;
   final SecurityManager _security;
   final http.Client _client;
+  final LocalKMS _kms;
 
   /// Creates a [PairingManager] instance.
-  PairingManager(this.p2p, {SecurityManager? security, http.Client? client})
-    : _security = security ?? SecurityManager(),
-      _client = client ?? http.Client();
+  PairingManager(
+    this.p2p, {
+    SecurityManager? security,
+    http.Client? client,
+    LocalKMS? kms,
+  }) : _security = security ?? SecurityManager(),
+       _client = client ?? http.Client(),
+       _kms = kms ?? LocalKMS();
 
   /// Generates a base64-encoded pairing payload containing credentials.
   ///
@@ -69,8 +75,37 @@ class PairingManager {
   /// **Note:** Current implementation only logs the pairing. Production version
   /// should actually store credentials via [LocalKMS].
   Future<void> completePairing(String payloadBase64) async {
-    final decoded = jsonDecode(utf8.decode(base64Decode(payloadBase64)));
-    // TODO: Store the received credentials in LocalKMS
+    Map<String, dynamic> decoded;
+    try {
+      decoded = jsonDecode(utf8.decode(base64Decode(payloadBase64)));
+    } catch (e) {
+      debugPrint('PAIRING ERROR: Invalid payload format');
+      return;
+    }
+
+    // validate keys
+    if (!decoded.containsKey('gardenerId') ||
+        !decoded.containsKey('timestamp')) {
+      debugPrint('PAIRING ERROR: Missing required fields');
+      return;
+    }
+
+    // Validate timestamp (prevent replay attacks > 5 mins old)
+    final timestamp = decoded['timestamp'] as int;
+    final now = DateTime.now().millisecondsSinceEpoch;
+    if ((now - timestamp).abs() > 300000) {
+      debugPrint('PAIRING ERROR: Payload expired');
+      return;
+    }
+
+    // Store credentials in LocalKMS
+    if (decoded.containsKey('debridKey')) {
+      final key = decoded['debridKey'] as String;
+      if (key.isNotEmpty) {
+        await _kms.storeDebridKey(key);
+      }
+    }
+
     debugPrint(
       'PAIRING: Successfully paired via P2P with ${decoded['gardenerId']}',
     );

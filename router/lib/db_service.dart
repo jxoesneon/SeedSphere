@@ -453,6 +453,16 @@ class DbService {
         .toList();
   }
 
+  /// Returns the owner (Gardener ID) for a given Seedling ID.
+  String? getOwnerForDevice(String seedlingId) {
+    final res = _db.select(
+      'SELECT gardener_id FROM bindings WHERE seedling_id = ? LIMIT 1',
+      [seedlingId],
+    );
+    if (res.isEmpty) return null;
+    return res.first['gardener_id'] as String;
+  }
+
   /// Aggregates user activity from various tables (Account creation, Bindings).
   List<Map<String, dynamic>> getUserActivity(String userId) {
     final activities = <Map<String, dynamic>>[];
@@ -621,6 +631,14 @@ class DbService {
     _db.execute(
       'DELETE FROM bindings WHERE gardener_id = ? OR seedling_id = ?',
       [userId, userId],
+    );
+  }
+
+  /// Removes a specific binding between a gardener and seedling.
+  void deleteBinding(String gardenerId, String seedlingId) {
+    _db.execute(
+      'DELETE FROM bindings WHERE gardener_id = ? AND seedling_id = ?',
+      [gardenerId, seedlingId],
     );
   }
 

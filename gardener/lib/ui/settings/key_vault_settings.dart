@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:gardener/ui/settings/torznab_manager.dart';
 import 'package:gardener/ui/theme/aetheric_theme.dart';
@@ -79,8 +80,10 @@ class _KeyVaultSettingsState extends State<KeyVaultSettings> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded,
-              color: Colors.white70),
+          icon: const Icon(
+            Icons.arrow_back_ios_new_rounded,
+            color: Colors.white70,
+          ),
           onPressed: () => Navigator.of(context).pop(),
         ),
       ),
@@ -112,8 +115,13 @@ class _KeyVaultSettingsState extends State<KeyVaultSettings> {
               onChanged: (val) => _saveKey('rd_api_key', val),
               trailing: IconButton(
                 icon: const Icon(Icons.paste_rounded, color: Colors.white30),
-                onPressed: () {
-                  // TODO: Implement clipboard paste
+                onPressed: () async {
+                  final data = await Clipboard.getData(Clipboard.kTextPlain);
+                  if (data?.text != null) {
+                    _rdController.text = data!.text!;
+                    await _saveKey('rd_api_key', data.text!);
+                    if (mounted) setState(() {});
+                  }
                 },
               ),
             ),
@@ -127,8 +135,13 @@ class _KeyVaultSettingsState extends State<KeyVaultSettings> {
               onChanged: (val) => _saveKey('ad_api_key', val),
               trailing: IconButton(
                 icon: const Icon(Icons.paste_rounded, color: Colors.white30),
-                onPressed: () {
-                  // TODO: Implement clipboard paste
+                onPressed: () async {
+                  final data = await Clipboard.getData(Clipboard.kTextPlain);
+                  if (data?.text != null) {
+                    _adController.text = data!.text!;
+                    await _saveKey('ad_api_key', data.text!);
+                    if (mounted) setState(() {});
+                  }
                 },
               ),
             ),
