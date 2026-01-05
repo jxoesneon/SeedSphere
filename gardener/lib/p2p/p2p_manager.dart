@@ -477,7 +477,10 @@ class P2PManager {
           break;
 
         case P2PCommandType.publish:
-          fromMainPort.send('P2P: Seeding metadata for ${command.imdbId}');
+          fromMainPort.send({
+            'msg': 'P2P: Seeding metadata for ${command.imdbId}',
+            'cat': 'DHT',
+          });
           final dhtKey = P2PProtocol.getDhtKey(command.imdbId);
           await node.dhtClient.addProvider(dhtKey, node.peerId);
           break;
@@ -528,14 +531,23 @@ class P2PManager {
           try {
             final blockData = await node.get(command.imdbId);
             if (blockData != null) {
-              fromMainPort.send(
-                'P2P: Recieved block data: ${blockData.length} bytes',
-              );
+              fromMainPort.send({
+                'msg': 'P2P: Recieved block data: ${blockData.length} bytes',
+                'cat': 'DHT',
+              });
             } else {
-              fromMainPort.send('P2P: Block not found');
+              fromMainPort.send({
+                'msg': 'P2P: Block not found',
+                'level': 'WARN',
+                'cat': 'DHT',
+              });
             }
           } catch (e) {
-            fromMainPort.send('P2P Bitswap Error: ${e.toString()}');
+            fromMainPort.send({
+              'msg': 'P2P Bitswap Error: ${e.toString()}',
+              'level': 'ERROR',
+              'cat': 'DHT',
+            });
           }
           break;
 
@@ -547,33 +559,46 @@ class P2PManager {
         case P2PCommandType.blacklist:
           final peerId = command.data?['peerId'] as String?;
           if (peerId != null) {
-            fromMainPort.send('P2P: Blocking peer $peerId');
+            fromMainPort.send({
+              'msg': 'P2P: Blocking peer $peerId',
+              'level': 'SECURITY',
+              'cat': 'NET',
+            });
             // Check if connected and disconnect
             final peers = await node.connectedPeers;
             if (peers.contains(peerId)) {
-              // dart_ipfs doesn't have a direct 'disconnect' on the high-level node yet
-              // but we can try via the network layer if exposed, or just log for now
-              // and rely on the reputation manager logic to ignore future messages.
-              // For now, we will just log it as the API might update.
+              // ... comments ...
               // node.network.disconnect(peerId); // Hypothetical API
-              fromMainPort.send('P2P: Terminated connection with $peerId');
+              fromMainPort.send({
+                'msg': 'P2P: Terminated connection with $peerId',
+                'level': 'SECURITY',
+                'cat': 'NET',
+              });
             }
           }
           break;
 
         case P2PCommandType.optimize:
-          fromMainPort.send('P2P: Optimizing network connections...');
+          fromMainPort.send({
+            'msg': 'P2P: Optimizing network connections...',
+            'cat': 'NET',
+          });
           try {
             // Re-trigger bootstrap process
             await (node as dynamic).network.bootstrap();
             final peers = await node.connectedPeers;
-            fromMainPort.send(
-              'P2P: Optimization complete. Active peers: ${peers.length}',
-            );
+            fromMainPort.send({
+              'msg':
+                  'P2P: Optimization complete. Active peers: ${peers.length}',
+              'cat': 'NET',
+            });
           } catch (e) {
-            fromMainPort.send('P2P Optimization Warning: ${e.toString()}');
-            // If .bootstrap() doesn't exist or fails, we can fall back to manual dials
-            // but usually dart_ipfs 1.7.x handles this via node.network.
+            fromMainPort.send({
+              'msg': 'P2P Optimization Warning: ${e.toString()}',
+              'level': 'WARN',
+              'cat': 'NET',
+            });
+            // ... comments ...
           }
           break;
       }

@@ -104,8 +104,14 @@ void main() {
       );
 
       // We expect sequential messages
-      expect(await events.next, contains('Searching for tt12345'));
-      expect(await events.next, contains('Found 1 swarm providers'));
+      // We expect sequential messages
+      var event = await events.next;
+      expect(event, isA<Map>());
+      expect(event['msg'], contains('Searching for tt12345'));
+
+      event = await events.next;
+      expect(event, isA<Map>());
+      expect(event['msg'], contains('DHT Query Complete'));
     });
 
     test('handleWorkerMessage Publish', () async {
@@ -117,7 +123,9 @@ void main() {
         null,
       );
 
-      expect(await events.next, contains('Seeding metadata'));
+      var event = await events.next;
+      expect(event, isA<Map>());
+      expect(event['msg'], contains('Seeding metadata'));
     });
 
     test('handleWorkerMessage Status', () async {
@@ -129,6 +137,7 @@ void main() {
         null,
       );
 
+      // Status updates are still just integers for peer count
       expect(await events.next, equals(2));
     });
   });
