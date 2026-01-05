@@ -191,6 +191,7 @@ jobs:
           arch: aarch64
           distro: ubuntu22.04
           githubToken: ${{ github.token }}
+          dockerRunArgs: "--shm-size 4g"
           install: |
             # Install build dependencies
             apt-get update
@@ -206,7 +207,7 @@ jobs:
             cd gardener
             flutter config --no-analytics
             flutter pub get
-            flutter build linux --release --dart-define=GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET_DESKTOP }}
+            flutter build linux --release -v --dart-define=GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET_DESKTOP }}
 
             # Install Packaging Tools in container
             apt-get install -y ruby ruby-dev rubygems build-essential
