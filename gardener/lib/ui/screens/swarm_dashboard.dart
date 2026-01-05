@@ -16,6 +16,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gardener/core/stream_history_manager.dart';
 import 'package:gardener/core/activity_manager.dart';
 import 'package:gardener/scrapers/scraper_engine.dart';
+import 'package:gardener/core/security_manager.dart';
+import 'package:gardener/core/debug_logger.dart';
 import 'package:uuid/uuid.dart';
 
 /// "The Observatory" - Central hub for swarm monitoring and discovery.
@@ -46,9 +48,61 @@ class _SwarmDashboardState extends ConsumerState<SwarmDashboard> {
   void initState() {
     super.initState();
     _client = widget.client ?? http.Client();
-    _connectSSE();
+    _verifyAndHealSession().then((_) {
+      if (mounted) _connectSSE();
+    });
     _fetchHistory();
     _fetchPopular();
+  }
+
+  /// Verifies current session is valid and ensures device linking is healed.
+  Future<void> _verifyAndHealSession() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('auth_token');
+      if (token == null) return;
+
+      final gardenerId = ref.read(p2pManagerProvider).gardenerId;
+      if (gardenerId == null) return; // P2P not ready?
+
+      final uri = Uri.parse(
+        '${NetworkConstants.apiBase}/api/auth/session?gardenerId=$gardenerId',
+      );
+      final response = await _client.get(
+        uri,
+        headers: {'Authorization': 'Bearer $token'},
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        if (data['ok'] != true || data['user'] == null) {
+          // Session invalid?
+          // We could force logout here, but let's be gentle for now unless 401/403
+        }
+
+        if (data['secret'] != null) {
+          final secret = data['secret'] as String;
+          final security = SecurityManager();
+          // Only write if we don't have it or want to ensure it's in sync
+          await security.setSharedSecret(secret);
+          DebugLogger.info(
+            'Swarm: Session healed. Device linked successfully.',
+          );
+        }
+      } else if (response.statusCode == 401 || response.statusCode == 403) {
+        // Token expired
+        await prefs.remove('auth_token');
+        if (mounted) {
+          if (context.mounted) {
+            await Navigator.of(
+              context,
+            ).pushReplacementNamed('/'); // Go home/auth
+          }
+        }
+      }
+    } catch (e) {
+      DebugLogger.error('Session check failed: $e');
+    }
   }
 
   Future<void> _fetchHistory() async {

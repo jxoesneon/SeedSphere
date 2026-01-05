@@ -150,9 +150,29 @@ class P2PInitData {
   /// The root storage path for the IPFS repository.
   final String storagePath;
 
+  /// Whether to use default bootstrap nodes.
+  final bool autoBootstrap;
+
+  /// Custom bootstrap nodes to use.
+  final List<String> bootstrapPeers;
+
+  /// Whether to enable NAT traversal.
+  final bool enableNatTraversal;
+
+  /// Whether to actively search for more peers.
+  final bool scrapeSwarm;
+
+  /// Maximum peers to query during swarm scraping.
+  final int swarmTopN;
+
   P2PInitData({
     required this.sendPort,
     required this.privateKey,
     required this.storagePath,
+    this.autoBootstrap = true,
+    this.bootstrapPeers = const [],
+    this.enableNatTraversal = true,
+    this.scrapeSwarm = true,
+    this.swarmTopN = 20,
   });
 }

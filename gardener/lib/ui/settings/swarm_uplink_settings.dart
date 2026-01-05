@@ -5,6 +5,7 @@ import 'package:gardener/ui/widgets/network_status_card.dart';
 import 'package:gardener/ui/widgets/network_mode_toggle.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 /// Advanced network settings for the P2P swarm uplink.
 class SwarmUplinkSettings extends ConsumerStatefulWidget {
@@ -42,6 +43,7 @@ class _SwarmUplinkSettingsState extends ConsumerState<SwarmUplinkSettings> {
   @override
   void initState() {
     super.initState();
+    _loadSettings();
     // Listen to real peer count
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final manager = ref.read(p2pManagerProvider);
@@ -49,6 +51,27 @@ class _SwarmUplinkSettingsState extends ConsumerState<SwarmUplinkSettings> {
       manager.peerCount.addListener(_onPeerCountChanged);
       _updateStatus();
     });
+  }
+
+  Future<void> _loadSettings() async {
+    final prefs = await SharedPreferences.getInstance();
+    if (mounted) {
+      setState(() {
+        _autoBootstrap = prefs.getBool('p2p_auto_bootstrap') ?? true;
+        _scrapeSwarm = prefs.getBool('p2p_scrape_swarm') ?? true;
+        _swarmTopN = (prefs.getInt('p2p_swarm_top_n') ?? 20).toDouble();
+        _validationLevel = prefs.getString('p2p_validation_level') ?? 'basic';
+        _trackerPreset = prefs.getString('p2p_tracker_preset') ?? 'auto';
+      });
+    }
+  }
+
+  Future<void> _saveSetting(String key, dynamic value) async {
+    final prefs = await SharedPreferences.getInstance();
+    if (value is bool) await prefs.setBool(key, value);
+    if (value is String) await prefs.setString(key, value);
+    if (value is int) await prefs.setInt(key, value);
+    if (value is double) await prefs.setInt(key, value.toInt());
   }
 
   @override
@@ -225,7 +248,10 @@ class _SwarmUplinkSettingsState extends ConsumerState<SwarmUplinkSettings> {
                     description:
                         'Uses global relay servers to find peers faster',
                     value: _autoBootstrap,
-                    onChanged: (val) => setState(() => _autoBootstrap = val),
+                    onChanged: (val) {
+                      setState(() => _autoBootstrap = val);
+                      _saveSetting('p2p_auto_bootstrap', val);
+                    },
                   ),
                   const SizedBox(height: 20),
                   _buildSubsectionHeader('Tracker Sources'),
@@ -328,7 +354,10 @@ class _SwarmUplinkSettingsState extends ConsumerState<SwarmUplinkSettings> {
                     ),
                   )
                   .toList(),
-              onChanged: (val) => setState(() => _trackerPreset = val!),
+              onChanged: (val) {
+                setState(() => _trackerPreset = val!);
+                _saveSetting('p2p_tracker_preset', val);
+              },
             ),
           ),
         ),
@@ -393,7 +422,10 @@ class _SwarmUplinkSettingsState extends ConsumerState<SwarmUplinkSettings> {
                 ),
               )
               .toList(),
-          onChanged: (val) => setState(() => _validationLevel = val!),
+          onChanged: (val) {
+            setState(() => _validationLevel = val!);
+            _saveSetting('p2p_validation_level', val);
+          },
         ),
       ),
     );
@@ -406,7 +438,10 @@ class _SwarmUplinkSettingsState extends ConsumerState<SwarmUplinkSettings> {
           title: 'Real-time Peer Discovery',
           description: 'Actively search for more peers (uses more data)',
           value: _scrapeSwarm,
-          onChanged: (val) => setState(() => _scrapeSwarm = val),
+          onChanged: (val) {
+            setState(() => _scrapeSwarm = val);
+            _saveSetting('p2p_scrape_swarm', val);
+          },
         ),
         if (_scrapeSwarm) ...[
           const SizedBox(height: 12),
@@ -434,7 +469,10 @@ class _SwarmUplinkSettingsState extends ConsumerState<SwarmUplinkSettings> {
                   thumbColor: AethericTheme.aetherBlue,
                   activeColor: AethericTheme.aetherBlue,
                   inactiveColor: Colors.white10,
-                  onChanged: (val) => setState(() => _swarmTopN = val),
+                  onChanged: (val) {
+                    setState(() => _swarmTopN = val);
+                    _saveSetting('p2p_swarm_top_n', val);
+                  },
                 ),
               ],
             ),

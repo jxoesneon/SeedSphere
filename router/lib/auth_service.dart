@@ -171,12 +171,26 @@ class AuthService {
       // Store in DB (30 days TTL)
       _db.createSession(sid, userId, 30 * 24 * 60 * 60 * 1000);
 
+      // Auto-Link Device if gardenerId provided
+      String? deviceSecret;
+      if (data['gardenerId'] != null) {
+        final gardenerId = data['gardenerId'] as String;
+        try {
+          // Register gardener if new (assuming platform 'unknown' or from agent string if parsed)
+          _db.upsertGardener(gardenerId, platform: 'mobile_auto');
+          deviceSecret = _linkingService.bindDirectly(gardenerId, 'mobile-app');
+        } catch (e) {
+          print('Auto-linking failed: $e');
+        }
+      }
+
       // We return the session ID as 'token' for the client to use in Bearer or Cookie
       return Response.ok(
         jsonEncode({
           'ok': true,
           'token': sid, // Client stores this as auth_token
           'user': {'id': userId, 'email': email},
+          if (deviceSecret != null) 'secret': deviceSecret,
         }),
         headers: {'Content-Type': 'application/json'},
       );
@@ -327,6 +341,16 @@ class AuthService {
 
     final user = _db.getUser(userId);
 
+    // Auto-Link Check (Self-Healing)
+    String? deviceSecret;
+    final gardenerId = req.url.queryParameters['gardenerId'];
+    if (gardenerId != null) {
+      try {
+        _db.upsertGardener(gardenerId, platform: 'mobile_session_heal');
+        deviceSecret = _linkingService.bindDirectly(gardenerId, 'mobile-app');
+      } catch (_) {}
+    }
+
     // Expand settings JSON if present
     var userData = user != null
         ? Map<String, dynamic>.from(user)
@@ -338,7 +362,13 @@ class AuthService {
       userData.remove('settings_json');
     }
 
-    return Response.ok(jsonEncode({'ok': true, 'user': userData}));
+    return Response.ok(
+      jsonEncode({
+        'ok': true,
+        'user': userData,
+        if (deviceSecret != null) 'secret': deviceSecret,
+      }),
+    );
   }
 
   Response _handleLogout(Request req) {

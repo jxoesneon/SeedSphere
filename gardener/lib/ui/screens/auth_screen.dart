@@ -12,6 +12,9 @@ import 'package:gardener/ui/theme/aetheric_theme.dart';
 import 'package:gardener/ui/widgets/aetheric_glass.dart';
 import 'package:gardener/core/haptic_manager.dart';
 import 'package:gardener/core/network_constants.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:gardener/p2p/p2p_manager.dart';
+import 'package:gardener/core/security_manager.dart';
 
 /// Authentication screen for SeedSphere.
 ///
@@ -21,17 +24,17 @@ import 'package:gardener/core/network_constants.dart';
 ///
 /// After successful authentication, user token is stored and the app
 /// proceeds to the SwarmDashboard.
-class AuthScreen extends StatefulWidget {
+class AuthScreen extends ConsumerStatefulWidget {
   /// Callback invoked when authentication is successful.
   final VoidCallback onAuthenticated;
 
   const AuthScreen({super.key, required this.onAuthenticated});
 
   @override
-  State<AuthScreen> createState() => _AuthScreenState();
+  ConsumerState<AuthScreen> createState() => _AuthScreenState();
 }
 
-class _AuthScreenState extends State<AuthScreen> {
+class _AuthScreenState extends ConsumerState<AuthScreen> {
   final _emailController = TextEditingController();
   bool _isLoading = false;
   String? _message;
@@ -86,8 +89,6 @@ class _AuthScreenState extends State<AuthScreen> {
     }
   }
 
-  // ... inside _signInWithGoogle
-
   Future<void> _signInWithGoogle() async {
     setState(() {
       _isLoading = true;
@@ -131,11 +132,17 @@ class _AuthScreenState extends State<AuthScreen> {
         return;
       }
 
+      // Get Gardener ID for auto-linking
+      final gardenerId = ref.read(p2pManagerProvider).gardenerId;
+
       // Send to backend for verification
       final response = await http.post(
         Uri.parse('$_apiBase/api/auth/google/verify'),
         headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'idToken': idToken}),
+        body: jsonEncode({
+          'idToken': idToken,
+          if (gardenerId != null) 'gardenerId': gardenerId,
+        }),
       );
 
       if (response.statusCode == 200) {
@@ -158,8 +165,14 @@ class _AuthScreenState extends State<AuthScreen> {
             if (userEmail != null) {
               await prefs.setString('user_email', userEmail);
             }
-          } else {
-            // Fallback: This shouldn't happen with new backend
+          }
+
+          // Handle Auto-Linking Secret
+          if (data['secret'] != null) {
+            final secret = data['secret'] as String;
+            final security = SecurityManager();
+            await security.setSharedSecret(secret);
+            debugPrint('Auth: Auto-linked device successfully.');
           }
 
           unawaited(HapticManager.success());
@@ -168,9 +181,14 @@ class _AuthScreenState extends State<AuthScreen> {
           setState(() => _message = 'Authentication failed.');
         }
       } else {
-        setState(() {
-          _message = 'Failed: ${response.statusCode} - ${response.body}';
-        });
+        String errorMsg = 'Backend verification failed.';
+        try {
+          final data = jsonDecode(response.body);
+          if (data['error'] != null) {
+            errorMsg = data['error'];
+          }
+        } catch (_) {}
+        setState(() => _message = '$errorMsg (${response.statusCode})');
       }
     } catch (e) {
       setState(() => _message = 'Sign-in failed: $e');

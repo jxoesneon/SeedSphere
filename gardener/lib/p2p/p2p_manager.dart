@@ -85,12 +85,22 @@ class P2PManager {
     final docDir = await getApplicationDocumentsDirectory();
     final storagePath = docDir.path;
 
+    // Load Networking Settings from SharedPreferences
+    final prefs = await SharedPreferences.getInstance();
+    final autoBootstrap = prefs.getBool('p2p_auto_bootstrap') ?? true;
+    final scrapeSwarm = prefs.getBool('p2p_scrape_swarm') ?? true;
+    final swarmTopN = prefs.getInt('p2p_swarm_top_n') ?? 20;
+
     _p2pIsolate = await Isolate.spawn(
       _p2pIsolateEntryPoint,
       P2PInitData(
         sendPort: _fromIsolatePort.sendPort,
         privateKey: privateKey,
         storagePath: storagePath,
+        autoBootstrap: autoBootstrap,
+        scrapeSwarm: scrapeSwarm,
+        swarmTopN: swarmTopN,
+        enableNatTraversal: true, // Enabled by default in 1.7.5
       ),
       debugName: 'SS_P2P_Isolate',
     );
@@ -249,11 +259,17 @@ class P2PManager {
     SendPort fromMainPort;
     List<int>? privateKey;
     String? storagePath;
+    bool autoBootstrap = true;
+    List<String> bootstrapPeers = [];
+    bool enableNatTraversal = true;
 
     if (initMessage is P2PInitData) {
       fromMainPort = initMessage.sendPort;
       privateKey = initMessage.privateKey;
       storagePath = initMessage.storagePath;
+      autoBootstrap = initMessage.autoBootstrap;
+      bootstrapPeers = initMessage.bootstrapPeers;
+      enableNatTraversal = initMessage.enableNatTraversal;
     } else if (initMessage is SendPort) {
       fromMainPort = initMessage;
     } else {
@@ -280,6 +296,13 @@ class P2PManager {
       final keyFile = File('${repoDir.path}/swarm.key');
       await keyFile.writeAsString(swarmKey);
 
+      // Merge defaults with custom peers if auto-bootstrap is enabled
+      final finalBootstrapPeers = <String>[];
+      if (autoBootstrap) {
+        finalBootstrapPeers.addAll(NetworkConstants.p2pBootstrapPeers);
+      }
+      finalBootstrapPeers.addAll(bootstrapPeers);
+
       final IPFSNode node = await IPFSNode.create(
         IPFSConfig(
           dataPath: '$repoPath/data',
@@ -291,10 +314,8 @@ class P2PManager {
               '/ip4/0.0.0.0/tcp/4001',
               '/ip4/0.0.0.0/udp/4001/quic',
             ],
-            // PRIVACY FIX: Only connect to trusted SeedSphere routers.
-            bootstrapPeers: NetworkConstants.p2pBootstrapPeers,
-            // NAT Traversal enabled (dart_ipfs 1.7.4+)
-            enableNatTraversal: true,
+            bootstrapPeers: finalBootstrapPeers,
+            enableNatTraversal: enableNatTraversal,
           ),
         ),
       );

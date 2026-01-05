@@ -2,22 +2,25 @@
 
 All notable changes to this project will be documented in this file.
 
-## [1.9.36] - 2026-01-05
+## [1.9.36] - 2026-01-05 (Stellar Patch)
 
-### Debug Logs & Developer Tooling
+### P2P & Connectivity
 
-- **Debug Logs**: Added a full-featured Debug Logs page accessible from Node Configuration. Displays real-time logs with level-based color coding, copy-to-clipboard export, and log clearing.
-- **Instrumentation**: Core services (`P2PManager`, `ReputationManager`, `StreamResolver`) now use `DebugLogger` for structured, observable logging.
+- **Auto-Linking**: Automatically establishes secure device pairing during Google Sign-In, resolving "Heartbeat skipped" warnings.
+- **Bootstrap Nodes**: Added public IPFS bootstrap nodes (Protocol Labs, Cloudflare) for robust global peer discovery.
+- **Manual Config**: Implemented persistence and real-world effects for manual configuration toggles (Bootstrap, Scrape Swarm).
 
-### Connectivity
+### Stremio Integration
 
-- **NAT Traversal**: Enabled `enableNatTraversal` via dart_ipfs 1.7.5, improving peer connectivity behind NAT/firewalls.
-- **Dependencies**: Updated `dart_ipfs` to 1.7.5 and `intl` to 0.20.2.
+- **Addon Catalogs**: Added "Recently Resolved" catalog to the local Stremio manifest for a better companion experience.
+- **Identity**: Stabilized addon identity with persistent `gardenerId`.
 
-### UI Polish
+### UX & Tooling
 
-- **Key Vault**: Added paste buttons to all API key fields (Orion, OpenAI).
-- **Network Status Card**: Refactored peer count display to use `TweenAnimationBuilder` for smooth animated transitions.
+- **Debug Logs**: New interactive Logs page with level-based color coding and real-time streaming.
+- **Key Vault**: Added clipboard paste support to all API key fields.
+- **Auth**: Refined error handling and messaging in `AuthScreen` for a more premium production feel.
+- **Maintenance**: Resolved lint errors related to `path_provider` and production logging.
 
 ## [1.9.35] - 2026-01-05
 

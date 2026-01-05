@@ -38,7 +38,13 @@ class NetworkConstants {
   /// P2P Bootstrap nodes.
   static List<String> get p2pBootstrapPeers {
     // Note: /dnsaddr typically resolves to the fly.dev instance's multiaddr
-    return ['/dnsaddr/seedsphere-router.fly.dev/tcp/4001'];
+    return [
+      '/dnsaddr/seedsphere-router.fly.dev/tcp/4001',
+      // Fallback to public bootstrap nodes to ensure connectivity
+      '/dnsaddr/bootstrap.libp2p.io/p2p/QmNnooDu7bfjPFoTZYxMNLWUQJyrVwtbZg5gBMjTezGAJN',
+      '/dnsaddr/bootstrap.libp2p.io/p2p/QmQCU2EcMqAqQPR2i9bChDtGNJchTbq5TbXJJ16u19uLTa',
+      '/ip4/104.131.131.82/tcp/4001/p2p/QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ',
+    ];
   }
 
   /// External API base for Real-Debrid.

@@ -72,4 +72,30 @@ class LinkingService {
       };
     });
   }
+
+  /// Directly binds a Gardener to a Seedling without a token exchange.
+  ///
+  /// Used for implicit linking during authenticated sessions (e.g. Google Login).
+  ///
+  /// Returns the shared secret.
+  String? bindDirectly(String gardenerId, String seedlingId) {
+    // Check for existing binding first to preserve secret if already linked
+    final secretOverride = _db.getBindingSecret(gardenerId, seedlingId);
+    if (secretOverride != null) {
+      return secretOverride;
+    }
+
+    // Check limits
+    final gCount = _db.countBindingsForGardener(gardenerId);
+    final sCount = _db.countBindingsForSeedling(seedlingId);
+    if (gCount >= 10 || sCount >= 10) return null;
+
+    final secret = base64Url
+        .encode(utf8.encode(_uuid.v4()))
+        .replaceAll('=', '');
+
+    _db.upsertSeedling(seedlingId);
+    _db.createBinding(gardenerId, seedlingId, secret);
+    return secret;
+  }
 }

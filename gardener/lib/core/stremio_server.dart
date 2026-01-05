@@ -42,6 +42,8 @@ class StremioServer {
 
           if (path == '/manifest.json') {
             await _handleManifest(request);
+          } else if (path.startsWith('/catalog/')) {
+            await _handleCatalog(request);
           } else if (path.startsWith('/stream/')) {
             await _handleStream(request);
           } else {
@@ -69,17 +71,43 @@ class StremioServer {
       'version': '2.0.0',
       'name': 'SeedSphere Gardener',
       'description': 'Direct P2P resolution for SeedSphere Swarm.',
-      'resources': ['stream'],
+      'resources': ['stream', 'catalog'],
       'types': ['movie', 'series'],
       'idPrefixes': ['tt'],
-      'catalogs': [],
+      'catalogs': [
+        {
+          'id': 'seedsphere.recent',
+          'type': 'movie',
+          'name': 'SeedSphere: Recently Resolved',
+        },
+      ],
       'behaviorHints': {'configurable': true, 'configurationRequired': false},
       'configurationURL':
           '${NetworkConstants.apiBase}/configure.html?id=$gardenerId',
     };
 
     request.response.headers.contentType = ContentType.json;
+    request.response.headers.add('Access-Control-Allow-Origin', '*');
     request.response.write(jsonEncode(manifest));
+    await request.response.close();
+  }
+
+  Future<void> _handleCatalog(HttpRequest request) async {
+    // Path: /catalog/{type}/{id}.json
+    final history = await StreamHistoryManager.getHistory();
+    final metas = history.map((item) {
+      return {
+        'id': item['id'],
+        'type':
+            'movie', // History doesn't strictly track type yet, default to movie
+        'name': item['title'] ?? 'Resolved Stream',
+        'posterShape': 'poster',
+      };
+    }).toList();
+
+    request.response.headers.contentType = ContentType.json;
+    request.response.headers.add('Access-Control-Allow-Origin', '*');
+    request.response.write(jsonEncode({'metas': metas}));
     await request.response.close();
   }
 
