@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## [1.9.36] - 2026-01-05 (Stellar Patch)
+## [1.9.37] - 2026-01-05 (Stellar Patch)
 
 ### P2P & Connectivity
 
