@@ -23,6 +23,9 @@ enum P2PCommandType {
 
   /// Blacklist a peer and terminate connection.
   blacklist,
+
+  /// Force immediate re-bootstrap and optimization of network connections.
+  optimize,
 }
 
 /// A command sent over the P2P network.
@@ -165,6 +168,9 @@ class P2PInitData {
   /// Maximum peers to query during swarm scraping.
   final int swarmTopN;
 
+  /// Optional private swarm key. If null, joins public network.
+  final String? swarmKey;
+
   P2PInitData({
     required this.sendPort,
     required this.privateKey,
@@ -174,5 +180,6 @@ class P2PInitData {
     this.enableNatTraversal = true,
     this.scrapeSwarm = true,
     this.swarmTopN = 20,
+    this.swarmKey,
   });
 }

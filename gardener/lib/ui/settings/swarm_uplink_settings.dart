@@ -555,10 +555,9 @@ class _SwarmUplinkSettingsState extends ConsumerState<SwarmUplinkSettings> {
     final messenger = ScaffoldMessenger.of(context);
 
     // Trigger real optimization in P2P Node
-    // For now we just poll status more aggressively or re-bootstrap
-    await ref.read(p2pManagerProvider).start(); // Ensure started
-
-    // Optimization is fire-and-forget (isolate handles it)
+    final p2p = ref.read(p2pManagerProvider);
+    await p2p.start(); // Ensure started
+    p2p.optimize(); // Force re-bootstrap
 
     if (!mounted) return;
 

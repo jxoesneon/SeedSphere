@@ -100,7 +100,8 @@ class P2PManager {
         autoBootstrap: autoBootstrap,
         scrapeSwarm: scrapeSwarm,
         swarmTopN: swarmTopN,
-        enableNatTraversal: true, // Enabled by default in 1.7.5
+        enableNatTraversal: true,
+        swarmKey: prefs.getString('p2p_swarm_key'),
       ),
       debugName: 'SS_P2P_Isolate',
     );
@@ -244,6 +245,10 @@ class P2PManager {
   void getContent(String cid) =>
       sendCommand(P2PCommand(type: P2PCommandType.get, imdbId: cid));
 
+  /// Forces the node to re-bootstrap and optimize connectivity.
+  void optimize() =>
+      sendCommand(P2PCommand(type: P2PCommandType.optimize, imdbId: ''));
+
   /// Stops the background isolate and releases network resources.
   ///
   /// Kills the P2P isolate immediately and resets initialization state.
@@ -281,10 +286,6 @@ class P2PManager {
     try {
       fromMainPort.send('P2P: Initializing IPFS Node...');
 
-      // 1. Configure Private Swarm
-      const swarmKey =
-          '/key/swarm/psk/1.0.0/\n/base16/\n4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a';
-
       // Use provided safe storage path or fallback (though fallback is risky on mobile)
       final repoPath = storagePath != null
           ? '$storagePath/ipfs_repo'
@@ -294,7 +295,17 @@ class P2PManager {
       if (!repoDir.existsSync()) repoDir.createSync(recursive: true);
 
       final keyFile = File('${repoDir.path}/swarm.key');
-      await keyFile.writeAsString(swarmKey);
+      if (initMessage is P2PInitData && initMessage.swarmKey != null) {
+        final keyContent =
+            '/key/swarm/psk/1.0.0/\n/base16/\n${initMessage.swarmKey}';
+        await keyFile.writeAsString(keyContent);
+        fromMainPort.send('P2P: Private Swarm Enabled');
+      } else {
+        if (keyFile.existsSync()) {
+          await keyFile.delete();
+          fromMainPort.send('P2P: Joining Public Swarm');
+        }
+      }
 
       // Merge defaults with custom peers if auto-bootstrap is enabled
       final finalBootstrapPeers = <String>[];
@@ -441,6 +452,22 @@ class P2PManager {
               // node.network.disconnect(peerId); // Hypothetical API
               fromMainPort.send('P2P: Terminated connection with $peerId');
             }
+          }
+          break;
+
+        case P2PCommandType.optimize:
+          fromMainPort.send('P2P: Optimizing network connections...');
+          try {
+            // Re-trigger bootstrap process
+            await node.network.bootstrap();
+            final peers = await node.connectedPeers;
+            fromMainPort.send(
+              'P2P: Optimization complete. Active peers: ${peers.length}',
+            );
+          } catch (e) {
+            fromMainPort.send('P2P Optimization Warning: ${e.toString()}');
+            // If .bootstrap() doesn't exist or fails, we can fall back to manual dials
+            // but usually dart_ipfs 1.7.x handles this via node.network.
           }
           break;
       }

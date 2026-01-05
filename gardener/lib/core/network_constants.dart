@@ -39,7 +39,8 @@ class NetworkConstants {
   static List<String> get p2pBootstrapPeers {
     // Note: /dnsaddr typically resolves to the fly.dev instance's multiaddr
     return [
-      '/dnsaddr/seedsphere-router.fly.dev/tcp/4001',
+      '/dns4/seedsphere-router.fly.dev/tcp/4001',
+      '/dns4/seedsphere-router.fly.dev/udp/4001/quic',
       // Fallback to public bootstrap nodes to ensure connectivity
       '/dnsaddr/bootstrap.libp2p.io/p2p/QmNnooDu7bfjPFoTZYxMNLWUQJyrVwtbZg5gBMjTezGAJN',
       '/dnsaddr/bootstrap.libp2p.io/p2p/QmQCU2EcMqAqQPR2i9bChDtGNJchTbq5TbXJJ16u19uLTa',

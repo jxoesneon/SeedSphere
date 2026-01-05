@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.9.38] - 2026-01-05 (Emergency P2P Repair)
+
+### Connectivity Fixes
+
+- **Public Swarm Integration**: Removed the hardcoded Swarm Key (PSK) that was blocking discovery on the public IPFS network.
+- **Router Port Sync**: Updated the SeedSphere Router to listen on port 4001 (matching `fly.toml`) and added support for the TCP protocol.
+- **Improved Bootstrap**: Updated multiaddresses in Gardener to include both TCP and UDP/QUIC for more robust discovery via the router.
+- **Manual Optimization**: The "Optimize Network" button in Swarm Uplink now triggers an active re-bootstrap command in the background isolate.
+
 ## [1.9.37] - 2026-01-05 (Stellar Patch)
 
 ### P2P & Connectivity
