@@ -147,5 +147,12 @@ class P2PInitData {
   /// The private key bytes (Ed25519) for signing.
   final List<int> privateKey;
 
-  P2PInitData({required this.sendPort, required this.privateKey});
+  /// The root storage path for the IPFS repository.
+  final String storagePath;
+
+  P2PInitData({
+    required this.sendPort,
+    required this.privateKey,
+    required this.storagePath,
+  });
 }

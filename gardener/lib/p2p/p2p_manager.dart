@@ -12,6 +12,7 @@ import 'package:gardener/core/security_manager.dart';
 import 'package:gardener/core/network_constants.dart';
 import 'package:gardener/core/activity_manager.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:gardener/core/debug_logger.dart';
 import 'package:gardener/p2p/p2p_protocol.dart';
 import 'package:ed25519_edwards/ed25519_edwards.dart' as ed;
@@ -80,9 +81,17 @@ class P2PManager {
     final keyPair = await _security.getKeyPair();
     final privateKey = keyPair.privateKey.bytes;
 
+    // Resolve safe storage path
+    final docDir = await getApplicationDocumentsDirectory();
+    final storagePath = docDir.path;
+
     _p2pIsolate = await Isolate.spawn(
       _p2pIsolateEntryPoint,
-      P2PInitData(sendPort: _fromIsolatePort.sendPort, privateKey: privateKey),
+      P2PInitData(
+        sendPort: _fromIsolatePort.sendPort,
+        privateKey: privateKey,
+        storagePath: storagePath,
+      ),
       debugName: 'SS_P2P_Isolate',
     );
 
@@ -239,10 +248,12 @@ class P2PManager {
     final ReceivePort toIsolatePort = ReceivePort();
     SendPort fromMainPort;
     List<int>? privateKey;
+    String? storagePath;
 
     if (initMessage is P2PInitData) {
       fromMainPort = initMessage.sendPort;
       privateKey = initMessage.privateKey;
+      storagePath = initMessage.storagePath;
     } else if (initMessage is SendPort) {
       fromMainPort = initMessage;
     } else {
@@ -258,11 +269,10 @@ class P2PManager {
       const swarmKey =
           '/key/swarm/psk/1.0.0/\n/base16/\n4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a';
 
-      // Use default IPFS path logic (replicates Router behavior)
-      final home =
-          Platform.environment['HOME'] ?? Platform.environment['USERPROFILE'];
-      final repoPath =
-          Platform.environment['IPFS_PATH'] ?? '${home ?? "."}/.ipfs';
+      // Use provided safe storage path or fallback (though fallback is risky on mobile)
+      final repoPath = storagePath != null
+          ? '$storagePath/ipfs_repo'
+          : (Platform.environment['IPFS_PATH'] ?? './.ipfs');
 
       final repoDir = Directory(repoPath);
       if (!repoDir.existsSync()) repoDir.createSync(recursive: true);
@@ -272,6 +282,9 @@ class P2PManager {
 
       final IPFSNode node = await IPFSNode.create(
         IPFSConfig(
+          dataPath: '$repoPath/data',
+          datastorePath: '$repoPath/data',
+          keystorePath: '$repoPath/keystore',
           offline: false,
           network: NetworkConfig(
             listenAddresses: [
