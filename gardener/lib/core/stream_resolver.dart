@@ -1,3 +1,4 @@
+import 'package:gardener/core/debug_logger.dart';
 import 'package:gardener/core/debrid_client.dart';
 
 /// High-level resolver for converting magnet links into direct playback URLs.
@@ -28,6 +29,7 @@ class StreamResolver {
   /// 4. Selects the largest video file
   /// 5. Unrestricts the link for direct streaming
   Future<String?> resolveStream(String magnetOrHash) async {
+    DebugLogger.info('StreamResolver: Starting resolution for $magnetOrHash');
     try {
       // 1. Convert raw infohash to magnet URI if needed
       final magnet = magnetOrHash.startsWith('magnet:')
@@ -37,6 +39,7 @@ class StreamResolver {
       // 2. Add magnet to Real-Debrid
       final addResult = await _debrid.addMagnet(magnet);
       final id = addResult['id'];
+      DebugLogger.debug('StreamResolver: Magnet added with ID: $id');
 
       // 3. Initial fetch of torrent info
       Map<String, dynamic> info = await _debrid.getTorrentInfo(id);
@@ -44,6 +47,9 @@ class StreamResolver {
       // 3. Wait for torrent to be ready for file selection if needed
       int infoAttempts = 0;
       while (info['status'] == 'magnet_conversion' && infoAttempts < 5) {
+        DebugLogger.debug(
+          'StreamResolver: Waiting for magnet conversion (Attempt $infoAttempts)',
+        );
         await Future.delayed(const Duration(seconds: 1));
         info = await _debrid.getTorrentInfo(id);
         infoAttempts++;
@@ -84,6 +90,9 @@ class StreamResolver {
         }
 
         if (targetIdx != -1) {
+          DebugLogger.info(
+            'StreamResolver: Selecting file ID: $targetIdx (Size: ${largestSize ~/ 1024 ~/ 1024} MB)',
+          );
           await _debrid.selectFiles(id, targetIdx.toString());
           info = await _debrid.getTorrentInfo(id); // Refresh after selection
         }
@@ -97,9 +106,15 @@ class StreamResolver {
         if (info['status'] == 'error' ||
             info['status'] == 'dead' ||
             info['status'] == 'virus') {
+          DebugLogger.error(
+            'StreamResolver: Torrent failed with status: ${info['status']}',
+          );
           return null;
         }
 
+        DebugLogger.debug(
+          'StreamResolver: Polling status (${info['status']}): ${info['progress']}% (Attempt $attempts)',
+        );
         await Future.delayed(
           Duration(seconds: 1 + (attempts ~/ 5)),
         ); // Slight backoff
@@ -114,9 +129,15 @@ class StreamResolver {
       if (links.isEmpty) return null;
 
       final unrestrictRes = await _debrid.unrestrictLink(links.first);
+      DebugLogger.info(
+        'StreamResolver: Successfully resolved to unrestricted link',
+      );
       return unrestrictRes['download']; // Direct streaming URL
     } catch (e) {
-      // Silent failure - caller checks for null
+      DebugLogger.error(
+        'StreamResolver: Error in resolution pipeline',
+        error: e,
+      );
       return null;
     }
   }

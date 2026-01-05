@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:gardener/ui/settings/cortex_settings.dart';
 import 'package:gardener/ui/settings/key_vault_settings.dart';
+import 'package:gardener/ui/settings/debug_logs_screen.dart';
 import 'package:gardener/ui/settings/playback_settings.dart';
 
 import 'package:gardener/ui/settings/provider_settings.dart';
@@ -37,8 +38,10 @@ class SwarmSettingsMenu extends StatelessWidget {
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded,
-              color: Colors.white70),
+          icon: const Icon(
+            Icons.arrow_back_ios_new_rounded,
+            color: Colors.white70,
+          ),
           onPressed: () => Navigator.of(context).pop(),
         ),
       ),
@@ -98,6 +101,16 @@ class SwarmSettingsMenu extends StatelessWidget {
             onTap: () => Navigator.push(
               context,
               MaterialPageRoute(builder: (_) => const ProviderSettings()),
+            ),
+          ),
+          CompactSettingsCard(
+            title: 'Debug Logs',
+            icon: Icons.bug_report_rounded,
+            description: 'View & Export System Records',
+            priority: SettingsPriority.optional,
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const DebugLogsScreen()),
             ),
           ),
         ],

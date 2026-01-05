@@ -44,7 +44,6 @@ class _NetworkStatusCardState extends State<NetworkStatusCard>
     with SingleTickerProviderStateMixin {
   late AnimationController _pulseController;
   late Animation<double> _pulseAnimation;
-  int _displayedPeerCount = 0;
 
   @override
   void initState() {
@@ -57,18 +56,6 @@ class _NetworkStatusCardState extends State<NetworkStatusCard>
     _pulseAnimation = Tween<double>(begin: 0.8, end: 1.0).animate(
       CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
     );
-
-    _displayedPeerCount = widget.peerCount;
-  }
-
-  @override
-  void didUpdateWidget(NetworkStatusCard oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.peerCount != widget.peerCount) {
-      setState(() {
-        _displayedPeerCount = widget.peerCount;
-      });
-    }
   }
 
   @override
@@ -116,12 +103,12 @@ class _NetworkStatusCardState extends State<NetworkStatusCard>
     }
   }
 
-  String get _statusDescription {
+  String _statusDescription(int animatedPeerCount) {
     switch (widget.status) {
       case NetworkStatus.optimal:
-        return '$_displayedPeerCount peers connected';
+        return '$animatedPeerCount peers connected';
       case NetworkStatus.degraded:
-        return 'Only $_displayedPeerCount peers available';
+        return 'Only $animatedPeerCount peers available';
       case NetworkStatus.offline:
         return 'No network connection';
       case NetworkStatus.checking:
@@ -173,13 +160,20 @@ class _NetworkStatusCardState extends State<NetworkStatusCard>
                       ),
                     ),
                     const SizedBox(height: 2),
-                    Text(
-                      _statusDescription,
-                      style: GoogleFonts.outfit(
-                        color: Colors.white60,
-                        fontSize: 13,
-                        height: 1.3,
-                      ),
+                    TweenAnimationBuilder<int>(
+                      tween: IntTween(begin: 0, end: widget.peerCount),
+                      duration: const Duration(milliseconds: 600),
+                      curve: Curves.easeOutCubic,
+                      builder: (context, animatedCount, child) {
+                        return Text(
+                          _statusDescription(animatedCount),
+                          style: GoogleFonts.outfit(
+                            color: Colors.white60,
+                            fontSize: 13,
+                            height: 1.3,
+                          ),
+                        );
+                      },
                     ),
                   ],
                 ),

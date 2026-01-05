@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.9.36] - 2026-01-05
+
+### Debug Logs & Developer Tooling
+
+- **Debug Logs**: Added a full-featured Debug Logs page accessible from Node Configuration. Displays real-time logs with level-based color coding, copy-to-clipboard export, and log clearing.
+- **Instrumentation**: Core services (`P2PManager`, `ReputationManager`, `StreamResolver`) now use `DebugLogger` for structured, observable logging.
+
+### Connectivity
+
+- **NAT Traversal**: Enabled `enableNatTraversal` via dart_ipfs 1.7.5, improving peer connectivity behind NAT/firewalls.
+- **Dependencies**: Updated `dart_ipfs` to 1.7.5 and `intl` to 0.20.2.
+
+### UI Polish
+
+- **Key Vault**: Added paste buttons to all API key fields (Orion, OpenAI).
+- **Network Status Card**: Refactored peer count display to use `TweenAnimationBuilder` for smooth animated transitions.
+
 ## [1.9.35] - 2026-01-05
 
 ### Audit Implementation & Hardening

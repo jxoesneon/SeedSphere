@@ -1,4 +1,4 @@
-import 'package:flutter/foundation.dart';
+import 'package:gardener/core/debug_logger.dart';
 import 'package:gardener/p2p/p2p_manager.dart';
 import 'package:gardener/p2p/p2p_protocol.dart';
 
@@ -44,8 +44,14 @@ class ReputationManager {
   /// If the peer's score falls below [_threshold], they are automatically
   /// blacklisted and the P2P network is notified to ignore them.
   void adjustScore(String peerId, int delta) {
-    _peerScores[peerId] = (_peerScores[peerId] ?? 0) + delta;
-    if (_peerScores[peerId]! < _threshold) {
+    final newScore = (_peerScores[peerId] ?? 0) + delta;
+    _peerScores[peerId] = newScore;
+
+    DebugLogger.debug(
+      'Reputation: $peerId adjusted by $delta (New Score: $newScore)',
+    );
+
+    if (newScore < _threshold) {
       _blacklistPeer(peerId);
     }
   }
@@ -73,7 +79,7 @@ class ReputationManager {
         data: {'peerId': peerId},
       ),
     );
-    debugPrint('SECURITY: Peer $peerId blacklisted due to low reputation');
+    DebugLogger.security('Peer $peerId blacklisted due to low reputation');
   }
 
   /// Retrieves the current reputation score for a peer.

@@ -157,6 +157,17 @@ class _KeyVaultSettingsState extends State<KeyVaultSettings> {
               leadingIcon: Icons.key_rounded,
               obscureText: true,
               onChanged: (val) => _saveKey('orion_api_key', val),
+              trailing: IconButton(
+                icon: const Icon(Icons.paste_rounded, color: Colors.white30),
+                onPressed: () async {
+                  final data = await Clipboard.getData(Clipboard.kTextPlain);
+                  if (data?.text != null) {
+                    _orionKeyController.text = data!.text!;
+                    await _saveKey('orion_api_key', data.text!);
+                    if (mounted) setState(() {});
+                  }
+                },
+              ),
             ),
             const SizedBox(height: 12),
             SettingsTextField(
@@ -166,6 +177,17 @@ class _KeyVaultSettingsState extends State<KeyVaultSettings> {
               leadingIcon: Icons.person_outline_rounded,
               obscureText: false, // User IDs usually aren't secret
               onChanged: (val) => _saveKey('orion_user_id', val),
+              trailing: IconButton(
+                icon: const Icon(Icons.paste_rounded, color: Colors.white30),
+                onPressed: () async {
+                  final data = await Clipboard.getData(Clipboard.kTextPlain);
+                  if (data?.text != null) {
+                    _orionIdController.text = data!.text!;
+                    await _saveKey('orion_user_id', data.text!);
+                    if (mounted) setState(() {});
+                  }
+                },
+              ),
             ),
             const SizedBox(height: 32),
 
@@ -193,6 +215,17 @@ class _KeyVaultSettingsState extends State<KeyVaultSettings> {
               leadingIcon: Icons.psychology_rounded,
               obscureText: true,
               onChanged: (val) => _saveKey('openai_api_key', val),
+              trailing: IconButton(
+                icon: const Icon(Icons.paste_rounded, color: Colors.white30),
+                onPressed: () async {
+                  final data = await Clipboard.getData(Clipboard.kTextPlain);
+                  if (data?.text != null) {
+                    _openaiController.text = data!.text!;
+                    await _saveKey('openai_api_key', data.text!);
+                    if (mounted) setState(() {});
+                  }
+                },
+              ),
             ),
           ],
         ),

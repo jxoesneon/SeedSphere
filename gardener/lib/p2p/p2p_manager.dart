@@ -12,6 +12,7 @@ import 'package:gardener/core/security_manager.dart';
 import 'package:gardener/core/network_constants.dart';
 import 'package:gardener/core/activity_manager.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:gardener/core/debug_logger.dart';
 import 'package:gardener/p2p/p2p_protocol.dart';
 import 'package:ed25519_edwards/ed25519_edwards.dart' as ed;
 
@@ -89,13 +90,19 @@ class P2PManager {
       if (message is SendPort) {
         toIsolatePort = message;
         _isInitialized = true;
-        debugPrint('P2P: Isolate handshake complete');
+        DebugLogger.info('P2P: Isolate handshake complete');
         _startHeartbeatTimer();
         _startStatusPolling();
       } else if (message is int) {
         peerCount.value = message;
       } else if (message is String) {
-        debugPrint('P2P Isolate Msg: $message');
+        if (message.contains('Error')) {
+          DebugLogger.error(message);
+        } else if (message.contains('SECURITY')) {
+          DebugLogger.security(message);
+        } else {
+          DebugLogger.info(message);
+        }
       }
     });
   }
@@ -130,7 +137,7 @@ class P2PManager {
 
     final secret = await _security.getSharedSecret();
     if (secret == null) {
-      debugPrint('P2P: Heartbeat skipped (no shared secret)');
+      DebugLogger.warn('P2P: Heartbeat skipped (no shared secret)');
       return;
     }
 
@@ -182,9 +189,9 @@ class P2PManager {
         },
         body: body,
       );
-      debugPrint('P2P: Heartbeat sent to room: $roomId');
+      DebugLogger.debug('P2P: Heartbeat sent to room: $roomId');
     } catch (e) {
-      debugPrint('P2P: Heartbeat failed: $e');
+      DebugLogger.error('P2P: Heartbeat failed', error: e);
     }
   }
 
@@ -196,7 +203,7 @@ class P2PManager {
     if (toIsolatePort != null) {
       toIsolatePort!.send(command.toJson());
     } else {
-      debugPrint('P2P Error: Isolate not ready');
+      DebugLogger.error('P2P Error: Isolate not ready');
     }
   }
 
@@ -273,9 +280,8 @@ class P2PManager {
             ],
             // PRIVACY FIX: Only connect to trusted SeedSphere routers.
             bootstrapPeers: NetworkConstants.p2pBootstrapPeers,
-            // Note: iceServers for NAT traversal require upstream dart_ipfs support.
-            // Currently using direct connections and relay via bootstrap peers.
-            // iceServers: [...],
+            // NAT Traversal enabled (dart_ipfs 1.7.4+)
+            enableNatTraversal: true,
           ),
         ),
       );
