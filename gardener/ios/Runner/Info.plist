@@ -55,6 +55,8 @@
 	<!-- Usage Descriptions -->
 	<key>NSUserTrackingUsageDescription</key>
 	<string>SeedSphere uses background processing to maintain P2P network connectivity for streaming.</string>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>SeedSphere needs to access your local network to discover and connect to other P2P nodes.</string>
 	<key>BGTaskSchedulerPermittedIdentifiers</key>
 	<array>
 		<string>com.seedsphere.gardener.sentinel</string>
