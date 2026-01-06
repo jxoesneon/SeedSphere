@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.9.53] - 2026-01-05 (Deploy Verification Fix)
+
+### CI/CD Repair
+
+- **Deployment Verify Gate**: Added `libsqlite3-dev` installation to `deploy-server.yml`. This fixes the `verify` job failure that was blocking deployments despite passing PR checks.
+- **Completeness**: Ensured ALL workflows running `dart test` (CI, Dynamic, Deploy) now have consistent native dependencies.
+
 ## [1.9.52] - 2026-01-05 (Dynamic CI Fix)
 
 ### CI/CD Repair
