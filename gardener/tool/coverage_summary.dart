@@ -52,6 +52,7 @@ void main() async {
     final percentage = (hitLines / totalLines) * 100;
     print('--- Total ---');
     print(
-        'Total Coverage: ${percentage.toStringAsFixed(2)}% ($hitLines / $totalLines)');
+      'Total Coverage: ${percentage.toStringAsFixed(2)}% ($hitLines / $totalLines)',
+    );
   }
 }

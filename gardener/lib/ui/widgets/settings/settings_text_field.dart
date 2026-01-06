@@ -66,10 +66,7 @@ class SettingsTextField extends StatelessWidget {
             enabled: enabled,
             maxLines: obscureText ? 1 : maxLines,
             onChanged: onChanged,
-            style: GoogleFonts.outfit(
-              color: Colors.white,
-              fontSize: 14,
-            ),
+            style: GoogleFonts.outfit(color: Colors.white, fontSize: 14),
             decoration: InputDecoration(
               labelText: label,
               labelStyle: GoogleFonts.outfit(
@@ -83,11 +80,7 @@ class SettingsTextField extends StatelessWidget {
               ),
               border: InputBorder.none,
               icon: leadingIcon != null
-                  ? Icon(
-                      leadingIcon,
-                      color: Colors.white54,
-                      size: 20,
-                    )
+                  ? Icon(leadingIcon, color: Colors.white54, size: 20)
                   : null,
               suffixIcon: trailing,
             ),

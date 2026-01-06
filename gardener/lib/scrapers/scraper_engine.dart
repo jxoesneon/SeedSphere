@@ -58,21 +58,23 @@ class ScraperEngine {
 
   /// Creates a [ScraperEngine] configured with all supported providers.
   factory ScraperEngine.defaults() {
-    return ScraperEngine(scrapers: [
-      TorrentioScraper(),
-      YTSScraper(),
-      EztvScraper(),
-      NyaaScraper(),
-      X1337Scraper(),
-      PirateBayScraper(),
-      TorrentGalaxyScraper(),
-      TorlockScraper(),
-      MagnetDLScraper(),
-      AnidexScraper(),
-      TokyoToshoScraper(),
-      ZooqleScraper(),
-      RutorScraper(),
-    ]);
+    return ScraperEngine(
+      scrapers: [
+        TorrentioScraper(),
+        YTSScraper(),
+        EztvScraper(),
+        NyaaScraper(),
+        X1337Scraper(),
+        PirateBayScraper(),
+        TorrentGalaxyScraper(),
+        TorlockScraper(),
+        MagnetDLScraper(),
+        AnidexScraper(),
+        TokyoToshoScraper(),
+        ZooqleScraper(),
+        RutorScraper(),
+      ],
+    );
   }
 
   /// Executes all configured scrapers for the given [imdbId] in parallel.
@@ -84,11 +86,13 @@ class ScraperEngine {
   /// Returns a combined list of raw metadata maps from all responsive scrapers.
   Future<List<Map<String, dynamic>>> scrapeAll(String imdbId) async {
     final List<Future<List<Map<String, dynamic>>>> futures = scrapers
-        .map((s) => s.scrape(imdbId).catchError((e) {
-              // Log error and return empty list for this scraper to prevent
-              // a single failing scraper from breaking the entire request.
-              return <Map<String, dynamic>>[];
-            }))
+        .map(
+          (s) => s.scrape(imdbId).catchError((e) {
+            // Log error and return empty list for this scraper to prevent
+            // a single failing scraper from breaking the entire request.
+            return <Map<String, dynamic>>[];
+          }),
+        )
         .toList();
 
     final List<List<Map<String, dynamic>>> results = await Future.wait(futures);

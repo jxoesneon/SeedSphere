@@ -60,13 +60,17 @@ class _ProviderSettingsState extends State<ProviderSettings> {
     return Scaffold(
       backgroundColor: AethericTheme.deepVoid,
       appBar: AppBar(
-        title: Text('CONTENT PROVIDERS',
-            style: GoogleFonts.outfit(letterSpacing: 2)),
+        title: Text(
+          'CONTENT PROVIDERS',
+          style: GoogleFonts.outfit(letterSpacing: 2),
+        ),
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded,
-              color: Colors.white70),
+          icon: const Icon(
+            Icons.arrow_back_ios_new_rounded,
+            color: Colors.white70,
+          ),
           onPressed: () => Navigator.of(context).pop(),
         ),
       ),
@@ -91,11 +95,8 @@ class _ProviderSettingsState extends State<ProviderSettings> {
               title: 'Movies & TV',
               icon: Icons.movie_rounded,
               initiallyExpanded: true,
-              badge: '${[
-                _torrentioEnabled,
-                _ytsEnabled,
-                _eztvEnabled
-              ].where((e) => e).length}/3',
+              badge:
+                  '${[_torrentioEnabled, _ytsEnabled, _eztvEnabled].where((e) => e).length}/3',
               child: Column(
                 children: [
                   SettingsToggle(
@@ -130,11 +131,8 @@ class _ProviderSettingsState extends State<ProviderSettings> {
             ExpandableSection(
               title: 'Anime',
               icon: Icons.animation_rounded,
-              badge: '${[
-                _nyaaEnabled,
-                _anidexEnabled,
-                _tokyoToshoEnabled
-              ].where((e) => e).length}/3',
+              badge:
+                  '${[_nyaaEnabled, _anidexEnabled, _tokyoToshoEnabled].where((e) => e).length}/3',
               child: Column(
                 children: [
                   SettingsToggle(
@@ -169,15 +167,8 @@ class _ProviderSettingsState extends State<ProviderSettings> {
             ExpandableSection(
               title: 'General',
               icon: Icons.public_rounded,
-              badge: '${[
-                _x1337Enabled,
-                _torrentGalaxyEnabled,
-                _torlockEnabled,
-                _magnetDLEnabled,
-                _zooqleEnabled,
-                _rutorEnabled,
-                _pirateBayEnabled
-              ].where((e) => e).length}/7',
+              badge:
+                  '${[_x1337Enabled, _torrentGalaxyEnabled, _torlockEnabled, _magnetDLEnabled, _zooqleEnabled, _rutorEnabled, _pirateBayEnabled].where((e) => e).length}/7',
               child: Column(
                 children: [
                   SettingsToggle(

@@ -14,8 +14,8 @@ class TorrentGalaxyScraper extends BaseScraper {
   final http.Client _client;
 
   TorrentGalaxyScraper({http.Client? client})
-      : _client = client ?? http.Client(),
-        super(name: 'TorrentGalaxy', baseUrl: defaultBase);
+    : _client = client ?? http.Client(),
+      super(name: 'TorrentGalaxy', baseUrl: defaultBase);
 
   @override
   Future<List<Map<String, dynamic>>> scrape(String imdbId) async {
@@ -28,9 +28,9 @@ class TorrentGalaxyScraper extends BaseScraper {
       final url =
           '$defaultBase/torrents.php?search=$searchQuery&sort=seeders&order=desc';
 
-      final response = await _client.get(Uri.parse(url)).timeout(
-            const Duration(seconds: 6),
-          );
+      final response = await _client
+          .get(Uri.parse(url))
+          .timeout(const Duration(seconds: 6));
 
       if (response.statusCode != 200) return [];
 
@@ -41,7 +41,7 @@ class TorrentGalaxyScraper extends BaseScraper {
           'title': metaInfo['title'] ?? 'TorrentGalaxy',
           'infoHash': _extractInfoHash(magnetUrl),
           'magnetUrl': magnetUrl,
-          'provider': 'TorrentGalaxy'
+          'provider': 'TorrentGalaxy',
         };
       }).toList();
     } catch (_) {
@@ -52,11 +52,14 @@ class TorrentGalaxyScraper extends BaseScraper {
   // Common helper methods duplicate across scrapers for independence
   // In a real refactor we'd move these to a mixin
   Future<Map<String, dynamic>?> _fetchCinemetaTitle(
-      String type, String id) async {
+    String type,
+    String id,
+  ) async {
     try {
       final url = 'https://v3-cinemeta.strem.io/meta/$type/$id.json';
-      final response =
-          await _client.get(Uri.parse(url)).timeout(const Duration(seconds: 2));
+      final response = await _client
+          .get(Uri.parse(url))
+          .timeout(const Duration(seconds: 2));
       if (response.statusCode != 200) return null;
       final data = jsonDecode(response.body);
       return data['meta'] != null ? {'title': data['meta']['name']} : null;
@@ -67,8 +70,10 @@ class TorrentGalaxyScraper extends BaseScraper {
 
   List<String> _parseMagnetsFromHtml(String html) {
     final magnets = <String>{};
-    final regex = RegExp(r"""href=["\']?(magnet:\?xt=[^"\s\']+)["\']?""",
-        caseSensitive: false);
+    final regex = RegExp(
+      r"""href=["\']?(magnet:\?xt=[^"\s\']+)["\']?""",
+      caseSensitive: false,
+    );
     for (final match in regex.allMatches(html)) {
       if (match.group(1) != null) magnets.add(match.group(1)!);
     }

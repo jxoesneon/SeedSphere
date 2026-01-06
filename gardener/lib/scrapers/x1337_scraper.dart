@@ -15,15 +15,14 @@ class X1337Scraper extends BaseScraper {
   final http.Client _client;
 
   X1337Scraper({http.Client? client})
-      : _client = client ?? http.Client(),
-        super(name: '1337x', baseUrl: defaultBase);
+    : _client = client ?? http.Client(),
+      super(name: '1337x', baseUrl: defaultBase);
 
   Map<String, String> _makeHeaders() => {
-        'User-Agent':
-            'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36',
-        'Accept':
-            'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-      };
+    'User-Agent':
+        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36',
+    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+  };
 
   @override
   Future<List<Map<String, dynamic>>> scrape(String imdbId) async {
@@ -46,10 +45,7 @@ class X1337Scraper extends BaseScraper {
       final url = '$defaultBase/search/$searchQuery/1/';
 
       final response = await _client
-          .get(
-            Uri.parse(url),
-            headers: _makeHeaders(),
-          )
+          .get(Uri.parse(url), headers: _makeHeaders())
           .timeout(const Duration(seconds: 5));
 
       if (response.statusCode != 200) return [];
@@ -62,10 +58,7 @@ class X1337Scraper extends BaseScraper {
         detailLinks.map((link) async {
           try {
             final detailResponse = await _client
-                .get(
-                  Uri.parse('$defaultBase$link'),
-                  headers: _makeHeaders(),
-                )
+                .get(Uri.parse('$defaultBase$link'), headers: _makeHeaders())
                 .timeout(const Duration(seconds: 4));
             return detailResponse.statusCode == 200 ? detailResponse.body : '';
           } catch (_) {
@@ -75,8 +68,10 @@ class X1337Scraper extends BaseScraper {
       );
 
       // Parse magnets from all pages
-      final magnets =
-          pages.expand((html) => _parseMagnetsFromHtml(html)).take(30).toList();
+      final magnets = pages
+          .expand((html) => _parseMagnetsFromHtml(html))
+          .take(30)
+          .toList();
 
       return magnets.map((magnetUrl) {
         final hash = _extractInfoHash(magnetUrl);
@@ -84,7 +79,7 @@ class X1337Scraper extends BaseScraper {
           'title': metaInfo!['title'] ?? '1337x',
           'infoHash': hash,
           'magnetUrl': magnetUrl,
-          'provider': '1337x'
+          'provider': '1337x',
         };
       }).toList();
     } catch (_) {
@@ -106,8 +101,10 @@ class X1337Scraper extends BaseScraper {
 
   List<String> _parseMagnetsFromHtml(String html) {
     final magnets = <String>{};
-    final regex = RegExp(r"""href=["\']?(magnet:\?xt=[^"\s\']+)["\']?""",
-        caseSensitive: false);
+    final regex = RegExp(
+      r"""href=["\']?(magnet:\?xt=[^"\s\']+)["\']?""",
+      caseSensitive: false,
+    );
 
     for (final match in regex.allMatches(html)) {
       final magnetUrl = match.group(1);
@@ -120,12 +117,14 @@ class X1337Scraper extends BaseScraper {
   }
 
   Future<Map<String, dynamic>?> _fetchCinemetaTitle(
-      String type, String id) async {
+    String type,
+    String id,
+  ) async {
     try {
       final url = 'https://v3-cinemeta.strem.io/meta/$type/$id.json';
-      final response = await _client.get(Uri.parse(url)).timeout(
-            const Duration(seconds: 2),
-          );
+      final response = await _client
+          .get(Uri.parse(url))
+          .timeout(const Duration(seconds: 2));
 
       if (response.statusCode != 200) return null;
 

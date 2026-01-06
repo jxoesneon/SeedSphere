@@ -7,8 +7,8 @@ class PirateBayScraper extends BaseScraper {
   final http.Client _client;
 
   PirateBayScraper({http.Client? client})
-      : _client = client ?? http.Client(),
-        super(name: 'Pirate Bay', baseUrl: 'https://thepiratebay.org');
+    : _client = client ?? http.Client(),
+      super(name: 'Pirate Bay', baseUrl: 'https://thepiratebay.org');
 
   @override
   Future<List<Map<String, dynamic>>> scrape(String imdbId) async {
@@ -26,9 +26,9 @@ class PirateBayScraper extends BaseScraper {
       // Order by seeds (99), page 1, category 0 (all)
       final url = '$baseUrl/search/$searchQuery/1/99/0';
 
-      final response = await _client.get(Uri.parse(url)).timeout(
-            const Duration(seconds: 5),
-          );
+      final response = await _client
+          .get(Uri.parse(url))
+          .timeout(const Duration(seconds: 5));
 
       if (response.statusCode != 200) return [];
 
@@ -46,7 +46,7 @@ class PirateBayScraper extends BaseScraper {
           'title': metaInfo!['title'] ?? 'PirateBay',
           'infoHash': hash,
           'magnetUrl': magnetUrl,
-          'provider': 'PirateBay'
+          'provider': 'PirateBay',
         };
       }).toList();
     } catch (_) {
@@ -56,8 +56,10 @@ class PirateBayScraper extends BaseScraper {
 
   List<String> _parseMagnetsFromHtml(String html) {
     final magnets = <String>{};
-    final regex = RegExp(r"""href=["\']?(magnet:\?xt=[^"\s\']+)["\']?""",
-        caseSensitive: false);
+    final regex = RegExp(
+      r"""href=["\']?(magnet:\?xt=[^"\s\']+)["\']?""",
+      caseSensitive: false,
+    );
 
     for (final match in regex.allMatches(html)) {
       final magnetUrl = match.group(1);
@@ -70,12 +72,14 @@ class PirateBayScraper extends BaseScraper {
   }
 
   Future<Map<String, dynamic>?> _fetchCinemetaTitle(
-      String type, String id) async {
+    String type,
+    String id,
+  ) async {
     try {
       final url = 'https://v3-cinemeta.strem.io/meta/$type/$id.json';
-      final response = await _client.get(Uri.parse(url)).timeout(
-            const Duration(seconds: 2),
-          );
+      final response = await _client
+          .get(Uri.parse(url))
+          .timeout(const Duration(seconds: 2));
 
       if (response.statusCode != 200) return null;
 

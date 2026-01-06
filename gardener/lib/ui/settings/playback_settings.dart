@@ -56,13 +56,17 @@ class _PlaybackSettingsState extends State<PlaybackSettings> {
     return Scaffold(
       backgroundColor: AethericTheme.deepVoid,
       appBar: AppBar(
-        title: Text('PLAYBACK PROTOCOLS',
-            style: GoogleFonts.outfit(letterSpacing: 2)),
+        title: Text(
+          'PLAYBACK PROTOCOLS',
+          style: GoogleFonts.outfit(letterSpacing: 2),
+        ),
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded,
-              color: Colors.white70),
+          icon: const Icon(
+            Icons.arrow_back_ios_new_rounded,
+            color: Colors.white70,
+          ),
           onPressed: () => Navigator.of(context).pop(),
         ),
       ),
@@ -130,9 +134,10 @@ class _PlaybackSettingsState extends State<PlaybackSettings> {
               icon: Icons.code_rounded,
               collapsedSummary:
                   _includeRegex.text.isEmpty && _excludeRegex.text.isEmpty
-                      ? 'No custom rules'
-                      : 'Custom rules active',
-              badge: (_includeRegex.text.isNotEmpty ||
+                  ? 'No custom rules'
+                  : 'Custom rules active',
+              badge:
+                  (_includeRegex.text.isNotEmpty ||
                       _excludeRegex.text.isNotEmpty)
                   ? 'Active'
                   : null,

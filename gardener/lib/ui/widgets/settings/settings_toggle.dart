@@ -58,21 +58,16 @@ class SettingsToggle extends StatelessWidget {
       hint: description,
       child: AethericGlass(
         child: SwitchListTile(
-          secondary:
-              leadingIcon != null ? Icon(leadingIcon, color: iconColor) : null,
+          secondary: leadingIcon != null
+              ? Icon(leadingIcon, color: iconColor)
+              : null,
           title: Text(
             title,
-            style: GoogleFonts.outfit(
-              color: Colors.white,
-              fontSize: 14,
-            ),
+            style: GoogleFonts.outfit(color: Colors.white, fontSize: 14),
           ),
           subtitle: Text(
             description,
-            style: GoogleFonts.outfit(
-              color: Colors.white54,
-              fontSize: 12,
-            ),
+            style: GoogleFonts.outfit(color: Colors.white54, fontSize: 12),
           ),
           value: value,
           activeTrackColor: trackColor,

@@ -107,10 +107,7 @@ class _CompactSettingsCardState extends State<CompactSettingsCard>
               ],
             ),
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: AethericTheme.glassBorder,
-              width: 1,
-            ),
+            border: Border.all(color: AethericTheme.glassBorder, width: 1),
           ),
           child: Material(
             color: Colors.transparent,
@@ -146,11 +143,7 @@ class _CompactSettingsCardState extends State<CompactSettingsCard>
                       ),
                       duration: const Duration(milliseconds: 200),
                       builder: (context, color, child) {
-                        return Icon(
-                          widget.icon,
-                          size: 24,
-                          color: color,
-                        );
+                        return Icon(widget.icon, size: 24, color: color);
                       },
                     ),
                     const SizedBox(width: 16),
@@ -196,21 +189,24 @@ class _CompactSettingsCardState extends State<CompactSettingsCard>
                               vertical: 4,
                             ),
                             decoration: BoxDecoration(
-                              color: (widget.badgeColor ??
-                                      AethericTheme.aetherBlue)
-                                  .withValues(alpha: 0.15),
+                              color:
+                                  (widget.badgeColor ??
+                                          AethericTheme.aetherBlue)
+                                      .withValues(alpha: 0.15),
                               borderRadius: BorderRadius.circular(8),
                               border: Border.all(
-                                color: (widget.badgeColor ??
-                                        AethericTheme.aetherBlue)
-                                    .withValues(alpha: 0.3),
+                                color:
+                                    (widget.badgeColor ??
+                                            AethericTheme.aetherBlue)
+                                        .withValues(alpha: 0.3),
                                 width: 1,
                               ),
                             ),
                             child: Text(
                               widget.statusBadge!,
                               style: GoogleFonts.outfit(
-                                color: widget.badgeColor ??
+                                color:
+                                    widget.badgeColor ??
                                     AethericTheme.aetherBlue,
                                 fontSize: 11,
                                 fontWeight: FontWeight.w500,

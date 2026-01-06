@@ -33,13 +33,13 @@ class SeedStream {
 
   /// Converts this stream to a JSON-serializable map.
   Map<String, dynamic> toJson() => {
-        'title': title,
-        'infoHash': infoHash,
-        if (fileIdx != null) 'fileIdx': fileIdx,
-        'resolution': resolution,
-        'source': source,
-        'seeders': seeders,
-      };
+    'title': title,
+    'infoHash': infoHash,
+    if (fileIdx != null) 'fileIdx': fileIdx,
+    'resolution': resolution,
+    'source': source,
+    'seeders': seeders,
+  };
 }
 
 /// Utility for normalizing stream metadata from different scraper sources.

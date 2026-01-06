@@ -49,10 +49,7 @@ class NavigationCard extends StatelessWidget {
               Expanded(
                 child: Text(
                   title,
-                  style: GoogleFonts.outfit(
-                    color: Colors.white,
-                    fontSize: 14,
-                  ),
+                  style: GoogleFonts.outfit(color: Colors.white, fontSize: 14),
                 ),
               ),
               if (badge != null) ...[
@@ -80,10 +77,7 @@ class NavigationCard extends StatelessWidget {
           ),
           subtitle: Text(
             description,
-            style: GoogleFonts.outfit(
-              color: Colors.white54,
-              fontSize: 12,
-            ),
+            style: GoogleFonts.outfit(color: Colors.white54, fontSize: 12),
           ),
           trailing: const Icon(
             Icons.arrow_forward_ios_rounded,

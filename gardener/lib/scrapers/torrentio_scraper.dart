@@ -20,8 +20,8 @@ class TorrentioScraper extends BaseScraper {
   ///
   /// [client] - Optional HTTP client for testing. Defaults to standard HTTP client.
   TorrentioScraper({http.Client? client})
-      : _client = client ?? http.Client(),
-        super(name: 'Torrentio', baseUrl: 'https://torrentio.strem.fun');
+    : _client = client ?? http.Client(),
+      super(name: 'Torrentio', baseUrl: 'https://torrentio.strem.fun');
 
   /// Fetches stream metadata for the specified [imdbId].
   ///
@@ -36,8 +36,9 @@ class TorrentioScraper extends BaseScraper {
   /// Returns an empty list if no streams are found or if the API request fails.
   @override
   Future<List<Map<String, dynamic>>> scrape(String imdbId) async {
-    final response =
-        await _client.get(Uri.parse('$baseUrl/stream/movie/$imdbId.json'));
+    final response = await _client.get(
+      Uri.parse('$baseUrl/stream/movie/$imdbId.json'),
+    );
 
     if (response.statusCode != 200) return [];
 

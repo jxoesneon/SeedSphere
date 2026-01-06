@@ -86,27 +86,15 @@ class _CortexSettingsState extends State<CortexSettings> {
       'gemini-3-deep-think',
       'gemini-2.5-pro',
     ],
-    'xAI': [
-      'grok-4.20',
-      'grok-4.1',
-      'grok-4.1-fast',
-    ],
+    'xAI': ['grok-4.20', 'grok-4.1', 'grok-4.1-fast'],
     'Mistral': [
       'mistral-large-3',
       'minstral-14b',
       'minstral-8b',
       'minstral-3b',
     ],
-    'Meta': [
-      'llama-4-scout',
-      'llama-3.3',
-      'llama-3.1',
-    ],
-    'Cohere': [
-      'command-r-plus',
-      'command-r',
-      'command-a',
-    ],
+    'Meta': ['llama-4-scout', 'llama-3.3', 'llama-3.1'],
+    'Cohere': ['command-r-plus', 'command-r', 'command-a'],
   };
 
   @override
@@ -170,13 +158,17 @@ class _CortexSettingsState extends State<CortexSettings> {
     return Scaffold(
       backgroundColor: AethericTheme.deepVoid,
       appBar: AppBar(
-        title: Text('CORTEX NEURO-LINK',
-            style: GoogleFonts.outfit(letterSpacing: 2)),
+        title: Text(
+          'CORTEX NEURO-LINK',
+          style: GoogleFonts.outfit(letterSpacing: 2),
+        ),
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded,
-              color: Colors.white70),
+          icon: const Icon(
+            Icons.arrow_back_ios_new_rounded,
+            color: Colors.white70,
+          ),
           onPressed: () => Navigator.of(context).pop(),
         ),
       ),
@@ -193,8 +185,8 @@ class _CortexSettingsState extends State<CortexSettings> {
               severity: _isFreeProvider
                   ? InfoCardSeverity.success
                   : (_hasCurrentProviderKey
-                      ? InfoCardSeverity.success
-                      : InfoCardSeverity.warning),
+                        ? InfoCardSeverity.success
+                        : InfoCardSeverity.warning),
               customIcon: Icons.psychology_rounded,
             ),
             const SizedBox(height: 24),

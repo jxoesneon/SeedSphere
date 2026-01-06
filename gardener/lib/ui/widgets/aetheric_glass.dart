@@ -51,7 +51,8 @@ class _AethericGlassState extends State<AethericGlass> {
   @override
   Widget build(BuildContext context) {
     // Determine if we should use the standard Flutter backdrop filter fallback
-    final bool isDesktopOrWeb = kIsWeb ||
+    final bool isDesktopOrWeb =
+        kIsWeb ||
         defaultTargetPlatform == TargetPlatform.windows ||
         defaultTargetPlatform == TargetPlatform.linux ||
         defaultTargetPlatform == TargetPlatform.macOS;
@@ -86,10 +87,7 @@ class _AethericGlassState extends State<AethericGlass> {
     return ShaderBuilder(
       (context, shader, child) {
         return CustomPaint(
-          painter: GlassPainter(
-            shader: shader,
-            baseColor: widget.baseColor,
-          ),
+          painter: GlassPainter(shader: shader, baseColor: widget.baseColor),
           child: Container(
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(widget.borderRadius),

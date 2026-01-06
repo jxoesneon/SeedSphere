@@ -46,16 +46,17 @@ void main() {
                   'type': 'bluray',
                   'hash': 'hash123',
                   'seeds': 100,
-                  'size': '2GB'
-                }
-              ]
-            }
-          ]
-        }
+                  'size': '2GB',
+                },
+              ],
+            },
+          ],
+        },
       };
 
-      when(() => mockClient.get(any()))
-          .thenAnswer((_) async => http.Response(jsonEncode(mockJson), 200));
+      when(
+        () => mockClient.get(any()),
+      ).thenAnswer((_) async => http.Response(jsonEncode(mockJson), 200));
 
       final scraper = YTSScraper(client: mockClient);
       final results = await scraper.scrape('Test Movie');
@@ -66,8 +67,9 @@ void main() {
     });
 
     test('Handles API errors gracefully', () async {
-      when(() => mockClient.get(any()))
-          .thenAnswer((_) async => http.Response('Error', 500));
+      when(
+        () => mockClient.get(any()),
+      ).thenAnswer((_) async => http.Response('Error', 500));
 
       final scraper = YTSScraper(client: mockClient);
       final results = await scraper.scrape('Test Movie');
@@ -84,13 +86,14 @@ void main() {
             'title': 'Test Stream \n 4K',
             'name': 'Torrentio',
             'infoHash': 'hashTor',
-            'fileIdx': 0
-          }
-        ]
+            'fileIdx': 0,
+          },
+        ],
       };
 
-      when(() => mockClient.get(any()))
-          .thenAnswer((_) async => http.Response(jsonEncode(mockJson), 200));
+      when(
+        () => mockClient.get(any()),
+      ).thenAnswer((_) async => http.Response(jsonEncode(mockJson), 200));
 
       final scraper = TorrentioScraper(client: mockClient);
       final results = await scraper.scrape('tt1234567');
@@ -101,8 +104,9 @@ void main() {
     });
 
     test('Handles errors', () async {
-      when(() => mockClient.get(any()))
-          .thenAnswer((_) async => http.Response('Error', 404));
+      when(
+        () => mockClient.get(any()),
+      ).thenAnswer((_) async => http.Response('Error', 404));
 
       final scraper = TorrentioScraper(client: mockClient);
       final results = await scraper.scrape('tt1');
@@ -124,16 +128,17 @@ void main() {
                   'type': 'web',
                   'hash': 'h1',
                   'seeds': 10,
-                  'size': '1GB'
-                }
-              ]
-            }
-          ]
-        }
+                  'size': '1GB',
+                },
+              ],
+            },
+          ],
+        },
       };
 
-      when(() => mockClient.get(any()))
-          .thenAnswer((_) async => http.Response(jsonEncode(mockJson), 200));
+      when(
+        () => mockClient.get(any()),
+      ).thenAnswer((_) async => http.Response(jsonEncode(mockJson), 200));
 
       final scraper1 = YTSScraper(client: mockClient);
       // Reusing YTS for simplicity of test logic, mimicking multiple sources

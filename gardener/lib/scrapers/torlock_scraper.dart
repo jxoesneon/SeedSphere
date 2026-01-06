@@ -6,8 +6,8 @@ class TorlockScraper extends BaseScraper {
   final http.Client _client;
 
   TorlockScraper({http.Client? client})
-      : _client = client ?? http.Client(),
-        super(name: 'Torlock', baseUrl: 'https://www.torlock.com');
+    : _client = client ?? http.Client(),
+      super(name: 'Torlock', baseUrl: 'https://www.torlock.com');
 
   @override
   Future<List<Map<String, dynamic>>> scrape(String imdbId) async {
@@ -19,18 +19,21 @@ class TorlockScraper extends BaseScraper {
       final q = Uri.encodeComponent(metaInfo['title'] as String);
       final url = '$baseUrl/all/torrents/$q.html';
 
-      final response =
-          await _client.get(Uri.parse(url)).timeout(const Duration(seconds: 5));
+      final response = await _client
+          .get(Uri.parse(url))
+          .timeout(const Duration(seconds: 5));
       if (response.statusCode != 200) return [];
 
       return _parseMagnetsFromHtml(response.body)
           .take(30)
-          .map((m) => {
-                'title': metaInfo['title'],
-                'infoHash': _extractInfoHash(m),
-                'magnetUrl': m,
-                'provider': 'Torlock'
-              })
+          .map(
+            (m) => {
+              'title': metaInfo['title'],
+              'infoHash': _extractInfoHash(m),
+              'magnetUrl': m,
+              'provider': 'Torlock',
+            },
+          )
           .toList();
     } catch (_) {
       return [];
@@ -38,11 +41,14 @@ class TorlockScraper extends BaseScraper {
   }
 
   Future<Map<String, dynamic>?> _fetchCinemetaTitle(
-      String type, String id) async {
+    String type,
+    String id,
+  ) async {
     try {
       final url = 'https://v3-cinemeta.strem.io/meta/$type/$id.json';
-      final response =
-          await _client.get(Uri.parse(url)).timeout(const Duration(seconds: 2));
+      final response = await _client
+          .get(Uri.parse(url))
+          .timeout(const Duration(seconds: 2));
       if (response.statusCode != 200) return null;
       final data = jsonDecode(response.body);
       return data['meta'] != null ? {'title': data['meta']['name']} : null;
@@ -55,8 +61,10 @@ class TorlockScraper extends BaseScraper {
     final magnets = <String>{};
     // Torlock often hides magnets behind redirects or JS but sometimes exposes them directly or hash
     // Legacy implementation scraped HTML for magnet links
-    final regex = RegExp(r"""href=["\']?(magnet:\?xt=[^"\s\']+)["\']?""",
-        caseSensitive: false);
+    final regex = RegExp(
+      r"""href=["\']?(magnet:\?xt=[^"\s\']+)["\']?""",
+      caseSensitive: false,
+    );
     for (final match in regex.allMatches(html)) {
       if (match.group(1) != null) magnets.add(match.group(1)!);
     }

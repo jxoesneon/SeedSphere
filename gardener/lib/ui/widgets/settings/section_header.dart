@@ -19,22 +19,14 @@ class SectionHeader extends StatelessWidget {
   /// Optional icon to display before the title
   final IconData? icon;
 
-  const SectionHeader(
-    this.title, {
-    super.key,
-    this.icon,
-  });
+  const SectionHeader(this.title, {super.key, this.icon});
 
   @override
   Widget build(BuildContext context) {
     return Row(
       children: [
         if (icon != null) ...[
-          Icon(
-            icon,
-            size: 14,
-            color: AethericTheme.aetherBlue,
-          ),
+          Icon(icon, size: 14, color: AethericTheme.aetherBlue),
           const SizedBox(width: 8),
         ],
         Text(

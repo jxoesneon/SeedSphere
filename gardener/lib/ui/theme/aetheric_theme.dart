@@ -61,10 +61,7 @@ class AethericTheme {
           fontWeight: FontWeight.w600,
           color: Colors.white,
         ),
-        bodyLarge: TextStyle(
-          fontFamily: 'Outfit',
-          color: Colors.white70,
-        ),
+        bodyLarge: TextStyle(fontFamily: 'Outfit', color: Colors.white70),
       ),
 
       // Integrated glassmorphic button styles

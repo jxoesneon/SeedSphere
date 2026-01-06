@@ -21,7 +21,7 @@ class IdentityManager {
   ///
   /// [storage] - Optional secure storage for testing. Defaults to [FlutterSecureStorage].
   IdentityManager({FlutterSecureStorage? storage})
-      : _storage = storage ?? const FlutterSecureStorage();
+    : _storage = storage ?? const FlutterSecureStorage();
 
   /// Retrieves or generates a unique peer ID for P2P networking.
   ///

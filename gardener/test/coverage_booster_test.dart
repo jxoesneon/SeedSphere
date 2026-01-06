@@ -20,25 +20,29 @@ void main() {
 
     test('MetadataNormalizer resolution logic', () {
       expect(
-          MetadataNormalizer.normalize({'title': 'Movie 4K'}, 'test')
-              .resolution,
-          '4K');
+        MetadataNormalizer.normalize({'title': 'Movie 4K'}, 'test').resolution,
+        '4K',
+      );
       expect(
-          MetadataNormalizer.normalize({'title': 'Movie UHD'}, 'test')
-              .resolution,
-          '4K');
+        MetadataNormalizer.normalize({'title': 'Movie UHD'}, 'test').resolution,
+        '4K',
+      );
       expect(
-          MetadataNormalizer.normalize({'title': 'Movie 1080p'}, 'test')
-              .resolution,
-          '1080p');
+        MetadataNormalizer.normalize({
+          'title': 'Movie 1080p',
+        }, 'test').resolution,
+        '1080p',
+      );
       expect(
-          MetadataNormalizer.normalize({'title': 'Movie 720p'}, 'test')
-              .resolution,
-          '720p');
+        MetadataNormalizer.normalize({
+          'title': 'Movie 720p',
+        }, 'test').resolution,
+        '720p',
+      );
       expect(
-          MetadataNormalizer.normalize({'title': 'Movie Cam'}, 'test')
-              .resolution,
-          'SD');
+        MetadataNormalizer.normalize({'title': 'Movie Cam'}, 'test').resolution,
+        'SD',
+      );
 
       // Test nulls
       final norm = MetadataNormalizer.normalize({}, 'test');
@@ -50,7 +54,10 @@ void main() {
 
     test('P2PCommand Serialization', () {
       final cmd = P2PCommand(
-          type: P2PCommandType.search, imdbId: 'tt1', data: {'foo': 'bar'});
+        type: P2PCommandType.search,
+        imdbId: 'tt1',
+        data: {'foo': 'bar'},
+      );
       final json = cmd.toJson();
       expect(json['type'], 0); // Index for search
       expect(json['imdbId'], 'tt1');

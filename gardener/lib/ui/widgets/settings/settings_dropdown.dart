@@ -49,10 +49,7 @@ class SettingsDropdown<T> extends StatelessWidget {
             dropdownColor: const Color(0xFF1E293B),
             value: value,
             isExpanded: true,
-            style: GoogleFonts.outfit(
-              color: Colors.white,
-              fontSize: 14,
-            ),
+            style: GoogleFonts.outfit(color: Colors.white, fontSize: 14),
             icon: Icon(icon, color: AethericTheme.aetherBlue),
             hint: hint != null
                 ? Text(

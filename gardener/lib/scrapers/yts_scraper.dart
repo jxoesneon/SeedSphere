@@ -19,8 +19,8 @@ class YTSScraper extends BaseScraper {
   ///
   /// [client] - Optional HTTP client for testing. Defaults to standard HTTP client.
   YTSScraper({http.Client? client})
-      : _client = client ?? http.Client(),
-        super(name: 'YTS', baseUrl: 'https://yts.mx/api/v2');
+    : _client = client ?? http.Client(),
+      super(name: 'YTS', baseUrl: 'https://yts.mx/api/v2');
 
   /// Fetches metadata for all available torrents for the given [imdbId].
   ///
@@ -35,8 +35,9 @@ class YTSScraper extends BaseScraper {
   /// Returns an empty list if no movies are found or if the API request fails.
   @override
   Future<List<Map<String, dynamic>>> scrape(String imdbId) async {
-    final response = await _client
-        .get(Uri.parse('$baseUrl/list_movies.json?query_term=$imdbId'));
+    final response = await _client.get(
+      Uri.parse('$baseUrl/list_movies.json?query_term=$imdbId'),
+    );
 
     if (response.statusCode != 200) return [];
 

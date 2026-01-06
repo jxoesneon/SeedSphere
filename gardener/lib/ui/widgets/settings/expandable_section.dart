@@ -72,10 +72,7 @@ class _ExpandableSectionState extends State<ExpandableSection> {
             ],
           ),
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: AethericTheme.glassBorder,
-            width: 1,
-          ),
+          border: Border.all(color: AethericTheme.glassBorder, width: 1),
         ),
         child: Column(
           children: [

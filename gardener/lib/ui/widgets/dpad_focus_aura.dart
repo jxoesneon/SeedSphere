@@ -27,11 +27,7 @@ class DpadFocusAura extends StatefulWidget {
   final VoidCallback? onTap;
 
   /// Creates a [DpadFocusAura] instance.
-  const DpadFocusAura({
-    super.key,
-    required this.child,
-    this.onTap,
-  });
+  const DpadFocusAura({super.key, required this.child, this.onTap});
 
   @override
   State<DpadFocusAura> createState() => _DpadFocusAuraState();

@@ -17,7 +17,8 @@ void main() {
 
       final duration = DateTime.now().difference(startTime);
       debugPrint(
-          'SWARM TEST: Generated 10,000 topics in ${duration.inMilliseconds}ms');
+        'SWARM TEST: Generated 10,000 topics in ${duration.inMilliseconds}ms',
+      );
       expect(successCount, 10000);
     });
 

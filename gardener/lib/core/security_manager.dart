@@ -20,7 +20,7 @@ class SecurityManager {
   ///
   /// [storage] - Optional secure storage for testing. Defaults to [FlutterSecureStorage].
   SecurityManager({FlutterSecureStorage? storage})
-      : _storage = storage ?? const FlutterSecureStorage();
+    : _storage = storage ?? const FlutterSecureStorage();
 
   /// Retrieves or generates an Ed25519 key pair.
   ///
@@ -93,7 +93,10 @@ class SecurityManager {
   /// if (!isValid) throw Exception('Invalid signature');
   /// ```
   bool verifySignature(
-      String message, String signatureBase64, String publicKeyBase64) {
+    String message,
+    String signatureBase64,
+    String publicKeyBase64,
+  ) {
     try {
       final publicKey = ed.PublicKey(base64Decode(publicKeyBase64));
       final signature = base64Decode(signatureBase64);
@@ -133,7 +136,7 @@ class SecurityManager {
       method.toUpperCase(),
       path,
       query,
-      bodyHash
+      bodyHash,
     ].join('\n');
 
     final hmac = Hmac(sha256, utf8.encode(secret));

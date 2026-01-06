@@ -77,8 +77,9 @@ class SettingsSlider extends StatelessWidget {
                           style: GoogleFonts.outfit(
                             color: isActive ? Colors.white : Colors.white38,
                             fontSize: 12,
-                            fontWeight:
-                                isActive ? FontWeight.bold : FontWeight.normal,
+                            fontWeight: isActive
+                                ? FontWeight.bold
+                                : FontWeight.normal,
                           ),
                         );
                       }).toList(),

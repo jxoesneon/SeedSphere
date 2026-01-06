@@ -7,8 +7,8 @@ class EztvScraper extends BaseScraper {
   final http.Client _client;
 
   EztvScraper({http.Client? client})
-      : _client = client ?? http.Client(),
-        super(name: 'EZTV', baseUrl: 'https://eztv.re/api');
+    : _client = client ?? http.Client(),
+      super(name: 'EZTV', baseUrl: 'https://eztv.re/api');
 
   @override
   Future<List<Map<String, dynamic>>> scrape(String imdbId) async {
@@ -16,9 +16,9 @@ class EztvScraper extends BaseScraper {
     try {
       final url =
           '$baseUrl/get-torrents?imdb_id=${imdbId.replaceFirst("tt", "")}&limit=100';
-      final response = await _client.get(Uri.parse(url)).timeout(
-            const Duration(seconds: 5),
-          );
+      final response = await _client
+          .get(Uri.parse(url))
+          .timeout(const Duration(seconds: 5));
 
       if (response.statusCode != 200) return [];
 
@@ -38,7 +38,7 @@ class EztvScraper extends BaseScraper {
               'peers': t['peers'],
               'size': t['size'],
               'sizeBytes': t['size_bytes'],
-              'provider': 'EZTV'
+              'provider': 'EZTV',
             });
           }
         }

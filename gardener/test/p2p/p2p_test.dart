@@ -30,7 +30,7 @@ void main() {
       final cmd = P2PCommand(
         type: P2PCommandType.search,
         imdbId: 'tt1234567',
-        data: {'quality': '1080p'}
+        data: {'quality': '1080p'},
       );
 
       final json = cmd.toJson();
@@ -46,7 +46,7 @@ void main() {
     test('Generates valid pairing payload', () {
       final manager = PairingManager(mockP2P);
       final payload = manager.generatePairingPayload('key123', 'gardener-abc');
-      
+
       final decoded = jsonDecode(utf8.decode(base64Decode(payload)));
       expect(decoded['gardenerId'], 'gardener-abc');
       expect(decoded['debridKey'], 'key123');
@@ -58,7 +58,7 @@ void main() {
 
       final verifyCapture = verify(() => mockP2P.sendCommand(captureAny()));
       verifyCapture.called(1);
-      
+
       final cmd = verifyCapture.captured.first as P2PCommand;
       expect(cmd.type, P2PCommandType.boost);
       expect(cmd.imdbId, 'pairing:pair-123');

@@ -82,19 +82,12 @@ class InfoCard extends StatelessWidget {
         decoration: BoxDecoration(
           color: _color.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: _color.withValues(alpha: 0.3),
-            width: 1,
-          ),
+          border: Border.all(color: _color.withValues(alpha: 0.3), width: 1),
         ),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(
-              customIcon ?? _defaultIcon,
-              color: _color,
-              size: 20,
-            ),
+            Icon(customIcon ?? _defaultIcon, color: _color, size: 20),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
@@ -108,10 +101,7 @@ class InfoCard extends StatelessWidget {
                       height: 1.4,
                     ),
                   ),
-                  if (action != null) ...[
-                    const SizedBox(height: 8),
-                    action!,
-                  ],
+                  if (action != null) ...[const SizedBox(height: 8), action!],
                 ],
               ),
             ),

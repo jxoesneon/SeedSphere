@@ -34,8 +34,9 @@ class AdaptiveBentoGrid extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         // Desktop threshold at 900px
-        final int columns =
-            constraints.maxWidth > 900 ? desktopColumns : mobileColumns;
+        final int columns = constraints.maxWidth > 900
+            ? desktopColumns
+            : mobileColumns;
 
         return GridView.builder(
           padding: const EdgeInsets.all(16),

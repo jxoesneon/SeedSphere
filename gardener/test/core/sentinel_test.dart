@@ -12,8 +12,10 @@ class FakeAndroidServiceInstance extends Fake
   Future<bool> isForegroundService() async => true;
 
   @override
-  Future<void> setForegroundNotificationInfo(
-      {required String title, required String content}) async {
+  Future<void> setForegroundNotificationInfo({
+    required String title,
+    required String content,
+  }) async {
     foregroundUpdated = true;
   }
 }
