@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.9.50] - 2026-01-05 (Final CI Polish)
+
+### CI/CD Verification
+
+- **CodeQL**: Added explicit `-destination 'generic/platform=iOS Simulator'` to xcodebuild command to fix "Found no destinations" error on generic runners.
+- **Router Analysis**: Verified strict `dart analyze --fatal-infos` compliance for backend CI.
+- **Full Repair**: Consolidated all fixes for Android NDK, iOS Pods, and Docker builds into this verified release.
+
 ## [1.9.49] - 2026-01-05 (iOS & Docker Fix)
 
 ### Platform & Deployment
