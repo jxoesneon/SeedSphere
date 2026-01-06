@@ -14,11 +14,7 @@ class HttpLogger {
     Object? body,
   }) async {
     final startTime = DateTime.now();
-    DebugLogger.info(
-      '-> POST $url',
-      category: 'TRACE',
-      error: body is String ? body : (body != null ? jsonEncode(body) : null),
-    );
+    DebugLogger.info('-> POST $url', category: 'TRACE', error: _redact(body));
 
     try {
       final response = await http.post(url, headers: headers, body: body);
@@ -27,7 +23,7 @@ class HttpLogger {
       DebugLogger.info(
         '<- ${response.statusCode} (${duration}ms) $url',
         category: 'TRACE',
-        error: response.body, // Log body as "error" detail for UI visibility
+        error: _redact(response.body),
       );
       return response;
     } catch (e) {
@@ -50,13 +46,38 @@ class HttpLogger {
       DebugLogger.info(
         '<- ${response.statusCode} (${duration}ms) $url',
         category: 'TRACE',
-        error: response.body,
+        error: _redact(response.body),
       );
       return response;
     } catch (e) {
       DebugLogger.error('<- FAIL $url', category: 'TRACE', error: e);
       rethrow;
     }
+  }
+
+  static String? _redact(Object? content) {
+    if (content == null) return null;
+    if (content is! String) {
+      try {
+        return _redact(jsonEncode(content));
+      } catch (_) {
+        return content.toString();
+      }
+    }
+
+    // Simple redaction for known sensitive keys
+    var redacted = content;
+    final sensitiveKeys = ['token', 'secret', 'idToken', 'refreshToken'];
+
+    for (final key in sensitiveKeys) {
+      // Regex to match "key": "value" and replace value
+      // Matches "key"\s*:\s*"[^"]*"
+      redacted = redacted.replaceAllMapped(
+        RegExp('"$key"\\s*:\\s*"[^"]*"'),
+        (match) => '"$key": "[REDACTED]"',
+      );
+    }
+    return redacted;
   }
 }
 

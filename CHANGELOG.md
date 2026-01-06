@@ -2,6 +2,28 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.9.47] - 2026-01-05 (Security Fix)
+
+### Security & CI
+
+- **Log Redaction**: HTTP Logs in `NetworkConstants` now actively redact sensitive authorization data (tokens, secrets) to comply with CodeQL security policies.
+- **CodeQL**: Fixed potential leakage of sensitive data in debug traces.
+
+## [1.9.46] - 2026-01-05 (CI Green)
+
+### Code Maintenance
+
+- **Formatting**: Applied `dart format` to 40+ files in `gardener` to match the project's style guide and pass strict CI checks.
+- **CI Verification**: Verified `router` tests (passed), `gardener` tests (passed), and `bridge` build (passed) locally.
+- **Security**: Redacted sensitive fields (`token`, `secret`, `idToken`) from `HttpLogger` traces to pass CodeQL analysis.
+
+## [1.9.45] - 2026-01-05 (CI Fixes)
+
+### Forensics & Debugging
+
+- **HTTP Interceptor**: Implemented `HttpLogger` to trace full Request/Response lifecycles (URL, Method, Status, Body) for authentication calls.
+- **P2P Command Trace**: Enhanced P2P isolate logging to emit granular `CMD: <Action>` traces for better visibility into internal state changes.
+
 ## [1.9.44] - 2026-01-05 (Action Tracing)
 
 ### Forensics & Debugging
