@@ -44,10 +44,20 @@ class NetworkConstants {
       '/dns4/seedsphere.fly.dev/udp/4001/quic',
       '/dns6/seedsphere.fly.dev/tcp/4001',
       '/dns6/seedsphere.fly.dev/udp/4001/quic',
-      // Fallback to public bootstrap nodes
+      // Fallback to public bootstrap nodes (DNS & Static IP)
       '/dnsaddr/bootstrap.libp2p.io/p2p/QmNnooDu7bfjPFoTZYxMNLWUQJyrVwtbZg5gBMjTezGAJN',
       '/dnsaddr/bootstrap.libp2p.io/p2p/QmQCU2EcMqAqQPR2i9bChDtGNJchTbq5TbXJJ16u19uLTa',
+      // Public Static IPs (Protocol Labs - Mars, Earth, Venus)
       '/ip4/104.131.131.82/tcp/4001/p2p/QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ',
+      '/ip4/104.131.131.82/udp/4001/quic/p2p/QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ',
+      '/ip4/104.236.179.241/tcp/4001/p2p/QmSoLPppuBtQSGwKDZT2M73ULpjvfd3aZ6ha4oFGL1KrGM', // Pluto
+      '/ip4/128.199.219.111/tcp/4001/p2p/QmSoLSafTMBsPKadTEjbXHJfi8MGqTE69f63Zg7sF35beB', // Earth
+      '/ip4/104.236.76.40/tcp/4001/p2p/QmSoLV4Bbm51jM9C4gfKt22hc8G853zES46sVPpu6zP530', // Venus
+      '/ip4/178.62.158.247/tcp/4001/p2p/QmSoLer265NRgSp2LA3dPaeykiS1J6DifTC88f5uVQKNAd', // Mercury
+      '/ip6/2604:a880:1:20::203:d001/tcp/4001/p2p/QmSoLPppuBtQSGwKDZT2M73ULpjvfd3aZ6ha4oFGL1KrGM',
+      '/ip6/2400:6180:0:d0::151:6001/tcp/4001/p2p/QmSoLSafTMBsPKadTEjbXHJfi8MGqTE69f63Zg7sF35beB',
+      '/ip6/2604:a880:800:10::4a:5001/tcp/4001/p2p/QmSoLV4Bbm51jM9C4gfKt22hc8G853zES46sVPpu6zP530',
+      '/ip6/2a03:b0c0:0:1010::23:1001/tcp/4001/p2p/QmSoLer265NRgSp2LA3dPaeykiS1J6DifTC88f5uVQKNAd',
     ];
   }
 
@@ -63,7 +73,9 @@ class NetworkConstants {
     final targets = [
       {'host': 'seedsphere.fly.dev', 'port': 4001},
       {'host': 'bootstrap.libp2p.io', 'port': 4001},
-      {'host': '104.131.131.82', 'port': 4001},
+      {'host': '104.131.131.82', 'port': 4001}, // Mars
+      {'host': '104.236.179.241', 'port': 4001}, // Pluto
+      {'host': '128.199.219.111', 'port': 4001}, // Earth
     ];
 
     for (final target in targets) {

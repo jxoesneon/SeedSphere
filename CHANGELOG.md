@@ -2,7 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
-## [1.9.40] - 2026-01-05 (DNS Resilience)
+## [1.9.42] - 2026-01-05 (Public Static IP Fallback)
+
+### Bootstrap Resilience
+
+- **Public IPFS Static IPs**: Added 10+ public static IPFS bootstrap nodes (including Protocol Labs' Mars, Earth, Venus, Pluto, Mercury) to ensure connectivity even when local DNS resolution fails completely.
+
+## [1.9.41] - 2026-01-05 (Dynamic DNS Fix)
+
+### Network Resilience
+
+- **Reverted Static IP**: Removed hardcoded Fly.io Anycast IP to avoid connectivity issues if the platform rotates addresses.
+- **Hostname Correction**: Maintained the fix for `seedsphere.fly.dev` (replacing the invalid `seedsphere-router` hostname) which ensures proper DNS resolution.
+
+## [1.9.40] - 2026-01-05 (Hostname Fix)
 
 ### Critical Connectivity Fixes
 
