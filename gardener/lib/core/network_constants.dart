@@ -1,8 +1,65 @@
 import 'dart:io';
+import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:gardener/core/debug_logger.dart';
+import 'package:http/http.dart' as http;
 
 /// Centralized networking constants for SeedSphere.
+
+/// Wrapped HTTP client for tracing requests/responses.
+class HttpLogger {
+  static Future<http.Response> post(
+    Uri url, {
+    Map<String, String>? headers,
+    Object? body,
+  }) async {
+    final startTime = DateTime.now();
+    DebugLogger.info(
+      '-> POST $url',
+      category: 'TRACE',
+      error: body is String ? body : (body != null ? jsonEncode(body) : null),
+    );
+
+    try {
+      final response = await http.post(url, headers: headers, body: body);
+      final duration = DateTime.now().difference(startTime).inMilliseconds;
+
+      DebugLogger.info(
+        '<- ${response.statusCode} (${duration}ms) $url',
+        category: 'TRACE',
+        error: response.body, // Log body as "error" detail for UI visibility
+      );
+      return response;
+    } catch (e) {
+      DebugLogger.error('<- FAIL $url', category: 'TRACE', error: e);
+      rethrow;
+    }
+  }
+
+  static Future<http.Response> get(
+    Uri url, {
+    Map<String, String>? headers,
+  }) async {
+    final startTime = DateTime.now();
+    DebugLogger.info('-> GET $url', category: 'TRACE');
+
+    try {
+      final response = await http.get(url, headers: headers);
+      final duration = DateTime.now().difference(startTime).inMilliseconds;
+
+      DebugLogger.info(
+        '<- ${response.statusCode} (${duration}ms) $url',
+        category: 'TRACE',
+        error: response.body,
+      );
+      return response;
+    } catch (e) {
+      DebugLogger.error('<- FAIL $url', category: 'TRACE', error: e);
+      rethrow;
+    }
+  }
+}
+
 class NetworkConstants {
   /// The base URL for the SeedSphere Router API.
   ///

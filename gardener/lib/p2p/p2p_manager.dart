@@ -477,6 +477,14 @@ class P2PManager {
           break;
 
         case P2PCommandType.publish:
+          final topic = command.imdbId;
+
+          fromMainPort.send({
+            'msg': 'CMD: Publish -> $topic',
+            'level': 800, // INFO
+            'cat': 'TRACE',
+          });
+
           fromMainPort.send({
             'msg': 'P2P: Seeding metadata for ${command.imdbId}',
             'cat': 'DHT',

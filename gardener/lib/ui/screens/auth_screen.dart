@@ -6,7 +6,6 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:google_sign_in/google_sign_in.dart';
-import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:gardener/ui/theme/aetheric_theme.dart';
 import 'package:gardener/ui/widgets/aetheric_glass.dart';
@@ -61,7 +60,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
     });
 
     try {
-      final response = await http.post(
+      final response = await HttpLogger.post(
         Uri.parse('$_apiBase/api/auth/magic/start'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'email': email}),
@@ -136,7 +135,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
       final gardenerId = ref.read(p2pManagerProvider).gardenerId;
 
       // Send to backend for verification
-      final response = await http.post(
+      final response = await HttpLogger.post(
         Uri.parse('$_apiBase/api/auth/google/verify'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({

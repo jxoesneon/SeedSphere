@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.9.44] - 2026-01-05 (Action Tracing)
+
+### Forensics & Debugging
+
+- **HTTP Interceptor**: Implemented `HttpLogger` to trace full Request/Response lifecycles (URL, Method, Status, Body) for authentication calls.
+- **P2P Command Trace**: Enhanced P2P isolate logging to emit granular `CMD: <Action>` traces for better visibility into internal state changes.
+
 ## [1.9.43] - 2026-01-05 (Android 16 Readiness)
 
 ### Platform Compatibility
