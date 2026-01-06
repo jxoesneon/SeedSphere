@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.9.58] - 2026-01-05 (Complete CI Stability)
+
+### CI/CD Repair
+
+- **Git Configuration**: Resolved critical `.gitignore` misconfiguration that prevented `Podfile.lock` (iOS) and `gradlew` (Android) from being committed.
+- **Reproducible Builds**: Restored these artifacts to the repository to ensure CI runners use the exact same dependencies and build tools as the local development environment, eliminating "works on my machine" discrepancies.
+
 ## [1.9.57] - 2026-01-05 (CI Environment Parity)
 
 ### CI/CD Repair

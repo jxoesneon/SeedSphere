@@ -57,9 +57,6 @@ app.*.map.json
 # Gradle/Android artifacts
 .gradle/
 android/local.properties
-android/gradlew
-android/gradlew.bat
-android/gradle/wrapper/gradle-wrapper.jar
 android/app/debug/
 android/app/profile/
 android/app/release/
@@ -80,4 +77,4 @@ windows/flutter/ephemeral/
 !**/contents.xcworkspacedata
 
 # Podfile locks
-**/Podfile.lock
+# **/Podfile.lock
