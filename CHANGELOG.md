@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.9.63] - 2026-01-05 (CodeQL Stabilization)
+
+### CI/CD Repair
+
+- **CodeQL Resilience**: Enabled Gradle caching (`cache: gradle`) in the CodeQL workflow. This prevents occasional network timeouts during artifact download phases (observed in v1.9.61) and speeds up subsequent analysis runs.
+- **Final Status**: All critical pipelines (`Dynamic CI`, `Gardener CI`, `SeedSphere CI`) are verified green on v1.9.62.
+
 ## [1.9.62] - 2026-01-05 (Final Syntax Repair)
 
 ### CI/CD Repair
