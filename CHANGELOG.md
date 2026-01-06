@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.9.48] - 2026-01-05 (Deep CI/Build Fix)
+
+### Critical Infrastructure
+
+- **Android Network Security**: Updated `network_security_config.xml` to allow global cleartext traffic (`<base-config>`), fixing a regression where public P2P bootstrap nodes (TCP/4001) were being blocked on Android 9+.
+- **CI Build**: Validated Android NDK installation and build process locally to resolve timeout/environment issues in CodeQL workflow.
+
 ## [1.9.47] - 2026-01-05 (Security Fix)
 
 ### Security & CI
