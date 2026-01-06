@@ -123,7 +123,7 @@ void main() {
         null,
       );
 
-      var event = await events.next;
+      final event = await events.next;
       expect(event, isA<Map>());
       expect(event['msg'], contains('Seeding metadata'));
     });
