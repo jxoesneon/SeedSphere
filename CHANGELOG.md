@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.9.59] - 2026-01-05 (Dynamic CI Logic Fix)
+
+### CI/CD Repair
+
+- **Dynamic CI**: Resolved `ambiguous argument` error in PR workflows by updating `ci-dynamic.yml` to reference `origin/` branches explicitly.
+- **Script Robustness**: Enhanced `ci_analyze.ps1` to fallback to `origin/$BaseRef` if the local reference is missing, ensuring reliable matrix generation for PRs.
+
 ## [1.9.58] - 2026-01-05 (Complete CI Stability)
 
 ### CI/CD Repair

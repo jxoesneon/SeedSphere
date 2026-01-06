@@ -11,9 +11,14 @@ function Test-Match {
 
 try {
     # Get changed files
-    $Diff = git diff --name-only $BaseRef...$HeadRef
-    if ($LASTEXITCODE -ne 0) {
-        # Fallback for shallow clones or no common ancestor, try direct diff
+    # Try exact match first
+    if (git rev-parse --verify $BaseRef 2>$null) {
+        $Diff = git diff --name-only $BaseRef...$HeadRef
+    } elseif (git rev-parse --verify "origin/$BaseRef" 2>$null) {
+        # Fallback to origin/BaseRef if local not found
+        $Diff = git diff --name-only "origin/$BaseRef...$HeadRef"
+    } else {
+        # Fallback to direct diff if merge base fails
         $Diff = git diff --name-only $BaseRef $HeadRef
     }
 } catch {
