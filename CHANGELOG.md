@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.9.61] - 2026-01-05 (Final Pipeline Automation)
+
+### CI/CD Repair
+
+- **Windows Compatibility**: Fixed `git diff` command failure in `ci_analyze.ps1` on Windows runners. The `hash...hash` syntax requires aggressive quoting in PowerShell to avoid argument parsing errors which previously caused the script to fail silently (resulting in skipped builds).
+- **Debugability**: Added explicit debug logging to the analysis script to report exactly which reference resolution path is taken.
+
 ## [1.9.60] - 2026-01-05 (Final CI Verification)
 
 ### CI/CD Repair

@@ -9,20 +9,21 @@ function Test-Match {
     return ($Files | Where-Object { $_ -match $Pattern }).Count -gt 0
 }
 
-try {
-    # Get changed files
     # Try exact match first
-    if (git rev-parse --verify $BaseRef 2>$null) {
-        $Diff = git diff --name-only $BaseRef...$HeadRef
+    Write-Host "Verifying BaseRef: $BaseRef"
+    if (git rev-parse --verify "$BaseRef" 2>$null) {
+        Write-Host "BaseRef found. Diffing $BaseRef...$HeadRef"
+        $Diff = git diff --name-only "$BaseRef...$HeadRef"
     } elseif (git rev-parse --verify "origin/$BaseRef" 2>$null) {
-        # Fallback to origin/BaseRef if local not found
+        Write-Host "Fallback to origin/$BaseRef. Diffing origin/$BaseRef...$HeadRef"
         $Diff = git diff --name-only "origin/$BaseRef...$HeadRef"
     } else {
-        # Fallback to direct diff if merge base fails
-        $Diff = git diff --name-only $BaseRef $HeadRef
+        Write-Host "BaseRef not found. Direct diff $BaseRef $HeadRef"
+        $Diff = git diff --name-only "$BaseRef" "$HeadRef"
     }
 } catch {
-    Write-Warning "Could not determine diff. defaulting to full build."
+    Write-Warning "Git error: $_"
+    Write-Warning "Defaulting to full build."
     $Diff = @("gardener/", "router/")
 }
 
