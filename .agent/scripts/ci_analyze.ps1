@@ -9,6 +9,7 @@ function Test-Match {
     return ($Files | Where-Object { $_ -match $Pattern }).Count -gt 0
 }
 
+try {
     # Try exact match first
     Write-Host "Verifying BaseRef: $BaseRef"
     if (git rev-parse --verify "$BaseRef" 2>$null) {
