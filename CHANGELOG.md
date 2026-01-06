@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.9.65] - 2026-01-06 (Android Connectivity Repair Part 2)
+
+### P2P & Networking
+
+- **Crash Fix**: Resolved a `Bad state` crash when restarting the P2P node. Now correctly manages the `ReceivePort` lifecycle by closing and recreating it during restarts.
+- **Log Hygiene**: Removed `bootstrap.libp2p.io` from the startup forensics check, eliminating persistent DNS error logs on Android.
+
 ## [1.9.64] - 2026-01-06 (Android Connectivity Repair)
 
 ### P2P & Networking

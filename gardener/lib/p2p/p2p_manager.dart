@@ -37,7 +37,7 @@ class P2PManager {
   SendPort? toIsolatePort;
 
   /// Port used to receive messages from the background isolate.
-  final ReceivePort _fromIsolatePort = ReceivePort();
+  ReceivePort? _fromIsolatePort;
 
   final FlutterSecureStorage _storage;
   final SecurityManager _security;
@@ -105,10 +105,13 @@ class P2PManager {
     // Run raw network diagnostics in background
     unawaited(NetworkConstants.pingBootstrapPeers());
 
+    // Create a NEW receive port for this session to avoid "Stream already listened to"
+    _fromIsolatePort = ReceivePort();
+
     _p2pIsolate = await Isolate.spawn(
       _p2pIsolateEntryPoint,
       P2PInitData(
-        sendPort: _fromIsolatePort.sendPort,
+        sendPort: _fromIsolatePort!.sendPort,
         privateKey: privateKey,
         storagePath: storagePath,
         autoBootstrap: autoBootstrap,
@@ -120,7 +123,7 @@ class P2PManager {
       debugName: 'SS_P2P_Isolate',
     );
 
-    _fromIsolatePort.listen((message) {
+    _fromIsolatePort!.listen((message) {
       if (message is SendPort) {
         toIsolatePort = message;
         _isInitialized = true;
@@ -306,6 +309,9 @@ class P2PManager {
     _heartbeatTimer?.cancel();
     _statusTimer?.cancel();
     _p2pIsolate?.kill(priority: Isolate.immediate);
+    _fromIsolatePort
+        ?.close(); // Close the port so it can be recreated on restart
+    _fromIsolatePort = null;
     _isInitialized = false;
     peerCount.value = 0;
     _diagnosticMetadata['status'] = 'Stopped';

@@ -150,7 +150,7 @@ class NetworkConstants {
     // Extract hosts and ports from multiaddrs
     final targets = [
       {'host': 'seedsphere.fly.dev', 'port': 4001},
-      {'host': 'bootstrap.libp2p.io', 'port': 4001},
+      // {'host': 'bootstrap.libp2p.io', 'port': 4001}, // Removed: unreliable DNS on Android
       {'host': '104.131.131.82', 'port': 4001}, // Mars
       {'host': '104.236.179.241', 'port': 4001}, // Pluto
       {'host': '128.199.219.111', 'port': 4001}, // Earth
