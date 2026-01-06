@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.9.57] - 2026-01-05 (CI Environment Parity)
+
+### CI/CD Repair
+
+- **Environment Parity**: Updated `ci-gardener.yml` and `ci-dynamic.yml` to include the full Linux build toolchain (`clang`, `cmake`, `pkg-config`, `libgtk-3-dev`). This ensures that plugin resolution steps that rely on native build configuration (like `flutter_secure_storage`) succeed in the test environment, matching the release environment exactly.
+
 ## [1.9.56] - 2026-01-05 (YAML Syntax Fixed)
 
 ### CI/CD Repair

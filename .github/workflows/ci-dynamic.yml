@@ -41,7 +41,7 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y libsqlite3-dev libsecret-1-dev
+          sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev libstdc++-12-dev libsecret-1-dev libsqlite3-dev libjsoncpp-dev libnm-dev
 
       - name: Setup Dart
         if: matrix.project == 'router'
