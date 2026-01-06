@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.9.55] - 2026-01-05 (Final Consistency Polish)
+
+### CI/CD Repair
+
+- **Linux Builder Sync**: Unified dependencies for `Gardener Build (Linux)` workflow. x64 builder now installs `libnm-dev` and `libjsoncpp-dev` to strictly match the ARM64 environment, eliminating potential cross-architecture behavior validation discrepancies.
+- **Validation**: Full audit of all 6 GitHub Actions workflows completed and patched.
+
 ## [1.9.54] - 2026-01-05 (Release Workflow Sync)
 
 ### CI/CD Repair
