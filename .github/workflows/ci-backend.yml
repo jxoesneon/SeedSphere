@@ -40,6 +40,7 @@ jobs:
         with:
           path: ~/.pub-cache
           key: ${{ runner.os }}-dart-${{ hashFiles('router/pubspec.lock') }}
+          restore-keys: |
             ${{ runner.os }}-dart-
 
       - name: Install System Dependencies

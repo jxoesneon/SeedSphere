@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.9.56] - 2026-01-05 (YAML Syntax Fixed)
+
+### CI/CD Repair
+
+- **Syntax Error Fixed**: Patched `ci-backend.yml` to resolve a critical YAML syntax error in the caching step (`restore-keys` was missing). This prevented the workflow from initializing.
+- **Verification**: `gradlew` permissions confirmed executable.
+
 ## [1.9.55] - 2026-01-05 (Final Consistency Polish)
 
 ### CI/CD Repair
