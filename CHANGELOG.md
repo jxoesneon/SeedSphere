@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.9.52] - 2026-01-05 (Dynamic CI Fix)
+
+### CI/CD Repair
+
+- **Dynamic Workflow**: PATCHED `ci-dynamic.yml` to gracefully handle empty build matrices (e.g., doc-only changes) instead of crashing on index access.
+- **Verification**: Confirmed `xcodebuild` (iOS) and `npm run build` (Bridge) pass locally with production configurations.
+
 ## [1.9.51] - 2026-01-05 (Workflow Dependencies)
 
 ### CI/CD Repair

@@ -25,7 +25,7 @@ jobs:
 
   build:
     needs: analyze
-    if: ${{ fromJson(needs.analyze.outputs.matrix).include[0] }} # Only run if matrix is not empty
+    if: ${{ fromJson(needs.analyze.outputs.matrix).include[0] != null }} # Graceful null check
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
