@@ -40,10 +40,15 @@ class NetworkConstants {
   static List<String> get p2pBootstrapPeers {
     // Note: /dnsaddr typically resolves to the fly.dev instance's multiaddr
     return [
-      '/dns4/seedsphere-router.fly.dev/tcp/4001',
-      '/dns4/seedsphere-router.fly.dev/udp/4001/quic',
-      '/dns6/seedsphere-router.fly.dev/tcp/4001',
-      '/dns6/seedsphere-router.fly.dev/udp/4001/quic',
+      '/dns4/seedsphere.fly.dev/tcp/4001',
+      '/dns4/seedsphere.fly.dev/udp/4001/quic',
+      '/dns6/seedsphere.fly.dev/tcp/4001',
+      '/dns6/seedsphere.fly.dev/udp/4001/quic',
+      // Static IP Fallbacks (Fly.io Anycast)
+      '/ip4/66.241.125.244/tcp/4001',
+      '/ip4/66.241.125.244/udp/4001/quic',
+      '/ip6/2a09:8280:1::93:7d1e:0/tcp/4001',
+      '/ip6/2a09:8280:1::93:7d1e:0/udp/4001/quic',
       // Fallback to public bootstrap nodes
       '/dnsaddr/bootstrap.libp2p.io/p2p/QmNnooDu7bfjPFoTZYxMNLWUQJyrVwtbZg5gBMjTezGAJN',
       '/dnsaddr/bootstrap.libp2p.io/p2p/QmQCU2EcMqAqQPR2i9bChDtGNJchTbq5TbXJJ16u19uLTa',
@@ -61,7 +66,8 @@ class NetworkConstants {
 
     // Extract hosts and ports from multiaddrs
     final targets = [
-      {'host': 'seedsphere-router.fly.dev', 'port': 4001},
+      {'host': 'seedsphere.fly.dev', 'port': 4001},
+      {'host': '66.241.125.244', 'port': 4001},
       {'host': 'bootstrap.libp2p.io', 'port': 4001},
       {'host': '104.131.131.82', 'port': 4001},
     ];

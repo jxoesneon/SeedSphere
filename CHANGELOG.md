@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.9.40] - 2026-01-05 (DNS Resilience)
+
+### Critical Connectivity Fixes
+
+- **Hostname Correction**: Fixed a typo in the bootstrap configuration where `seedsphere-router.fly.dev` (invalid) was used instead of `seedsphere.fly.dev`.
+- **Static IP Fallback**: Hardcoded the router's Anycast IP (`66.241.125.244` / `2a09:8280...`) to bypass DNS resolution failures on restrictive networks (e.g., Android Emulators).
+
 ## [1.9.39] - 2026-01-05 (Forensic Diagnostics)
 
 ### Forensic Suite
