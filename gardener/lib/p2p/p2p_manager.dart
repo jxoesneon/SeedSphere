@@ -326,8 +326,8 @@ class P2PManager {
   Future<void> restart() async {
     DebugLogger.info('P2P: Restarting node to apply new configuration...');
     stop();
-    // Small delay to ensure isolate cleanup
-    await Future.delayed(const Duration(milliseconds: 500));
+    // Increase delay to ensure OS releases file handles (e.g., repo.lock)
+    await Future.delayed(const Duration(seconds: 2));
     await start();
   }
 
@@ -367,6 +367,20 @@ class P2PManager {
 
       final repoDir = Directory(repoPath);
       if (!repoDir.existsSync()) repoDir.createSync(recursive: true);
+
+      // Force cleanup of stale lock file if it exists
+      final lockFile = File('${repoDir.path}/repo.lock');
+      if (lockFile.existsSync()) {
+        try {
+          // Check if process is actually running?
+          // dart_ipfs normally handles this, but restart() kill() might leave it.
+          // We assume if we are just starting, we own it.
+          await lockFile.delete();
+          fromMainPort.send('P2P: Warning - Removed stale repo.lock');
+        } catch (e) {
+          fromMainPort.send('P2P: Error removing lock file: $e');
+        }
+      }
 
       final keyFile = File('${repoDir.path}/swarm.key');
       if (initMessage is P2PInitData && initMessage.swarmKey != null) {

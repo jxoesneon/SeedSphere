@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.9.66] - 2026-01-06 (Android Connectivity Repair Part 3)
+
+### P2P & Networking
+
+- **Lock File Cleanup**: Added robust cleanup of stale `repo.lock` files during P2P node startup. This prevents the node from hanging if the previous session was terminated abruptly (e.g., during a restart).
+- **Restart Tuning**: Increased the restart delay to 2 seconds to ensure the OS has time to release all file handles before the new isolate takes over.
+
 ## [1.9.65] - 2026-01-06 (Android Connectivity Repair Part 2)
 
 ### P2P & Networking

@@ -98,7 +98,7 @@ class _SwarmDashboardState extends ConsumerState<SwarmDashboard> {
           // ignore: use_build_context_synchronously
           if (mounted) {
             // We can access the provider directly via ref since we differ the call
-            ref.read(p2pManagerProvider).restart();
+            await ref.read(p2pManagerProvider).restart();
           }
         }
       } else if (response.statusCode == 401 || response.statusCode == 403) {
