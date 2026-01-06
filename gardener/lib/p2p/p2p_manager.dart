@@ -303,8 +303,26 @@ class P2PManager {
   ///
   /// Kills the P2P isolate immediately and resets initialization state.
   void stop() {
+    _heartbeatTimer?.cancel();
+    _statusTimer?.cancel();
     _p2pIsolate?.kill(priority: Isolate.immediate);
     _isInitialized = false;
+    peerCount.value = 0;
+    _diagnosticMetadata['status'] = 'Stopped';
+    _diagnosticMetadata['peerId'] = 'Unknown';
+    _diagnosticMetadata['addresses'] = 'None';
+  }
+
+  /// Restarts the P2P node.
+  ///
+  /// Useful when credentials (like Swarm Key or Shared Secret) are updated
+  /// after the initial start.
+  Future<void> restart() async {
+    DebugLogger.info('P2P: Restarting node to apply new configuration...');
+    stop();
+    // Small delay to ensure isolate cleanup
+    await Future.delayed(const Duration(milliseconds: 500));
+    await start();
   }
 
   /// Entry point for the P2P background isolate.

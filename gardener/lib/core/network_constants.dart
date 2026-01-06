@@ -122,9 +122,9 @@ class NetworkConstants {
       '/dns4/seedsphere.fly.dev/udp/4001/quic',
       '/dns6/seedsphere.fly.dev/tcp/4001',
       '/dns6/seedsphere.fly.dev/udp/4001/quic',
-      // Fallback to public bootstrap nodes (DNS & Static IP)
-      '/dnsaddr/bootstrap.libp2p.io/p2p/QmNnooDu7bfjPFoTZYxMNLWUQJyrVwtbZg5gBMjTezGAJN',
-      '/dnsaddr/bootstrap.libp2p.io/p2p/QmQCU2EcMqAqQPR2i9bChDtGNJchTbq5TbXJJ16u19uLTa',
+      // Fallback to public bootstrap nodes (Static IP only for reliability on Android)
+      // '/dnsaddr/bootstrap.libp2p.io/p2p/QmNnooDu7bfjPFoTZYxMNLWUQJyrVwtbZg5gBMjTezGAJN', // Fails DNS on some Androids
+      // '/dnsaddr/bootstrap.libp2p.io/p2p/QmQCU2EcMqAqQPR2i9bChDtGNJchTbq5TbXJJ16u19uLTa',
       // Public Static IPs (Protocol Labs - Mars, Earth, Venus)
       '/ip4/104.131.131.82/tcp/4001/p2p/QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ',
       '/ip4/104.131.131.82/udp/4001/quic/p2p/QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ',

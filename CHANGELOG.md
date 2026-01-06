@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.9.64] - 2026-01-06 (Android Connectivity Repair)
+
+### P2P & Networking
+
+- **Bootstrap Fix**: Removed `bootstrap.libp2p.io` DNS entry which caused resolution failures on some Android devices. Now relies exclusively on verified static IPs (Protocol Labs) and Fly.io Anycast.
+- **Session Healing**: Implemented `P2PManager.restart()` and wired it to the session healing logic. This ensures the P2P node is re-initialized with the Shared Secret immediately after authentication parity is restored, fixing the "Heartbeat skipped" warning.
+- **Stability**: Enhanced P2P stop logic to clear timers and reset peer counts correctly.
+
 ## [1.9.63] - 2026-01-05 (CodeQL Stabilization)
 
 ### CI/CD Repair

@@ -93,6 +93,13 @@ class _SwarmDashboardState extends ConsumerState<SwarmDashboard> {
           DebugLogger.info(
             'Swarm: Session healed. Device linked successfully.',
           );
+
+          // Restart P2P to inject the new shared secret for heartbeats
+          // ignore: use_build_context_synchronously
+          if (mounted) {
+            // We can access the provider directly via ref since we differ the call
+            ref.read(p2pManagerProvider).restart();
+          }
         }
       } else if (response.statusCode == 401 || response.statusCode == 403) {
         // Token expired
