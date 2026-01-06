@@ -33,6 +33,11 @@ jobs:
           channel: stable
           cache: true
 
+      - name: Install Linux Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libsqlite3-dev libsecret-1-dev
+
       - name: Install Dependencies
         run: flutter pub get
 

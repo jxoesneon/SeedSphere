@@ -2,9 +2,9 @@ name: Dynamic CI
 
 on:
   pull_request:
-    branches: [ main ]
+    branches: [main]
   push:
-    branches: [ main ]
+    branches: [main]
 
 jobs:
   analyze:
@@ -32,11 +32,17 @@ jobs:
       matrix: ${{ fromJson(needs.analyze.outputs.matrix) }}
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Setup Flutter
         if: matrix.project == 'gardener'
         uses: subosito/flutter-action@v2
-        
+
+      - name: Install Linux Dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libsqlite3-dev libsecret-1-dev
+
       - name: Setup Dart
         if: matrix.project == 'router'
         uses: dart-lang/setup-dart@v1

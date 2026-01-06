@@ -40,8 +40,13 @@ jobs:
         with:
           path: ~/.pub-cache
           key: ${{ runner.os }}-dart-${{ hashFiles('router/pubspec.lock') }}
-          restore-keys: |
             ${{ runner.os }}-dart-
+
+      - name: Install System Dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libsqlite3-dev
 
       - name: Install Dependencies
         run: dart pub get

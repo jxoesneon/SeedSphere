@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.9.51] - 2026-01-05 (Workflow Dependencies)
+
+### CI/CD Repair
+
+- **Linux Runners**: Added `libsqlite3-dev` and `libsecret-1-dev` installation steps to `ci-backend.yml`, `ci-gardener.yml`, and `ci-dynamic.yml`. This addresses crashes where `dart/flutter test` fails to load native shared libraries on clean Ubuntu runners.
+- **Strict Compliance**: Verified all workflows now explicitly manage their native dependencies.
+
 ## [1.9.50] - 2026-01-05 (Final CI Polish)
 
 ### CI/CD Verification
