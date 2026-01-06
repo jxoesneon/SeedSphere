@@ -20,7 +20,7 @@ jobs:
         id: set-matrix
         shell: pwsh
         run: |
-          $Matrix = ./.agent/scripts/ci_analyze.ps1 -BaseRef origin/${{ github.base_ref || 'HEAD~1' }}
+          $Matrix = ./.agent/scripts/ci_analyze.ps1 -BaseRef ${{ github.base_ref || 'HEAD~1' }}
           echo "matrix=$Matrix" >> $env:GITHUB_OUTPUT
 
   build:

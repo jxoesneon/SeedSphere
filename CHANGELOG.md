@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.9.60] - 2026-01-05 (Final CI Verification)
+
+### CI/CD Repair
+
+- **Regression Fix**: Reverted the `origin/` prefix in `ci-dynamic.yml` introduced in v1.9.59. This prefix caused failures on Push events where the base ref (`HEAD~1`) is local. The enhanced `ci_analyze.ps1` script now correctly handles both local and remote reference resolution automatically.
+
 ## [1.9.59] - 2026-01-05 (Dynamic CI Logic Fix)
 
 ### CI/CD Repair
