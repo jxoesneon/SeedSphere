@@ -123,7 +123,13 @@ void main() {
         null,
       );
 
-      final event = await events.next;
+      // 1. TRACE from Command
+      var event = await events.next;
+      expect(event, isA<Map>());
+      expect(event['msg'], contains('CMD: Publish'));
+
+      // 2. DHT Log
+      event = await events.next;
       expect(event, isA<Map>());
       expect(event['msg'], contains('Seeding metadata'));
     });
