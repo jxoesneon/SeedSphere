@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.9.67] - 2026-01-06 (Android Connectivity Repair Part 4)
+
+### P2P & Networking
+
+- **Diagnostic Mode**: Temporarily disabled UDP/QUIC listeners and added verbose startup logs (every step) to diagnose a persistent node initialization hang on specific Android devices.
+- **Status Reporting**: Corrected the "Status" diagnostic field to correctly report "Starting..." during initialization instead of appearing as "Stopped".
+
 ## [1.9.66] - 2026-01-06 (Android Connectivity Repair Part 3)
 
 ### P2P & Networking

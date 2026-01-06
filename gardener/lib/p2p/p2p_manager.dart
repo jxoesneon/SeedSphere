@@ -102,6 +102,8 @@ class P2PManager {
     final scrapeSwarm = prefs.getBool('p2p_scrape_swarm') ?? true;
     final swarmTopN = prefs.getInt('p2p_swarm_top_n') ?? 20;
 
+    _diagnosticMetadata['status'] = 'Starting...';
+
     // Run raw network diagnostics in background
     unawaited(NetworkConstants.pingBootstrapPeers());
 
@@ -360,18 +362,28 @@ class P2PManager {
     try {
       fromMainPort.send('P2P: Initializing IPFS Node...');
 
+      fromMainPort.send('[DEBUG] P2P: Resolving storage path...');
       // Use provided safe storage path or fallback (though fallback is risky on mobile)
       final repoPath = storagePath != null
           ? '$storagePath/ipfs_repo'
           : (Platform.environment['IPFS_PATH'] ?? './.ipfs');
 
+      fromMainPort.send('[DEBUG] P2P: Repo Path resolved to: $repoPath');
+
       final repoDir = Directory(repoPath);
-      if (!repoDir.existsSync()) repoDir.createSync(recursive: true);
+      if (!repoDir.existsSync()) {
+        fromMainPort.send('[DEBUG] P2P: Repo directory missing. Creating...');
+        repoDir.createSync(recursive: true);
+        fromMainPort.send('[DEBUG] P2P: Repo directory created.');
+      } else {
+        fromMainPort.send('[DEBUG] P2P: Repo directory exists.');
+      }
 
       // Force cleanup of stale lock file if it exists
       final lockFile = File('${repoDir.path}/repo.lock');
       if (lockFile.existsSync()) {
         try {
+          fromMainPort.send('[DEBUG] P2P: Found stale repo.lock. Deleting...');
           // Check if process is actually running?
           // dart_ipfs normally handles this, but restart() kill() might leave it.
           // We assume if we are just starting, we own it.
@@ -380,28 +392,39 @@ class P2PManager {
         } catch (e) {
           fromMainPort.send('P2P: Error removing lock file: $e');
         }
+      } else {
+        fromMainPort.send('[DEBUG] P2P: No stale lock file found.');
       }
 
       final keyFile = File('${repoDir.path}/swarm.key');
       if (initMessage is P2PInitData && initMessage.swarmKey != null) {
+        fromMainPort.send('[DEBUG] P2P: Configuring Private Swarm Key...');
         final keyContent =
             '/key/swarm/psk/1.0.0/\n/base16/\n${initMessage.swarmKey}';
         await keyFile.writeAsString(keyContent);
         fromMainPort.send('P2P: Private Swarm Enabled');
       } else {
         if (keyFile.existsSync()) {
+          fromMainPort.send('[DEBUG] P2P: Cleaning up old Swarm Key...');
           await keyFile.delete();
           fromMainPort.send('P2P: Joining Public Swarm');
+        } else {
+          fromMainPort.send('[DEBUG] P2P: No Swarm Key configuration needed.');
         }
       }
 
       // Merge defaults with custom peers if auto-bootstrap is enabled
+      fromMainPort.send('[DEBUG] P2P: Configuring Bootstrap Peers...');
       final finalBootstrapPeers = <String>[];
       if (autoBootstrap) {
         finalBootstrapPeers.addAll(NetworkConstants.p2pBootstrapPeers);
       }
       finalBootstrapPeers.addAll(bootstrapPeers);
+      fromMainPort.send(
+        '[DEBUG] P2P: Bootstrap list size: ${finalBootstrapPeers.length}',
+      );
 
+      fromMainPort.send('P2P: Creating IPFS Node instance...');
       final IPFSNode node = await IPFSNode.create(
         IPFSConfig(
           dataPath: '$repoPath/data',
@@ -411,15 +434,17 @@ class P2PManager {
           network: NetworkConfig(
             listenAddresses: [
               '/ip4/0.0.0.0/tcp/4001',
-              '/ip4/0.0.0.0/udp/4001/quic',
+              // '/ip4/0.0.0.0/udp/4001/quic', // Disable QUIC in 1.9.67 debug to rule out binding hang
             ],
             bootstrapPeers: finalBootstrapPeers,
             enableNatTraversal: enableNatTraversal,
           ),
         ),
       );
+      fromMainPort.send('P2P: IPFS Node created. Starting service...');
 
       await node.start();
+      fromMainPort.send('P2P: IPFS Node service started.');
 
       final peerId = node.peerId;
       final addresses = node.addresses;
