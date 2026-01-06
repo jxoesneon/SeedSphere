@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.9.49] - 2026-01-05 (iOS & Docker Fix)
+
+### Platform & Deployment
+
+- **iOS Compatibility**: Updated `ios/Podfile` to target iOS 14.0, resolving "Ineligible destinations" errors in CodeQL (xcodebuild) workflow.
+- **Docker Deployment**: Corrected `router/Dockerfile` to use `dart build cli` instead of the legacy `dart build` command, ensuring reliable server container builds.
+
 ## [1.9.48] - 2026-01-05 (Deep CI/Build Fix)
 
 ### Critical Infrastructure
