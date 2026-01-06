@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.9.43] - 2026-01-05 (Android 16 Readiness)
+
+### Platform Compatibility
+
+- **Android 13+ Support**: Added `NEARBY_WIFI_DEVICES` permission to `AndroidManifest.xml` to support local mDNS discovery on modern Android versions (API 33+).
+- **Cleartext Traffic**: Enabled `usesCleartextTraffic="true"` to prevent OS-level blocking of raw TCP socket connections (e.g., P2P bootstrapping) on restrictive networks.
+
 ## [1.9.42] - 2026-01-05 (Public Static IP Fallback)
 
 ### Bootstrap Resilience
