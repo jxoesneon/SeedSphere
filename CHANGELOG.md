@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.9.54] - 2026-01-05 (Release Workflow Sync)
+
+### CI/CD Repair
+
+- **Release Automation**: Synced `gardener-ci.yml` (Release Workflow) with the dependencies verified in v1.9.51. Added `libsqlite3-dev` to both x64 and ARM64 Linux build environments to prevent release build failures.
+- **Final Status**: All CI/CD pipelines (PR, Dynamic, Deploy, Release) now use unified, hardened dependency lists.
+
 ## [1.9.53] - 2026-01-05 (Deploy Verification Fix)
 
 ### CI/CD Repair
