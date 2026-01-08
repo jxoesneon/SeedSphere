@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.9.68] - 2026-01-08 (System Maintenance)
+
+### Portal & UX
+
+- **Maintenance Mode**: Updated the default portal (`seedsphere.fly.dev`) to serve a "System Under Maintenance" page implementing the Aetheric Glass design system.
+- **Maintenance Screen**: Added `MaintenanceScreen` to the Gardener app for future in-app outages.
+- **Operations**: Added `toggle_maintenance.sh` script to switch the portal between production and maintenance modes.
+
 ## [1.9.67] - 2026-01-06 (Android Connectivity Repair Part 4)
 
 ### P2P & Networking
