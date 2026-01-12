@@ -260,7 +260,7 @@ jobs:
 
       - name: Build macOS (Universal)
         # Flutter builds universal binary by default on macOS
-        run: flutter build macos --release --no-codesign --dart-define=GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET_DESKTOP }}
+        run: flutter build macos --release --dart-define=GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET_DESKTOP }}
 
       - name: Create DMG (Universal)
         run: |
