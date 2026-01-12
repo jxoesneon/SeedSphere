@@ -17,7 +17,7 @@ publish_to: "none"
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-version: 1.9.68
+version: 2.0.0
 
 environment:
   sdk: ^3.10.0
@@ -27,7 +27,7 @@ dependencies:
     sdk: flutter
 
   cupertino_icons: ^1.0.8
-  dart_ipfs: ^1.8.0
+  dart_ipfs: ^1.8.8
   p2plib: ^2.3.1
   flutter_background_service: ^5.1.0
   workmanager: ^0.9.0+3
@@ -51,6 +51,7 @@ dependencies:
   intl: ^0.20.2
   path_provider: ^2.1.5
   eventflux: ^2.2.1
+  xml: ^6.6.1
 
 dev_dependencies:
   flutter_test:
@@ -58,6 +59,11 @@ dev_dependencies:
   flutter_lints: ^6.0.0
   mocktail: ^1.0.4
   flutter_background_service_android: ^6.3.1
+  build_runner: ^2.10.4
+  mockito: ^5.6.1
+  test: ^1.26.3
+  plugin_platform_interface: ^2.1.8
+  url_launcher_platform_interface: ^2.3.2
 
 flutter:
   uses-material-design: true
@@ -69,5 +75,6 @@ flutter:
     - assets/shaders/aetheric_glass.frag
 
 dependency_overrides:
-  protobuf: 5.1.0
   pointycastle: 4.0.0
+  dart_libp2p:
+    path: vendor/dart_libp2p
