@@ -32,6 +32,7 @@ class RutorScraper extends BaseScraper {
               'infoHash': _extractInfoHash(m),
               'magnetUrl': m,
               'provider': 'Rutor',
+              'seeders': 0, // HTML scraping - seeder count not easily available
             },
           )
           .toList();

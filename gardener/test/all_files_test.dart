@@ -3,7 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter/physics.dart';
 
 // Core
-import 'package:gardener/core/debrid_client.dart';
+import 'package:gardener/core/config_manager.dart';
 import 'package:gardener/core/haptic_manager.dart';
 import 'package:gardener/core/identity_manager.dart';
 import 'package:gardener/core/local_kms.dart';

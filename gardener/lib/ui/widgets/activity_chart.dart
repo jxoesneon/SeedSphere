@@ -39,29 +39,72 @@ class ActivityChart extends StatelessWidget {
           const SizedBox(height: 16),
           SizedBox(
             height: 100,
-            child: LineChart(
-              LineChartData(
-                gridData: const FlGridData(show: false),
-                titlesData: const FlTitlesData(show: false),
-                borderData: FlBorderData(show: false),
-                lineBarsData: [
-                  LineChartBarData(
-                    spots: dataPoints
-                        .asMap()
-                        .entries
-                        .map((e) => FlSpot(e.key.toDouble(), e.value))
-                        .toList(),
-                    isCurved: true,
-                    color: color,
-                    barWidth: 2,
-                    isStrokeCapRound: true,
-                    dotData: const FlDotData(show: false),
-                    belowBarData: BarAreaData(
-                      show: true,
-                      color: color.withValues(alpha: 0.1),
+            child: ShaderMask(
+              shaderCallback: (Rect bounds) {
+                return const LinearGradient(
+                  begin: Alignment.centerLeft,
+                  end: Alignment.centerRight,
+                  colors: [
+                    Colors.transparent,
+                    Colors.black,
+                    Colors.black,
+                    Colors.transparent,
+                  ],
+                  stops: [0.0, 0.1, 0.9, 1.0],
+                ).createShader(bounds);
+              },
+              blendMode: BlendMode.dstIn,
+              child: LineChart(
+                duration: Duration.zero,
+                LineChartData(
+                  gridData: const FlGridData(show: false),
+                  titlesData: const FlTitlesData(show: false),
+                  borderData: FlBorderData(show: false),
+                  clipData:
+                      const FlClipData.all(), // Force content to stay within fade bounds
+                  minX: 0,
+                  maxX: dataPoints.length.toDouble() - 1,
+                  minY: -30, // Allow for EKG dips
+                  maxY: 110.0,
+                  lineBarsData: [
+                    LineChartBarData(
+                      spots: dataPoints
+                          .asMap()
+                          .entries
+                          .map((e) => FlSpot(e.key.toDouble(), e.value))
+                          .toList(),
+                      isCurved: true,
+                      color: color,
+                      barWidth: 2,
+                      isStrokeCapRound: true,
+                      dotData: const FlDotData(show: false),
+                      belowBarData: BarAreaData(
+                        show: true,
+                        color: color.withValues(alpha: 0.1),
+                      ),
+                    ),
+                  ],
+                  lineTouchData: LineTouchData(
+                    touchTooltipData: LineTouchTooltipData(
+                      getTooltipColor: (_) =>
+                          Colors.black.withValues(alpha: 0.8),
+                      tooltipBorder: const BorderSide(color: Colors.white12),
+                      getTooltipItems: (List<LineBarSpot> touchedBarSpots) {
+                        return touchedBarSpots.map((barSpot) {
+                          // Mask noise: if abs(y) <= 5.0, show "0"
+                          final val = barSpot.y.abs() <= 5.0 ? 0 : barSpot.y;
+                          return LineTooltipItem(
+                            '${val.toInt()}',
+                            GoogleFonts.firaCode(
+                              color: color,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          );
+                        }).toList();
+                      },
                     ),
                   ),
-                ],
+                ),
               ),
             ),
           ),

@@ -34,6 +34,7 @@ class TokyoToshoScraper extends BaseScraper {
               'infoHash': _extractInfoHash(m),
               'magnetUrl': m,
               'provider': 'TokyoTosho',
+              'seeders': 0, // HTML scraping - seeder count not easily available
             },
           )
           .toList();

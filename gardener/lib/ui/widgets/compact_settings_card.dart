@@ -26,6 +26,12 @@ class CompactSettingsCard extends StatefulWidget {
   /// Badge color (defaults to aetherBlue)
   final Color? badgeColor;
 
+  /// Optional hero tag for transitions
+  final String? heroTag;
+
+  /// Optional trailing widget for complex live metrics
+  final Widget? trailing;
+
   /// Priority level affects visual styling
   /// - critical: Primary accent (Swarm Uplink, Key Vault)
   /// - standard: Secondary color (Cortex, Playback)
@@ -43,6 +49,8 @@ class CompactSettingsCard extends StatefulWidget {
     required this.onTap,
     this.statusBadge,
     this.badgeColor,
+    this.heroTag,
+    this.trailing,
     this.priority = SettingsPriority.standard,
   });
 
@@ -136,16 +144,9 @@ class _CompactSettingsCardState extends State<CompactSettingsCard>
                 child: Row(
                   children: [
                     // Leading icon (24dp)
-                    TweenAnimationBuilder<Color?>(
-                      tween: ColorTween(
-                        begin: _iconColor,
-                        end: _isPressed ? AethericTheme.aetherBlue : _iconColor,
-                      ),
-                      duration: const Duration(milliseconds: 200),
-                      builder: (context, color, child) {
-                        return Icon(widget.icon, size: 24, color: color);
-                      },
-                    ),
+                    widget.heroTag != null
+                        ? Hero(tag: widget.heroTag!, child: _buildIcon())
+                        : _buildIcon(),
                     const SizedBox(width: 16),
 
                     // Title and description
@@ -178,10 +179,14 @@ class _CompactSettingsCardState extends State<CompactSettingsCard>
                       ),
                     ),
 
-                    // Optional status badge + chevron
+                    // Optional status badge + trailing + chevron
                     Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
+                        if (widget.trailing != null) ...[
+                          widget.trailing!,
+                          const SizedBox(width: 8),
+                        ],
                         if (widget.statusBadge != null) ...[
                           Container(
                             padding: const EdgeInsets.symmetric(
@@ -229,6 +234,19 @@ class _CompactSettingsCardState extends State<CompactSettingsCard>
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildIcon() {
+    return TweenAnimationBuilder<Color?>(
+      tween: ColorTween(
+        begin: _iconColor,
+        end: _isPressed ? AethericTheme.aetherBlue : _iconColor,
+      ),
+      duration: const Duration(milliseconds: 200),
+      builder: (context, color, child) {
+        return Icon(widget.icon, size: 24, color: color);
+      },
     );
   }
 }

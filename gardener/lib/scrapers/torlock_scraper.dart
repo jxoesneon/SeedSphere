@@ -32,6 +32,7 @@ class TorlockScraper extends BaseScraper {
               'infoHash': _extractInfoHash(m),
               'magnetUrl': m,
               'provider': 'Torlock',
+              'seeders': 0, // HTML scraping - seeder count not easily available
             },
           )
           .toList();

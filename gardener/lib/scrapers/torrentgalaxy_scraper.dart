@@ -42,6 +42,7 @@ class TorrentGalaxyScraper extends BaseScraper {
           'infoHash': _extractInfoHash(magnetUrl),
           'magnetUrl': magnetUrl,
           'provider': 'TorrentGalaxy',
+          'seeders': 0, // HTML scraping - seeder count not easily available
         };
       }).toList();
     } catch (_) {

@@ -1,7 +1,9 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:gardener/ui/theme/aetheric_theme.dart';
+import 'package:gardener/ui/screens/home_screen.dart';
 import 'package:gardener/ui/widgets/aetheric_glass.dart';
 import 'package:gardener/core/network_constants.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -45,10 +47,14 @@ class _UserProfileDialogState extends State<UserProfileDialog> {
     await prefs.remove('user_email');
 
     if (context.mounted) {
-      // Pop the dialog
-      Navigator.pop(context);
-      // Pop the SwarmDashboard to return to HomeScreen (which will then show AuthScreen if triggered)
-      Navigator.pop(context);
+      // Clear the navigation stack and return to HomeScreen
+      unawaited(
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (_) => const HomeScreen()),
+          (route) => false,
+        ),
+      );
     }
   }
 

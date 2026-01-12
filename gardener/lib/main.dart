@@ -8,10 +8,12 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:gardener/ui/theme/aetheric_theme.dart';
 import 'package:gardener/core/local_kms.dart';
 import 'package:gardener/core/keys_helper.dart' as keys_helper;
-import 'package:gardener/background_sentinel.dart';
 import 'package:gardener/core/stremio_server.dart';
+import 'package:gardener/core/config_manager.dart';
 import 'package:gardener/p2p/p2p_manager.dart';
 
+import 'package:gardener/core/network_constants.dart';
+import 'package:gardener/core/debug_config.dart';
 import 'package:gardener/ui/screens/home_screen.dart';
 
 /// The entrance point for the SeedSphere 2.0 application.
@@ -33,6 +35,12 @@ void main() {
   runZonedGuarded(
     () {
       WidgetsFlutterBinding.ensureInitialized();
+      if (DebugConfig.bootstrapGated) {
+        DebugLogger.debug(
+          'GLOBAL_DEBUG: main() started',
+          category: 'BOOTSTRAP',
+        );
+      }
 
       runApp(
         const ProviderScope(child: BootstrapWrapper(child: GardenerApp())),
@@ -72,6 +80,12 @@ class _BootstrapWrapperState extends ConsumerState<BootstrapWrapper> {
   }
 
   Future<void> _bootstrap() async {
+    if (DebugConfig.bootstrapGated) {
+      DebugLogger.debug(
+        'GARDENER_DEBUG: _bootstrap() started',
+        category: 'BOOTSTRAP',
+      );
+    }
     try {
       DebugLogger.info('Gardener: Starting bootstrap sequence...');
 
@@ -79,6 +93,7 @@ class _BootstrapWrapperState extends ConsumerState<BootstrapWrapper> {
       await _requestBackgroundPermissions();
 
       // Initialize minimal core services before UI launch
+      await ConfigManager().init();
       final kms = LocalKMS();
 
       // Prevent app crash on first launch by ensuring placeholder keys exist
@@ -86,18 +101,32 @@ class _BootstrapWrapperState extends ConsumerState<BootstrapWrapper> {
       await keys_helper.ensureKeysExist(kms);
 
       // Initialize background sentinel for P2P network stability
-      DebugLogger.debug('Gardener: Initializing background services...');
-      await initializeService();
+      // DebugLogger.info('GARDENER_DEBUG: Calling initializeService()...');
+      // await initializeService();
+      // DebugLogger.info('GARDENER_DEBUG: initializeService() complete');
 
       // Initialize P2P Manager to get stable identity
-      DebugLogger.debug('Gardener: Initializing P2P Networking...');
+      if (DebugConfig.bootstrapGated) {
+        DebugLogger.info('GARDENER_DEBUG: Calling p2p.start()...');
+      }
       final p2p = ref.read(p2pManagerProvider);
       await p2p.start();
+      if (DebugConfig.bootstrapGated) {
+        DebugLogger.info('GARDENER_DEBUG: p2p.start() complete');
+      }
       final gardenerId = p2p.gardenerId;
 
-      // Start Stremio Manifest Server
-      DebugLogger.debug('Gardener: Starting Stremio Manifest Server...');
-      await StremioServer().start(gardenerId: gardenerId);
+      if (DebugConfig.bootstrapGated) {
+        DebugLogger.info(
+          'GARDENER_DEBUG: Starting Stremio Manifest Server (Port: ${NetworkConstants.stremioManifestPort})...',
+        );
+      }
+      unawaited(StremioServer().start(gardenerId: gardenerId));
+      if (DebugConfig.bootstrapGated) {
+        DebugLogger.info(
+          'GARDENER_DEBUG: Bootstrap complete, setting _initialized = true',
+        );
+      }
 
       // Ensure logs are visible in debug console
       if (kDebugMode) {
@@ -113,6 +142,9 @@ class _BootstrapWrapperState extends ConsumerState<BootstrapWrapper> {
       }
 
       if (mounted) {
+        DebugLogger.info(
+          'GARDENER_DEBUG: Bootstrap successful, setting _initialized = true',
+        );
         setState(() {
           _initialized = true;
         });
@@ -135,38 +167,44 @@ class _BootstrapWrapperState extends ConsumerState<BootstrapWrapper> {
         theme: AethericTheme.darkTheme,
         home: Scaffold(
           body: Center(
-            child: Padding(
-              padding: const EdgeInsets.all(24.0),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.error_outline, color: Colors.red, size: 64),
-                  const SizedBox(height: 16),
-                  const Text(
-                    'Failed to start Gardener',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
+            child: SingleChildScrollView(
+              child: Padding(
+                padding: const EdgeInsets.all(24.0),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(
+                      Icons.error_outline,
+                      color: Colors.red,
+                      size: 64,
                     ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    _error!,
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(color: Colors.white70),
-                  ),
-                  const SizedBox(height: 24),
-                  ElevatedButton(
-                    onPressed: () {
-                      setState(() {
-                        _error = null;
-                      });
-                      _bootstrap();
-                    },
-                    child: const Text('Retry'),
-                  ),
-                ],
+                    const SizedBox(height: 16),
+                    const Text(
+                      'Failed to start Gardener',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      _error!,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(color: Colors.white70),
+                    ),
+                    const SizedBox(height: 24),
+                    ElevatedButton(
+                      onPressed: () {
+                        setState(() {
+                          _error = null;
+                        });
+                        _bootstrap();
+                      },
+                      child: const Text('Retry'),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),

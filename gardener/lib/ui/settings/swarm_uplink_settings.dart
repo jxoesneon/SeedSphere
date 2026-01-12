@@ -6,6 +6,7 @@ import 'package:gardener/ui/widgets/network_mode_toggle.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:gardener/core/debug_logger.dart';
 
 /// Advanced network settings for the P2P swarm uplink.
 class SwarmUplinkSettings extends ConsumerStatefulWidget {
@@ -40,6 +41,9 @@ class _SwarmUplinkSettingsState extends ConsumerState<SwarmUplinkSettings> {
   bool _isAdvancedExpanded = false;
   bool _isSweeping = false;
 
+  // Cache the notifier to safely remove listener in dispose
+  ValueNotifier<int>? _peerCountNotifier;
+
   @override
   void initState() {
     super.initState();
@@ -47,8 +51,9 @@ class _SwarmUplinkSettingsState extends ConsumerState<SwarmUplinkSettings> {
     // Listen to real peer count
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final manager = ref.read(p2pManagerProvider);
-      _peerCount = manager.peerCount.value;
-      manager.peerCount.addListener(_onPeerCountChanged);
+      _peerCountNotifier = manager.peerCount;
+      _peerCount = _peerCountNotifier!.value;
+      _peerCountNotifier!.addListener(_onPeerCountChanged);
       _updateStatus();
     });
   }
@@ -76,7 +81,7 @@ class _SwarmUplinkSettingsState extends ConsumerState<SwarmUplinkSettings> {
 
   @override
   void dispose() {
-    ref.read(p2pManagerProvider).peerCount.removeListener(_onPeerCountChanged);
+    _peerCountNotifier?.removeListener(_onPeerCountChanged);
     _trackerUrlController.dispose();
     super.dispose();
   }
@@ -112,9 +117,12 @@ class _SwarmUplinkSettingsState extends ConsumerState<SwarmUplinkSettings> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(
-            Icons.arrow_back_ios_new_rounded,
-            color: Colors.white70,
+          icon: Hero(
+            tag: 'settings_icon_uplink',
+            child: const Icon(
+              Icons.settings_input_antenna_rounded,
+              color: Colors.white70,
+            ),
           ),
           onPressed: () => Navigator.of(context).pop(),
         ),
@@ -534,7 +542,15 @@ class _SwarmUplinkSettingsState extends ConsumerState<SwarmUplinkSettings> {
                     )
                   : const Icon(Icons.cleaning_services_rounded),
               label: Text(_isSweeping ? 'OPTIMIZING...' : 'Optimize Network'),
-              onPressed: _isSweeping ? null : _handleOptimize,
+              onPressed: _isSweeping
+                  ? null
+                  : () {
+                      DebugLogger.info(
+                        'UI: Optimize Network Pressed',
+                        category: 'UI',
+                      );
+                      _handleOptimize();
+                    },
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.white.withValues(alpha: 0.1),
                 foregroundColor: Colors.white,
@@ -557,7 +573,8 @@ class _SwarmUplinkSettingsState extends ConsumerState<SwarmUplinkSettings> {
     // Trigger real optimization in P2P Node
     final p2p = ref.read(p2pManagerProvider);
     await p2p.start(); // Ensure started
-    p2p.optimize(); // Force re-bootstrap
+    await p2p.start(); // Ensure started
+    await p2p.optimize(); // Force re-bootstrap
 
     if (!mounted) return;
 
@@ -571,6 +588,10 @@ class _SwarmUplinkSettingsState extends ConsumerState<SwarmUplinkSettings> {
         content: Text('Network optimized: Connected to $_peerCount peers'),
         backgroundColor: const Color(0xFF10B981),
       ),
+    );
+    DebugLogger.info(
+      'Swarm: Optimization complete. Peers: $_peerCount',
+      category: 'NET',
     );
   }
 

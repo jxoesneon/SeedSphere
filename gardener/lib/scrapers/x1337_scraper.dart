@@ -80,6 +80,7 @@ class X1337Scraper extends BaseScraper {
           'infoHash': hash,
           'magnetUrl': magnetUrl,
           'provider': '1337x',
+          'seeders': 0, // HTML scraping - seeder count not easily available
         };
       }).toList();
     } catch (_) {

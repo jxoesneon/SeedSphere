@@ -32,6 +32,7 @@ class ZooqleScraper extends BaseScraper {
               'infoHash': _extractInfoHash(m),
               'magnetUrl': m,
               'provider': 'Zooqle',
+              'seeders': 0, // HTML scraping - seeder count not easily available
             },
           )
           .toList();

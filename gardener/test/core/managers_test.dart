@@ -13,6 +13,7 @@ class MockSecureStorage extends Mock implements FlutterSecureStorage {}
 class MockP2PManager extends Mock implements P2PManager {}
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
   late MockSecureStorage mockStorage;
   late MockP2PManager mockP2P;
 

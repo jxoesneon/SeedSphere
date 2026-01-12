@@ -133,11 +133,46 @@ class P2PProtocol {
   ///
   /// [imdbId] - The IMDB identifier.
   ///
-  /// Returns a SHA-256 hash of `ss:stream:v1:${imdbId}` as a hex string.
-  /// This key is used for DHT PUT/GET operations in the distributed hash table.
+  /// Returns a valid CIDv0 string (Base58 encoded Multihash of SHA-256).
+  /// This ensures compatibility with standard IPFS/DHT routing logic.
   static String getDhtKey(String imdbId) {
     final bytes = utf8.encode('ss:stream:v1:$imdbId');
-    return sha256.convert(bytes).toString();
+    final hash = sha256.convert(bytes).bytes;
+
+    // Construct Multihash: <sha2-256 code 0x12> <length 0x20> <digest>
+    final multihash = [0x12, 0x20, ...hash];
+
+    return _base58Encode(multihash);
+  }
+
+  /// Encodes bytes to Base58 (Bitcoin alphabet).
+  static String _base58Encode(List<int> bytes) {
+    const alphabet =
+        '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
+    if (bytes.isEmpty) return '';
+
+    int zeros = 0;
+    while (zeros < bytes.length && bytes[zeros] == 0) {
+      zeros++;
+    }
+
+    BigInt val = BigInt.zero;
+    for (var b in bytes) {
+      val = (val << 8) | BigInt.from(b);
+    }
+
+    String encoded = '';
+    while (val > BigInt.zero) {
+      final mod = val % BigInt.from(58);
+      encoded = alphabet[mod.toInt()] + encoded;
+      val = val ~/ BigInt.from(58);
+    }
+
+    for (int i = 0; i < zeros; i++) {
+      encoded = '1$encoded';
+    }
+
+    return encoded;
   }
 }
 
@@ -171,15 +206,19 @@ class P2PInitData {
   /// Optional private swarm key. If null, joins public network.
   final String? swarmKey;
 
+  /// Whether to enable the libp2p bridge transport.
+  final bool enableLibp2pBridge;
+
   P2PInitData({
     required this.sendPort,
     required this.privateKey,
     required this.storagePath,
     this.autoBootstrap = true,
     this.bootstrapPeers = const [],
-    this.enableNatTraversal = true,
+    this.enableNatTraversal = false,
     this.scrapeSwarm = true,
     this.swarmTopN = 20,
     this.swarmKey,
+    this.enableLibp2pBridge = false,
   });
 }

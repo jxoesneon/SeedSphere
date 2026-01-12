@@ -47,6 +47,7 @@ class PirateBayScraper extends BaseScraper {
           'infoHash': hash,
           'magnetUrl': magnetUrl,
           'provider': 'PirateBay',
+          'seeders': 0, // HTML scraping - seeder count not easily available
         };
       }).toList();
     } catch (_) {

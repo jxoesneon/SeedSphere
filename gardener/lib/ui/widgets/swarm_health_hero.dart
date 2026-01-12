@@ -6,12 +6,14 @@ import 'package:google_fonts/google_fonts.dart';
 class SwarmHealthHero extends StatefulWidget {
   final int peerCount;
   final bool isHealthy;
+  final bool isConnecting;
   final List<DateTime>? heartbeats;
 
   const SwarmHealthHero({
     super.key,
     required this.peerCount,
     this.isHealthy = true,
+    this.isConnecting = false,
     this.heartbeats,
   });
 
@@ -46,8 +48,16 @@ class _SwarmHealthHeroState extends State<SwarmHealthHero>
         ? (widget.heartbeats!.length / 60.0).clamp(0.2, 1.0)
         : 0.5;
 
-    return SizedBox(
-      height: 240,
+    final statusColor = widget.isConnecting
+        ? Colors.blueAccent
+        : (widget.isHealthy ? AethericTheme.success : AethericTheme.warning);
+
+    final statusText = widget.isConnecting
+        ? 'CONNECTING...'
+        : (widget.isHealthy ? 'SYSTEM OPTIMAL' : 'SYSTEM DEGRADED');
+
+    return ConstrainedBox(
+      constraints: const BoxConstraints(minHeight: 240),
       child: Stack(
         alignment: Alignment.center,
         children: [
@@ -58,9 +68,7 @@ class _SwarmHealthHeroState extends State<SwarmHealthHero>
               return CustomPaint(
                 painter: _PulsePainter(
                   animationValue: _controller.value,
-                  color: widget.isHealthy
-                      ? AethericTheme.success
-                      : AethericTheme.warning,
+                  color: statusColor,
                   intensity: pulseFrequency,
                 ),
                 size: const Size(double.infinity, 240),
@@ -92,17 +100,17 @@ class _SwarmHealthHeroState extends State<SwarmHealthHero>
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Icon(
-                      widget.isHealthy
-                          ? Icons.wifi_tethering
-                          : Icons.wifi_tethering_off,
+                      widget.isConnecting
+                          ? Icons.sync_rounded
+                          : (widget.isHealthy
+                                ? Icons.wifi_tethering
+                                : Icons.wifi_tethering_off),
                       size: 48,
-                      color: widget.isHealthy
-                          ? AethericTheme.success
-                          : AethericTheme.warning,
+                      color: statusColor,
                     ),
                     const SizedBox(height: 16),
                     Text(
-                      widget.isHealthy ? 'SYSTEM OPTIMAL' : 'SYSTEM DEGRADED',
+                      statusText,
                       style: GoogleFonts.outfit(
                         fontSize: 24,
                         fontWeight: FontWeight.bold,

@@ -36,6 +36,7 @@ class MagnetDLScraper extends BaseScraper {
               'infoHash': _extractInfoHash(m),
               'magnetUrl': m,
               'provider': 'MagnetDL',
+              'seeders': 0, // HTML scraping - seeder count not easily available
             },
           )
           .toList();

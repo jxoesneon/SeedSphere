@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:gardener/core/config_manager.dart';
 import 'package:gardener/ui/theme/aetheric_theme.dart';
 import 'package:gardener/ui/widgets/settings/settings.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -23,23 +24,67 @@ class PlaybackSettings extends StatefulWidget {
 }
 
 class _PlaybackSettingsState extends State<PlaybackSettings> {
+  final _config = ConfigManager();
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSettings();
+  }
+
+  void _loadSettings() {
+    _sortBy = _config.sortBy;
+    _excludeCam = _config.excludeCam;
+    _exclude3D = _config.exclude3D;
+    _preferHDR = _config.preferHDR;
+    _includeRegex.text = _config.includeRegex;
+    _excludeRegex.text = _config.excludeRegex;
+
+    _autoProxy = _config.autoProxy;
+    _maxTrackersController.text = _config.maxTrackers.toString();
+    _trackerVariant = _config.trackerVariant;
+    _customTrackersUrl.text = _config.customTrackersUrl;
+
+    _appendOriginalDesc = _config.appendOriginalDesc;
+    _requireDetailsForOriginal = _config.requireDetailsForOriginal;
+    _seriesTitleCleanup = _config.seriesTitleCleanup;
+    _preferredSource = _config.preferredSourceType;
+    _languagesController.text = _config.prioritizedLanguages.join(', ');
+  }
+
   /// Current sorting criterion for streams.
-  String _sortBy = 'Resolution';
+  late String _sortBy;
 
   /// Whether to hide theater recordings (CAM/TS).
-  bool _excludeCam = true;
+  late bool _excludeCam;
 
   /// Whether to hide 3D Side-by-Side content.
-  bool _exclude3D = true;
+  late bool _exclude3D;
 
   /// Whether to prioritize HDR or Dolby Vision versions.
-  bool _preferHDR = true;
+  late bool _preferHDR;
 
   /// Regex controller for mandatory string presence in titles.
   final TextEditingController _includeRegex = TextEditingController();
 
   /// Regex controller for mandatory string absence in titles.
   final TextEditingController _excludeRegex = TextEditingController();
+
+  late bool _autoProxy;
+  final TextEditingController _maxTrackersController = TextEditingController();
+  late String _trackerVariant;
+  final TextEditingController _customTrackersUrl = TextEditingController();
+
+  late bool _appendOriginalDesc;
+  late bool _requireDetailsForOriginal;
+  late bool _seriesTitleCleanup;
+  late String _preferredSource;
+  final TextEditingController _languagesController = TextEditingController();
+
+  void _saveInt(TextEditingController controller, Function(int) setter) {
+    final val = int.tryParse(controller.text);
+    if (val != null && val >= 0) setter(val);
+  }
 
   int get _activeFiltersCount {
     int count = 0;
@@ -63,9 +108,12 @@ class _PlaybackSettingsState extends State<PlaybackSettings> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(
-            Icons.arrow_back_ios_new_rounded,
-            color: Colors.white70,
+          icon: Hero(
+            tag: 'settings_icon_playback',
+            child: const Icon(
+              Icons.movie_filter_rounded,
+              color: Colors.white70,
+            ),
           ),
           onPressed: () => Navigator.of(context).pop(),
         ),
@@ -86,6 +134,137 @@ class _PlaybackSettingsState extends State<PlaybackSettings> {
             ),
             const SizedBox(height: 24),
 
+            // Stream Processing
+            const SectionHeader('STREAM PROCESSING'),
+            const SizedBox(height: 8),
+            SettingsToggle(
+              title: 'Auto Proxy',
+              description: 'Aggregate and enhance streams from providers',
+              value: _autoProxy,
+              leadingIcon: Icons.compare_arrows_rounded,
+              onChanged: (v) {
+                setState(() => _autoProxy = v);
+                _config.autoProxy = v;
+              },
+            ),
+            if (_autoProxy) ...[
+              const SizedBox(height: 8),
+              ExpandableSection(
+                title: 'Tracker Configuration',
+                icon: Icons.radar_rounded,
+                child: Column(
+                  children: [
+                    SettingsDropdown<String>(
+                      value: _trackerVariant,
+                      items: const [
+                        'best_ip',
+                        'best',
+                        'all_ip',
+                        'all',
+                        'all_udp',
+                        'all_http',
+                      ],
+                      icon: Icons.list_alt_rounded,
+                      getLabel: (v) => v.toUpperCase().replaceAll('_', ' '),
+                      onChanged: (v) {
+                        setState(() => _trackerVariant = v!);
+                        _config.trackerVariant = v!;
+                      },
+                    ),
+                    const SizedBox(height: 12),
+                    SettingsTextField(
+                      controller: _customTrackersUrl,
+                      label: 'Custom Trackers URL',
+                      hint: 'https://...',
+                      leadingIcon: Icons.link_rounded,
+                      onChanged: (v) {
+                        setState(() {});
+                        _config.customTrackersUrl = v;
+                      },
+                    ),
+                    const SizedBox(height: 12),
+                    SettingsTextField(
+                      controller: _maxTrackersController,
+                      label: 'Max Trackers (0 = Unlimited)',
+                      hint: '0',
+                      leadingIcon: Icons.onetwothree_rounded,
+                      keyboardType: TextInputType.number,
+                      onChanged: (_) => _saveInt(
+                        _maxTrackersController,
+                        (v) => _config.maxTrackers = v,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+            const SizedBox(height: 32),
+
+            // Description Formatting
+            const SectionHeader('FORMATTING'),
+            const SizedBox(height: 8),
+            SettingsToggle(
+              title: 'Append Original Description',
+              description: 'Keep provider description below generated info',
+              value: _appendOriginalDesc,
+              leadingIcon: Icons.description_rounded,
+              onChanged: (v) {
+                setState(() => _appendOriginalDesc = v);
+                _config.appendOriginalDesc = v;
+              },
+            ),
+            const SizedBox(height: 8),
+            SettingsToggle(
+              title: 'Require Details for Fallback',
+              description: 'Use original desc if parsing fails',
+              value: _requireDetailsForOriginal,
+              leadingIcon: Icons.backup_rounded,
+              onChanged: (v) {
+                setState(() => _requireDetailsForOriginal = v);
+                _config.requireDetailsForOriginal = v;
+              },
+            ),
+            const SizedBox(height: 8),
+            SettingsToggle(
+              title: 'Series Title Cleanup',
+              description: 'Rename episodes to clean show names (Heuristic)',
+              value: _seriesTitleCleanup,
+              leadingIcon: Icons.cleaning_services_rounded,
+              onChanged: (v) {
+                setState(() => _seriesTitleCleanup = v);
+                _config.seriesTitleCleanup = v;
+              },
+            ),
+            const SizedBox(height: 32),
+
+            // Content Heuristics
+            const SectionHeader('CONTENT HEURISTICS'),
+            const SizedBox(height: 8),
+            SettingsDropdown<String>(
+              value: _preferredSource,
+              items: const ['Any', 'Blu-ray', 'WEB-DL', 'HDTV'],
+              icon: Icons.high_quality_rounded,
+              getLabel: (v) => 'Prefer: ${v.toUpperCase()}',
+              onChanged: (v) {
+                setState(() => _preferredSource = v!);
+                _config.preferredSourceType = v!;
+              },
+            ),
+            const SizedBox(height: 12),
+            SettingsTextField(
+              controller: _languagesController,
+              label: 'Prioritized Languages',
+              hint: 'English, Spanish...',
+              leadingIcon: Icons.translate_rounded,
+              onChanged: (v) {
+                _config.prioritizedLanguages = v
+                    .split(',')
+                    .map((e) => e.trim())
+                    .toList();
+              },
+            ),
+            const SizedBox(height: 32),
+
             // Sorting Priority
             const SectionHeader('STREAM PRIORITY'),
             const SizedBox(height: 8),
@@ -94,7 +273,12 @@ class _PlaybackSettingsState extends State<PlaybackSettings> {
               items: const ['Resolution', 'Seeders', 'File Size', 'Date'],
               icon: Icons.sort_rounded,
               getLabel: (item) => item,
-              onChanged: (val) => setState(() => _sortBy = val!),
+              onChanged: (val) {
+                if (val != null) {
+                  setState(() => _sortBy = val);
+                  _config.sortBy = val;
+                }
+              },
             ),
             const SizedBox(height: 32),
 
@@ -106,7 +290,10 @@ class _PlaybackSettingsState extends State<PlaybackSettings> {
               description: 'Hide low quality theater recordings',
               value: _excludeCam,
               leadingIcon: Icons.block_rounded,
-              onChanged: (v) => setState(() => _excludeCam = v),
+              onChanged: (v) {
+                setState(() => _excludeCam = v);
+                _config.excludeCam = v;
+              },
             ),
             const SizedBox(height: 8),
             SettingsToggle(
@@ -114,7 +301,10 @@ class _PlaybackSettingsState extends State<PlaybackSettings> {
               description: 'Hide 3D Side-by-Side content',
               value: _exclude3D,
               leadingIcon: Icons.view_in_ar_rounded,
-              onChanged: (v) => setState(() => _exclude3D = v),
+              onChanged: (v) {
+                setState(() => _exclude3D = v);
+                _config.exclude3D = v;
+              },
             ),
             const SizedBox(height: 8),
             SettingsToggle(
@@ -122,7 +312,10 @@ class _PlaybackSettingsState extends State<PlaybackSettings> {
               description: 'Prioritize high dynamic range streams',
               value: _preferHDR,
               leadingIcon: Icons.hdr_on_rounded,
-              onChanged: (v) => setState(() => _preferHDR = v),
+              onChanged: (v) {
+                setState(() => _preferHDR = v);
+                _config.preferHDR = v;
+              },
             ),
             const SizedBox(height: 32),
 
@@ -156,7 +349,10 @@ class _PlaybackSettingsState extends State<PlaybackSettings> {
                     label: 'Must Include (Regex)',
                     hint: 'e.g. (H265|HDR)',
                     leadingIcon: Icons.filter_alt_rounded,
-                    onChanged: (val) => setState(() {}),
+                    onChanged: (val) {
+                      setState(() {});
+                      _config.includeRegex = val;
+                    },
                   ),
                   const SizedBox(height: 12),
                   SettingsTextField(
@@ -164,7 +360,10 @@ class _PlaybackSettingsState extends State<PlaybackSettings> {
                     label: 'Must Exclude (Regex)',
                     hint: 'e.g. (rarbg|CAM)',
                     leadingIcon: Icons.block_rounded,
-                    onChanged: (val) => setState(() {}),
+                    onChanged: (val) {
+                      setState(() {});
+                      _config.excludeRegex = val;
+                    },
                   ),
                 ],
               ),

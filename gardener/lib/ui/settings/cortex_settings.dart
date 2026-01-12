@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:gardener/core/config_manager.dart';
 import 'package:gardener/ui/theme/aetheric_theme.dart';
 import 'package:gardener/ui/widgets/settings/settings.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -25,18 +26,22 @@ class CortexSettings extends StatefulWidget {
 
 class _CortexSettingsState extends State<CortexSettings> {
   final _storage = const FlutterSecureStorage();
+  final _config = ConfigManager();
 
   /// Whether the AI analysis feature is globally enabled.
-  bool _neuroLinkEnabled = true;
+  late bool _neuroLinkEnabled;
 
   /// The currently selected LLM provider.
-  String _selectedProvider = 'DeepSeek'; // Default to DeepSeek
+  late String _selectedProvider;
 
   /// The currently selected model for the provider.
   String? _selectedModel;
 
   /// Verbosity level of the AI (0: Concise, 1: Balanced, 2: Verbose).
-  double _detailLevel = 1.0;
+  late double _detailLevel;
+
+  final TextEditingController _aiTimeoutController = TextEditingController();
+  final TextEditingController _aiCacheTtlController = TextEditingController();
 
   // API Key controllers
   final TextEditingController _deepseekKeyController = TextEditingController();
@@ -47,6 +52,11 @@ class _CortexSettingsState extends State<CortexSettings> {
   final TextEditingController _mistralKeyController = TextEditingController();
   final TextEditingController _metaKeyController = TextEditingController();
   final TextEditingController _cohereKeyController = TextEditingController();
+  final TextEditingController _azureResourceController =
+      TextEditingController();
+  final TextEditingController _azureDeploymentController =
+      TextEditingController();
+  final TextEditingController _azureVersionController = TextEditingController();
 
   /// List of supported AI providers.
   final List<String> _providers = [
@@ -58,6 +68,7 @@ class _CortexSettingsState extends State<CortexSettings> {
     'Mistral',
     'Meta',
     'Cohere',
+    'Azure',
   ];
 
   /// Model lists per provider (December 2025)
@@ -95,13 +106,31 @@ class _CortexSettingsState extends State<CortexSettings> {
     ],
     'Meta': ['llama-4-scout', 'llama-3.3', 'llama-3.1'],
     'Cohere': ['command-r-plus', 'command-r', 'command-a'],
+    'Azure': ['gpt-4', 'gpt-35-turbo'],
   };
 
   @override
   void initState() {
     super.initState();
+    _loadSyncSettings();
     _loadKeys();
-    _selectedModel = _providerModels[_selectedProvider]!.first;
+  }
+
+  void _loadSyncSettings() {
+    _neuroLinkEnabled = _config.neuroLinkEnabled;
+    _selectedProvider = _config.cortexProvider;
+    _selectedModel = _config.cortexModel;
+    _detailLevel = _config.cortexDetailLevel;
+    _aiTimeoutController.text = _config.aiTimeoutMs.toString();
+    _aiCacheTtlController.text = _config.aiCacheTtlMs.toString();
+    _azureResourceController.text = _config.azureResource;
+    _azureDeploymentController.text = _config.azureDeployment;
+    _azureVersionController.text = _config.azureApiVersion;
+  }
+
+  void _saveInt(TextEditingController controller, Function(int) setter) {
+    final val = int.tryParse(controller.text);
+    if (val != null && val >= 0) setter(val);
   }
 
   Future<void> _loadKeys() async {
@@ -122,10 +151,6 @@ class _CortexSettingsState extends State<CortexSettings> {
     if (mounted) setState(() {});
   }
 
-  Future<void> _saveKey(String key, String value) async {
-    await _storage.write(key: key, value: value);
-  }
-
   String get _currentProviderKey {
     switch (_selectedProvider) {
       case 'DeepSeek':
@@ -144,6 +169,9 @@ class _CortexSettingsState extends State<CortexSettings> {
         return _metaKeyController.text;
       case 'Cohere':
         return _cohereKeyController.text;
+      case 'Azure':
+        return _openaiKeyController
+            .text; // Shared store for Azure/OpenAI keys in current config
       default:
         return '';
     }
@@ -165,9 +193,9 @@ class _CortexSettingsState extends State<CortexSettings> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(
-            Icons.arrow_back_ios_new_rounded,
-            color: Colors.white70,
+          icon: Hero(
+            tag: 'settings_icon_cortex',
+            child: const Icon(Icons.psychology_rounded, color: Colors.white70),
           ),
           onPressed: () => Navigator.of(context).pop(),
         ),
@@ -198,7 +226,10 @@ class _CortexSettingsState extends State<CortexSettings> {
                   'Allow AI to analyze and summarize swarm content metadata',
               value: _neuroLinkEnabled,
               leadingIcon: Icons.auto_awesome_rounded,
-              onChanged: (val) => setState(() => _neuroLinkEnabled = val),
+              onChanged: (val) {
+                setState(() => _neuroLinkEnabled = val);
+                _config.neuroLinkEnabled = val;
+              },
             ),
             const SizedBox(height: 32),
 
@@ -215,6 +246,8 @@ class _CortexSettingsState extends State<CortexSettings> {
                 setState(() {
                   _selectedProvider = val!;
                   _selectedModel = _providerModels[val]!.first;
+                  _config.cortexProvider = val;
+                  _config.cortexModel = _selectedModel!;
                 });
               },
             ),
@@ -235,7 +268,12 @@ class _CortexSettingsState extends State<CortexSettings> {
                 items: _providerModels[_selectedProvider]!,
                 icon: Icons.psychology_alt_rounded,
                 getLabel: (model) => model,
-                onChanged: (val) => setState(() => _selectedModel = val!),
+                onChanged: (val) {
+                  if (val != null) {
+                    setState(() => _selectedModel = val);
+                    _config.cortexModel = val;
+                  }
+                },
               ),
               const SizedBox(height: 32),
 
@@ -253,7 +291,45 @@ class _CortexSettingsState extends State<CortexSettings> {
                   1.0: 'Balanced',
                   2.0: 'Verbose',
                 },
-                onChanged: (val) => setState(() => _detailLevel = val),
+                onChanged: (val) {
+                  setState(() => _detailLevel = val);
+                  _config.cortexDetailLevel = val;
+                },
+              ),
+              const SizedBox(height: 32),
+
+              const SectionHeader('PERFORMANCE'),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Expanded(
+                    child: SettingsTextField(
+                      controller: _aiTimeoutController,
+                      label: 'Request Timeout (ms)',
+                      hint: '30000',
+                      leadingIcon: Icons.timer_off_rounded,
+                      keyboardType: TextInputType.number,
+                      onChanged: (_) => _saveInt(
+                        _aiTimeoutController,
+                        (v) => _config.aiTimeoutMs = v,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: SettingsTextField(
+                      controller: _aiCacheTtlController,
+                      label: 'Cache TTL (ms)',
+                      hint: '3600000',
+                      leadingIcon: Icons.history_rounded,
+                      keyboardType: TextInputType.number,
+                      onChanged: (_) => _saveInt(
+                        _aiCacheTtlController,
+                        (v) => _config.aiCacheTtlMs = v,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ] else ...[
               InfoCard(
@@ -270,44 +346,77 @@ class _CortexSettingsState extends State<CortexSettings> {
   }
 
   Widget _buildProviderApiKeyField() {
-    String label, hint, storageKey;
+    String label, hint;
 
     switch (_selectedProvider) {
       case 'OpenAI':
         label = 'OpenAI API Key';
         hint = 'sk-proj-...';
-        storageKey = 'openai_api_key';
         break;
       case 'Anthropic':
         label = 'Anthropic API Key';
         hint = 'sk-ant-...';
-        storageKey = 'anthropic_api_key';
         break;
       case 'Google':
         label = 'Google AI API Key';
         hint = 'AIza...';
-        storageKey = 'google_api_key';
         break;
       case 'xAI':
         label = 'xAI API Key';
         hint = 'xai-...';
-        storageKey = 'xai_api_key';
         break;
       case 'Mistral':
         label = 'Mistral API Key';
         hint = 'mistral-...';
-        storageKey = 'mistral_api_key';
         break;
       case 'Meta':
         label = 'Meta API Key';
         hint = 'meta-...';
-        storageKey = 'meta_api_key';
         break;
       case 'Cohere':
         label = 'Cohere API Key';
         hint = 'cohere-...';
-        storageKey = 'cohere_api_key';
         break;
+      case 'Azure':
+        return Column(
+          children: [
+            SettingsTextField(
+              controller: _azureResourceController,
+              label: 'Resource Name',
+              hint: 'my-openai-resource',
+              leadingIcon: Icons.cloud_circle_rounded,
+              onChanged: (v) => _config.azureResource = v,
+            ),
+            const SizedBox(height: 12),
+            SettingsTextField(
+              controller: _azureDeploymentController,
+              label: 'Deployment Name',
+              hint: 'gpt-4-deploy',
+              leadingIcon: Icons.rocket_launch_rounded,
+              onChanged: (v) => _config.azureDeployment = v,
+            ),
+            const SizedBox(height: 12),
+            SettingsTextField(
+              controller: _azureVersionController,
+              label: 'API Version',
+              hint: '2024-02-15-preview',
+              leadingIcon: Icons.history_edu_rounded,
+              onChanged: (v) => _config.azureApiVersion = v,
+            ),
+            const SizedBox(height: 12),
+            SettingsTextField(
+              controller: _getControllerForProvider('Azure'),
+              label: 'Azure API Key',
+              hint: 'Key 1 or Key 2',
+              obscureText: true,
+              leadingIcon: Icons.key_rounded,
+              onChanged: (val) {
+                _config.setApiKey('Azure', val);
+                setState(() {});
+              },
+            ),
+          ],
+        );
       default:
         return const SizedBox.shrink();
     }
@@ -321,7 +430,7 @@ class _CortexSettingsState extends State<CortexSettings> {
       leadingIcon: Icons.key_rounded,
       obscureText: true,
       onChanged: (val) {
-        _saveKey(storageKey, val);
+        _config.setApiKey(_selectedProvider, val);
         setState(() {}); // Refresh to show/hide model selection
       },
     );
@@ -345,6 +454,8 @@ class _CortexSettingsState extends State<CortexSettings> {
         return _metaKeyController;
       case 'Cohere':
         return _cohereKeyController;
+      case 'Azure':
+        return _openaiKeyController; // Re-use OpenAI controller for simplicity in the UI state
       default:
         return TextEditingController();
     }

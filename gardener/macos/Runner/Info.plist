@@ -49,7 +49,7 @@
 	<key>NSMainNibFile</key>
 	<string>MainMenu</string>
 	<key>NSNetworkVolumesUsageDescription</key>
-	<string></string>
+	<string>Access to network volumes is required for file management.</string>
 	<key>NSPrincipalClass</key>
 	<string>NSApplication</string>
 </dict>

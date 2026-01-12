@@ -38,6 +38,9 @@ class SettingsTextField extends StatelessWidget {
   /// Whether the field is enabled
   final bool enabled;
 
+  /// Optional keyboard type
+  final TextInputType? keyboardType;
+
   const SettingsTextField({
     super.key,
     required this.controller,
@@ -49,6 +52,7 @@ class SettingsTextField extends StatelessWidget {
     this.onChanged,
     this.maxLines = 1,
     this.enabled = true,
+    this.keyboardType,
   });
 
   @override
@@ -65,6 +69,7 @@ class SettingsTextField extends StatelessWidget {
             obscureText: obscureText,
             enabled: enabled,
             maxLines: obscureText ? 1 : maxLines,
+            keyboardType: keyboardType,
             onChanged: onChanged,
             style: GoogleFonts.outfit(color: Colors.white, fontSize: 14),
             decoration: InputDecoration(

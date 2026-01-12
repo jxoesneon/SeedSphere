@@ -15,7 +15,11 @@ class ActivityManager {
   ActivityManager._internal();
 
   final List<Map<String, dynamic>> _recentActivities = [];
-  final http.Client _client = http.Client();
+  http.Client? _customClient;
+  http.Client get _client => _customClient ?? http.Client();
+
+  /// For testing: inject a client
+  void setClient(http.Client client) => _customClient = client;
 
   /// Logs a new activity and reports it to the Router.
   ///

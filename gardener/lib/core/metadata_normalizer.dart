@@ -1,112 +1,242 @@
-/// Normalized stream/torrent metadata model.
-///
-/// Represents a single torrent or stream source with standardized fields
-/// across different scraper providers (YTS, Torrentio, etc.).
-class SeedStream {
-  /// The display title of the stream (e.g., "Movie.2024.1080p.BluRay").
-  final String title;
+import 'package:gardener/core/mapping_constants.dart';
+import 'package:gardener/core/parse_utils.dart';
 
-  /// The BitTorrent infohash (hex string) uniquely identifying the torrent.
-  final String infoHash;
-
-  /// Optional file index within the torrent (for multi-file torrents).
-  final String? fileIdx;
-
-  /// Standardized resolution string: '4K', '1080p', '720p', or 'SD'.
-  final String resolution;
-
-  /// The scraper source provider (e.g., 'YTS', 'Torrentio').
-  final String source;
-
-  /// Number of seeders for this torrent.
-  final int seeders;
-
-  /// Creates a new [SeedStream] instance.
-  SeedStream({
-    required this.title,
-    required this.infoHash,
-    this.fileIdx,
-    required this.resolution,
-    required this.source,
-    required this.seeders,
-  });
-
-  /// Converts this stream to a JSON-serializable map.
-  Map<String, dynamic> toJson() => {
-    'title': title,
-    'infoHash': infoHash,
-    if (fileIdx != null) 'fileIdx': fileIdx,
-    'resolution': resolution,
-    'source': source,
-    'seeders': seeders,
-  };
-}
-
-/// Utility for normalizing stream metadata from different scraper sources.
-///
-/// Different torrent/stream providers use varying field names and formats.
-/// This normalizer standardizes them into a consistent [SeedStream] model.
-///
-/// Example:
-/// ```dart
-/// // Raw data from YTS scraper
-/// final rawYTS = {'title': 'Movie.2024.2160p', 'hash': 'ABC123', 'seeds': 50};
-/// final stream = MetadataNormalizer.normalize(rawYTS, 'YTS');
-/// print(stream.resolution); // '4K'
-///
-/// // Raw data from Torrentio
-/// final rawTorrentio = {'name': 'Movie.720p', 'infoHash': 'DEF456', 'seeders': 10};
-/// final stream2 = MetadataNormalizer.normalize(rawTorrentio, 'Torrentio');
-/// print(stream2.resolution); // '720p'
-/// ```
+/// Normalize metadata using mapping constants.
+/// Port of legacy/server/lib/normalize.cjs
 class MetadataNormalizer {
-  /// Normalizes raw scraper data into a [SeedStream] model.
-  ///
-  /// [raw] - The raw metadata map from a scraper (field names vary by source).
-  /// [provider] - The name of the scraper provider (e.g., 'YTS', 'Torrentio').
-  ///
-  /// Returns a normalized [SeedStream] with standardized fields.
-  ///
-  /// **Field Mapping:**
-  /// - Title: `raw['title']` or `raw['name']` or "Unknown Stream"
-  /// - InfoHash: `raw['infoHash']` or `raw['hash']` or empty string
-  /// - Resolution: Extracted from title string (see [_extractResolution])
-  /// - Seeders: `raw['seeders']` or 0
-  static SeedStream normalize(Map<String, dynamic> raw, String provider) {
-    return SeedStream(
-      title: raw['title'] ?? raw['name'] ?? 'Unknown Stream',
-      infoHash: raw['infoHash'] ?? raw['hash'] ?? '',
-      fileIdx: raw['fileIdx']?.toString(),
-      resolution: _extractResolution(raw['title'] ?? ''),
-      source: provider,
-      seeders: raw['seeders'] ?? 0,
-    );
+  static String toTitleNatural(String title) {
+    var t = title;
+    // Remove (YYYY)
+    t = t.replaceAll(RegExp(r'\(\s*(19|20)\d{2}\s*\)'), '').trim();
+    // Remove [Remastered ...] brackets
+    t = t
+        .replaceAll(
+          RegExp(r'\[\s*Remaster(?:ed)?[^\]]*\]', caseSensitive: false),
+          '',
+        )
+        .trim();
+    // Remove trailing edition segments
+    t = t
+        .replaceAll(
+          RegExp(
+            r'[\s]*[\u2014\-:][\s]*(Director(?:’|\x27)s Cut|Extended(?: Edition)?|Ultimate(?: Edition)?|Theatrical(?: Cut)?|Unrated|IMAX|Special(?: Edition)?)(?:.*)?$',
+            caseSensitive: false,
+          ),
+          '',
+        )
+        .trim();
+    // Remove trailing quality
+    t = t
+        .replaceAll(
+          RegExp(
+            r'\[?\b(2160p|1080p|720p|480p|4k)\b\]?\s*$',
+            caseSensitive: false,
+          ),
+          '',
+        )
+        .trim();
+    // Collapse spaces
+    t = t.replaceAll(RegExp(r'\s+'), ' ').trim();
+    return t;
   }
 
-  /// Extracts standardized resolution from a title string.
-  ///
-  /// [title] - The stream/torrent title to parse.
-  ///
-  /// Returns one of: '4K', '1080p', '720p', or 'SD' (default).
-  ///
-  /// **Detection patterns (case-insensitive):**
-  /// - **4K**: Contains '2160p', '4k', or 'uhd'
-  /// - **1080p**: Contains '1080p'
-  /// - **720p**: Contains '720p'
-  /// - **SD**: Everything else (480p, no quality specified, etc.)
-  static String _extractResolution(String title) {
-    final lower = title.toLowerCase();
-    if (lower.contains('2160p') ||
-        lower.contains('4k') ||
-        lower.contains('uhd')) {
-      return '4K';
+  static int? extractYear(String title) {
+    final mParen = RegExp(r'\((19|20)\d{2}\)').firstMatch(title);
+    if (mParen != null) {
+      return int.parse(mParen.group(0)!.substring(1, 5));
     }
-    if (lower.contains('1080p')) {
-      return '1080p';
+    final mTrail = RegExp(
+      r'(?:^|[^0-9])(19|20)\d{2}(?!.*(19|20)\d{2})',
+    ).firstMatch(title);
+    if (mTrail != null) {
+      final y = RegExp(r'(19|20)\d{2}').firstMatch(mTrail.group(0)!)?.group(0);
+      if (y != null) return int.parse(y);
     }
-    if (lower.contains('720p')) {
-      return '720p';
+    return null;
+  }
+
+  static String? mapEdition(String title) {
+    final s = title.toLowerCase();
+    for (final canon in MappingConstants.editionCanonical) {
+      final aliases = MappingConstants.editionAliases[canon] ?? [];
+      for (final a in aliases) {
+        // Check for boundary or start/end
+        // Dart RegExp escaping is manual, simplify:
+        if (s.contains(a)) {
+          // crude check, but mirrors legacy roughly
+          return canon;
+        }
+      }
     }
-    return 'SD';
+    return null;
+  }
+
+  static Map<String, String?>? extractRemaster(String title) {
+    final br = RegExp(
+      r'\[\s*Remaster(?:ed)?\s*([^\]]*)\]',
+      caseSensitive: false,
+    ).firstMatch(title);
+    if (br != null) {
+      return {'flag': 'true', 'note': br.group(1)?.trim()};
+    }
+    final suf = RegExp(
+      r'Remaster(?:ed)?\s*(4K|1080p|2160p|HDR10\+?|DV|Dolby Vision)?',
+      caseSensitive: false,
+    ).firstMatch(title);
+    if (suf != null) {
+      return {'flag': 'true', 'note': suf.group(1)?.toUpperCase()};
+    }
+    return null;
+  }
+
+  static String? extractVersionTag(String extras, String title) {
+    final sources = [extras, title];
+    for (final src in sources) {
+      for (final pat in MappingConstants.versionTagPatterns) {
+        final m = RegExp(pat, caseSensitive: false).firstMatch(src);
+        if (m != null) return m.group(0);
+      }
+    }
+    return null;
+  }
+
+  static String? mapQuality(String q) {
+    final s = q.toLowerCase();
+    // direct
+    for (final canon in MappingConstants.qualityCanonical) {
+      if (canon.toLowerCase() == s) return canon;
+    }
+    // alias
+    for (final canon in MappingConstants.qualityCanonical) {
+      final aliases = MappingConstants.qualityAliases[canon] ?? [];
+      for (final a in aliases) {
+        if (a.toLowerCase() == s) return canon;
+      }
+    }
+    // tolerant
+    if (RegExp(r'\b4k\b|2160').hasMatch(s)) return '2160p';
+    if (s.contains('1080')) return '1080p';
+    if (s.contains('720')) return '720p';
+    if (s.contains('480')) return '480p';
+    return null;
+  }
+
+  static Map<String, dynamic> expandLanguages(dynamic input) {
+    List<String> items = [];
+    if (input is List) {
+      items = input.map((e) => e.toString()).toList();
+    } else if (input is String) {
+      items = input.split(RegExp(r'[,;\s]+'));
+    }
+
+    final displays = <String>[];
+    final flags = <String>[];
+    final codes = <String>[];
+
+    final langIndex = {
+      for (var l in MappingConstants.languages) l['code']!.toLowerCase(): l,
+    };
+
+    for (var raw in items) {
+      raw = raw.trim();
+      if (raw.isEmpty) continue;
+      final low = raw.toLowerCase();
+
+      // Multi special
+      final multis = MappingConstants.languageAliases['multi']!;
+      if (multis.any((m) => m.toLowerCase() == low)) continue;
+
+      String? code;
+      MappingConstants.languageAliases.forEach((canon, aliases) {
+        if (canon == 'multi') return;
+        if (canon.toLowerCase() == low ||
+            aliases.any((a) => a.toLowerCase() == low)) {
+          code = canon;
+        }
+      });
+      code ??= raw; // Fallback to raw
+
+      codes.add(code!);
+      final rec = langIndex[code!.toLowerCase()];
+      if (rec != null) {
+        displays.add(rec['display']!);
+        flags.add(rec['flag']!);
+      } else {
+        // Unknown logic
+        displays.add(code!);
+        flags.add('🌐');
+      }
+    }
+
+    if (displays.isEmpty) {
+      return {
+        'languages_display':
+            MappingConstants.languagePolicy['unspecified_display'],
+        'languages_flags': MappingConstants.languagePolicy['unspecified_flags'],
+        'internal_codes': <String>[],
+      };
+    }
+
+    return {
+      'languages_display': displays,
+      'languages_flags': flags,
+      'internal_codes': codes,
+    };
+  }
+
+  static Map<String, dynamic> normalize(Map<String, dynamic> input) {
+    final title = input['title']?.toString() ?? '';
+    final providerIn = input['provider']?.toString() ?? '';
+    final qualityIn =
+        input['quality']?.toString() ?? (input['extras']?.toString() ?? '');
+    final languageIn = input['language'] ?? input['languages'] ?? [];
+    final infohashIn = input['infohash']?.toString() ?? '';
+    final extrasIn = input['extras']?.toString() ?? '';
+
+    final titleNatural = toTitleNatural(title);
+    final year = extractYear(title);
+    final edition = mapEdition(title);
+    final remaster = extractRemaster(title);
+    final versionTag = extractVersionTag(extrasIn, title);
+    var quality = mapQuality(qualityIn);
+
+    // Prov mapping simplified: just pass through
+    final provDisplay = providerIn;
+
+    final langData = expandLanguages(languageIn);
+
+    final parsed = ParseUtils.parseReleaseInfo(extrasIn, title);
+
+    if (quality == null && parsed['resolution'] != null) {
+      quality = mapQuality(parsed['resolution']);
+    }
+
+    String? infohash;
+    if (RegExp(r'^[a-fA-F0-9]{40}$').hasMatch(infohashIn.trim())) {
+      infohash = infohashIn.trim().toUpperCase();
+    }
+
+    return {
+      'title_natural': titleNatural,
+      'year': year,
+      'edition': edition,
+      'remaster': remaster,
+      'version_tag': versionTag,
+      'quality': quality,
+      'languages_display': langData['languages_display'],
+      'languages_flags': langData['languages_flags'],
+      'provider_display': provDisplay,
+      'infohash': infohash,
+      'extras': {
+        'source': parsed['source'],
+        'codec': parsed['codec'],
+        'hdr': parsed['hdr'],
+        'audio': parsed['audio'],
+        'group': parsed['group'],
+        'sizeStr': parsed['sizeStr'],
+        'sizeBytes': parsed['sizeBytes'],
+      },
+      'internal': {'language_codes': langData['internal_codes']},
+    };
   }
 }

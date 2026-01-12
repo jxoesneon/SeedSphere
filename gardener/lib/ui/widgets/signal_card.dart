@@ -135,11 +135,15 @@ class SignalCard extends ConsumerWidget {
                           ),
                         ),
                         if (source != null)
-                          Text(
-                            source!.toUpperCase(),
-                            style: GoogleFonts.outfit(
-                              fontSize: 9,
-                              color: Colors.white38,
+                          Flexible(
+                            child: Text(
+                              source!.toUpperCase(),
+                              style: GoogleFonts.outfit(
+                                fontSize: 9,
+                                color: Colors.white38,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                              maxLines: 1,
                             ),
                           ),
                       ],
@@ -234,142 +238,152 @@ class _SignalDetailsSheetState extends ConsumerState<_SignalDetailsSheet> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
         border: Border(top: BorderSide(color: Colors.white12)),
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  widget.title,
-                  style: GoogleFonts.outfit(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
-                ),
-              ),
-              IconButton(
-                onPressed: () => Navigator.pop(context),
-                icon: const Icon(Icons.close, color: Colors.white54),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              _buildBadge(
-                Icons.bolt,
-                _resolvedMagnet == null ? 'N/A' : '${widget.seeders} Seeders',
-                AethericTheme.success,
-              ),
-              const SizedBox(width: 12),
-              _buildBadge(
-                Icons.source,
-                widget.source ?? 'Unknown',
-                AethericTheme.aetherBlue,
-              ),
-            ],
-          ),
-          const SizedBox(height: 24),
-
-          // Magnet Display
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Colors.black38,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.white10),
-            ),
-            child: Text(
-              _resolvedMagnet ??
-                  (widget.id != null
-                      ? 'Magnet missing. Resolve via Swarm?'
-                      : 'No magnet link available'),
-              style: GoogleFonts.firaCode(fontSize: 11, color: Colors.white54),
-              maxLines: 3,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-          const SizedBox(height: 24),
-
-          // Actions
-          if (_resolvedMagnet == null && widget.id != null)
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: _isResolving ? null : _handleResolve,
-                icon: _isResolving
-                    ? const SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white,
-                        ),
-                      )
-                    : const Icon(Icons.hub_rounded, size: 18),
-                label: Text(
-                  _isResolving ? 'RESOLVING...' : 'RESOLVE MAGNET VIA SWARM',
-                ),
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  backgroundColor: AethericTheme.aetherBlue.withValues(
-                    alpha: 0.2,
-                  ),
-                  foregroundColor: AethericTheme.aetherBlue,
-                  side: BorderSide(
-                    color: AethericTheme.aetherBlue.withValues(alpha: 0.5),
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-              ),
-            )
-          else
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
             Row(
               children: [
                 Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: _resolvedMagnet == null
-                        ? null
-                        : () => _copyMagnet(context),
-                    icon: const Icon(Icons.copy_rounded, size: 18),
-                    label: const Text('COPY MAGNET'),
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      backgroundColor: Colors.white10,
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
+                  child: Text(
+                    widget.title,
+                    style: GoogleFonts.outfit(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
                     ),
                   ),
                 ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: _resolvedMagnet == null
-                        ? null
-                        : () => _launchStremio(),
-                    icon: const Icon(Icons.rocket_launch_rounded, size: 18),
-                    label: const Text('LAUNCH'),
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      backgroundColor: AethericTheme.aetherBlue,
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                  ),
+                IconButton(
+                  onPressed: () => Navigator.pop(context),
+                  icon: const Icon(Icons.close, color: Colors.white54),
                 ),
               ],
             ),
-          const SizedBox(height: 24),
-        ],
+            const SizedBox(height: 16),
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  _buildBadge(
+                    Icons.bolt,
+                    _resolvedMagnet == null
+                        ? 'N/A'
+                        : '${widget.seeders} Seeders',
+                    AethericTheme.success,
+                  ),
+                  const SizedBox(width: 12),
+                  _buildBadge(
+                    Icons.source,
+                    widget.source ?? 'Unknown',
+                    AethericTheme.aetherBlue,
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 24),
+
+            // Magnet Display
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.black38,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.white10),
+              ),
+              child: Text(
+                _resolvedMagnet ??
+                    (widget.id != null
+                        ? 'Magnet missing. Resolve via Swarm?'
+                        : 'No magnet link available'),
+                style: GoogleFonts.firaCode(
+                  fontSize: 11,
+                  color: Colors.white54,
+                ),
+                maxLines: 3,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            const SizedBox(height: 24),
+
+            // Actions
+            if (_resolvedMagnet == null && widget.id != null)
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: _isResolving ? null : _handleResolve,
+                  icon: _isResolving
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : const Icon(Icons.hub_rounded, size: 18),
+                  label: Text(
+                    _isResolving ? 'RESOLVING...' : 'RESOLVE MAGNET VIA SWARM',
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    backgroundColor: AethericTheme.aetherBlue.withValues(
+                      alpha: 0.2,
+                    ),
+                    foregroundColor: AethericTheme.aetherBlue,
+                    side: BorderSide(
+                      color: AethericTheme.aetherBlue.withValues(alpha: 0.5),
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
+              )
+            else
+              Row(
+                children: [
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: _resolvedMagnet == null
+                          ? null
+                          : () => _copyMagnet(context),
+                      icon: const Icon(Icons.copy_rounded, size: 18),
+                      label: const Text('COPY MAGNET'),
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        backgroundColor: Colors.white10,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: _resolvedMagnet == null
+                          ? null
+                          : () => _launchStremio(),
+                      icon: const Icon(Icons.rocket_launch_rounded, size: 18),
+                      label: const Text('LAUNCH'),
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        backgroundColor: AethericTheme.aetherBlue,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            const SizedBox(height: 24),
+          ],
+        ),
       ),
     );
   }

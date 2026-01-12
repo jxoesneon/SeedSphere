@@ -8,14 +8,19 @@ import 'package:gardener/ui/settings/playback_settings.dart';
 import 'package:gardener/ui/settings/torznab_manager.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:mocktail/mocktail.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:gardener/core/config_manager.dart';
 
 import 'package:gardener/ui/widgets/aetheric_glass.dart';
 
 class MockP2PManager extends Mock implements P2PManager {}
 
 void main() {
-  setUpAll(() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+  setUpAll(() async {
+    SharedPreferences.setMockInitialValues({});
     FlutterSecureStorage.setMockInitialValues({});
+    await ConfigManager().init();
     AethericGlass.useFallback = true;
   });
 
@@ -125,6 +130,13 @@ void main() {
     */
 
     testWidgets('PlaybackSettings interactions', (WidgetTester tester) async {
+      tester.view.physicalSize = const Size(800, 1200);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
       await tester.pumpWidget(wrap(const PlaybackSettings()));
       await tester.pump(const Duration(seconds: 1));
 
@@ -140,6 +152,13 @@ void main() {
     });
 
     testWidgets('CortexSettings interactions', (WidgetTester tester) async {
+      tester.view.physicalSize = const Size(800, 1200);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
       await tester.pumpWidget(wrap(const CortexSettings()));
       await tester.pump(const Duration(seconds: 1));
 

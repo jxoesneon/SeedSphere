@@ -3,6 +3,7 @@ import 'package:mocktail/mocktail.dart';
 import 'package:gardener/core/reputation_manager.dart';
 import 'package:gardener/p2p/p2p_manager.dart';
 import 'package:gardener/p2p/p2p_protocol.dart';
+import 'package:flutter/services.dart';
 
 class MockP2PManager extends Mock implements P2PManager {}
 
@@ -10,10 +11,17 @@ class MockP2PManager extends Mock implements P2PManager {}
 class P2PCommandFake extends Fake implements P2PCommand {}
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
   late MockP2PManager mockP2P;
   late ReputationManager manager;
 
   setUp(() {
+    const channel = MethodChannel('plugins.flutter.io/path_provider');
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(channel, (MethodCall methodCall) async {
+          return '.';
+        });
+
     mockP2P = MockP2PManager();
     manager = ReputationManager(mockP2P);
     registerFallbackValue(P2PCommandFake());
