@@ -2,12 +2,12 @@ name: Gardener CI (Flutter)
 
 on:
   push:
-    branches: [main]
+    branches: [main, "release/**"]
     paths:
       - "gardener/**"
       - ".github/workflows/ci-gardener.yml"
   pull_request:
-    branches: [main]
+    branches: [main, "release/**"]
     paths:
       - "gardener/**"
       - ".github/workflows/ci-gardener.yml"
@@ -45,4 +45,4 @@ jobs:
         run: flutter analyze --no-fatal-infos
 
       - name: Run Tests
-        run: flutter test
+        run: flutter test --dart-define=GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET_DESKTOP }}
