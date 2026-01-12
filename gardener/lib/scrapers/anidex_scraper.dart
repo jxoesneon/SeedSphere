@@ -34,6 +34,7 @@ class AnidexScraper extends BaseScraper {
               'infoHash': _extractInfoHash(m),
               'magnetUrl': m,
               'provider': 'AniDex',
+              'seeders': 0, // HTML scraping - seeder count not easily available
             },
           )
           .toList();

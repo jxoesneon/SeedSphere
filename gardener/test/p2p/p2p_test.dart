@@ -8,6 +8,7 @@ import 'dart:convert';
 class MockP2PManager extends Mock implements P2PManager {}
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
   late MockP2PManager mockP2P;
 
   setUp(() {

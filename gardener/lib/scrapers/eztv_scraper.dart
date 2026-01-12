@@ -34,7 +34,7 @@ class EztvScraper extends BaseScraper {
               'title': t['title'] ?? 'EZTV',
               'infoHash': t['hash'],
               'magnetUrl': magnet,
-              'seeds': t['seeds'],
+              'seeders': t['seeds'] ?? 0, // Normalized from 'seeds'
               'peers': t['peers'],
               'size': t['size'],
               'sizeBytes': t['size_bytes'],

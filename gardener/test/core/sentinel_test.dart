@@ -21,6 +21,7 @@ class FakeAndroidServiceInstance extends Fake
 }
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
   group('Sentinel Tests', () {
     test('sentinelTick updates notification on Android', () async {
       final fakeService = FakeAndroidServiceInstance();

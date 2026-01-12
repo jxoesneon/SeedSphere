@@ -14,6 +14,8 @@ import 'package:gardener/core/network_constants.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gardener/p2p/p2p_manager.dart';
 import 'package:gardener/core/security_manager.dart';
+import 'package:gardener/core/debug_logger.dart';
+import 'package:gardener/core/debug_config.dart';
 
 /// Authentication screen for SeedSphere.
 ///
@@ -53,6 +55,8 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
       setState(() => _message = 'Please enter a valid email address.');
       return;
     }
+
+    DebugLogger.info('Auth: Sending Magic Link to $email', category: 'AUTH');
 
     setState(() {
       _isLoading = true;
@@ -94,6 +98,14 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
       _message = null;
     });
 
+    if (DebugConfig.authGated) {
+      DebugLogger.debug(
+        'Auth: Starting Google Sign-In (Raw Console Check)',
+        category: 'AUTH',
+      );
+    }
+    DebugLogger.info('Auth: Starting Google Sign-In', category: 'AUTH');
+
     try {
       String? idToken;
 
@@ -103,6 +115,9 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
 
       if (isDesktop) {
         // Use custom Desktop implementation
+        if (DebugConfig.authGated) {
+          DebugLogger.debug('Auth: Using DesktopGoogleAuth', category: 'AUTH');
+        }
         idToken = await DesktopGoogleAuth.signIn();
         // DesktopAuth doesn't return email automatically in our simplified flow,
         // but the backend will extract it from the token.
@@ -110,6 +125,12 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
       } else {
         // Use standard plugin for Mobile/Web (v7.x API)
         // Ensure the singleton is initialized
+        if (DebugConfig.authGated) {
+          DebugLogger.debug(
+            'Auth: Using Standard GoogleSignIn',
+            category: 'AUTH',
+          );
+        }
         await GoogleSignIn.instance.initialize();
 
         try {
@@ -189,20 +210,62 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
         } catch (_) {}
         setState(() => _message = '$errorMsg (${response.statusCode})');
       }
-    } catch (e) {
-      setState(() => _message = 'Sign-in failed: $e');
-    } finally {
-      setState(() => _isLoading = false);
+    } catch (error) {
+      if (DebugConfig.authGated) {
+        DebugLogger.error(
+          'Auth: [Error] Sign in failed: $error',
+          category: 'AUTH',
+        );
+      }
+      setState(() {
+        _message = 'Sign in failed: $error';
+        _isLoading = false;
+      });
+      DebugLogger.error('Auth Error', error: error, category: 'AUTH');
     }
   }
 
   Future<void> _skipAuth() async {
+    DebugLogger.info('Auth: Skipping Auth (Debug Mode)', category: 'AUTH');
     // For development/testing: skip auth with a guest token
-    final guestId = 'guest_${DateTime.now().millisecondsSinceEpoch}';
+    // Pulse 0 Fix: Use gardenerId as user_id to ensure alignment with P2P identity
+    final gardenerId = ref.read(p2pManagerProvider).gardenerId;
+    final guestId =
+        gardenerId ?? 'guest_${DateTime.now().millisecondsSinceEpoch}';
+
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('auth_token', guestId);
     await prefs.setString('user_id', guestId);
     await prefs.setString('user_email', 'guest@seedsphere.app');
+
+    // Attempt to self-bind for P2P Heartbeats
+    try {
+      final gardenerId = ref.read(p2pManagerProvider).gardenerId;
+      if (gardenerId != null) {
+        final response = await HttpLogger.post(
+          Uri.parse('$_apiBase/api/debug/link_self'),
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode({'gardenerId': gardenerId}),
+        );
+        if (response.statusCode == 200) {
+          final data = jsonDecode(response.body);
+          if (data['secret'] != null) {
+            await SecurityManager().setSharedSecret(data['secret']);
+            DebugLogger.info(
+              'Auth: Self-bound for debug mode',
+              category: 'AUTH',
+            );
+          }
+        }
+      }
+    } catch (e) {
+      DebugLogger.error(
+        'Auth: Failed to self-bind',
+        error: e,
+        category: 'AUTH',
+      );
+    }
+
     widget.onAuthenticated();
   }
 
@@ -397,8 +460,13 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                           ),
                           const SizedBox(height: 24),
                           TextButton(
-                            onPressed: () =>
-                                setState(() => _magicLinkSent = false),
+                            onPressed: () {
+                              DebugLogger.info(
+                                'Auth: Resetting Magic Link form',
+                                category: 'UI',
+                              );
+                              setState(() => _magicLinkSent = false);
+                            },
                             child: const Text('Use a different email'),
                           ),
                         ],

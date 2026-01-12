@@ -48,6 +48,7 @@ class NyaaScraper extends BaseScraper {
           'infoHash': hash,
           'magnetUrl': magnetUrl,
           'provider': 'Nyaa',
+          'seeders': 0, // HTML scraping - seeder count not easily available
         };
       }).toList();
     } catch (_) {

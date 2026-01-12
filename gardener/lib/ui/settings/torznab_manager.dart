@@ -97,9 +97,9 @@ class _TorznabManagerState extends State<TorznabManager> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(
-            Icons.arrow_back_ios_new_rounded,
-            color: Colors.white70,
+          icon: Hero(
+            tag: 'settings_icon_mesh',
+            child: const Icon(Icons.dns_rounded, color: Colors.white70),
           ),
           onPressed: () => Navigator.of(context).pop(),
         ),

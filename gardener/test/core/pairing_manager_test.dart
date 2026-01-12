@@ -16,6 +16,7 @@ class MockSecurityManager extends Mock implements SecurityManager {}
 class MockHttpClient extends Mock implements http.Client {}
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
   late MockP2PManager mockP2P;
   late MockLocalKMS mockKMS;
   late PairingManager manager;

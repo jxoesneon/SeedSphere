@@ -25,6 +25,9 @@ class AethericTheme {
   /// The subtle border color for glass containers.
   static const Color glassBorder = Color(0x33FFFFFF);
 
+  /// Semantic Color: Tech Green (Krypton)
+  static const Color kryptonGreen = Color(0xFF00FF9D);
+
   /// Semantic Color: Success (Green)
   static const Color success = Color(0xFF10B981);
 

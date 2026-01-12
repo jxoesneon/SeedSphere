@@ -114,30 +114,20 @@ class NetworkConstants {
     return '$apiBase/api/rooms/$id/heartbeat';
   }
 
-  /// P2P Bootstrap nodes.
   static List<String> get p2pBootstrapPeers {
-    // Note: /dnsaddr typically resolves to the fly.dev instance's multiaddr
-    return [
-      '/dns4/seedsphere.fly.dev/tcp/4001',
-      '/dns4/seedsphere.fly.dev/udp/4001/quic',
-      '/dns6/seedsphere.fly.dev/tcp/4001',
-      '/dns6/seedsphere.fly.dev/udp/4001/quic',
-      // Fallback to public bootstrap nodes (Static IP only for reliability on Android)
-      // '/dnsaddr/bootstrap.libp2p.io/p2p/QmNnooDu7bfjPFoTZYxMNLWUQJyrVwtbZg5gBMjTezGAJN', // Fails DNS on some Androids
-      // '/dnsaddr/bootstrap.libp2p.io/p2p/QmQCU2EcMqAqQPR2i9bChDtGNJchTbq5TbXJJ16u19uLTa',
-      // Public Static IPs (Protocol Labs - Mars, Earth, Venus)
-      '/ip4/104.131.131.82/tcp/4001/p2p/QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ',
-      '/ip4/104.131.131.82/udp/4001/quic/p2p/QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ',
-      '/ip4/104.236.179.241/tcp/4001/p2p/QmSoLPppuBtQSGwKDZT2M73ULpjvfd3aZ6ha4oFGL1KrGM', // Pluto
-      '/ip4/128.199.219.111/tcp/4001/p2p/QmSoLSafTMBsPKadTEjbXHJfi8MGqTE69f63Zg7sF35beB', // Earth
-      '/ip4/104.236.76.40/tcp/4001/p2p/QmSoLV4Bbm51jM9C4gfKt22hc8G853zES46sVPpu6zP530', // Venus
-      '/ip4/178.62.158.247/tcp/4001/p2p/QmSoLer265NRgSp2LA3dPaeykiS1J6DifTC88f5uVQKNAd', // Mercury
-      '/ip6/2604:a880:1:20::203:d001/tcp/4001/p2p/QmSoLPppuBtQSGwKDZT2M73ULpjvfd3aZ6ha4oFGL1KrGM',
-      '/ip6/2400:6180:0:d0::151:6001/tcp/4001/p2p/QmSoLSafTMBsPKadTEjbXHJfi8MGqTE69f63Zg7sF35beB',
-      '/ip6/2604:a880:800:10::4a:5001/tcp/4001/p2p/QmSoLV4Bbm51jM9C4gfKt22hc8G853zES46sVPpu6zP530',
-      '/ip6/2a03:b0c0:0:1010::23:1001/tcp/4001/p2p/QmSoLer265NRgSp2LA3dPaeykiS1J6DifTC88f5uVQKNAd',
-    ];
+    // Production Bootstrap Nodes (Cleared for local troubleshooting)
+    return <String>[];
   }
+
+  /// Curated list of high-performance public trackers.
+  static const List<String> verifiedTrackers = [
+    'udp://tracker.opentrackr.org:1337/announce',
+    'udp://open.demonii.com:1337/announce',
+    'udp://tracker.coppersurfer.tk:6969/announce',
+    'udp://tracker.leechers-paradise.org:6969/announce',
+    'udp://9.rarbg.to:2710/announce',
+    'udp://tracker.internetwarriors.net:1337/announce',
+  ];
 
   /// Pings bootstrap nodes to verify raw socket reachability.
   /// Logs results to [DebugLogger] with NET category.
@@ -192,5 +182,49 @@ class NetworkConstants {
   }
 
   /// Default port for local Stremio manifest server.
-  static const int stremioManifestPort = 7000;
+  /// 7000 for Prod/Release compliance. 7001 for Local Debug to avoid conflicts.
+  static int get stremioManifestPort => kDebugMode ? 7001 : 7000;
+
+  /// Dynamically fetches the local Router's actual PeerID and Listen Address.
+  ///
+  /// This is critical in Debug mode where the Router's identity is ephemeral.
+  /// Returns a valid multiaddr string (e.g., /ip4/127.0.0.1/tcp/4001/p2p/...) or null.
+  static Future<String?> fetchLocalRouterBootstrap() async {
+    try {
+      final uri = Uri.parse('$apiBase/p2p/info');
+      // Short timeout to avoid blocking startup if Router is down
+      final response = await http.get(uri).timeout(const Duration(seconds: 5));
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final addresses = (data['addresses'] as List?)?.cast<String>() ?? [];
+
+        // Look for the UDP address on port 4005
+        final bestAddr = addresses.firstWhere(
+          (a) => a.contains('/ip4/') && a.contains('/udp/4005'),
+          orElse: () => addresses.firstWhere(
+            (a) => a.contains('/ip4/'),
+            orElse: () => '',
+          ),
+        );
+
+        if (bestAddr.isNotEmpty) {
+          // If the Router reports "0.0.0.0" (bind all interfaces), we must dial "127.0.0.1" locally.
+          final fixedAddr = bestAddr.replaceAll('0.0.0.0', '127.0.0.1');
+
+          DebugLogger.info(
+            'NET: Resolved Local Router: $fixedAddr',
+            category: 'NET',
+          );
+          return fixedAddr;
+        }
+      }
+    } catch (e) {
+      DebugLogger.warn(
+        'NET: Failed to resolve local router identity: $e',
+        category: 'NET',
+      );
+    }
+    return null;
+  }
 }

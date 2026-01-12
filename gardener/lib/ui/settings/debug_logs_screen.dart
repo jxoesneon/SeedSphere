@@ -138,9 +138,9 @@ class _DebugLogsScreenState extends ConsumerState<DebugLogsScreen> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(
-            Icons.arrow_back_ios_new_rounded,
-            color: Colors.white70,
+          icon: Hero(
+            tag: 'settings_icon_debug',
+            child: const Icon(Icons.bug_report_rounded, color: Colors.white70),
           ),
           onPressed: () => Navigator.of(context).pop(),
         ),
@@ -181,11 +181,13 @@ class _DebugLogsScreenState extends ConsumerState<DebugLogsScreen> {
                 }).toList();
                 if (_autoScroll && _scrollController.hasClients) {
                   WidgetsBinding.instance.addPostFrameCallback((_) {
-                    _scrollController.animateTo(
-                      _scrollController.position.maxScrollExtent,
-                      duration: const Duration(milliseconds: 200),
-                      curve: Curves.easeOut,
-                    );
+                    if (_scrollController.hasClients) {
+                      _scrollController.animateTo(
+                        _scrollController.position.maxScrollExtent,
+                        duration: const Duration(milliseconds: 200),
+                        curve: Curves.easeOut,
+                      );
+                    }
                   });
                 }
 

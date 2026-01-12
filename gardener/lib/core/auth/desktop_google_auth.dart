@@ -4,20 +4,56 @@ import 'dart:io';
 import 'dart:math';
 import 'package:crypto/crypto.dart';
 import 'package:flutter/foundation.dart';
-import 'package:http/http.dart' as http;
 import 'package:url_launcher/url_launcher.dart';
+import 'package:gardener/core/network_constants.dart';
+import 'package:gardener/core/debug_logger.dart';
+import 'package:gardener/core/debug_config.dart';
 
 /// Handles Google Authentication for Desktop platforms (Windows/Linux/macOS)
 /// using the Loopback IP Address flow (RF 8252) with PKCE Security.
 class DesktopGoogleAuth {
-  // Desktop Client ID provided by user.
-  static const String _clientId =
+  // --- Credentials Configuration ---
+
+  // Production Credentials
+  static const String _prodClientId =
       '550711161426-lk1vk3hf44amas66mk22dvv1235673uk.apps.googleusercontent.com';
 
-  // Secret is now injected via --dart-define in launch.json
-  static const String _clientSecret = String.fromEnvironment(
-    'GOOGLE_CLIENT_SECRET',
-  );
+  // Development Credentials (IDs are public, Secrets are not)
+  static const String _devClientId =
+      '550711161426-itlnqncb9a4abdddbk1jc1tiuol91c0p.apps.googleusercontent.com';
+
+  /// Returns the Client ID to use.
+  /// Priority:
+  /// 1. --dart-define=GOOGLE_CLIENT_ID=... (Compile Time)
+  /// 2. GOOGLE_CLIENT_ID (Runtime Env)
+  /// 3. Debug Mode -> Dev ID
+  /// 4. Release Mode -> Prod ID
+  static String get _clientId {
+    const envId = String.fromEnvironment('GOOGLE_CLIENT_ID');
+    if (envId.isNotEmpty) return envId;
+
+    final platformId = Platform.environment['GOOGLE_CLIENT_ID'];
+    if (platformId != null && platformId.isNotEmpty) return platformId;
+
+    return kDebugMode ? _devClientId : _prodClientId;
+  }
+
+  /// Returns the Client Secret to use.
+  /// Priority:
+  /// 1. --dart-define=GOOGLE_CLIENT_SECRET=... (Compile Time)
+  /// 2. GOOGLE_CLIENT_SECRET (Runtime Env)
+  /// 3. Empty (Must be provided for security)
+  static String get _clientSecret {
+    const envSecret = String.fromEnvironment('GOOGLE_CLIENT_SECRET');
+    if (envSecret.isNotEmpty) return envSecret;
+
+    final platformSecret = Platform.environment['GOOGLE_CLIENT_SECRET'];
+    if (platformSecret != null && platformSecret.isNotEmpty) {
+      return platformSecret;
+    }
+
+    return '';
+  }
 
   static const List<String> _scopes = ['email', 'profile', 'openid'];
 
@@ -32,22 +68,81 @@ class DesktopGoogleAuth {
   }
 
   static Future<String?> _performLoopbackAuth() async {
-    if (_clientSecret.isEmpty) {
+    if (DebugConfig.authGated) {
+      DebugLogger.debug(
+        'Auth: [Trace] Entering _performLoopbackAuth',
+        category: 'AUTH',
+      );
+    }
+    DebugLogger.info('Auth: Starting Desktop Loopback Auth', category: 'AUTH');
+
+    // Check Secret
+    final hasSecret = _clientSecret.isNotEmpty;
+    if (DebugConfig.authGated) {
+      DebugLogger.debug(
+        'Auth: [Trace] Has Client Secret: $hasSecret',
+        category: 'AUTH',
+      );
+    }
+
+    if (!hasSecret) {
+      if (DebugConfig.authGated) {
+        DebugLogger.error(
+          'Auth: [Error] Client Secret is MISSING',
+          category: 'AUTH',
+        );
+      }
       throw StateError(
         'Google Client Secret is missing. Run with --dart-define=GOOGLE_CLIENT_SECRET=...',
       );
     }
+
     HttpServer? server;
     StreamSubscription<HttpRequest>? sub;
     try {
       // 1. Generate PKCE Verifier and Challenge
+      if (DebugConfig.authGated) {
+        DebugLogger.debug('Auth: [Trace] Generating PKCE...', category: 'AUTH');
+      }
       final codeVerifier = _generateCodeVerifier();
       final codeChallenge = _generateCodeChallenge(codeVerifier);
 
       // 2. Start local loopback server
-      server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
-      final port = server.port;
-      final redirectUri = 'http://127.0.0.1:$port/callback';
+      if (DebugConfig.authGated) {
+        DebugLogger.debug(
+          'Auth: [Trace] Binding loopback server...',
+          category: 'AUTH',
+        );
+      }
+
+      // Determine configuration based on Client ID type
+      // Dev ID (Web Type) requires fixed port 5000 and /auth/callback
+      // Prod ID (Desktop Type) supports ephemeral ports (0) and /callback
+      final isDevId = _clientId == _devClientId;
+      final port = isDevId ? 5001 : 0;
+      final path = isDevId ? '/auth/callback' : '/callback';
+
+      try {
+        server = await HttpServer.bind(InternetAddress.loopbackIPv4, port);
+        if (DebugConfig.authGated) {
+          DebugLogger.debug(
+            'Auth: [Trace] Server bound on port ${server.port}',
+            category: 'AUTH',
+          );
+        }
+      } catch (e) {
+        if (DebugConfig.authGated) {
+          DebugLogger.error(
+            'Auth: [Error] Failed to bind port $port: $e',
+            category: 'AUTH',
+          );
+        }
+        throw Exception('Could not bind to auth port $port. Is it in use?');
+      }
+
+      final redirectUri = 'http://localhost:${server.port}$path';
+
+      DebugLogger.info('Auth: Listening on $redirectUri', category: 'AUTH');
 
       // 3. Construct OAuth URL with PKCE
       final scopeString = _scopes.join(' ');
@@ -64,6 +159,7 @@ class DesktopGoogleAuth {
       });
 
       // 4. Launch Browser
+      DebugLogger.info('Auth: Launching browser...', category: 'AUTH');
       if (await canLaunchUrl(authUrl)) {
         await launchUrl(authUrl, mode: LaunchMode.externalApplication);
       } else {
@@ -75,9 +171,14 @@ class DesktopGoogleAuth {
       final completer = Completer<String?>();
 
       sub = server.listen((request) async {
-        if (request.uri.path == '/callback') {
+        if (request.uri.path == path) {
           final authCode = request.uri.queryParameters['code'];
           final error = request.uri.queryParameters['error'];
+
+          DebugLogger.info(
+            'Auth: Callback received. Code present: ${authCode != null}',
+            category: 'AUTH',
+          );
 
           // Serve a nice close-window page
           request.response
@@ -119,8 +220,20 @@ class DesktopGoogleAuth {
         );
       }
       return null;
-    } catch (e) {
-      debugPrint('Desktop Auth Error: $e');
+    } catch (e, st) {
+      if (DebugConfig.authGated) {
+        DebugLogger.error(
+          'Auth: [Error] Exception in loopback auth: $e',
+          category: 'AUTH',
+        );
+        DebugLogger.error('Auth: [Error] Stack: $st', category: 'AUTH');
+      }
+      DebugLogger.error(
+        'Desktop Auth Error',
+        error: e,
+        stackTrace: st,
+        category: 'AUTH',
+      );
       rethrow; // Propagate error to UI
     } finally {
       if (sub != null) await sub.cancel();
@@ -134,7 +247,8 @@ class DesktopGoogleAuth {
     String codeVerifier,
   ) async {
     try {
-      final response = await http.post(
+      DebugLogger.info('Auth: Exchanging code for token...', category: 'AUTH');
+      final response = await HttpLogger.post(
         Uri.parse('https://oauth2.googleapis.com/token'),
         body: {
           'code': code,
@@ -152,11 +266,11 @@ class DesktopGoogleAuth {
       } else {
         // Log detailed error for debugging logic
         final err = 'Token fail: ${response.statusCode} - ${response.body}';
-        debugPrint(err);
+        DebugLogger.error(err, category: 'AUTH');
         throw Exception(err);
       }
     } catch (e) {
-      debugPrint('Token Exchange Error: $e');
+      DebugLogger.error('Token Exchange Error', error: e, category: 'AUTH');
       rethrow;
     }
   }

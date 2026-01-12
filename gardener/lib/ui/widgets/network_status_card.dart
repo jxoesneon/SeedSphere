@@ -51,11 +51,30 @@ class _NetworkStatusCardState extends State<NetworkStatusCard>
     _pulseController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1500),
-    )..repeat(reverse: true);
+    );
 
     _pulseAnimation = Tween<double>(begin: 0.8, end: 1.0).animate(
       CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
     );
+
+    _updateAnimation();
+  }
+
+  @override
+  void didUpdateWidget(NetworkStatusCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.status != oldWidget.status) {
+      _updateAnimation();
+    }
+  }
+
+  void _updateAnimation() {
+    if (widget.status == NetworkStatus.checking) {
+      _pulseController.repeat(reverse: true);
+    } else {
+      _pulseController.stop();
+      _pulseController.reset();
+    }
   }
 
   @override

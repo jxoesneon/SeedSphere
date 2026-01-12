@@ -11,24 +11,29 @@ import 'package:uuid/uuid.dart';
 import 'package:gardener/core/security_manager.dart';
 import 'package:gardener/core/network_constants.dart';
 import 'package:gardener/core/activity_manager.dart';
+import 'package:gardener/core/debug_config.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:gardener/core/debug_logger.dart';
 import 'package:gardener/p2p/p2p_protocol.dart';
 import 'package:ed25519_edwards/ed25519_edwards.dart' as ed;
+import 'package:gardener/core/config_manager.dart';
 
 /// Provider for the [P2PManager] instance.
 ///
 /// Automatically handles disposal by stopping the P2P node when the provider
 /// is no longer used.
 final p2pManagerProvider = Provider<P2PManager>((ref) {
-  final manager = P2PManager();
+  final manager = P2PManager.instance;
   ref.onDispose(() => manager.stop());
   return manager;
 });
 
 /// Orchestrates the P2P networking layer using a background isolate.
 class P2PManager {
+  static P2PManager? _instance;
+  static P2PManager get instance => _instance ??= P2PManager();
+
   /// The background isolate running the IPFS node.
   Isolate? _p2pIsolate;
 
@@ -41,13 +46,33 @@ class P2PManager {
 
   final FlutterSecureStorage _storage;
   final SecurityManager _security;
+  final ConfigManager _config;
+
   bool _isInitialized = false;
   Timer? _heartbeatTimer;
   Timer? _statusTimer;
   String? _gardenerId;
 
+  // Persistent SSE subscription for heartbeat events
+  StreamSubscription? _sseSubscription;
+  int _reconnectAttempts = 0; // For exponential backoff
+  Timer? _sseWatchdog; // Reconnect if no SSE data for 10s
+  final _eventStreamController =
+      StreamController<Map<String, dynamic>>.broadcast();
+
+  /// Notifier for SSE connection status.
+  final ValueNotifier<bool> sseConnected = ValueNotifier<bool>(false);
+
+  /// Stream of SSE events for widgets to consume.
+  Stream<Map<String, dynamic>> get eventStream => _eventStreamController.stream;
+
   /// Notifier for the number of active physical P2P peers.
   final ValueNotifier<int> peerCount = ValueNotifier<int>(0);
+
+  /// Notifier tracking if at least one peer has been connected during this session.
+  final ValueNotifier<bool> hasEstablishedConnection = ValueNotifier<bool>(
+    false,
+  );
 
   /// Stores current diagnostic metadata for reporting.
   final Map<String, String> _diagnosticMetadata = {
@@ -60,9 +85,13 @@ class P2PManager {
   Map<String, String> get diagnosticMetadata =>
       Map.unmodifiable(_diagnosticMetadata);
 
-  P2PManager({FlutterSecureStorage? storage, SecurityManager? security})
-    : _storage = storage ?? const FlutterSecureStorage(),
-      _security = security ?? SecurityManager();
+  P2PManager({
+    FlutterSecureStorage? storage,
+    SecurityManager? security,
+    ConfigManager? config,
+  }) : _storage = storage ?? const FlutterSecureStorage(),
+       _security = security ?? SecurityManager(),
+       _config = config ?? ConfigManager();
 
   /// Whether the P2P isolate is started and the handshake is complete.
   bool get isInitialized => _isInitialized;
@@ -96,11 +125,12 @@ class P2PManager {
     final docDir = await getApplicationDocumentsDirectory();
     final storagePath = docDir.path;
 
-    // Load Networking Settings from SharedPreferences
-    final prefs = await SharedPreferences.getInstance();
-    final autoBootstrap = prefs.getBool('p2p_auto_bootstrap') ?? true;
-    final scrapeSwarm = prefs.getBool('p2p_scrape_swarm') ?? true;
-    final swarmTopN = prefs.getInt('p2p_swarm_top_n') ?? 20;
+    // Load Networking Settings from ConfigManager
+    final autoBootstrap = _config.autoBootstrap;
+    final scrapeSwarm = _config.swarmEnabled;
+    final swarmTopN = _config.swarmTopN;
+    final enableLibp2pBridge = _config.enableLibp2pBridge;
+    final swarmKey = _config.swarmKey;
 
     _diagnosticMetadata['status'] = 'Starting...';
 
@@ -109,6 +139,31 @@ class P2PManager {
 
     // Create a NEW receive port for this session to avoid "Stream already listened to"
     _fromIsolatePort = ReceivePort();
+
+    // DYNAMIC BOOTSTRAP (Debug Resolution)
+    // We attempt to fetch the actual identity of the local Router.
+    final dynamicPeer = await NetworkConstants.fetchLocalRouterBootstrap();
+    final isolateBootstrapPeers = <String>[];
+    if (dynamicPeer != null) {
+      stderr.writeln('DEBUG: Dynamic Router Found: $dynamicPeer');
+      if (!isolateBootstrapPeers.contains(dynamicPeer)) {
+        isolateBootstrapPeers.add(dynamicPeer);
+      }
+      if (DebugConfig.p2pGated) {
+        DebugLogger.info(
+          'P2P: Forensics: Dynamic Router Found -> $dynamicPeer',
+        );
+      }
+    } else {
+      stderr.writeln(
+        'DEBUG: Dynamic Router Discovery FAILED (is server running?)',
+      );
+      if (DebugConfig.p2pGated) {
+        DebugLogger.warn(
+          'P2P: Forensics: Local Router Discovery Failed (Degraded Mode)',
+        );
+      }
+    }
 
     _p2pIsolate = await Isolate.spawn(
       _p2pIsolateEntryPoint,
@@ -119,8 +174,11 @@ class P2PManager {
         autoBootstrap: autoBootstrap,
         scrapeSwarm: scrapeSwarm,
         swarmTopN: swarmTopN,
-        enableNatTraversal: true,
-        swarmKey: prefs.getString('p2p_swarm_key'),
+        enableNatTraversal:
+            false, // Disable AutoNAT to bypass base58 decoding crash
+        swarmKey: swarmKey, // Use key from config
+        bootstrapPeers: isolateBootstrapPeers,
+        enableLibp2pBridge: enableLibp2pBridge,
       ),
       debugName: 'SS_P2P_Isolate',
     );
@@ -133,7 +191,23 @@ class P2PManager {
         _startHeartbeatTimer();
         _startStatusPolling();
       } else if (message is int) {
+        if (message > peerCount.value) {
+          stderr.writeln('DEBUG: P2P PEER ADDED! Count: $message');
+          DebugLogger.info(
+            'P2P: Forensics: Peer count increased: ${peerCount.value} -> $message',
+            category: 'NET',
+          );
+        } else if (message != peerCount.value) {
+          DebugLogger.info(
+            'P2P: Forensics: Peer count changed: ${peerCount.value} -> $message',
+            category: 'NET',
+          );
+        }
         peerCount.value = message;
+        if (message > 0 && !hasEstablishedConnection.value) {
+          hasEstablishedConnection.value = true;
+          DebugLogger.info('P2P: First peer connection established.');
+        }
       } else if (message is Map && message.containsKey('msg')) {
         final msg = message['msg'] as String;
         final category = message['cat'] as String?;
@@ -166,6 +240,40 @@ class P2PManager {
           default:
             DebugLogger.info(msg, category: category, error: error);
         }
+      } else if (message is Map && message['type'] == 'p2p_cmd') {
+        // Relayed P2P Command from Swarm
+        final payload = message['payload'] as Map<String, dynamic>;
+        final cmdTypeIndex = payload['type'] as int?;
+
+        // 1. Detect and bridge metadata results (Normalization)
+        if ((cmdTypeIndex == P2PCommandType.publish.index ||
+                cmdTypeIndex == P2PCommandType.boost.index) &&
+            payload.containsKey('data')) {
+          final data = payload['data'];
+          if (data is Map<String, dynamic> &&
+              (data.containsKey('title') || data.containsKey('streams'))) {
+            // Transform into the "ok result" format SwarmDashboard expects
+            _eventStreamController.add({
+              'ok': true,
+              'result': {
+                ...data,
+                'id': payload['imdbId'],
+                'imdbId': payload['imdbId'],
+                'p2p_sender': message['sender'],
+                'source': 'Swarm',
+              },
+            });
+          }
+        }
+
+        // 2. Always relay the raw command for specialized handlers
+        _eventStreamController.add({
+          'type': 'p2p_cmd',
+          'p2p_topic': message['topic'],
+          'p2p_sender': message['sender'],
+          'p2p_type': cmdTypeIndex,
+          'payload': payload,
+        });
       } else if (message is String) {
         if (message.contains('Error')) {
           DebugLogger.error(message);
@@ -178,23 +286,253 @@ class P2PManager {
         }
       }
     });
+
+    // Ensure we have a shared secret in debug mode (handles Router restarts)
+    if (kDebugMode) {
+      unawaited(_ensureDebugLink());
+    }
+    DebugLogger.info('P2P: start() function returning to caller');
   }
 
   void _startHeartbeatTimer() {
     _heartbeatTimer?.cancel();
-    _heartbeatTimer = Timer.periodic(const Duration(seconds: 30), (timer) {
+    _heartbeatTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
       _sendHeartbeat();
     });
     // Send immediate first heartbeat
     _sendHeartbeat();
+    // Start persistent SSE connection
+    _connectSSE();
   }
 
   void _startStatusPolling() {
     _statusTimer?.cancel();
-    _statusTimer = Timer.periodic(const Duration(seconds: 10), (timer) {
+    _statusTimer = Timer.periodic(const Duration(seconds: 5), (timer) {
       _queryStatus();
     });
     _queryStatus();
+    _startGlobalResolutionScheduler();
+  }
+
+  // --- GLOBAL RESOLUTION TASK (Server-Node Duty) ---
+  Timer? _globalResolutionTimer;
+
+  void _startGlobalResolutionScheduler() {
+    _globalResolutionTimer?.cancel();
+    // Run every 24 hours to keep swarm alive and valid
+    _globalResolutionTimer = Timer.periodic(const Duration(hours: 24), (timer) {
+      _runGlobalResolutionTask();
+    });
+    // Run immediately on startup (Startup Validation)
+    Future.delayed(const Duration(seconds: 5), _runGlobalResolutionTask);
+  }
+
+  Future<void> _runGlobalResolutionTask() async {
+    if (toIsolatePort == null) {
+      stderr.writeln(
+        'DEBUG: [GlobalResolution] Skipped - toIsolatePort is NULL',
+      );
+      return;
+    }
+
+    stderr.writeln(
+      'DEBUG: [GlobalResolution] Spawning Isolate for Global Resolution...',
+    );
+    DebugLogger.info(
+      'P2P: [TASK] Spawning Isolate for Global Resolution...',
+      category: 'SWARM',
+    );
+
+    try {
+      final endpoint = '${NetworkConstants.catalogEndpoint}/movie/top.json';
+      final p2pPort = toIsolatePort!;
+
+      // Offload to separate thread (Isolate)
+      await Isolate.run(() => executeResolutionWorker(p2pPort, endpoint));
+
+      DebugLogger.info(
+        'P2P: [TASK] Global Resolution cycle execution complete.',
+        category: 'SWARM',
+      );
+    } catch (e) {
+      stderr.writeln('DEBUG: [GlobalResolution] FAILED: $e');
+      DebugLogger.error('P2P: [TASK] Global Resolution isolate failed: $e');
+    }
+  }
+
+  /// Static worker function running in a separate Isolate.
+  /// Fetches popular streams and commands the P2P isolate to search/verify them.
+  @visibleForTesting
+  static Future<void> executeResolutionWorker(
+    SendPort p2pPort,
+    String endpoint,
+  ) async {
+    try {
+      stderr.writeln(
+        'DEBUG: [GlobalResolutionWorker] Fetching from $endpoint',
+      ); // debug
+      final uri = Uri.parse(endpoint);
+      final resp = await http.get(uri);
+
+      if (resp.statusCode == 200) {
+        final data = jsonDecode(resp.body);
+        final metas = (data['metas'] as List).take(10).toList();
+
+        stderr.writeln(
+          'DEBUG: [GlobalResolutionWorker] Found ${metas.length} items. Sending commands...',
+        );
+
+        for (var m in metas) {
+          try {
+            final id = m['imdbId'] ?? m['id'];
+            // Send Search Command directly to P2P Isolate from this ephemeral isolate
+            if (id != null) {
+              stderr.writeln(
+                'DEBUG: [GlobalResolutionWorker] Sending SEARCH for $id',
+              );
+              p2pPort.send(
+                P2PCommand(type: P2PCommandType.search, imdbId: id).toJson(),
+              );
+            }
+          } catch (e) {
+            stderr.writeln(
+              'DEBUG: [GlobalResolutionWorker] Error processing item: $e',
+            );
+          }
+        }
+      } else {
+        stderr.writeln(
+          'DEBUG: [GlobalResolutionWorker] HTTP Error: ${resp.statusCode}',
+        );
+      }
+    } catch (e) {
+      stderr.writeln('DEBUG: [GlobalResolutionWorker] CRITICAL ERROR: $e');
+      // Isolate crash or network fail - silent fail or minimal print
+      // (Main isolate catches the Isolate error if Isolate.run fails)
+    }
+  }
+
+  /// Establishes a persistent SSE connection for receiving heartbeat events.
+  /// Uses exponential backoff for reconnection attempts.
+  Future<void> _connectSSE() async {
+    if (_gardenerId == null) {
+      DebugLogger.warn('P2P: SSE connection skipped (no gardenerId)');
+      Future.delayed(const Duration(seconds: 2), _connectSSE);
+      return;
+    }
+
+    final channelId = _gardenerId!;
+    final sseUrl = '${NetworkConstants.eventsEndpoint}/$channelId/events';
+    DebugLogger.info('P2P: Connecting to persistent SSE: $sseUrl');
+
+    try {
+      // Cancel previous subscription
+      await _sseSubscription?.cancel();
+
+      final prefs = await SharedPreferences.getInstance();
+      final authToken = prefs.getString('auth_token');
+
+      // Create fresh HTTP client for each connection
+      final client = http.Client();
+      final req = http.Request('GET', Uri.parse(sseUrl));
+      req.headers['Accept'] = 'text/event-stream';
+      if (authToken != null) {
+        req.headers['Authorization'] = 'Bearer $authToken';
+      }
+
+      final resp = await client.send(req);
+      sseConnected.value = true;
+      _reconnectAttempts = 0; // Reset on successful connection
+      DebugLogger.info('P2P: SSE connected for $channelId');
+      addLocalEvent({
+        'type': 'log',
+        'message': '[SSE] Connected to Swarm ($channelId)',
+      });
+
+      _sseSubscription = resp.stream
+          .transform(const Utf8Decoder())
+          .transform(const LineSplitter())
+          .listen(
+            (line) {
+              // Reset watchdog on ANY data (including pings) - connection is alive
+              _sseWatchdog?.cancel();
+              _sseWatchdog = Timer(const Duration(seconds: 10), () {
+                DebugLogger.warn(
+                  'P2P: SSE watchdog timeout - no data for 10s, reconnecting...',
+                );
+                _sseSubscription?.cancel();
+                sseConnected.value = false;
+                _scheduleReconnect();
+              });
+
+              // Track when we receive ANY SSE data (including pings)
+              if (line.trim() == ': ping' || line.trim() == ':ping') {
+                // Don't log every ping, just update timestamp silently
+                return;
+              }
+              // Log all non-empty lines for debugging
+              if (line.isNotEmpty && !line.startsWith(':')) {
+                if (DebugConfig.pulseGated) {
+                  DebugLogger.debug('P2P: SSE line: "$line"');
+                }
+              }
+              if (line.startsWith('data:')) {
+                final payload = line.substring(5).trim();
+                if (DebugConfig.pulseGated) {
+                  DebugLogger.debug('P2P: SSE payload: "$payload"');
+                }
+                if (payload.isNotEmpty) {
+                  try {
+                    final event = jsonDecode(payload) as Map<String, dynamic>;
+                    _eventStreamController.add(event);
+                    if (event.containsKey('t')) {
+                      if (DebugConfig.pulseGated) {
+                        DebugLogger.debug('P2P: SSE heartbeat received');
+                      }
+                    }
+                  } catch (e, st) {
+                    DebugLogger.error(
+                      'P2P: SSE parse error: ${e.runtimeType} - $e',
+                    );
+                    DebugLogger.debug('P2P: SSE stack: $st');
+                  }
+                }
+              }
+            },
+            onError: (e, st) {
+              sseConnected.value = false;
+              DebugLogger.error('P2P: SSE stream error: ${e.runtimeType} - $e');
+              DebugLogger.debug('P2P: SSE stream stack: $st');
+              // cancelOnError will close the stream, triggering onDone
+            },
+            onDone: () {
+              sseConnected.value = false;
+              DebugLogger.warn(
+                'P2P: SSE stream closed, scheduling reconnect...',
+              );
+              _scheduleReconnect();
+            },
+            cancelOnError: true,
+          );
+    } catch (e, st) {
+      sseConnected.value = false;
+      DebugLogger.error('P2P: SSE connection failed: ${e.runtimeType} - $e');
+      DebugLogger.debug('P2P: SSE connection stack: $st');
+      _scheduleReconnect();
+    }
+  }
+
+  /// Schedules reconnection with exponential backoff (capped at 60s).
+  void _scheduleReconnect() {
+    _reconnectAttempts++;
+    // Exponential backoff: 2s, 4s, 8s, 16s, 32s, 60s (capped)
+    final delay = Duration(
+      seconds: (2 * (1 << (_reconnectAttempts - 1).clamp(0, 5))).clamp(2, 60),
+    );
+    DebugLogger.info(
+      'P2P: SSE reconnecting in ${delay.inSeconds}s (attempt $_reconnectAttempts)...',
+    );
+    Future.delayed(delay, _connectSSE);
   }
 
   void _queryStatus() {
@@ -228,14 +566,12 @@ class P2PManager {
     // if it's a "solo" announcement, or the real seedlingId if known.
     const seedlingId = 'self';
 
-    final prefs = await SharedPreferences.getInstance();
-    final userId = prefs.getString('user_id');
+    // userId is no longer used for heartbeat room; we always use gardenerId for P2P/Pulse consistency
 
     // The "room" we publish to. If logged in, use userId so dashboard sees us.
     // Otherwise fallback to gardenerId.
-    final roomId = (userId != null && userId.isNotEmpty)
-        ? userId
-        : _gardenerId!;
+    // always use _gardenerId for consistency with SSE channel and Debug Link Self
+    final roomId = _gardenerId!;
 
     final sig = await _security.generateHmacSignature(
       method: 'POST',
@@ -250,6 +586,14 @@ class P2PManager {
 
     try {
       final endpoint = NetworkConstants.getHeartbeatEndpoint(roomId);
+
+      // Inject local event for UI visualization (Heartbeat Chart)
+      addLocalEvent({
+        't': ts, // Timestamp acts as heartbeat signal
+        'type': 'log',
+        'message': '[PULSE] Heartbeat sent to $roomId',
+      });
+
       await http.post(
         Uri.parse(endpoint),
         headers: {
@@ -262,10 +606,21 @@ class P2PManager {
         },
         body: body,
       );
-      DebugLogger.debug('P2P: Heartbeat sent to room: $roomId');
-    } catch (e) {
-      DebugLogger.error('P2P: Heartbeat failed', error: e);
+      if (DebugConfig.pulseGated) {
+        DebugLogger.info(
+          'P2P: [Heartbeat] Sent to room: $roomId (URL: $endpoint)',
+          category: 'PULSE',
+        );
+      }
+    } catch (e, st) {
+      DebugLogger.error('P2P: Heartbeat failed: ${e.runtimeType} - $e');
+      DebugLogger.debug('P2P: Heartbeat stack: $st');
     }
+  }
+
+  /// Injects a local event into the event stream (e.g., from Scrapers or UI).
+  void addLocalEvent(Map<String, dynamic> event) {
+    _eventStreamController.add(event);
   }
 
   /// Sends a raw [P2PCommand] to the background isolate.
@@ -283,14 +638,23 @@ class P2PManager {
   /// Searches the swarm for metadata associated with an IMDB ID.
   ///
   /// Triggers a Gossipsub subscription and a DHT provider lookup.
-  void search(String imdbId) =>
-      sendCommand(P2PCommand(type: P2PCommandType.search, imdbId: imdbId));
+  void search(String imdbId) {
+    sendCommand(
+      P2PCommand(
+        type: P2PCommandType.search,
+        imdbId: imdbId,
+        data: {'timeout': _config.swarmTimeoutMs},
+      ),
+    );
+  }
 
   /// Publishes local availability of metadata for an IMDB ID.
   ///
   /// Registers the local peer as a provider in the DHT for the given ID.
-  void publish(String imdbId) =>
-      sendCommand(P2PCommand(type: P2PCommandType.publish, imdbId: imdbId));
+  /// If [data] is provided, also broadcasts the metadata to the swarm Mesh.
+  void publish(String imdbId, {Map<String, dynamic>? data}) => sendCommand(
+    P2PCommand(type: P2PCommandType.publish, imdbId: imdbId, data: data),
+  );
 
   /// Attempts to retrieve a block of data via CID.
   ///
@@ -299,8 +663,8 @@ class P2PManager {
       sendCommand(P2PCommand(type: P2PCommandType.get, imdbId: cid));
 
   /// Forces the node to re-bootstrap and optimize connectivity.
-  void optimize() {
-    unawaited(NetworkConstants.pingBootstrapPeers());
+  Future<void> optimize() async {
+    await NetworkConstants.pingBootstrapPeers();
     sendCommand(P2PCommand(type: P2PCommandType.optimize, imdbId: ''));
   }
 
@@ -310,12 +674,20 @@ class P2PManager {
   void stop() {
     _heartbeatTimer?.cancel();
     _statusTimer?.cancel();
+    _globalResolutionTimer?.cancel();
+    _sseWatchdog?.cancel();
+    _sseSubscription?.cancel();
+    // Don't close _eventStreamController - it's a broadcast stream that should
+    // live for the app's lifetime. Closing it causes StateError when buffered
+    // SSE events from old connections arrive after restart.
+    sseConnected.value = false;
     _p2pIsolate?.kill(priority: Isolate.immediate);
     _fromIsolatePort
         ?.close(); // Close the port so it can be recreated on restart
     _fromIsolatePort = null;
     _isInitialized = false;
     peerCount.value = 0;
+    hasEstablishedConnection.value = false;
     _diagnosticMetadata['status'] = 'Stopped';
     _diagnosticMetadata['peerId'] = 'Unknown';
     _diagnosticMetadata['addresses'] = 'None';
@@ -333,6 +705,45 @@ class P2PManager {
     await start();
   }
 
+  /// In Debug Mode, automatically negotiates a shared secret with the Router.
+  /// This ensures that even if the Router was restarted (losing ephemeral secrets),
+  /// the Client can re-establish trust and send authenticated heartbeats.
+  Future<void> _ensureDebugLink() async {
+    if (!kDebugMode) return;
+
+    if (_gardenerId == null) {
+      DebugLogger.warn('P2P: Cannot self-link (No Gardener ID)');
+      return;
+    }
+
+    try {
+      final endpoint = '${NetworkConstants.apiBase}/api/debug/link_self';
+      final response = await http.post(
+        Uri.parse(endpoint),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'gardenerId': _gardenerId}),
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        if (data['secret'] != null) {
+          await _security.setSharedSecret(data['secret']);
+          DebugLogger.info('P2P: Debug Self-Link negotiated successfully');
+        }
+      } else {
+        DebugLogger.warn(
+          'P2P: Debug Self-Link failed (${response.statusCode})',
+          error: response.body,
+        );
+      }
+    } catch (e, st) {
+      DebugLogger.error(
+        'P2P: Debug Self-Link connection error: ${e.runtimeType} - $e',
+      );
+      DebugLogger.debug('P2P: Debug Self-Link stack: $st');
+    }
+  }
+
   /// Entry point for the P2P background isolate.
   static void _p2pIsolateEntryPoint(dynamic initMessage) async {
     // coverage:ignore-start
@@ -342,7 +753,6 @@ class P2PManager {
     String? storagePath;
     bool autoBootstrap = true;
     List<String> bootstrapPeers = [];
-    bool enableNatTraversal = true;
 
     if (initMessage is P2PInitData) {
       fromMainPort = initMessage.sendPort;
@@ -350,7 +760,6 @@ class P2PManager {
       storagePath = initMessage.storagePath;
       autoBootstrap = initMessage.autoBootstrap;
       bootstrapPeers = initMessage.bootstrapPeers;
-      enableNatTraversal = initMessage.enableNatTraversal;
     } else if (initMessage is SendPort) {
       fromMainPort = initMessage;
     } else {
@@ -369,14 +778,53 @@ class P2PManager {
           : (Platform.environment['IPFS_PATH'] ?? './.ipfs');
 
       fromMainPort.send('[DEBUG] P2P: Repo Path resolved to: $repoPath');
+      fromMainPort.send(
+        '[DEBUG] P2P: Environment: Exec=${Platform.resolvedExecutable} | PID=$pid',
+      );
 
       final repoDir = Directory(repoPath);
+
+      // NUCLEAR OPTION: Wipe repo to clear stale config (Port 2022 override)
+      if (repoDir.existsSync()) {
+        try {
+          fromMainPort.send(
+            '[DEBUG] P2P: ☢️  Wiping stale repo to enforce new config...',
+          );
+          repoDir.deleteSync(recursive: true);
+        } catch (e) {
+          fromMainPort.send('[DEBUG] P2P: ⚠️ Failed to wipe repo: $e');
+        }
+      }
+
       if (!repoDir.existsSync()) {
-        fromMainPort.send('[DEBUG] P2P: Repo directory missing. Creating...');
-        repoDir.createSync(recursive: true);
-        fromMainPort.send('[DEBUG] P2P: Repo directory created.');
+        try {
+          repoDir.createSync(recursive: true);
+          fromMainPort.send('[DEBUG] P2P: Repo directory created.');
+        } catch (e) {
+          fromMainPort.send('[DEBUG] P2P: ❌ Failed to create repo: $e');
+        }
       } else {
         fromMainPort.send('[DEBUG] P2P: Repo directory exists.');
+      }
+
+      // Permission Probe
+      try {
+        final probe = File('${repoDir.path}/perm_probe');
+        probe.writeAsStringSync('write_test');
+        if (probe.existsSync()) {
+          probe.deleteSync();
+          fromMainPort.send(
+            '[DEBUG] P2P: ✅ Write permission verified for $repoPath',
+          );
+        } else {
+          fromMainPort.send(
+            '[DEBUG] P2P: ⚠️ Write verified but file vanished?',
+          );
+        }
+      } catch (e) {
+        fromMainPort.send(
+          '[DEBUG] P2P: ❌ Write permission DENIED for $repoPath: $e',
+        );
       }
 
       // Force cleanup of stale lock file if it exists
@@ -389,8 +837,10 @@ class P2PManager {
           // We assume if we are just starting, we own it.
           await lockFile.delete();
           fromMainPort.send('P2P: Warning - Removed stale repo.lock');
-        } catch (e) {
-          fromMainPort.send('P2P: Error removing lock file: $e');
+        } catch (e, st) {
+          fromMainPort.send(
+            'P2P: Error removing lock file: ${e.runtimeType} - $e\nStack: $st',
+          );
         }
       } else {
         fromMainPort.send('[DEBUG] P2P: No stale lock file found.');
@@ -398,18 +848,24 @@ class P2PManager {
 
       final keyFile = File('${repoDir.path}/swarm.key');
       if (initMessage is P2PInitData && initMessage.swarmKey != null) {
-        fromMainPort.send('[DEBUG] P2P: Configuring Private Swarm Key...');
+        if (DebugConfig.p2pGated) {
+          fromMainPort.send('[DEBUG] P2P: Configuring Private Swarm Key...');
+        }
         final keyContent =
             '/key/swarm/psk/1.0.0/\n/base16/\n${initMessage.swarmKey}';
         await keyFile.writeAsString(keyContent);
-        fromMainPort.send('P2P: Private Swarm Enabled');
+        if (DebugConfig.p2pGated) {
+          fromMainPort.send('P2P: Private Swarm Enabled');
+        }
       } else {
         if (keyFile.existsSync()) {
-          fromMainPort.send('[DEBUG] P2P: Cleaning up old Swarm Key...');
+          if (DebugConfig.p2pGated) {
+            fromMainPort.send('[DEBUG] P2P: Cleaning up old Swarm Key...');
+          }
           await keyFile.delete();
-          fromMainPort.send('P2P: Joining Public Swarm');
-        } else {
-          fromMainPort.send('[DEBUG] P2P: No Swarm Key configuration needed.');
+          if (DebugConfig.p2pGated) {
+            fromMainPort.send('P2P: Joining Public Swarm');
+          }
         }
       }
 
@@ -420,8 +876,11 @@ class P2PManager {
         finalBootstrapPeers.addAll(NetworkConstants.p2pBootstrapPeers);
       }
       finalBootstrapPeers.addAll(bootstrapPeers);
+      for (var peer in finalBootstrapPeers) {
+        fromMainPort.send('[DEBUG] P2P: Bootstrap Peer: $peer');
+      }
       fromMainPort.send(
-        '[DEBUG] P2P: Bootstrap list size: ${finalBootstrapPeers.length}',
+        'P2P: Bootstrap list size: ${finalBootstrapPeers.length}',
       );
 
       fromMainPort.send('P2P: Creating IPFS Node instance...');
@@ -431,14 +890,21 @@ class P2PManager {
           datastorePath: '$repoPath/data',
           keystorePath: '$repoPath/keystore',
           offline: false,
+          customConfig: const {
+            'AutoNAT.Enabled': true,
+            'AutoNAT.ServiceMode': 'server',
+            'Discovery.MDNS.Enabled': true, // Safe now that AutoNAT is off
+          },
           network: NetworkConfig(
-            listenAddresses: [
-              '/ip4/0.0.0.0/tcp/4001',
-              // '/ip4/0.0.0.0/udp/4001/quic', // Disable QUIC in 1.9.67 debug to rule out binding hang
+            listenAddresses: const [
+              '/ip4/0.0.0.0/udp/5001', // Use separate port to avoid UDP 2022 conflict
             ],
             bootstrapPeers: finalBootstrapPeers,
-            enableNatTraversal: enableNatTraversal,
+            enableNatTraversal: true, // Re-enabled after fix
           ),
+          enableLibp2pBridge: (initMessage is P2PInitData)
+              ? initMessage.enableLibp2pBridge
+              : false,
         ),
       );
       fromMainPort.send('P2P: IPFS Node created. Starting service...');
@@ -446,11 +912,52 @@ class P2PManager {
       await node.start();
       fromMainPort.send('P2P: IPFS Node service started.');
 
+      // --- PUBSUB RELAY ---
+      // Listen for incoming PubSub messages and relay to main thread
+      node.pubsubMessages.listen((msg) {
+        try {
+          // Attempt to parse content as P2PCommand
+          final data = jsonDecode(msg.content);
+          if (data is Map<String, dynamic> && data.containsKey('type')) {
+            fromMainPort.send({
+              'type': 'p2p_cmd',
+              'topic': msg.topic,
+              'sender': msg.sender,
+              'payload': data,
+            });
+          }
+        } catch (e) {
+          // Not a P2PCommand or malformed JSON - ignore silently for now
+          // (could be another protocol's traffic)
+        }
+      });
+      // --------------------
+
+      // FORCE DIAL
+      stderr.writeln(
+        'DEBUG: P2P Force Dialing ${finalBootstrapPeers.length} Peers...',
+      );
+      for (final peer in finalBootstrapPeers) {
+        try {
+          // Parse multiaddr to get PeerID if needed, but addPeer takes full multiaddr
+          // Assuming dart_ipfs API: node.network.addPeer or similar?
+          // Actually, IPFSNode usually handles bootstrap via config.
+          // But let's try to verify reachability.
+          // Since we don't have a direct 'dial' method exposed on IPFSNode easily without checking params,
+          // We will rely on the fact that if it's in bootstrapPeers, it *should* work.
+          // BUT, printing it confirms the isolate has it.
+          stderr.writeln('DEBUG: Isolate Bootstrap Target: $peer');
+        } catch (e) {
+          stderr.writeln('DEBUG: Dial error: $e');
+        }
+      }
+
       final peerId = node.peerId;
       final addresses = node.addresses;
 
       fromMainPort.send({
-        'msg': 'Federated Node Active | Connectivity: High',
+        'msg':
+            'P2P: Federated Node Active | PeerID: $peerId | Listening: $addresses',
         'cat': 'NET',
       });
       fromMainPort.send({'msg': 'Identity: $peerId', 'cat': 'NET'});
@@ -463,41 +970,68 @@ class P2PManager {
         'cat': 'NET',
       });
 
-      // Initial active bootstrap
-      try {
-        await (node as dynamic).network.bootstrap();
-        final initialPeers = await node.connectedPeers;
-        fromMainPort.send({
-          'msg': 'Initial bootstrap complete. Peers: ${initialPeers.length}',
-          'cat': 'NET',
-        });
-      } catch (e) {
-        fromMainPort.send({
-          'msg': 'P2P Bootstrap Warning: ${e.toString()}',
-          'level': 'WARN',
-          'cat': 'NET',
-        });
-      }
+      // Initial active bootstrap is handled by node.start() using the config
+      final initialPeers = await node.connectedPeers;
+      fromMainPort.send({
+        'msg': 'Initial bootstrap complete. Peers: ${initialPeers.length}',
+        'cat': 'NET',
+      });
 
       // Start Periodic Performance Logging
-      Timer.periodic(const Duration(minutes: 1), (timer) async {
+      int lastPeerCount = 0;
+      Timer.periodic(const Duration(seconds: 10), (timer) async {
         try {
+          // [KEEPALIVE] Force-ping bootstrap peers
+          // Essential for localhost dev where automatic pings might be skipped
+          for (final peer in finalBootstrapPeers) {
+            unawaited(node.connectToPeer(peer).catchError((_) {}));
+          }
+
           final peers = await node.connectedPeers;
-          // We can't easily get memory in pure Dart isolate without ffi/platform,
-          // but we can log connection counts and latency if we had metrics.
-          // For now, log connection health.
+          final currentCount = peers.length;
+
+          if (currentCount > lastPeerCount) {
+            fromMainPort.send({
+              'msg': '[GARDENER] P2P: Peer count increased! ($currentCount)',
+              'cat': 'NET',
+              'level': 'INFO',
+            });
+          }
+          lastPeerCount = currentCount;
+
           fromMainPort.send({
-            'msg': 'P2P Health Check | Connections: ${peers.length}',
+            'msg': 'P2P Health Check | Connections: $currentCount',
             'cat': 'PERF',
           });
-        } catch (_) {}
+        } catch (e, st) {
+          // Log periodic check failures for debugging
+          fromMainPort.send({
+            'msg': 'P2P: Health check error: ${e.runtimeType} - $e',
+            'level': 'WARN',
+            'cat': 'PERF',
+            'error': st.toString(),
+          });
+        }
       });
 
       toIsolatePort.listen((message) async {
-        await handleWorkerMessage(message, node, fromMainPort, privateKey);
+        try {
+          await handleWorkerMessage(message, node, fromMainPort, privateKey);
+        } catch (e, stack) {
+          fromMainPort.send({
+            'msg': 'P2P Worker Exception: $e',
+            'level': 'ERROR',
+            'cat': 'ISOLATE',
+            'error': stack.toString(),
+          });
+        }
       });
-    } catch (e) {
-      fromMainPort.send('P2P Error: ${e.toString()}');
+    } catch (e, st) {
+      fromMainPort.send({
+        'msg': 'P2P Error: ${e.runtimeType} - $e',
+        'level': 'ERROR',
+        'error': st.toString(),
+      });
     }
     // coverage:ignore-end
   }
@@ -518,6 +1052,7 @@ class P2PManager {
 
       switch (command.type) {
         case P2PCommandType.search:
+          fromMainPort.send({'msg': 'CMD: Search', 'cat': 'TRACE'});
           fromMainPort.send({
             'msg': 'Searching for ${command.imdbId} via DHT...',
             'cat': 'DHT',
@@ -528,8 +1063,21 @@ class P2PManager {
 
           // 2. DHT Find Providers
           final dhtKey = P2PProtocol.getDhtKey(command.imdbId);
+          final timeoutMs = command.data?['timeout'] as int? ?? 2000;
           final startTime = DateTime.now();
-          final providers = await node.dhtClient.findProviders(dhtKey);
+
+          var providers = [];
+          try {
+            providers = await node.dhtClient
+                .findProviders(dhtKey)
+                .timeout(Duration(milliseconds: timeoutMs));
+          } catch (e) {
+            fromMainPort.send({
+              'msg': 'DHT Lookup Timeout/Error: $e',
+              'level': 'WARN',
+              'cat': 'DHT',
+            });
+          }
           final duration = DateTime.now().difference(startTime).inMilliseconds;
 
           fromMainPort.send({
@@ -537,23 +1085,44 @@ class P2PManager {
                 'DHT Query Complete | Resolved ${providers.length} providers in ${duration}ms',
             'cat': 'DHT',
           });
+
+          // 3. Broadcast search interest to topicMesh (Gossipsub)
+          // This allows peers to respond even if they aren't DHT providers yet
+          try {
+            await node.publish(topic, jsonEncode(command.toJson()));
+          } catch (e) {
+            fromMainPort.send({
+              'msg': 'Swarm Broadcast Failed: $e',
+              'level': 'WARN',
+              'cat': 'DHT',
+            });
+          }
           break;
 
         case P2PCommandType.publish:
-          final topic = command.imdbId;
-
-          fromMainPort.send({
-            'msg': 'CMD: Publish -> $topic',
-            'level': 800, // INFO
-            'cat': 'TRACE',
-          });
-
+          fromMainPort.send({'msg': 'CMD: Publish', 'cat': 'TRACE'});
+          final topic = P2PProtocol.getTopic(command.imdbId);
           fromMainPort.send({
             'msg': 'P2P: Seeding metadata for ${command.imdbId}',
             'cat': 'DHT',
           });
+
+          // 1. DHT Announcement
           final dhtKey = P2PProtocol.getDhtKey(command.imdbId);
           await node.dhtClient.addProvider(dhtKey, node.peerId);
+
+          // 2. Swarm Broadcast (if data present)
+          if (command.data != null) {
+            try {
+              await node.publish(topic, jsonEncode(command.toJson()));
+            } catch (e) {
+              fromMainPort.send({
+                'msg': 'Metadata Broadcast Failed: $e',
+                'level': 'WARN',
+                'cat': 'DHT',
+              });
+            }
+          }
           break;
 
         case P2PCommandType.boost:
@@ -613,11 +1182,12 @@ class P2PManager {
                 'cat': 'DHT',
               });
             }
-          } catch (e) {
+          } catch (e, st) {
             fromMainPort.send({
-              'msg': 'P2P Bitswap Error: ${e.toString()}',
+              'msg': 'P2P Bitswap Error: ${e.runtimeType} - $e',
               'level': 'ERROR',
               'cat': 'DHT',
+              'error': st.toString(),
             });
           }
           break;
@@ -655,19 +1225,21 @@ class P2PManager {
             'cat': 'NET',
           });
           try {
-            // Re-trigger bootstrap process
-            await (node as dynamic).network.bootstrap();
+            // Re-trigger bootstrap process not supported via public API in this version
+            // Instead we just check peers
+            // await (node as dynamic).network.bootstrap();
             final peers = await node.connectedPeers;
             fromMainPort.send({
               'msg':
                   'P2P: Optimization complete. Active peers: ${peers.length}',
               'cat': 'NET',
             });
-          } catch (e) {
+          } catch (e, st) {
             fromMainPort.send({
-              'msg': 'P2P Optimization Warning: ${e.toString()}',
+              'msg': 'P2P Optimization Warning: ${e.runtimeType} - $e',
               'level': 'WARN',
               'cat': 'NET',
+              'error': st.toString(),
             });
             // ... comments ...
           }

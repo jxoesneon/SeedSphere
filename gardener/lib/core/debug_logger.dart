@@ -1,5 +1,8 @@
 import 'dart:developer' as developer;
+import 'dart:io';
 import 'package:flutter/foundation.dart';
+import 'package:path_provider/path_provider.dart';
+import 'debug_config.dart';
 
 /// Represents a single log entry in the system.
 class LogEntry {
@@ -175,6 +178,55 @@ class DebugLogger {
     if (kDebugMode) {
       debugPrint('[$_name] $message');
       if (error != null) debugPrint('Error: $error');
+    }
+
+    // File Logging
+    if (DebugConfig.fileLoggingEnabled) {
+      _logToFile(entry);
+    }
+  }
+
+  static File? _logFile;
+  static bool _loggingInitialized = false;
+
+  static Future<void> _initFileLogging() async {
+    if (_loggingInitialized) return;
+    try {
+      final dir = await getApplicationDocumentsDirectory();
+      _logFile = File('${dir.path}/gardener_debug.log');
+      if (!_logFile!.existsSync()) {
+        _logFile!.createSync();
+      }
+      _loggingInitialized = true;
+      // Write header
+      _logFile!.writeAsStringSync(
+        '\n--- NEW SESSION ${DateTime.now()} ---\n',
+        mode: FileMode.append,
+      );
+    } catch (e) {
+      debugPrint('Failed to init file logging: $e');
+    }
+  }
+
+  static void _logToFile(LogEntry entry) {
+    if (!_loggingInitialized) {
+      _initFileLogging(); // Fire and forget init on first log
+    }
+
+    if (_logFile != null) {
+      try {
+        final logLine =
+            '${entry.timestamp.toIso8601String()} [${entry.levelLabel}] ${entry.message}\n';
+        _logFile!.writeAsStringSync(logLine, mode: FileMode.append);
+        if (entry.error != null) {
+          _logFile!.writeAsStringSync(
+            'Error: ${entry.error}\nStack: ${entry.stackTrace}\n',
+            mode: FileMode.append,
+          );
+        }
+      } catch (e) {
+        // Silently fail to avoid loop
+      }
     }
   }
 }
