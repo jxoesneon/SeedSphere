@@ -75,5 +75,4 @@ flutter:
     - assets/shaders/aetheric_glass.frag
 
 dependency_overrides:
-  protobuf: 5.1.0
   pointycastle: 4.0.0
