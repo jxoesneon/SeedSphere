@@ -37,7 +37,7 @@ if (Test-Match $Diff "^gardener/") {
     $Matrix.include += @{
         project = "gardener"
         os = "ubuntu-latest"
-        cmd = "flutter test"
+        cmd = "flutter test --dart-define=GOOGLE_CLIENT_SECRET=$GOOGLE_CLIENT_SECRET"
     }
 }
 

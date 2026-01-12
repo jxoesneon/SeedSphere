@@ -48,6 +48,8 @@ jobs:
         uses: dart-lang/setup-dart@v1
 
       - name: Run Tests
+        env:
+          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET_DESKTOP }}
         run: |
           cd ${{ matrix.project }}
           flutter pub get || dart pub get
