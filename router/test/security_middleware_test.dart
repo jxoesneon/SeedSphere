@@ -23,7 +23,7 @@ void main() {
       String gardenerId = 'valid-gardener',
       String seedlingId = 'valid-seedling',
       String body = '',
-      String path = 'api/test',
+      String path = '/api/test',
       String method = 'POST',
       int? timestamp,
       String? nonce,

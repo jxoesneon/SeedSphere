@@ -2,6 +2,8 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:logging/logging.dart';
+
 import 'package:shelf/shelf.dart';
 import 'package:shelf/shelf_io.dart';
 import 'package:shelf_router/shelf_router.dart';
@@ -11,6 +13,7 @@ import 'package:shelf_static/shelf_static.dart';
 import 'package:router/pairing_service.dart';
 import 'package:router/p2p_node.dart';
 import 'package:router/db_service.dart';
+import 'package:router/core/debug_config.dart';
 import 'package:router/event_service.dart';
 import 'package:router/linking_service.dart';
 import 'package:router/security_middleware.dart';
@@ -123,7 +126,11 @@ final _router = Router()
   ..get('/u/<userId>/catalog/<type>/<id>.json', _userCatalogHandler)
   ..get('/u/<userId>/stream/<type>/<id>.json', _userStreamHandler)
   ..get('/api/devices/<id>/status', _deviceStatusHandler)
-  ..post('/api/devices/<id>/unlink', _deviceUnlinkHandler);
+  ..post('/api/devices/<id>/unlink', _deviceUnlinkHandler)
+  // Debug Tools
+  ..post('/api/debug/link_self', _debugLinkSelfHandler)
+  // Stream Resolution Fallback (HTTP alternative to P2P)
+  ..get('/api/streams/resolve', _streamResolveHandler);
 
 /// Mobile Interstitial Page (Deep Linking)
 Response _linkHandler(Request req) {
@@ -561,6 +568,11 @@ Response _linkStatusHandler(Request req) {
 
 /// Handles Server-Sent Events (SSE) subscriptions for real-time updates.
 Response _eventsHandler(Request req, String gardenerId) {
+  // Debug log for troubleshooting connectivity - gate behind verbose check if needed
+  if (req.url.queryParameters.containsKey('debug')) {
+    print('DEBUG: _eventsHandler CALLED for $gardenerId');
+  }
+
   final stream = eventService.subscribe(gardenerId);
   return eventService.sseResponse(stream);
 }
@@ -634,6 +646,9 @@ final Map<String, DateTime> _activeGardeners = {};
 /// Processes heartbeat signals from Gardeners to maintain active status.
 /// Validates JWT Bearer token if provided.
 Future<Response> _heartbeatHandler(Request req, String gardenerId) async {
+  if (DebugConfig.pulseGated) {
+    print('ROUTER_DEBUG: Received heartbeat from $gardenerId');
+  }
   // Validate Bearer token if provided
   final authHeader = req.headers['authorization'];
   if (authHeader != null && authHeader.startsWith('Bearer ')) {
@@ -798,6 +813,71 @@ Future<Response> _trackerVoteHandler(Request req) async {
     return Response.ok(jsonEncode({'ok': true}));
   } catch (e) {
     return Response.badRequest(body: jsonEncode({'error': 'invalid_payload'}));
+  }
+}
+
+// Debug Handlers
+
+/// Creates a self-binding for debug purposes.
+Future<Response> _debugLinkSelfHandler(Request req) async {
+  try {
+    final payload = await req.readAsString();
+    final data = jsonDecode(payload);
+    final gardenerId = data['gardenerId'];
+
+    if (gardenerId == null) {
+      return Response.badRequest(
+        body: jsonEncode({'error': 'missing_gardenerId'}),
+      );
+    }
+
+    final secret = linkingService.bindDirectly(gardenerId, 'self');
+    if (secret == null) {
+      return Response.internalServerError(
+        body: jsonEncode({'error': 'binding_failed_limit_reached'}),
+      );
+    }
+
+    return Response.ok(jsonEncode({'ok': true, 'secret': secret}));
+  } catch (e) {
+    return Response.internalServerError(body: jsonEncode({'error': '$e'}));
+  }
+}
+
+/// HTTP fallback for stream resolution when P2P mesh is unavailable.
+///
+/// Accepts `id` (IMDB ID) and optional `type` query parameters.
+/// Returns scraped stream metadata for the requested content.
+Future<Response> _streamResolveHandler(Request req) async {
+  final imdbId = req.url.queryParameters['id'];
+  final type = req.url.queryParameters['type'] ?? 'movie';
+
+  if (imdbId == null || imdbId.isEmpty) {
+    return Response.badRequest(
+      body: jsonEncode({'ok': false, 'error': 'missing_id'}),
+      headers: {'content-type': 'application/json'},
+    );
+  }
+
+  try {
+    print('[HTTP-FALLBACK] Resolving streams for $imdbId (type: $type)');
+    final streams = await scraperService.getStreams(type, imdbId, {});
+
+    return Response.ok(
+      jsonEncode({
+        'ok': true,
+        'imdbId': imdbId,
+        'type': type,
+        'streamCount': streams.length,
+        'streams': streams,
+      }),
+      headers: {'content-type': 'application/json'},
+    );
+  } catch (e) {
+    print('[HTTP-FALLBACK] Error resolving streams for $imdbId: $e');
+    return Response.internalServerError(
+      body: jsonEncode({'ok': false, 'error': '$e'}),
+    );
   }
 }
 
@@ -969,8 +1049,44 @@ String _findPortalDir() {
   return 'portal'; // Fallback
 }
 
+Middleware selectiveLogRequests() {
+  return (Handler innerHandler) {
+    return (Request request) async {
+      final watch = Stopwatch()..start();
+      final response = await innerHandler(request);
+
+      final path = request.url.path;
+      // Silence heartbeat logs unless gated debugging is enabled
+      if (path.contains('heartbeat') && !DebugConfig.pulseGated) {
+        return response;
+      }
+
+      final msg =
+          '${DateTime.now().toIso8601String()} '
+          '${watch.elapsed.toString().padLeft(15)} '
+          '${request.method.padRight(7)} '
+          '[${response.statusCode}] '
+          '/${request.url.path}';
+      print(msg);
+      return response;
+    };
+  };
+}
+
 void main(List<String> args) async {
+  print('DEBUG: SERVER STARTED');
+  // Set global logging level to suppress internal IPFS/P2P FINE logs
+  Logger.root.level = Level.ALL;
+  Logger.root.onRecord.listen((record) {
+    print(
+      '${record.time.toIso8601String()} [${record.level.name}] [${record.loggerName}] ${record.message}',
+    );
+    if (record.error != null) print(record.error);
+    if (record.stackTrace != null) print(record.stackTrace);
+  });
+
   try {
+    print('DEBUG: Starting P2PNode...');
     await p2pNode.start();
   } catch (e) {
     print(
@@ -1004,7 +1120,7 @@ void main(List<String> args) async {
       .add(staticHandler); // Fallback to static portal files
 
   final handler = const Pipeline()
-      .addMiddleware(logRequests())
+      .addMiddleware(selectiveLogRequests())
       .addMiddleware(corsHeaders())
       .addMiddleware(securityHardeningMiddleware())
       .addMiddleware(rateLimitMiddleware()) // Global rate limiting

@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:dart_ipfs/dart_ipfs.dart';
+import 'package:router/core/debug_config.dart';
 
 /// Factory for creating IPFS nodes (allows mocking).
 typedef NodeFactory = Future<IPFSNode> Function(IPFSConfig config);
@@ -23,48 +24,83 @@ class P2PNode {
 
       // 0. Cleanup Stale Locks (State Management)
       // Fixes "lock failed" error after crashes
-      final lockFile = File('./ipfs_data/blocks.lock');
-      if (lockFile.existsSync()) {
+      // 0. Cleanup Stale Locks (State Management)
+      // Fixes "lock failed" error after crashes (blocks.lock, pins.lock, etc.)
+      // 0.5 Permission & Path Auditing
+      final homeDir =
+          Platform.environment['HOME'] ?? Platform.environment['USERPROFILE'];
+      print('DEBUG: User Home: $homeDir');
+      print('DEBUG: Current PID: $pid');
+      print('DEBUG: Current Directory: ${Directory.current.path}');
+
+      final dataDir = Directory('./ipfs_data');
+      if (dataDir.existsSync()) {
         try {
-          lockFile.deleteSync();
-          print('P2P: 🧹 Removed stale DB lock file.');
+          final lockFiles = dataDir.listSync().whereType<File>().where(
+            (f) => f.path.endsWith('.lock'),
+          );
+
+          for (final file in lockFiles) {
+            file.deleteSync();
+            print('P2P: 🧹 Removed stale lock file: ${file.path}');
+          }
         } catch (e) {
-          print('P2P: ⚠️ Could not remove lock file (active process?): $e');
-          // If we can't delete it, it might be truly locked, so we proceed and let it fail naturally
+          print('P2P: ⚠️ Could not ensure lock cleanup: $e');
         }
       }
 
       // 1. Configure Private Swarm if Key Provided
-      final swarmKey = Platform.environment['P2P_SWARM_KEY'];
-      if (swarmKey != null) {
-        final home =
-            Platform.environment['HOME'] ?? Platform.environment['USERPROFILE'];
-        final repoPath = Platform.environment['IPFS_PATH'] ?? '$home/.ipfs';
+      final swarmKey =
+          Platform.environment['P2P_SWARM_KEY'] ??
+          'seedsphere-dev-swarm-2025'; // Match Gardener's default for dev
 
-        final dir = Directory(repoPath);
-        if (!dir.existsSync()) dir.createSync(recursive: true);
+      final home =
+          Platform.environment['HOME'] ?? Platform.environment['USERPROFILE'];
+      final repoPath =
+          Platform.environment['IPFS_PATH'] ??
+          (Platform.isWindows ? '$home\\.ipfs' : '$home/.ipfs');
+      print('DEBUG: Resolved IPFS_PATH: $repoPath');
 
-        final keyFile = File('${dir.path}/swarm.key');
-        // swarm.key format: /key/swarm/psk/1.0.0/\n/base16/\n<key>
-        if (!keyFile.existsSync() || keyFile.readAsStringSync() != swarmKey) {
-          keyFile.writeAsStringSync(
-            '/key/swarm/psk/1.0.0/\n/base16/\n$swarmKey',
-          );
-          print('P2P: Private Swarm Key Configured');
-        }
+      final dir = Directory(repoPath);
+      if (!dir.existsSync()) {
+        print('DEBUG: Creating repo directory...');
+        dir.createSync(recursive: true);
       }
 
-      final p2pPort = Platform.environment['P2P_PORT'] ?? '4001';
+      try {
+        final testFile = File('${dir.path}/perm_test');
+        testFile.writeAsStringSync('write_test');
+        testFile.deleteSync();
+        print('DEBUG: ✅ Write permission confirmed for $repoPath');
+      } catch (e) {
+        print('DEBUG: ❌ Write permission FAILED for $repoPath: $e');
+      }
+
+      final keyFile = File('${dir.path}/swarm.key');
+      // swarm.key format: /key/swarm/psk/1.0.0/\n/base16/\n<key>
+      if (!keyFile.existsSync() || keyFile.readAsStringSync() != swarmKey) {
+        keyFile.writeAsStringSync('/key/swarm/psk/1.0.0/\n/base16/\n$swarmKey');
+        print('P2P: Private Swarm Key Configured');
+      }
+
+      // 1. Configure Private Swarm if Key Provided
+      print('DEBUG: Loading P2PNode with PORT 4005 CONFIG');
       _node = await _nodeFactory(
         IPFSConfig(
           offline: false,
+          // --- LIBP2P BRIDGE ---
+          enableLibp2pBridge:
+              true, // Enable TCP transport for Gardener compatibility
+          libp2pListenAddress: '/ip4/0.0.0.0/tcp/4005', // Listen on TCP 4005
+          // --------------------
           network: NetworkConfig(
             listenAddresses: [
-              '/ip4/0.0.0.0/tcp/$p2pPort',
-              '/ip4/0.0.0.0/udp/$p2pPort/quic',
-              '/ip6/::/tcp/$p2pPort',
-              '/ip6/::/udp/$p2pPort/quic',
+              '/ip4/0.0.0.0/udp/4005',
+              '/ip4/0.0.0.0/tcp/4005', // TCP for dart_libp2p bridge
             ],
+            // Disable external bootstraps for now to avoid PeerId length errors
+            // We will rely on mDNS and dynamic discovery for local testing.
+            bootstrapPeers: [],
           ),
         ),
       );
@@ -72,9 +108,11 @@ class P2PNode {
       await _node!.start();
       _initialized = true;
 
-      print('P2P: Bootstrap Node Active');
-      print('P2P: PeerID: ${_node!.peerId}');
-      print('P2P: Listening on: ${_node!.addresses}');
+      if (DebugConfig.p2pGated) {
+        print('P2P: Bootstrap Node Active');
+        print('P2P: PeerID: ${_node!.peerId}');
+        print('P2P: Listening on: ${_node!.addresses}');
+      }
     } catch (e) {
       print('P2P: Failed to start bootstrap node: $e');
       rethrow;

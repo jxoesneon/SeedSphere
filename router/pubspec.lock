@@ -57,6 +57,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.13.0"
+  base32:
+    dependency: transitive
+    description:
+      name: base32
+      sha256: "37548444aaee8bd5e91db442ce69ee3a79d3652ed47c1fa7568aa3bb9af0aea5"
+      url: "https://pub.dev"
+    source: hosted
+    version: "2.2.0"
   base_x:
     dependency: transitive
     description:
@@ -73,6 +81,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.1.2"
+  bs58:
+    dependency: transitive
+    description:
+      name: bs58
+      sha256: "3ed24dadf386ca749ff50af678be1131ef569a3583a6f37b87b90c032270c767"
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.0.2"
   buffer:
     dependency: transitive
     description:
@@ -189,10 +205,10 @@ packages:
     dependency: transitive
     description:
       name: code_builder
-      sha256: "11654819532ba94c34de52ff5feb52bd81cba1de00ef2ed622fd50295f9d4243"
+      sha256: "6a6cab2ba4680d6423f34a9b972a4c9a94ebe1b62ecec4e1a1f2cba91fd1319d"
       url: "https://pub.dev"
     source: hosted
-    version: "4.11.0"
+    version: "4.11.1"
   collection:
     dependency: transitive
     description:
@@ -245,10 +261,10 @@ packages:
     dependency: "direct main"
     description:
       name: dart_ipfs
-      sha256: "877ab272c2b7459815880fad5088509f6cc42564ffca52302a95c58d006630b1"
+      sha256: d2d71309535e891c42c249176b1ccd67d048bb07b7008ea181561513b8df0982
       url: "https://pub.dev"
     source: hosted
-    version: "1.7.5"
+    version: "1.8.0"
   dart_jsonwebtoken:
     dependency: "direct main"
     description:
@@ -257,6 +273,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "3.3.1"
+  dart_libp2p:
+    dependency: transitive
+    description:
+      name: dart_libp2p
+      sha256: d299e3761582693916e495d424caf6fd3fce5f081e3c7ebaa430458871454552
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.5.3"
   dart_lz4:
     dependency: transitive
     description:
@@ -289,6 +313,22 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "3.1.3"
+  dart_udx:
+    dependency: transitive
+    description:
+      name: dart_udx
+      sha256: a50764be0d1b3a8bd93ead600dd0b2931e5cbc378c6c3f8a0da4eb2fb05c8e46
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.3.1"
+  dcid:
+    dependency: transitive
+    description:
+      name: dcid
+      sha256: a2158de2321b2fde06aae4c303a071de5821f2a46cdee6f3c6d91be0d4baa2d9
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.0.0"
   dotenv:
     dependency: "direct main"
     description:
@@ -309,10 +349,10 @@ packages:
     dependency: transitive
     description:
       name: equatable
-      sha256: "567c64b3cb4cf82397aac55f4f0cbd3ca20d77c6c03bedbc4ceaddc08904aef7"
+      sha256: "3e0141505477fd8ad55d6eb4e7776d3fe8430be8e497ccb1521370c3f21a3e2b"
       url: "https://pub.dev"
     source: hosted
-    version: "2.0.7"
+    version: "2.0.8"
   fake_async:
     dependency: "direct dev"
     description:
@@ -325,10 +365,10 @@ packages:
     dependency: transitive
     description:
       name: ffi
-      sha256: "289279317b4b16eb2bb7e271abccd4bf84ec9bdcbe999e278a94b804f5630418"
+      sha256: d07d37192dbf97461359c1518788f203b0c9102cfd2c35a716b823741219542c
       url: "https://pub.dev"
     source: hosted
-    version: "2.1.4"
+    version: "2.1.5"
   file:
     dependency: transitive
     description:
@@ -397,10 +437,10 @@ packages:
     dependency: transitive
     description:
       name: grpc
-      sha256: "86be3a7d39ad865b214a7370021ac80e68939238b507730de6d97fc662cb2723"
+      sha256: "807a4da90fc1ba94dccc3a44653d3ff7bcf26818f030259d6a8f9fab405cb880"
       url: "https://pub.dev"
     source: hosted
-    version: "5.1.0"
+    version: "4.3.1"
   hex:
     dependency: transitive
     description:
@@ -522,7 +562,7 @@ packages:
     source: hosted
     version: "6.0.0"
   logging:
-    dependency: transitive
+    dependency: "direct main"
     description:
       name: logging
       sha256: c8245ada5f1717ed44271ed1c26b8ce85ca3228fd2ffdb75468ab01979309d61
@@ -690,13 +730,13 @@ packages:
     source: hosted
     version: "1.0.0+1"
   protobuf:
-    dependency: transitive
+    dependency: "direct overridden"
     description:
       name: protobuf
-      sha256: "75ec242d22e950bdcc79ee38dd520ce4ee0bc491d7fadc4ea47694604d22bf06"
+      sha256: "2fcc8a202ca7ec17dab7c97d6b6d91cf03aa07fe6f65f8afbb6dfa52cc5bd902"
       url: "https://pub.dev"
     source: hosted
-    version: "6.0.0"
+    version: "5.1.0"
   pub_semver:
     dependency: transitive
     description:
@@ -961,6 +1001,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.2.1"
+  x25519:
+    dependency: transitive
+    description:
+      name: x25519
+      sha256: cec3c125f0d934dccba6c4cab48f3fbf866dc78895dcc5a1584d35b0a845005b
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.1.1"
   x509:
     dependency: transitive
     description:

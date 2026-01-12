@@ -166,6 +166,7 @@ class ScraperService {
         'title': description,
         'infoHash': infoHash,
         'url': magnet, // Inject the full magnet with corrected trackers
+        'seeders': s['seeders'] ?? 0, // Explicit seeders field for Gardener
         'behaviorHints': {'bingeGroup': 'seedsphere-p2p'},
       });
     }

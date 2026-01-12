@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:crypto/crypto.dart';
 import 'package:shelf/shelf.dart';
+import 'package:router/core/debug_config.dart';
 
 /// Middleware for HMAC signature verification and replay protection.
 Middleware securityMiddleware(
@@ -72,14 +73,21 @@ Middleware securityMiddleware(
       final body = await request.readAsString();
       final bodyHash = sha256.convert(utf8.encode(body)).toString();
 
+      final path = request.url.path.startsWith('/')
+          ? request.url.path
+          : '/${request.url.path}';
+
       final canonical = [
         tsStr,
         nonce,
         request.method.toUpperCase(),
-        request.url.path,
+        path,
         request.url.query,
         bodyHash,
       ].join('\n');
+      if (DebugConfig.pulseGated) {
+        print('[SecMiddleware] Canonical:\n$canonical');
+      }
 
       // Convert to base64url format as used in legacy
       // Note: Legacy used a slightly different b64 conversion, but the core is HMAC-SHA256.
@@ -92,6 +100,9 @@ Middleware securityMiddleware(
       final legacySig = base64Url.encode(rawMac).replaceAll('=', '');
 
       if (sig != legacySig) {
+        if (DebugConfig.pulseGated) {
+          print('[SecMiddleware] Mismatch! Expected: $legacySig, Got: $sig');
+        }
         return Response(401, body: jsonEncode({'error': 'invalid_signature'}));
       }
 

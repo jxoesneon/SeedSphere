@@ -48,10 +48,21 @@ class TorrentioScraper extends BaseScraper {
     // Torrentio returns a list of streams in the 'streams' field
     if (data['streams'] != null) {
       for (var stream in data['streams']) {
+        // Torrentio embeds seeders in title as '👤 <number>' or in behaviorHints
+        final title = stream['title'] ?? stream['name'] ?? '';
+        int seeders = 0;
+
+        // Try to extract seeders from title: "👤 524 💾 20.11 GB"
+        final seederMatch = RegExp(r'👤\s*(\d+)').firstMatch(title);
+        if (seederMatch != null) {
+          seeders = int.tryParse(seederMatch.group(1)!) ?? 0;
+        }
+
         streams.add({
-          'title': stream['title'] ?? stream['name'],
+          'title': title,
           'infoHash': stream['infoHash'],
           'fileIdx': stream['fileIdx'],
+          'seeders': seeders,
         });
       }
     }

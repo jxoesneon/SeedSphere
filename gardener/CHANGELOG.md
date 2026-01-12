@@ -5,22 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [2.0.0] - 2025-12-27
+## [2.0.0] - 2026-01-11
 
 ### Added
-- **Federated Frontier**: Full SeedSphere 2.0 implementation.
-- **P2P Isolate Architecture**: Offloaded heavy network logic to background isolates for 60FPS UI.
-- **Decentralized Identity**: Ed25519-based peer identity and key management.
-- **Enterprise CI/CD**: Matrix builds for 6 platforms (Windows, macOS, Linux, Android/TV, iOS, Web).
-- **Aetheric Design System**: Premium glassmorphic UI with custom fragment shaders.
-- **Full Documentation**: Every library file (29+) documented to elite enterprise standards.
-- **Multi-Source Scrapers**: Integrated YTS, Torrentio, and Torznab support.
-- **Cortex AI**: Neuro-Link integration for intelligent content discovery.
+
+- **Feature Gap Closure**: Implemented extensive legacy feature support (Torznab, UDP Scraping, Caching).
+- **Expert Screen**: Real-time diagnostics with EKG, Spectrum, and Density visualizations.
+- **Settings Mesh**: Redesigned settings navigation (Zones, Hero Animations).
+- **Core Engine**: Advanced scoring heuristics, provider failover, and multi-source scraping.
+- **Test Coverage**: Achieved >90% verified test coverage across critical components.
+- **UDP Tracker Client**: Full BEP 15 implementation for direct swarm intelligence.
+- **Cortex Service**: Integration with Azure OpenAI, DeepSeek, and Google Gemini.
 
 ### Changed
-- Refactored legacy "Gardener" code into the scalable SeedSphere framework.
-- Upgraded security manager with robust cryptographic verification.
+
+- Refactored `DesktopGoogleAuth` with mockable HTTP server for robust testing.
+- Stabilized macOS build pipeline (Provisioning Profile automation).
+- Enhanced `SwarmDashboard` with interactive logs and pulse monitoring.
 
 ### Fixed
-- Various UI layout regressions on mobile devices.
-- Threading issues during high-concurrent scraper execution.
+
+- Addressed `dart_libp2p` stream handling bugs.
+- Resolved race conditions in `ScraperEngine`.
+- Fixed multiple UI layout regressions and navigation loops.
