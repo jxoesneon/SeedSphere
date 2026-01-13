@@ -82,6 +82,22 @@ class X1337Scraper extends BaseScraper {
             final magnetUrl = _extractMagnet(detailResponse.body);
             if (magnetUrl == null) return null;
 
+            // Verify Magnet DN (Display Name) if present
+            // This prevents grabbing "wrong" magnets (e.g. from sidebars/ads)
+            final magnetDn = _extractMagnetDN(magnetUrl);
+            if (magnetDn != null && magnetDn.isNotEmpty) {
+              final dnClean = Uri.decodeComponent(
+                magnetDn,
+              ).replaceAll('+', ' ');
+              if (!TitleVerifier.verify(
+                requestedTitle,
+                dnClean,
+                year: requestedYear,
+              )) {
+                return null;
+              }
+            }
+
             final hash = _extractInfoHash(magnetUrl);
             return {
               'title': c.title, // Use the REAL title we found
@@ -160,5 +176,10 @@ class X1337Scraper extends BaseScraper {
   String? _extractInfoHash(String magnetUrl) {
     final match = RegExp(r'btih:([a-fA-F0-9]{40})').firstMatch(magnetUrl);
     return match?.group(1)?.toLowerCase();
+  }
+
+  String? _extractMagnetDN(String magnetUrl) {
+    final match = RegExp(r'dn=([^&]+)').firstMatch(magnetUrl);
+    return match?.group(1);
   }
 }

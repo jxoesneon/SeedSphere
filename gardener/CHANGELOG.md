@@ -5,6 +5,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.8] - 2026-01-13
+
+- **Fixed:** Implemented "Deep Inspection" for magnet links. Scrapers now verify the internal file name (`dn` parameter) of the magnet link against the request, preventing situations where a correct page yields an unrelated file (e.g., retrieving "IMPACT" instead of "Avatar").
+
 ## [2.0.7] - 2026-01-13
 
 - **Fixed:** Stream Verification now strictly rejects single-digit sequels (e.g., "Iron Man 2") which were previously slipping through as "short junk words".

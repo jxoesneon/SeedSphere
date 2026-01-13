@@ -53,6 +53,20 @@ class PirateBayScraper extends BaseScraper {
           year: requestedYear,
         )) {
           final hash = _extractInfoHash(result.magnet);
+
+          // Verify Magnet DN as a secondary check
+          final magnetDn = _extractMagnetDN(result.magnet);
+          if (magnetDn != null) {
+            final dnClean = Uri.decodeComponent(magnetDn).replaceAll('+', ' ');
+            if (!TitleVerifier.verify(
+              requestedTitle,
+              dnClean,
+              year: requestedYear,
+            )) {
+              continue;
+            }
+          }
+
           validStreams.add({
             'title': result.title,
             'infoHash': hash,
@@ -129,5 +143,10 @@ class PirateBayScraper extends BaseScraper {
   String? _extractInfoHash(String magnetUrl) {
     final match = RegExp(r'btih:([a-fA-F0-9]{40})').firstMatch(magnetUrl);
     return match?.group(1)?.toLowerCase();
+  }
+
+  String? _extractMagnetDN(String magnetUrl) {
+    final match = RegExp(r'dn=([^&]+)').firstMatch(magnetUrl);
+    return match?.group(1);
   }
 }
