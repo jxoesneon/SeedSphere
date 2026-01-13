@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.6] - 2026-01-13
+
+- **Fixed:** Disabled `AutoNAT` on Android to prevent P2P node initialization hang.
+- **Fixed:** Switched P2P network binding to dynamic ports (TCP/0, QUIC/0) to avoid conflicts.
+- **Improved:** Reduced log noise by silencing "no shared secret" warnings during initialization.
+
 ## [2.0.5] - 2026-01-13
 
 - **Fixed:** Addressed strict analyzer lints in `TitleVerifier` (missing class docs).

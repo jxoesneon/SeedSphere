@@ -547,8 +547,12 @@ class P2PManager {
     if (_gardenerId == null) return;
 
     final secret = await _security.getSharedSecret();
+
     if (secret == null) {
-      DebugLogger.warn('P2P: Heartbeat skipped (no shared secret)');
+      // Only warn if we are actually initialized and expect to be working
+      if (_isInitialized && peerCount.value > 0) {
+        DebugLogger.warn('P2P: Heartbeat skipped (no shared secret)');
+      }
       return;
     }
 
@@ -891,16 +895,19 @@ class P2PManager {
           keystorePath: '$repoPath/keystore',
           offline: false,
           customConfig: const {
-            'AutoNAT.Enabled': true,
-            'AutoNAT.ServiceMode': 'server',
-            'Discovery.MDNS.Enabled': true, // Safe now that AutoNAT is off
+            'AutoNAT.Enabled':
+                false, // DISABLED to prevent node.start() hang on Android
+            'AutoNAT.ServiceMode': 'client',
+            'Discovery.MDNS.Enabled': true,
+            'Pubsub.Router': 'gossipsub',
           },
           network: NetworkConfig(
             listenAddresses: const [
-              '/ip4/0.0.0.0/udp/5001', // Use separate port to avoid UDP 2022 conflict
+              '/ip4/0.0.0.0/tcp/0', // Use dynamic TCP port
+              '/ip4/0.0.0.0/udp/0/quic', // Use dynamic QUIC port
             ],
             bootstrapPeers: finalBootstrapPeers,
-            enableNatTraversal: true, // Re-enabled after fix
+            enableNatTraversal: false, // Disabled for stability
           ),
           enableLibp2pBridge: (initMessage is P2PInitData)
               ? initMessage.enableLibp2pBridge
