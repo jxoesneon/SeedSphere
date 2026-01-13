@@ -62,7 +62,13 @@ class AddonService {
   };
 
   Response _handlePublicManifest(Request req) {
-    return _jsonResponse(_baseManifest);
+    final manifest = Map<String, dynamic>.from(_baseManifest);
+    final scheme = req.requestedUri.scheme;
+    final host = req.requestedUri.host;
+    final port = req.requestedUri.port;
+    final portString = (port == 80 || port == 443) ? '' : ':$port';
+    manifest['configurationURL'] = '$scheme://$host$portString/dashboard.html';
+    return _jsonResponse(manifest);
   }
 
   /// Handler for catalog requests (Popular content).
@@ -94,7 +100,13 @@ class AddonService {
 
   /// Handler for variant manifests (e.g. Lite, Ultra).
   Response _handleVariantManifest(Request req, String variant) {
+    final scheme = req.requestedUri.scheme;
+    final host = req.requestedUri.host;
+    final port = req.requestedUri.port;
+    final portString = (port == 80 || port == 443) ? '' : ':$port';
+
     final manifest = Map<String, dynamic>.from(_baseManifest);
+    manifest['configurationURL'] = '$scheme://$host$portString/dashboard.html';
     manifest['id'] = 'community.seedsphere.$variant';
     manifest['name'] = 'SeedSphere ($variant)';
 
@@ -135,8 +147,14 @@ class AddonService {
   Response _handleUserManifest(Request req, String userId) {
     // We can customize the manifest name to include user details if we want
     // But for now, returning the base manifest is sufficient as the magic happens in /stream
+    final scheme = req.requestedUri.scheme;
+    final host = req.requestedUri.host;
+    final port = req.requestedUri.port;
+    final portString = (port == 80 || port == 443) ? '' : ':$port';
+    
     final manifest = Map<String, dynamic>.from(_baseManifest);
     manifest['name'] = "SeedSphere (Private)";
+    manifest['configurationURL'] = '$scheme://$host$portString/dashboard.html';
     return _jsonResponse(manifest);
   }
 

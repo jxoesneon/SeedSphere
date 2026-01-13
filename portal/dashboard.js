@@ -104,7 +104,7 @@ function updateUI(user) {
 
   if (user) {
     // Logged In State
-    const displayId = user.email || user.id.split(":")[1] || user.id;
+    const displayId = user.email || user.id.split(":").pop() || user.id;
     if (gardenerIdElement) gardenerIdElement.textContent = displayId;
     if (userIdElement)
       userIdElement.textContent = user.email
@@ -413,7 +413,7 @@ function setupInteractions() {
     installBtn.addEventListener("click", () => {
       try {
         if (currentUser) {
-          const userId = currentUser.id.split(":")[1] || currentUser.id;
+          const userId = currentUser.id.split(":").pop() || currentUser.id;
 
           // Determine Host: Use API_BASE host if set, otherwise current window host
           let host;

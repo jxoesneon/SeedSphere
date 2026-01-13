@@ -103,7 +103,7 @@ class StremioServer {
           ],
         },
       ],
-      'behaviorHints': {'configurable': true, 'configurationRequired': false},
+      'behaviorHints': {'configurable': true, 'configurationRequired': true},
       'configurationURL':
           '${NetworkConstants.apiBase}/configure.html?id=$gardenerId',
     };

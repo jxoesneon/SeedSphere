@@ -35,7 +35,7 @@ function setupInstallButton() {
         const data = await res.json();
 
         if (data.ok && data.user) {
-          const userId = data.user.id.split(":")[1] || data.user.id;
+          const userId = data.user.id.split(":").pop() || data.user.id;
           const host = window.location.host;
           const manifestUrl = `stremio://${host}/u/${userId}/manifest.json`;
           window.location.href = manifestUrl;
@@ -62,7 +62,7 @@ function setupInstallButton() {
         const data = await res.json();
 
         if (data.ok && data.user) {
-          const userId = data.user.id.split(":")[1] || data.user.id;
+          const userId = data.user.id.split(":").pop() || data.user.id;
           const host = window.location.host;
           const manifestUrl = `https://${host}/u/${userId}/manifest.json`;
 

@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:router/scrapers/scraper_engine.dart';
+import 'package:router/core/title_verifier.dart';
 
 /// Scraper implementation for the 1337x provider (General).
 class X1337Scraper extends BaseScraper {
@@ -31,20 +32,17 @@ class X1337Scraper extends BaseScraper {
   Future<List<Map<String, dynamic>>> scrape(String imdbId) async {
     try {
       // 1. Fetch metadata title from Cinemeta to get query
-      // Similar reasoning as Nyaa, 1337x needs text query.
-      // We try series then movie if ID type unknown, or infer.
       final type = imdbId.contains('tt') ? 'series' : 'movie';
-
-      // Try to fetch cinemeta title
       var metaInfo = await _fetchCinemetaTitle(type, imdbId);
       if (metaInfo == null && type == 'series') {
-        // Fallback to movie if series failed (though 'tt' usually means both)
         metaInfo = await _fetchCinemetaTitle('movie', imdbId);
       }
 
       if (metaInfo == null) return [];
+      final requestedTitle = metaInfo['title'] as String;
+      final requestedYear = int.tryParse(metaInfo['year'].toString());
 
-      final searchQuery = Uri.encodeComponent(metaInfo['title'] as String);
+      final searchQuery = Uri.encodeComponent(requestedTitle);
       final url = '$defaultBase/search/$searchQuery/1/';
 
       final response = await _client
@@ -53,72 +51,86 @@ class X1337Scraper extends BaseScraper {
 
       if (response.statusCode != 200) return [];
 
-      // Extract detail page links
-      final detailLinks = _extractDetailLinks(response.body).take(5).toList();
+      // Extract detail page links AND titles
+      final candidates = _extractCandidates(response.body);
+
+      // Filter candidates using TitleVerifier BEFORE fetching details
+      // This saves bandwidth/time and ensures quality.
+      final verifiedCandidates = candidates
+          .where((c) {
+            return TitleVerifier.verify(
+              requestedTitle,
+              c.title,
+              year: requestedYear,
+            );
+          })
+          .take(5)
+          .toList();
+
+      if (verifiedCandidates.isEmpty) return [];
 
       // Fetch detail pages in parallel
-      final pages = await Future.wait(
-        detailLinks.map((link) async {
+      final results = await Future.wait(
+        verifiedCandidates.map((c) async {
           try {
             final detailResponse = await _client
-                .get(Uri.parse('$defaultBase$link'), headers: _makeHeaders())
+                .get(Uri.parse('$defaultBase${c.url}'), headers: _makeHeaders())
                 .timeout(const Duration(seconds: 4));
-            return detailResponse.statusCode == 200 ? detailResponse.body : '';
+
+            if (detailResponse.statusCode != 200) return null;
+
+            final magnetUrl = _extractMagnet(detailResponse.body);
+            if (magnetUrl == null) return null;
+
+            final hash = _extractInfoHash(magnetUrl);
+            return {
+              'title': c.title, // Use the REAL title we found
+              'infoHash': hash,
+              'magnetUrl': magnetUrl,
+              'provider': '1337x',
+              'seeders':
+                  0, // 1337x scraping often misses seeds unless we parse list
+            };
           } catch (_) {
-            return '';
+            return null;
           }
         }),
       );
 
-      // Parse magnets from all pages
-      final magnets = pages
-          .expand((html) => _parseMagnetsFromHtml(html))
-          .take(30)
-          .toList();
-
-      return magnets.map((magnetUrl) {
-        final hash = _extractInfoHash(magnetUrl);
-        return {
-          'title': metaInfo!['title'] ?? '1337x',
-          'infoHash': hash,
-          'magnetUrl': magnetUrl,
-          'provider': '1337x',
-        };
-      }).toList();
+      return results.whereType<Map<String, dynamic>>().toList();
     } catch (_) {
       return [];
     }
   }
 
-  List<String> _extractDetailLinks(String html) {
-    final links = <String>{};
-    final regex = RegExp(r'href="(/torrent/[^"]+)"');
+  // Helper struct for candidates
+  List<({String url, String title})> _extractCandidates(String html) {
+    final candidates = <({String url, String title})>[];
+    // Regex matches: href="/torrent/12345/Title-Here/"
+    final regex = RegExp(r'href="(/torrent/\d+/([^/"]+)/)"');
 
     for (final match in regex.allMatches(html)) {
-      final link = match.group(1);
-      if (link != null) links.add(link);
-    }
+      final url = match.group(1);
+      final slug = match.group(2);
 
-    return links.toList();
+      if (url != null && slug != null) {
+        // De-slugify: "The-Matrix-1999" -> "The Matrix 1999"
+        final title = slug.replaceAll('-', ' ');
+        candidates.add((url: url, title: title));
+      }
+    }
+    return candidates;
   }
 
-  List<String> _parseMagnetsFromHtml(String html) {
-    final magnets = <String>{};
+  String? _extractMagnet(String html) {
     final regex = RegExp(
       r"""href=["\']?(magnet:\?xt=[^"\s\']+)["\']?""",
       caseSensitive: false,
     );
-
-    for (final match in regex.allMatches(html)) {
-      final magnetUrl = match.group(1);
-      if (magnetUrl != null && magnetUrl.startsWith('magnet:?')) {
-        magnets.add(magnetUrl);
-      }
-    }
-
-    return magnets.toList();
+    return regex.firstMatch(html)?.group(1);
   }
 
+  // ... (keep cinemeta helpers) ...
   Future<Map<String, dynamic>?> _fetchCinemetaTitle(
     String type,
     String id,
