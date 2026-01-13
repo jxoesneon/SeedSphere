@@ -64,13 +64,18 @@ class TitleVerifier {
   static bool _areSafeExtras(List<String> words) {
     // Corrected regex to be valid Dart raw string and more comprehensive
     final safePatterns = RegExp(
-      r'^(19\d{2}|20\d{2}|\d{3,4}p|4k|uhd|bluray|web|rip|x264|x265|hevc|aac|hdr|dv|hdtv|sdr|10bit|extended|remastered|unrated|imax)$',
+      r'^(19\d{2}|20\d{2}|\d{3,4}p|4k|uhd|bluray|web|rip|x264|x265|hevc|aac|hdr|dv|hdtv|sdr|10bit|extended|remastered|unrated|imax|director|cut|edition)$',
     );
 
     for (var w in words) {
       if (w.isEmpty) continue;
-      // Allow single chars (like 'h' or 'x' standalone junk)
-      if (w.length < 2) continue;
+
+      // Allow specific single chars that are junk (like 'x' in 4x4 or codec)
+      // BUT reject numbers like '2', '3' which imply sequels.
+      if (w.length < 2) {
+        if (RegExp(r'\d').hasMatch(w)) return false; // Reject '2', '3'
+        continue; // Allow 'a', 'h', etc.
+      }
 
       if (!safePatterns.hasMatch(w)) {
         return false;

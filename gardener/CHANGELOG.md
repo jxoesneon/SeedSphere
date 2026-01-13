@@ -5,6 +5,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.7] - 2026-01-13
+
+- **Fixed:** Stream Verification now strictly rejects single-digit sequels (e.g., "Iron Man 2") which were previously slipping through as "short junk words".
+
 ## [2.0.6] - 2026-01-13
 
 - **Fixed:** Disabled `AutoNAT` on Android to prevent P2P node initialization hang.
