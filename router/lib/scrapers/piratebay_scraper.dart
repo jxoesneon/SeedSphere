@@ -10,7 +10,11 @@ class PirateBayScraper extends BaseScraper {
   /// Creates a new PirateBayScraper.
   PirateBayScraper({http.Client? client})
     : _client = client ?? http.Client(),
-      super(name: 'Pirate Bay', baseUrl: 'https://thepiratebay.org');
+      super(
+        name: 'Pirate Bay',
+        baseUrl: 'https://thepiratebay.org',
+        requestsPerMinute: 30,
+      );
 
   @override
   Future<List<Map<String, dynamic>>> scrape(String imdbId) async {
@@ -29,6 +33,7 @@ class PirateBayScraper extends BaseScraper {
       // Order by seeds (99), page 1, category 0 (all)
       final url = '$baseUrl/search/$searchQuery/1/99/0';
 
+      await waitForRateLimit(); // Enforce rate limit
       final response = await _client
           .get(Uri.parse(url))
           .timeout(const Duration(seconds: 5));

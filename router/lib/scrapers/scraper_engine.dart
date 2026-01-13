@@ -25,14 +25,49 @@ abstract class BaseScraper {
   /// The base URL of the scraper's API service.
   final String baseUrl;
 
+  /// The rate limiter for this scraper instance.
+  late final RateLimiter _rateLimiter;
+
   /// Creates a [BaseScraper] instance.
-  BaseScraper({required this.name, required this.baseUrl});
+  ///
+  /// [requestsPerMinute] defaults to 30 (1 request every 2 seconds) to be safe.
+  BaseScraper({
+    required this.name,
+    required this.baseUrl,
+    int requestsPerMinute = 30,
+  }) {
+    _rateLimiter = RateLimiter(requestsPerMinute);
+  }
 
   /// Fetches stream metadata for the specified [imdbId].
   ///
   /// Should return a list of raw metadata maps, which will later be
   /// normalized by the [MetadataNormalizer].
   Future<List<Map<String, dynamic>>> scrape(String imdbId);
+
+  /// Waits if necessary to comply with the rate limit.
+  Future<void> waitForRateLimit() => _rateLimiter.wait();
+}
+
+/// A simple token bucket rate limiter.
+class RateLimiter {
+  final int requestsPerMinute;
+  final Duration _interval;
+  DateTime _nextRequestTime = DateTime.now();
+
+  RateLimiter(this.requestsPerMinute)
+    : _interval = Duration(milliseconds: (60000 / requestsPerMinute).round());
+
+  Future<void> wait() async {
+    final now = DateTime.now();
+    if (now.isBefore(_nextRequestTime)) {
+      final waitTime = _nextRequestTime.difference(now);
+      _nextRequestTime = _nextRequestTime.add(_interval);
+      await Future.delayed(waitTime);
+    } else {
+      _nextRequestTime = now.add(_interval);
+    }
+  }
 }
 
 /// Aggregation engine for running multiple scrapers in parallel.

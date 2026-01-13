@@ -20,7 +20,11 @@ class X1337Scraper extends BaseScraper {
   /// Creates a new X1337Scraper.
   X1337Scraper({http.Client? client})
     : _client = client ?? http.Client(),
-      super(name: '1337x', baseUrl: defaultBase);
+      super(
+        name: '1337x',
+        baseUrl: defaultBase,
+        requestsPerMinute: 20,
+      ); // 1 req / 3s stricter for 1337x
 
   Map<String, String> _makeHeaders() => {
     'User-Agent':
@@ -45,6 +49,7 @@ class X1337Scraper extends BaseScraper {
       final searchQuery = Uri.encodeComponent(requestedTitle);
       final url = '$defaultBase/search/$searchQuery/1/';
 
+      await waitForRateLimit(); // Enforce rate limit
       final response = await _client
           .get(Uri.parse(url), headers: _makeHeaders())
           .timeout(const Duration(seconds: 5));
