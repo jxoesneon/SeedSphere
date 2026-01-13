@@ -46,7 +46,7 @@ class AddonService {
   // Define the base manifest structure
   Map<String, dynamic> get _baseManifest => {
     "id": "community.seedsphere",
-    "version": "2.1.1",
+    "version": "2.1.2",
     "name": "SeedSphere",
     "description":
         "The Last Media Addon You'll Ever Need. Powered by a community swarm.",

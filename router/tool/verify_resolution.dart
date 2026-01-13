@@ -84,8 +84,9 @@ Future<ResolutionStats> _verifyItems(
 
     // Try all scrapers
     for (var scraper in scrapers) {
-      if (found)
-        break; // Optimization: stop if already found (unless we want to test all)
+      if (found) {
+        break; // Optimization: stop if already found
+      }
       try {
         final results = await scraper.scrape(id);
         if (results.isNotEmpty) {
