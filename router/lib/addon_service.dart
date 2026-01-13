@@ -46,7 +46,7 @@ class AddonService {
   // Define the base manifest structure
   Map<String, dynamic> get _baseManifest => {
     "id": "community.seedsphere",
-    "version": "2.0.1",
+    "version": "2.0.2",
     "name": "SeedSphere",
     "description":
         "The Last Media Addon You'll Ever Need. Powered by a community swarm.",
@@ -54,6 +54,7 @@ class AddonService {
     "resources": ["catalog", "stream"],
     "types": ["movie", "series", "anime"],
     "idPrefixes": ["tt", "kitsu"],
+    "behaviorHints": {"configurationRequired": true, "configurable": true},
     "catalogs": [
       {"type": "movie", "id": "top", "name": "Swarm Popular"},
       {"type": "series", "id": "top", "name": "Swarm Popular"},

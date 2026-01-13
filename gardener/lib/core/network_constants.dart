@@ -115,8 +115,13 @@ class NetworkConstants {
   }
 
   static List<String> get p2pBootstrapPeers {
-    // Production Bootstrap Nodes (Cleared for local troubleshooting)
-    return <String>[];
+    // Production Bootstrap Nodes (Mars, Pluto, Earth)
+    return <String>[
+      '/ip4/104.131.131.82/tcp/4001/p2p/QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ', // Mars
+      '/ip4/104.236.179.241/tcp/4001/p2p/QmSoLpPVmHKQ4XTPdz8tjDFgdeRFkpV8JgYq8JVJ69CqJH', // Pluto
+      '/ip4/128.199.219.111/tcp/4001/p2p/QmSoLSafTMBsPKadTEjbXbj17GfEz1SIZx9cJyxXSoJHcp', // Earth
+      '/ip4/178.62.158.247/tcp/4001/p2p/QmSoLer265NRgSp2LA3dPaeykiS1J6DifTC88f5uVQKNAd', // Venus
+    ];
   }
 
   /// Curated list of high-performance public trackers.

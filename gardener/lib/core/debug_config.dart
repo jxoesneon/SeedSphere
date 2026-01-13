@@ -5,10 +5,11 @@ import 'package:flutter/foundation.dart';
 /// Allows enabling/disabling specific logging categories.
 class DebugConfig {
   /// Master toggle for all verbose "EKG" and "Pulse" logging.
-  static const bool pulseGated = true;
+  /// Master toggle for all verbose "EKG" and "Pulse" logging.
+  static const bool pulseGated = kDebugMode;
 
   /// Global toggle for background service and bootstrap tracing.
-  static const bool p2pGated = true;
+  static const bool p2pGated = kDebugMode;
 
   /// Global toggle for background service and bootstrap tracing (Legacy).
   static const bool bootstrapGated = kDebugMode;
