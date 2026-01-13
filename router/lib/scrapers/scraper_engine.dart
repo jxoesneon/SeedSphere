@@ -65,15 +65,24 @@ abstract class BaseScraper {
 
 /// A simple token bucket rate limiter with Jitter.
 class RateLimiter {
+  /// The maximum number of requests allowed per minute.
   final int requestsPerMinute;
+
+  /// Whether to add random jitter to the wait time.
   final bool jitter;
+
   final Duration _interval;
   final Random _random = Random();
   DateTime _nextRequestTime = DateTime.now();
 
+  /// Creates a [RateLimiter] token bucket.
+  ///
+  /// [requestsPerMinute] defines the steady state rate.
+  /// If [jitter] is true, adds random delays to [wait].
   RateLimiter(this.requestsPerMinute, {this.jitter = false})
     : _interval = Duration(milliseconds: (60000 / requestsPerMinute).round());
 
+  /// Waits for the rate limit token bucket to allow a request.
   Future<void> wait() async {
     final now = DateTime.now();
     var targetTime = _nextRequestTime;

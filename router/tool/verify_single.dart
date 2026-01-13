@@ -1,6 +1,5 @@
 import 'package:http/http.dart' as http;
 import 'package:router/scrapers/x1337_scraper.dart';
-import 'package:router/scrapers/piratebay_scraper.dart';
 
 void main(List<String> args) async {
   final id = args.isNotEmpty ? args[0] : 'tt0111161'; // Shawshank default
