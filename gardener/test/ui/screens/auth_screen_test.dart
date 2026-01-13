@@ -149,11 +149,8 @@ void main() {
 
   group('AuthScreen Tests', () {
     late MockP2PManager mockP2P;
-    bool authenticated = false;
-
     setUp(() {
       mockP2P = MockP2PManager();
-      authenticated = false;
       FlutterSecureStorage.setMockInitialValues({});
     });
 
@@ -163,7 +160,7 @@ void main() {
         child: MaterialApp(
           home: AuthScreen(
             onAuthenticated: () {
-              authenticated = true;
+              // No-op
             },
           ),
         ),
