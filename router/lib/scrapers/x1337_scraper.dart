@@ -27,8 +27,7 @@ class X1337Scraper extends BaseScraper {
       ); // 1 req / 3s stricter for 1337x
 
   Map<String, String> _makeHeaders() => {
-    'User-Agent':
-        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36',
+    'User-Agent': userAgent, // Use rotated UA
     'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
   };
 
@@ -50,9 +49,18 @@ class X1337Scraper extends BaseScraper {
       final url = '$defaultBase/search/$searchQuery/1/';
 
       await waitForRateLimit(); // Enforce rate limit
-      final response = await _client
+      var response = await _client
           .get(Uri.parse(url), headers: _makeHeaders())
           .timeout(const Duration(seconds: 5));
+
+      // FALLBACK: If banned (403/429), rotate UA and retry once
+      if (response.statusCode == 403 || response.statusCode == 429) {
+        rotateUserAgent(); // Switch identity
+        await waitForRateLimit(); // Wait again (limit + jitter)
+        response = await _client
+            .get(Uri.parse(url), headers: _makeHeaders())
+            .timeout(const Duration(seconds: 5));
+      }
 
       if (response.statusCode != 200) return [];
 

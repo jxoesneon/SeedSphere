@@ -35,7 +35,10 @@ class PirateBayScraper extends BaseScraper {
 
       await waitForRateLimit(); // Enforce rate limit
       final response = await _client
-          .get(Uri.parse(url))
+          .get(
+            Uri.parse(url),
+            headers: {'User-Agent': userAgent},
+          ) // Use rotated UA
           .timeout(const Duration(seconds: 5));
 
       if (response.statusCode != 200) return [];

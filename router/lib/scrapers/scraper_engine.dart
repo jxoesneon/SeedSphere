@@ -1,5 +1,7 @@
 import 'dart:async';
+import 'dart:math';
 import 'package:router/core/metadata_normalizer.dart';
+import 'package:router/core/user_agent_rotator.dart'; // Import Rotator
 import 'package:router/scrapers/eztv_scraper.dart';
 import 'package:router/scrapers/nyaa_scraper.dart';
 import 'package:router/scrapers/x1337_scraper.dart';
@@ -28,16 +30,28 @@ abstract class BaseScraper {
   /// The rate limiter for this scraper instance.
   late final RateLimiter _rateLimiter;
 
+  /// The current session User-Agent.
+  late String _userAgent;
+
   /// Creates a [BaseScraper] instance.
   ///
-  /// [requestsPerMinute] defaults to 30 (1 request every 2 seconds) to be safe.
+  /// [requestsPerMinute] defaults to 30.
   BaseScraper({
     required this.name,
     required this.baseUrl,
     int requestsPerMinute = 30,
   }) {
-    _rateLimiter = RateLimiter(requestsPerMinute);
+    _rateLimiter = RateLimiter(requestsPerMinute, jitter: true);
+    rotateUserAgent();
   }
+
+  /// Rotates the User-Agent for this scraper session.
+  void rotateUserAgent() {
+    _userAgent = UserAgentRotator.random;
+  }
+
+  /// Gets the current User-Agent.
+  String get userAgent => _userAgent;
 
   /// Fetches stream metadata for the specified [imdbId].
   ///
@@ -49,20 +63,34 @@ abstract class BaseScraper {
   Future<void> waitForRateLimit() => _rateLimiter.wait();
 }
 
-/// A simple token bucket rate limiter.
+/// A simple token bucket rate limiter with Jitter.
 class RateLimiter {
   final int requestsPerMinute;
+  final bool jitter;
   final Duration _interval;
+  final Random _random = Random();
   DateTime _nextRequestTime = DateTime.now();
 
-  RateLimiter(this.requestsPerMinute)
+  RateLimiter(this.requestsPerMinute, {this.jitter = false})
     : _interval = Duration(milliseconds: (60000 / requestsPerMinute).round());
 
   Future<void> wait() async {
     final now = DateTime.now();
-    if (now.isBefore(_nextRequestTime)) {
-      final waitTime = _nextRequestTime.difference(now);
-      _nextRequestTime = _nextRequestTime.add(_interval);
+    var targetTime = _nextRequestTime;
+
+    if (jitter) {
+      // Add random jitter between 0% and 30% of the interval
+      final jitterMs = _random.nextInt(
+        (_interval.inMilliseconds * 0.3).round(),
+      );
+      targetTime = targetTime.add(Duration(milliseconds: jitterMs));
+    }
+
+    if (now.isBefore(targetTime)) {
+      final waitTime = targetTime.difference(now);
+      _nextRequestTime = targetTime.add(
+        _interval,
+      ); // Schedule next from JITTERED time
       await Future.delayed(waitTime);
     } else {
       _nextRequestTime = now.add(_interval);

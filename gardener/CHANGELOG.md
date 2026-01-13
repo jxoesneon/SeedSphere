@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.1.1] - 2026-01-13
+
+- **Feature:** Added **User-Agent Rotation** and **Jittered Delays** as default benign anti-ban strategies.
+- **Feature:** Implemented **Adaptive Fallback** logic: if a 403/429 (Ban) error is detected, the scraper automatically rotates identity and retries with backoff.
+
 ## [2.1.0] - 2026-01-13
 
 - **Feature:** Implemented intelligent `RateLimiter` for all scrapers to prevent IP limits and Cloudflare blocks. 1337x is now limited to 1 request every 3 seconds, and PirateBay to 1 request every 2 seconds.
