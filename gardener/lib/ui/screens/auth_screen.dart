@@ -225,50 +225,6 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
     }
   }
 
-  Future<void> _skipAuth() async {
-    DebugLogger.info('Auth: Skipping Auth (Debug Mode)', category: 'AUTH');
-    // For development/testing: skip auth with a guest token
-    // Pulse 0 Fix: Use gardenerId as user_id to ensure alignment with P2P identity
-    final gardenerId = ref.read(p2pManagerProvider).gardenerId;
-    final guestId =
-        gardenerId ?? 'guest_${DateTime.now().millisecondsSinceEpoch}';
-
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('auth_token', guestId);
-    await prefs.setString('user_id', guestId);
-    await prefs.setString('user_email', 'guest@seedsphere.app');
-
-    // Attempt to self-bind for P2P Heartbeats
-    try {
-      final gardenerId = ref.read(p2pManagerProvider).gardenerId;
-      if (gardenerId != null) {
-        final response = await HttpLogger.post(
-          Uri.parse('$_apiBase/api/debug/link_self'),
-          headers: {'Content-Type': 'application/json'},
-          body: jsonEncode({'gardenerId': gardenerId}),
-        );
-        if (response.statusCode == 200) {
-          final data = jsonDecode(response.body);
-          if (data['secret'] != null) {
-            await SecurityManager().setSharedSecret(data['secret']);
-            DebugLogger.info(
-              'Auth: Self-bound for debug mode',
-              category: 'AUTH',
-            );
-          }
-        }
-      }
-    } catch (e) {
-      DebugLogger.error(
-        'Auth: Failed to self-bind',
-        error: e,
-        category: 'AUTH',
-      );
-    }
-
-    widget.onAuthenticated();
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -482,20 +438,6 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                                   ? Colors.greenAccent
                                   : Colors.orangeAccent,
                               fontSize: 14,
-                            ),
-                          ),
-                        ],
-
-                        // Skip for development (only in debug mode)
-                        if (kDebugMode) ...[
-                          const SizedBox(height: 32),
-                          TextButton(
-                            onPressed: _skipAuth,
-                            child: Text(
-                              'Skip (Debug Only)',
-                              style: TextStyle(
-                                color: Colors.white.withValues(alpha: 0.3),
-                              ),
                             ),
                           ),
                         ],
