@@ -46,7 +46,7 @@ class AddonService {
   // Define the base manifest structure
   Map<String, dynamic> get _baseManifest => {
     "id": "community.seedsphere",
-    "version": "2.0.2",
+    "version": "2.0.3",
     "name": "SeedSphere",
     "description":
         "The Last Media Addon You'll Ever Need. Powered by a community swarm.",
@@ -151,7 +151,7 @@ class AddonService {
     final host = req.requestedUri.host;
     final port = req.requestedUri.port;
     final portString = (port == 80 || port == 443) ? '' : ':$port';
-    
+
     final manifest = Map<String, dynamic>.from(_baseManifest);
     manifest['name'] = "SeedSphere (Private)";
     manifest['configurationURL'] = '$scheme://$host$portString/dashboard.html';

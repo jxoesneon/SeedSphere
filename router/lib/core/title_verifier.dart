@@ -12,14 +12,8 @@ class TitleVerifier {
     // 1. Year Check (The "Sequel Filter")
     if (year != null) {
       final yearStr = year.toString();
-      // If result explicitly contains a different year, REJECT.
-      // (Simple heuristic: look for 4 digits that are NOT the requested year)
-      // But for now, let's just enforce:
-      // If Request has Year, Result MUST have Year OR High matching score.
-
       if (resClean.contains(yearStr)) {
-        // Year matches! We can be looser with title matching (messy torrents).
-        // Check fuzzy match.
+        // Year matches! We can be looser with title matching.
         final ratio = _levenshteinRatio(reqClean, resClean);
         if (ratio > 0.3)
           return true; // Very loose because "Avngrs Endgm 2019" is fine
@@ -27,10 +21,7 @@ class TitleVerifier {
         // Also check inclusion
         if (_containsAllWords(reqClean, resClean)) return true;
       } else {
-        // Result MISSING the year.
-        // Must be very strict to avoid "The Matrix Reloaded" matching "The Matrix (1999)"
-        // But what if torrent is named "The Matrix 1080p"? (No year)
-        // We require high similarity.
+        // Result MISSING the year. Strict check.
         final ratio = _levenshteinRatio(reqClean, resClean);
         if (ratio >= 0.85) return true;
       }
@@ -39,45 +30,43 @@ class TitleVerifier {
       final ratio = _levenshteinRatio(reqClean, resClean);
       if (ratio >= 0.8) return true;
 
-      // Fallback: If strict inclusion passes and length diff is small
+      // Fallback: If strict inclusion passes
       if (_containsAllWords(reqClean, resClean)) {
-         // Check what the "extra" content is.
-         final reqWords = reqClean.split(' ');
-         final resWords = resClean.split(' ');
-         
-         // Remove used words from result
-         final remaining = resWords.toList();
-         for (var w in reqWords) {
-           remaining.remove(w);
-         }
-         
-         // If remaining words are "safe" (year, resolution, etc), PASS.
-         if (_areSafeExtras(remaining)) {
-           return true; 
-         }
+        // Check what the "extra" content is.
+        final reqWords = reqClean.split(' ');
+        final resWords = resClean.split(' ');
+
+        // Remove used words from result
+        final remaining = resWords.toList();
+        for (var w in reqWords) {
+          remaining.remove(w);
+        }
+
+        // If remaining words are "safe" (year, resolution, etc), PASS.
+        if (_areSafeExtras(remaining)) {
+          return true;
+        }
       }
     }
 
     return false;
   }
-  
+
   static bool _areSafeExtras(List<String> words) {
-    final safePatterns = RegExp(r'^(19\d{2}|20\d{2}|\d{3,4}p|4k|uhd|bluray|web|rip|x264|x265|hevc|aac|hdr|dv|hdtv|sdr|10bit|extended|remastered|unrated|imax)$');
-    
+    final safePatterns = RegExp(
+      r'^(19\d{2}|20\d{2}|\d{3,4}p|4k|uhd|bluray|web|rip|x264|x265|hevc|aac|hdr|dv|hdtv|sdr|10bit|extended|remastered|unrated|imax)$',
+    );
+
     for (var w in words) {
       if (w.isEmpty) continue;
       // Allow single chars (like 'h' or 'x' standalone junk)
       if (w.length < 2) continue;
-      
+
       if (!safePatterns.hasMatch(w)) {
         return false;
       }
     }
     return true;
-  }
-    }
-
-    return false;
   }
 
   static String _clean(String s) {
@@ -91,8 +80,6 @@ class TitleVerifier {
   static bool _containsAllWords(String needle, String haystack) {
     if (needle.isEmpty) return false;
     final needleWords = needle.split(' ').where((w) => w.isNotEmpty);
-    // Use Set for O(1) lookup, but we need partial match?
-    // No, split removes symbols so "marvels.avengers" -> "marvels" "avengers"
     final haystackWords = haystack
         .split(' ')
         .where((w) => w.isNotEmpty)
