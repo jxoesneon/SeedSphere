@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.9] - 2026-01-13
+
+- **Fixed:** Series Verification now correctly handles season packs and typical naming conventions (ignoring strict year checks and allowing 'S01', 'Season', etc.), resolving the 100% failure rate for top series.
+- **Fixed:** `verify_resolution` tool script provided for local verification of coverage.
+
 ## [2.0.8] - 2026-01-13
 
 - **Fixed:** Implemented "Deep Inspection" for magnet links. Scrapers now verify the internal file name (`dn` parameter) of the magnet link against the request, preventing situations where a correct page yields an unrelated file (e.g., retrieving "IMPACT" instead of "Avatar").

@@ -62,6 +62,7 @@ class X1337Scraper extends BaseScraper {
               requestedTitle,
               c.title,
               year: requestedYear,
+              isSeries: type == 'series',
             );
           })
           .take(5)
@@ -93,6 +94,8 @@ class X1337Scraper extends BaseScraper {
                 requestedTitle,
                 dnClean,
                 year: requestedYear,
+                isSeries:
+                    type == 'series', // Also verify magnet DN with Series logic
               )) {
                 return null;
               }

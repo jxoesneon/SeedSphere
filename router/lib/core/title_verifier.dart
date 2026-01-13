@@ -10,8 +10,40 @@ class TitleVerifier {
     final reqClean = _clean(requested);
     final resClean = _clean(result);
 
-    // 1. Year Check (The "Sequel Filter")
-    if (year != null) {
+    // 0. Series Handling (High Priority)
+    if (isSeries) {
+      // Series torrents often lack the year in the title (e.g. "Breaking Bad S01").
+      // If the base title matches strongly, we should accept it.
+
+      // Check strict inclusion first
+      if (_containsAllWords(reqClean, resClean)) {
+        // Calculate remaining words
+        final reqWords = reqClean.split(' ');
+        final resWords = resClean.split(' ');
+        final remaining = resWords.toList();
+        for (var w in reqWords) {
+          remaining.remove(w);
+        }
+
+        // Series often have "S01", "Complete", "Season", etc.
+        // We modify _areSafeExtras to accept these for series
+        if (_areSafeExtras(remaining, isSeries: true)) {
+          return true;
+        }
+      }
+
+      // Fallback to fuzzy ratio for slightly messy titles
+      final ratio = _levenshteinRatio(reqClean, resClean);
+      if (ratio > 0.65) {
+        return true;
+      }
+
+      // If year is present in request and result, enforce it?
+      // Rarely happens for series torrents, usually just "Show Name Sxx"
+    }
+
+    // 1. Year Check (The "Sequel Filter" for Movies)
+    if (year != null && !isSeries) {
       final yearStr = year.toString();
       if (resClean.contains(yearStr)) {
         // Year matches! We can be looser with title matching (messy torrents).
@@ -33,7 +65,8 @@ class TitleVerifier {
         }
       }
     } else {
-      // No year in request. Standard checks.
+      // No year in request OR it's a series handled loosely above (but blocked there).
+      // Standard checks for non-year queries (or series fallthrough)
       final ratio = _levenshteinRatio(reqClean, resClean);
       if (ratio >= 0.8) {
         return true;
@@ -51,8 +84,8 @@ class TitleVerifier {
           remaining.remove(w);
         }
 
-        // If remaining words are "safe" (year, resolution, etc), PASS.
-        if (_areSafeExtras(remaining)) {
+        // If remaining words are "safe" with stricter defaults
+        if (_areSafeExtras(remaining, isSeries: isSeries)) {
           return true;
         }
       }
@@ -61,10 +94,15 @@ class TitleVerifier {
     return false;
   }
 
-  static bool _areSafeExtras(List<String> words) {
+  static bool _areSafeExtras(List<String> words, {bool isSeries = false}) {
     // Corrected regex to be valid Dart raw string and more comprehensive
     final safePatterns = RegExp(
       r'^(19\d{2}|20\d{2}|\d{3,4}p|4k|uhd|bluray|web|rip|x264|x265|hevc|aac|hdr|dv|hdtv|sdr|10bit|extended|remastered|unrated|imax|director|cut|edition)$',
+    );
+
+    // Series specific patterns: S01, E01, Season, Complete, Boxset
+    final seriesPatterns = RegExp(
+      r'^(s\d{1,2}|e\d{1,3}|s\d{1,2}e\d{1,3}|season|series|episode|complete|boxset|collection|vol|volume)$',
     );
 
     for (var w in words) {
@@ -77,9 +115,11 @@ class TitleVerifier {
         continue; // Allow 'a', 'h', etc.
       }
 
-      if (!safePatterns.hasMatch(w)) {
-        return false;
-      }
+      if (safePatterns.hasMatch(w)) continue;
+
+      if (isSeries && seriesPatterns.hasMatch(w)) continue;
+
+      return false; // Unknown word found
     }
     return true;
   }

@@ -51,6 +51,7 @@ class PirateBayScraper extends BaseScraper {
           requestedTitle,
           result.title,
           year: requestedYear,
+          isSeries: type == 'series',
         )) {
           final hash = _extractInfoHash(result.magnet);
 
@@ -62,6 +63,7 @@ class PirateBayScraper extends BaseScraper {
               requestedTitle,
               dnClean,
               year: requestedYear,
+              isSeries: type == 'series',
             )) {
               continue;
             }
