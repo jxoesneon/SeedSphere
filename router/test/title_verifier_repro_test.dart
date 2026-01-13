@@ -37,7 +37,11 @@ void main() {
       // But "US" is often treated as junk.
       // Let's see what it does.
       expect(
-        TitleVerifier.verify('The Office', 'The Office US S01E01'),
+        TitleVerifier.verify(
+          'The Office',
+          'The Office US S01E01',
+          isSeries: true,
+        ),
         isTrue,
       );
     });

@@ -67,8 +67,10 @@ class TitleVerifier {
     } else {
       // No year in request OR it's a series handled loosely above (but blocked there).
       // Standard checks for non-year queries (or series fallthrough)
+      // TIGHTENED: 0.8 was too loose ("Iron Man" matches "Iron Man 2").
+      // We rely on inclusion + safe extras for partial matches.
       final ratio = _levenshteinRatio(reqClean, resClean);
-      if (ratio >= 0.8) {
+      if (ratio >= 0.95) {
         return true;
       }
 
@@ -97,7 +99,7 @@ class TitleVerifier {
   static bool _areSafeExtras(List<String> words, {bool isSeries = false}) {
     // Corrected regex to be valid Dart raw string and more comprehensive
     final safePatterns = RegExp(
-      r'^(19\d{2}|20\d{2}|\d{3,4}p|4k|uhd|bluray|web|rip|x264|x265|hevc|aac|hdr|dv|hdtv|sdr|10bit|extended|remastered|unrated|imax|director|cut|edition)$',
+      r'^(19\d{2}|20\d{2}|\d{3,4}p|4k|uhd|bluray|web|rip|x264|x265|hevc|aac|hdr|dv|hdtv|sdr|10bit|extended|remastered|unrated|imax|director|cut|edition|us|uk)$',
     );
 
     // Series specific patterns: S01, E01, Season, Complete, Boxset
