@@ -226,19 +226,17 @@ void main() {
       // But we can test the general UI behavior.
     });
 
-    testWidgets('Debug Mode - Skip Auth works', (WidgetTester tester) async {
-      // Skip Auth is only visible in kDebugMode.
-      // In tests, kDebugMode is true.
+    testWidgets('Debug Mode - Skip Auth is disabled in Release/Hotfix', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        ProviderScope(
+          child: MaterialApp(home: AuthScreen(onAuthenticated: () {})),
+        ),
+      );
 
-      await tester.pumpWidget(createSubject());
-      await tester.pump();
-
-      expect(find.text('Skip (Debug Only)'), findsOneWidget);
-
-      await tester.tap(find.text('Skip (Debug Only)'));
-      await tester.pumpAndSettle();
-
-      expect(authenticated, isTrue);
+      // Verify the button is NOT present
+      expect(find.text('Skip (Debug Only)'), findsNothing);
     });
   });
 }
