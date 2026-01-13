@@ -13,22 +13,30 @@ class TitleVerifier {
     if (year != null) {
       final yearStr = year.toString();
       if (resClean.contains(yearStr)) {
-        // Year matches! We can be looser with title matching.
+        // Year matches! We can be looser with title matching (messy torrents).
+        // Check fuzzy match.
         final ratio = _levenshteinRatio(reqClean, resClean);
-        if (ratio > 0.3)
+        if (ratio > 0.3) {
           return true; // Very loose because "Avngrs Endgm 2019" is fine
+        }
 
         // Also check inclusion
-        if (_containsAllWords(reqClean, resClean)) return true;
+        if (_containsAllWords(reqClean, resClean)) {
+          return true;
+        }
       } else {
         // Result MISSING the year. Strict check.
         final ratio = _levenshteinRatio(reqClean, resClean);
-        if (ratio >= 0.85) return true;
+        if (ratio >= 0.85) {
+          return true;
+        }
       }
     } else {
       // No year in request. Standard checks.
       final ratio = _levenshteinRatio(reqClean, resClean);
-      if (ratio >= 0.8) return true;
+      if (ratio >= 0.8) {
+        return true;
+      }
 
       // Fallback: If strict inclusion passes
       if (_containsAllWords(reqClean, resClean)) {
@@ -53,6 +61,7 @@ class TitleVerifier {
   }
 
   static bool _areSafeExtras(List<String> words) {
+    // Corrected regex to be valid Dart raw string and more comprehensive
     final safePatterns = RegExp(
       r'^(19\d{2}|20\d{2}|\d{3,4}p|4k|uhd|bluray|web|rip|x264|x265|hevc|aac|hdr|dv|hdtv|sdr|10bit|extended|remastered|unrated|imax)$',
     );
@@ -80,6 +89,7 @@ class TitleVerifier {
   static bool _containsAllWords(String needle, String haystack) {
     if (needle.isEmpty) return false;
     final needleWords = needle.split(' ').where((w) => w.isNotEmpty);
+    // Use Set for O(1) lookup
     final haystackWords = haystack
         .split(' ')
         .where((w) => w.isNotEmpty)
@@ -112,8 +122,12 @@ class TitleVerifier {
       (_) => List<int>.filled(m + 1, 0),
     );
 
-    for (int i = 0; i <= n; i++) matrix[i][0] = i;
-    for (int j = 0; j <= m; j++) matrix[0][j] = j;
+    for (int i = 0; i <= n; i++) {
+      matrix[i][0] = i;
+    }
+    for (int j = 0; j <= m; j++) {
+      matrix[0][j] = j;
+    }
 
     for (int i = 1; i <= n; i++) {
       for (int j = 1; j <= m; j++) {
