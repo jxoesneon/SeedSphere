@@ -326,7 +326,7 @@ Response _rootHandler(Request req) {
   return Response.ok(
     jsonEncode({
       'name': 'SeedSphere Router',
-      'version': '2.1.4',
+      'version': '2.1.5',
       'status': 'active',
       'mode': 'Federated Frontier (Parity)',
     }),

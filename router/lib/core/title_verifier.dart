@@ -69,8 +69,10 @@ class TitleVerifier {
       // Standard checks for non-year queries (or series fallthrough)
       // TIGHTENED: 0.8 was too loose ("Iron Man" matches "Iron Man 2").
       // We rely on inclusion + safe extras for partial matches.
+      // 0.85 allows "Spider-man" vs "Spiderman" (dist=1, len=10, ratio~0.9).
+      // 0.85 rejects "Iron Man" vs "Iron Man 2" (dist=2, len=10, ratio=0.8).
       final ratio = _levenshteinRatio(reqClean, resClean);
-      if (ratio >= 0.95) {
+      if (ratio >= 0.85) {
         return true;
       }
 
