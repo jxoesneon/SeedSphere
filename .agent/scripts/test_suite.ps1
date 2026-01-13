@@ -20,8 +20,12 @@ Stop-Process -Name "dart" -Force -ErrorAction SilentlyContinue
 Write-Host "`n Testing Router (Dart)..." -ForegroundColor Yellow
 Push-Location "router"
 try {
-    Write-Host "Running dart analyze..."
-    dart analyze
+    Write-Host "Running dart format check..."
+    dart format --output=none --set-exit-if-changed .
+    if ($LASTEXITCODE -ne 0) { throw "Router formatting issues detected. Run 'dart format .' to fix." }
+
+    Write-Host "Running dart analyze (strict)..."
+    dart analyze --fatal-infos
     if ($LASTEXITCODE -ne 0) { throw "Router analysis failed" }
 
     Write-Host "Running dart test $TagArg..."
@@ -41,7 +45,7 @@ Write-Host "`n Testing Gardener (Flutter)..." -ForegroundColor Yellow
 Push-Location "gardener"
 try {
     Write-Host "Running flutter analyze..."
-    flutter analyze
+    flutter analyze --no-fatal-infos
     if ($LASTEXITCODE -ne 0) { throw "Gardener analysis failed" }
 
     Write-Host "Running flutter test $TagArg..."

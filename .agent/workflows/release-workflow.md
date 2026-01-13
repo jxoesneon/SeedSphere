@@ -36,8 +36,31 @@ If the script is broken, use the manual commands:
     - Update `gardener/pubspec.yaml`
     - Update `router/pubspec.yaml`
 2.  **Tag & Push**:
+
     ```powershell
     git commit -am "chore(release): bump version"
     git tag vX.Y.Z
     git push origin main --tags
+    ```
+
+3.  **Pre-Flight Checks (Important!)**:
+
+    > [!IMPORTANT]
+    > Always run these before tagging to prevent CI failures!
+
+    **Router (Backend):**
+
+    ```bash
+    cd router
+    dart format --output=none --set-exit-if-changed .
+    dart analyze --fatal-infos
+    dart test
+    ```
+
+    **Gardener (Frontend):**
+
+    ```bash
+    cd gardener
+    flutter analyze --no-fatal-infos
+    flutter test
     ```

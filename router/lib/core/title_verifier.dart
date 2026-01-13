@@ -1,3 +1,4 @@
+/// Utility for verifying that a search result matches the requested content.
 class TitleVerifier {
   /// Verify if the result title is close enough to the requested title.
   static bool verify(
