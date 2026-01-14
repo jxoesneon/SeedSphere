@@ -196,8 +196,48 @@ Response _rootHandler(Request req) {
 Map<String, dynamic>? _cachedRelease;
 DateTime? _lastCacheTime;
 
+List<dynamic>? _cachedReleasesList;
+DateTime? _lastReleasesCacheTime;
+
 /// Fetch latest release from GitHub (Cached for 15 minutes)
 Future<Map<String, dynamic>?> _getLatestRelease() async {
+  if (_cachedRelease != null &&
+      _lastCacheTime != null &&
+      DateTime.now().difference(_lastCacheTime!).inMinutes < 15) {
+    return _cachedRelease;
+  }
+
+  try {
+    print('Fetching latest release from GitHub...');
+    final url = Uri.https(
+      'api.github.com',
+      '/repos/jxoesneon/SeedSphere/releases/latest',
+    );
+    final response = await http.get(
+      url,
+      headers: {'User-Agent': 'SeedSphere-Router'},
+    );
+
+    if (response.statusCode == 200) {
+      _cachedRelease = jsonDecode(response.body);
+      _lastCacheTime = DateTime.now();
+      return _cachedRelease;
+    } else {
+      print('GitHub API Error: ${response.statusCode} ${response.body}');
+    }
+  } catch (e) {
+    print('Failed to fetch release: $e');
+  }
+  return null;
+}
+
+// ... (skipping _handleDownload to keep context minimal, wait, I need to match the TargetContent accurately)
+// Actually I can't skip strict content in replace_file_content.
+// I will just add the variables first, then replace the function separately to avoid huge block issues if I mess up context.
+// Better: Add variables at top, replace function at bottom. Two edits.
+
+// Edit 1: Add variables.
+
   if (_cachedRelease != null &&
       _lastCacheTime != null &&
       DateTime.now().difference(_lastCacheTime!).inMinutes < 15) {
@@ -320,8 +360,16 @@ Future<Response> _handleDownload(Request req, String file) async {
 
 /// Dynamic Releases Proxy
 Future<Response> _handleReleases(Request req) async {
-  // We can return the cached latest release wrapped in a list for compatibility if needed,
-  // or fetch the full list. Dashboard expects a list.
+  // Check cache (15 minutes)
+  if (_cachedReleasesList != null &&
+      _lastReleasesCacheTime != null &&
+      DateTime.now().difference(_lastReleasesCacheTime!).inMinutes < 15) {
+    return Response.ok(
+      jsonEncode(_cachedReleasesList),
+      headers: {'content-type': 'application/json'},
+    );
+  }
+
   try {
     final url = Uri.https(
       'api.github.com',
@@ -331,14 +379,33 @@ Future<Response> _handleReleases(Request req) async {
       url,
       headers: {'User-Agent': 'SeedSphere-Router'},
     );
-    if (response.statusCode != 200) {
+
+    if (response.statusCode == 200) {
+      _cachedReleasesList = jsonDecode(response.body);
+      _lastReleasesCacheTime = DateTime.now();
+      return Response.ok(
+        response.body,
+        headers: {'content-type': 'application/json'},
+      );
+    } else {
+      // Fallback to stale cache if available
+      if (_cachedReleasesList != null) {
+        print('GitHub API Error (${response.statusCode}), serving stale cache.');
+        return Response.ok(
+          jsonEncode(_cachedReleasesList),
+          headers: {'content-type': 'application/json'},
+        );
+      }
       return Response.internalServerError(body: 'github_api_error');
     }
-    return Response.ok(
-      response.body,
-      headers: {'content-type': 'application/json'},
-    );
   } catch (e) {
+    if (_cachedReleasesList != null) {
+      print('GitHub API Exception ($e), serving stale cache.');
+      return Response.ok(
+        jsonEncode(_cachedReleasesList),
+        headers: {'content-type': 'application/json'},
+      );
+    }
     return Response.internalServerError(body: 'error: $e');
   }
 }
