@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:gardener/p2p/p2p_manager.dart';
 import 'package:gardener/ui/theme/aetheric_theme.dart';
 import 'package:gardener/ui/widgets/network_status_card.dart';
+import 'package:gardener/core/network_status.dart';
 import 'package:gardener/ui/widgets/network_mode_toggle.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';

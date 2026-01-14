@@ -48,6 +48,11 @@ class EventService {
     return controller.stream;
   }
 
+  /// Checks if a client is currently connected.
+  bool isConnected(String clientId) {
+    return _controllers.containsKey(clientId);
+  }
+
   /// Publishes an event to all subscribers in a room.
   void publish(String gardenerId, String event, Map<String, dynamic> data) {
     if (_controllers.containsKey(gardenerId)) {

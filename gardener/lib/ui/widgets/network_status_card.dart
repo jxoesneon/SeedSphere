@@ -2,20 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:gardener/ui/theme/aetheric_theme.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-/// Network connectivity status for the swarm uplink.
-enum NetworkStatus {
-  /// Optimal connectivity with good peer count
-  optimal,
-
-  /// Limited connectivity or degraded performance
-  degraded,
-
-  /// No network connection
-  offline,
-
-  /// Checking connection status
-  checking,
-}
+import 'package:gardener/core/network_status.dart';
 
 /// A status card displaying real-time network health for P2P connectivity.
 class NetworkStatusCard extends StatefulWidget {

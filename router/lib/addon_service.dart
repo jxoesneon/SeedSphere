@@ -4,16 +4,18 @@ import 'package:shelf_router/shelf_router.dart';
 import 'package:http/http.dart' as http;
 
 import 'package:router/scraper_service.dart';
+import 'package:router/db_service.dart';
 
 /// Service that powers the Stremio Addon functionality.
 ///
 /// Handles manifest generation and stream resolution (redirecting to the Swarm).
 class AddonService {
   final ScraperService _scraper;
+  final DbService _db;
   final http.Client _client;
 
   /// Creates a new AddonService.
-  AddonService(this._scraper, [http.Client? client])
+  AddonService(this._scraper, this._db, [http.Client? client])
     : _client = client ?? http.Client();
 
   /// Returns the router representing the Stremio Addon routes.
@@ -48,7 +50,7 @@ class AddonService {
     final manifest = Map<String, dynamic>.from(_baseManifest);
     manifest['name'] = "SeedSphere (Private)";
     manifest['configurationURL'] =
-        "https://seedsphere.app/dashboard.html"; // Default fallback
+        "https://seedsphere.app/configure.html"; // Default fallback
     return manifest;
   }
 
@@ -76,12 +78,30 @@ class AddonService {
     final host = req.requestedUri.host;
     final port = req.requestedUri.port;
     final portString = (port == 80 || port == 443) ? '' : ':$port';
-    manifest['configurationURL'] = '$scheme://$host$portString/dashboard.html';
+    manifest['configurationURL'] = '$scheme://$host$portString/configure.html';
     return _jsonResponse(manifest);
   }
 
   /// Handler for catalog requests (Popular content).
   Future<Response> _handleCatalog(Request req, String type, String id) async {
+    // Check for Dynamic Catalog
+    if (id.startsWith('dynamic:')) {
+      final parts = id.split(':');
+      // Format: dynamic:<userId>:<query>
+      if (parts.length >= 3) {
+        final userId = parts[1];
+        final query = parts.sublist(2).join(':');
+
+        try {
+          final metas = await _scraper.getDynamicCatalog(type, query, userId);
+          return _jsonResponse({'metas': metas});
+        } catch (e) {
+          print('Dynamic Catalog Error: $e');
+          return _jsonResponse({'metas': []});
+        }
+      }
+    }
+
     if (id == 'top' || id == 'top.json') {
       return _proxyCinemeta(type);
     }
@@ -115,7 +135,7 @@ class AddonService {
     final portString = (port == 80 || port == 443) ? '' : ':$port';
 
     final manifest = Map<String, dynamic>.from(_baseManifest);
-    manifest['configurationURL'] = '$scheme://$host$portString/dashboard.html';
+    manifest['configurationURL'] = '$scheme://$host$portString/configure.html';
     manifest['id'] = 'community.seedsphere.$variant';
     manifest['name'] = 'SeedSphere ($variant)';
 
@@ -135,12 +155,16 @@ class AddonService {
     String type,
     String id,
   ) async {
+    print(
+      '[AddonService] Handling Variant Stream Request: variant=$variant, type=$type, id=$id, uri=${req.requestedUri}',
+    );
     // Pass variant as a setting to scraper
     final settings = {'variant': variant};
     try {
       final streams = await _scraper.getStreams(type, id, settings);
       return _jsonResponse({'streams': streams});
     } catch (e) {
+      print('[AddonService] Variant Stream Error: $e');
       return _jsonResponse({
         'streams': [
           {'name': 'Error', 'title': '$e'},
@@ -154,8 +178,44 @@ class AddonService {
   /// Currently mirrors the public manifest but allows for future customization
   /// per user (e.g., "SeedSphere (Private)").
   Response _handleUserManifest(Request req, String userId) {
-    // We can customize the manifest name to include user details if we want
-    // But for now, returning the base manifest is sufficient as the magic happens in /stream
+    // 1. Get User Settings
+    final user = _db.getUser(userId);
+    final settings = user?['settings'] as Map<String, dynamic>? ?? {};
+
+    // 2. Filter Catalogs
+    // Settings keys: 'hide_movies', 'hide_series', 'hide_anime'
+    var catalogs = List<Map<String, dynamic>>.from(_baseManifest['catalogs']);
+
+    if (settings['hide_movies'] == true) {
+      catalogs.removeWhere((c) => c['type'] == 'movie');
+    }
+    if (settings['hide_series'] == true) {
+      catalogs.removeWhere((c) => c['type'] == 'series');
+    }
+    // Anime is usually a subset of series/movie in Stremio type system,
+    // but if we had a specific 'anime' type, we'd filter it.
+    // Our base manifest uses standard types.
+    // If 'anime' is just a flag for content, we might implement it deeper.
+    // For now, let's assume strict type filtering if we add 'anime' type support.
+
+    // Inject Dynamic Catalogs
+    final dynamicCatalogs = settings['dynamic_catalogs'] as List?;
+    if (dynamicCatalogs != null) {
+      for (final query in dynamicCatalogs) {
+        if (query is String && query.isNotEmpty) {
+          catalogs.add({
+            "type": "movie", // Can support series too, or both
+            "id": "dynamic:$userId:$query", // Embed userId for routing
+            "name": "$query (AI)",
+            "extra": [
+              {"name": "search", "isRequired": false},
+            ], // Just in case
+          });
+        }
+      }
+    }
+
+    // 3. Construct Manifest
     final scheme = req.requestedUri.scheme;
     final host = req.requestedUri.host;
     final port = req.requestedUri.port;
@@ -163,7 +223,10 @@ class AddonService {
 
     final manifest = Map<String, dynamic>.from(_baseManifest);
     manifest['name'] = "SeedSphere (Private)";
-    manifest['configurationURL'] = '$scheme://$host$portString/dashboard.html';
+    manifest['description'] = "Your private swarm gateway.";
+    manifest['catalogs'] = catalogs;
+    manifest['configurationURL'] = '$scheme://$host$portString/configure.html';
+
     return _jsonResponse(manifest);
   }
 

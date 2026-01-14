@@ -11,6 +11,7 @@ import 'package:gardener/core/keys_helper.dart' as keys_helper;
 import 'package:gardener/core/stremio_server.dart';
 import 'package:gardener/core/config_manager.dart';
 import 'package:gardener/p2p/p2p_manager.dart';
+import 'package:gardener/services/task_executor_service.dart';
 
 import 'package:gardener/core/network_constants.dart';
 import 'package:gardener/core/debug_config.dart';
@@ -72,11 +73,18 @@ class BootstrapWrapper extends ConsumerStatefulWidget {
 class _BootstrapWrapperState extends ConsumerState<BootstrapWrapper> {
   bool _initialized = false;
   String? _error;
+  TaskExecutorService? _taskExecutor; // Keep reference
 
   @override
   void initState() {
     super.initState();
     _bootstrap();
+  }
+
+  @override
+  void dispose() {
+    _taskExecutor?.stop();
+    super.dispose();
   }
 
   Future<void> _bootstrap() async {
@@ -111,6 +119,10 @@ class _BootstrapWrapperState extends ConsumerState<BootstrapWrapper> {
       }
       final p2p = ref.read(p2pManagerProvider);
       await p2p.start();
+
+      // Initialize Task Executor via Provider
+      ref.read(taskExecutorProvider).start();
+
       if (DebugConfig.bootstrapGated) {
         DebugLogger.info('GARDENER_DEBUG: p2p.start() complete');
       }

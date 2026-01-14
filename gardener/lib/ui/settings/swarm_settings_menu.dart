@@ -10,6 +10,7 @@ import 'package:gardener/ui/settings/provider_settings.dart';
 import 'package:gardener/ui/settings/optimization_settings.dart';
 import 'package:gardener/ui/settings/swarm_uplink_settings.dart';
 import 'package:gardener/ui/settings/torznab_manager.dart';
+import 'package:gardener/ui/settings/addon_settings.dart';
 import 'package:gardener/ui/theme/aetheric_theme.dart';
 import 'package:gardener/ui/widgets/compact_settings_card.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -153,6 +154,14 @@ class _SwarmSettingsMenuState extends ConsumerState<SwarmSettingsMenu> {
                   heroTag: 'settings_icon_cortex',
                   statusBadge: _config.cortexProvider,
                   onTap: () => _navigateTo(context, const CortexSettings()),
+                ),
+                CompactSettingsCard(
+                  title: 'Stremio Addon',
+                  icon: Icons.layers_rounded,
+                  description: 'Catalogs & Dynamic Lists',
+                  priority: SettingsPriority.standard,
+                  heroTag: 'settings_icon_addon',
+                  onTap: () => _navigateTo(context, const AddonSettings()),
                 ),
                 CompactSettingsCard(
                   title: 'Playback Protocols',

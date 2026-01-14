@@ -40,6 +40,17 @@ class ScraperService {
         .toList();
   }
 
+  /// Fetches a dynamic catalog based on a [query].
+  ///
+  /// Default implementation returns empty list.
+  Future<List<Map<String, dynamic>>> getDynamicCatalog(
+    String type,
+    String query,
+    String userId,
+  ) async {
+    return [];
+  }
+
   /// Aggregates streams for a given media [type], [id], and user [settings].
   ///
   /// Returns a list of standardized stream maps ready for Stremio consumption.

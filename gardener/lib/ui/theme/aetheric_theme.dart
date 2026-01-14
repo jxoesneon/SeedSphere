@@ -22,6 +22,9 @@ class AethericTheme {
   /// The base translucent color for glassmorphic containers.
   static const Color crystalline = Color(0x1AFFFFFF);
 
+  /// Slightly lighter glass surface for interactive elements.
+  static const Color glassSurface = Color(0x0FFFFFFF);
+
   /// The subtle border color for glass containers.
   static const Color glassBorder = Color(0x33FFFFFF);
 

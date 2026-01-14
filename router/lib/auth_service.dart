@@ -362,10 +362,14 @@ class AuthService {
       userData.remove('settings_json');
     }
 
+    // Inject Gardener Count
+    final gardenerCount = _db.countBindingsForSeedling(userId);
+
     return Response.ok(
       jsonEncode({
         'ok': true,
         'user': userData,
+        'gardener_count': gardenerCount,
         if (deviceSecret != null) 'secret': deviceSecret,
       }),
     );
@@ -513,8 +517,8 @@ class AuthService {
     final values = List<int>.generate(32, (i) => random.nextInt(255));
     final sid = base64UrlEncode(values);
 
-    // Store in DB (30 days TTL)
-    _db.createSession(sid, userId, 30 * 24 * 60 * 60 * 1000);
+    // Store in DB (3 hours TTL)
+    _db.createSession(sid, userId, 3 * 60 * 60 * 1000);
 
     // Cookie Hardening
     final isHttps =
@@ -522,7 +526,7 @@ class AuthService {
         req.headers['x-forwarded-proto'] == 'https';
     final secureFlag = isHttps ? '; Secure' : '';
     final cookie =
-        'seedsphere_session=$sid; Path=/; HttpOnly; SameSite=Lax$secureFlag; Max-Age=${60 * 60 * 24 * 30}'; // 30 days
+        'seedsphere_session=$sid; Path=/; HttpOnly; SameSite=Lax$secureFlag; Max-Age=${60 * 60 * 3}'; // 3 hours
     final headers = {'Set-Cookie': cookie};
 
     if (redirect != null) {

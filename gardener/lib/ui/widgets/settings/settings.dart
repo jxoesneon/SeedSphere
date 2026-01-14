@@ -33,3 +33,5 @@ export 'settings_dropdown.dart';
 export 'settings_slider.dart';
 export 'settings_text_field.dart';
 export 'settings_toggle.dart';
+export 'settings_scaffold.dart';
+export 'settings_section.dart';

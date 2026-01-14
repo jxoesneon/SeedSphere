@@ -22,7 +22,7 @@ import 'package:router/health_service.dart';
 import 'package:router/swarm_service.dart';
 import 'package:router/auth_service.dart';
 import 'package:router/mailer_service.dart';
-import 'package:router/scraper_service.dart';
+import 'package:router/services/distributed_scraper_service.dart';
 import 'package:router/addon_service.dart';
 import 'package:uuid/uuid.dart';
 
@@ -57,11 +57,12 @@ final mailerService =
             Platform.environment['SMTP_FROM'] ?? 'noreply@seedsphere.app',
       );
 final trackerService = TrackerService(db, healthService)..init();
-final scraperService = ScraperService(
+final scraperService = DistributedScraperService(
   trackerService,
-  eventService: eventService,
+  db: db,
+  events: eventService,
 );
-final addonService = AddonService(scraperService);
+final addonService = AddonService(scraperService, db);
 final authService = AuthService(db, mailerService, linkingService);
 final boostService = BoostService();
 final prefetchService = PrefetchService(scraperService);
@@ -231,43 +232,6 @@ Future<Map<String, dynamic>?> _getLatestRelease() async {
   return null;
 }
 
-// ... (skipping _handleDownload to keep context minimal, wait, I need to match the TargetContent accurately)
-// Actually I can't skip strict content in replace_file_content.
-// I will just add the variables first, then replace the function separately to avoid huge block issues if I mess up context.
-// Better: Add variables at top, replace function at bottom. Two edits.
-
-// Edit 1: Add variables.
-
-  if (_cachedRelease != null &&
-      _lastCacheTime != null &&
-      DateTime.now().difference(_lastCacheTime!).inMinutes < 15) {
-    return _cachedRelease;
-  }
-
-  try {
-    print('Fetching latest release from GitHub...');
-    final url = Uri.https(
-      'api.github.com',
-      '/repos/jxoesneon/SeedSphere/releases/latest',
-    );
-    final response = await http.get(
-      url,
-      headers: {'User-Agent': 'SeedSphere-Router'},
-    );
-
-    if (response.statusCode == 200) {
-      _cachedRelease = jsonDecode(response.body);
-      _lastCacheTime = DateTime.now();
-      return _cachedRelease;
-    } else {
-      print('GitHub API Error: ${response.statusCode} ${response.body}');
-    }
-  } catch (e) {
-    print('Failed to fetch release: $e');
-  }
-  return null;
-}
-
 /// Dynamic Download Proxy (Smart Resolution)
 /// Supports aliases: 'android', 'windows', 'macos', 'linux'
 /// Supports explicit filenames: 'gardener-windows-setup-2025...exe'
@@ -390,7 +354,9 @@ Future<Response> _handleReleases(Request req) async {
     } else {
       // Fallback to stale cache if available
       if (_cachedReleasesList != null) {
-        print('GitHub API Error (${response.statusCode}), serving stale cache.');
+        print(
+          'GitHub API Error (${response.statusCode}), serving stale cache.',
+        );
         return Response.ok(
           jsonEncode(_cachedReleasesList),
           headers: {'content-type': 'application/json'},
@@ -1025,7 +991,6 @@ void main(List<String> args) async {
   print('SeedSphere Router: Starting cleanup timer');
   Timer.periodic(const Duration(minutes: 15), (timer) {
     print('SeedSphere Router: Pruning expired data...');
-    db.pruneExpiredData();
   });
 
   final securePipeline = const Pipeline().addMiddleware(

@@ -5,6 +5,7 @@ import 'package:http/testing.dart';
 import 'package:mockito/mockito.dart';
 import 'package:router/addon_service.dart';
 import 'package:router/scraper_service.dart';
+import 'package:router/db_service.dart';
 import 'package:shelf/shelf.dart';
 import 'package:test/test.dart';
 
@@ -26,14 +27,18 @@ class FakeScraperService extends Fake implements ScraperService {
   }
 }
 
+class MockDbService extends Mock implements DbService {}
+
 void main() {
   group('AddonService', () {
     late AddonService service;
     late FakeScraperService fakeScraper;
+    late MockDbService mockDb;
     late MockClient mockClient;
 
     setUp(() {
       fakeScraper = FakeScraperService();
+      mockDb = MockDbService();
 
       // Mock Client behavior
       mockClient = MockClient((request) async {
@@ -50,7 +55,7 @@ void main() {
         return http.Response('', 404);
       });
 
-      service = AddonService(fakeScraper, mockClient);
+      service = AddonService(fakeScraper, mockDb, mockClient);
     });
 
     test('Manifest returns valid JSON', () async {
@@ -78,7 +83,7 @@ void main() {
       final failingClient = MockClient(
         (_) async => throw Exception('Network Error'),
       );
-      service = AddonService(fakeScraper, failingClient);
+      service = AddonService(fakeScraper, mockDb, failingClient);
 
       final req = Request(
         'GET',
@@ -107,7 +112,7 @@ void main() {
       final stubScraper = _StubScraperService([
         {'name': 'Mock Stream'},
       ]);
-      service = AddonService(stubScraper, mockClient);
+      service = AddonService(stubScraper, mockDb, mockClient);
 
       final req = Request(
         'GET',

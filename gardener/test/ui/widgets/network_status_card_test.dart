@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gardener/ui/widgets/network_status_card.dart';
+import 'package:gardener/core/network_status.dart';
 import 'package:gardener/ui/widgets/aetheric_glass.dart';
 
 void main() {

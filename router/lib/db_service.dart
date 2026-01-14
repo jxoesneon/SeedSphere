@@ -111,6 +111,13 @@ class DbService {
         last_verified_at INTEGER DEFAULT 0,
         created_at INTEGER NOT NULL
       );
+
+      CREATE TABLE IF NOT EXISTS scrap_cache (
+        id TEXT PRIMARY KEY,
+        results_json TEXT,
+        expires_at INTEGER NOT NULL,
+        created_at INTEGER NOT NULL
+      );
     ''');
 
     // MIGRATIONS (Since we don't have a versioning system yet)
@@ -498,6 +505,46 @@ class DbService {
     );
 
     return activities;
+  }
+
+  // --- Scraper Cache ---
+
+  /// Retrieves cached scraper results.
+  List<Map<String, dynamic>>? getScrapCache(String id) {
+    final now = DateTime.now().millisecondsSinceEpoch;
+    final stmt = _db.prepare(
+      'SELECT results_json, expires_at FROM scrap_cache WHERE id = ?',
+    );
+    final result = stmt.select([id]);
+
+    if (result.isEmpty) return null;
+    final row = result.first;
+
+    if ((row['expires_at'] as int) < now) {
+      _db.execute('DELETE FROM scrap_cache WHERE id = ?', [id]);
+      return null;
+    }
+
+    try {
+      final json = jsonDecode(row['results_json'] as String);
+      return (json as List).cast<Map<String, dynamic>>();
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// Caches scraper results for 24 hours.
+  void setScrapCache(String id, List<Map<String, dynamic>> results) {
+    final now = DateTime.now().millisecondsSinceEpoch;
+    final expires = now + (24 * 60 * 60 * 1000); // 24h TTL
+
+    _db.execute(
+      '''
+      INSERT OR REPLACE INTO scrap_cache (id, results_json, created_at, expires_at)
+      VALUES (?, ?, ?, ?)
+      ''',
+      [id, jsonEncode(results), now, expires],
+    );
   }
 
   // --- Encryption Support ---

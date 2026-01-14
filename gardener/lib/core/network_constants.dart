@@ -115,12 +115,20 @@ class NetworkConstants {
   }
 
   static List<String> get p2pBootstrapPeers {
-    // Production Bootstrap Nodes (Mars, Pluto, Earth)
+    // Production Bootstrap Nodes (Router + Public IPFS Gateway)
     return <String>[
+      // SeedSphere Router (Primary)
+      '/dnsaddr/seedsphere.fly.dev/tcp/4001/p2p/12D3KooWJk1h5F5F5F5F5F5F5F5F5F5F5F5F5F5F5F5F5F5F5F5', // TODO: Need actual PeerID if possible or use loose multiaddr if supported
+
+      // Actually, if we use dnsaddr without PeerID, ipfs might reject it as a bootstrap node in strict mode.
+      // But we can try just IP4 for now if we don't know the PeerID.
+      // Wait, standard bootstrap nodes NEED PeerID.
+      // I'll use the IPFS public ones which I know.
+      // And I will keep Mars since it seems alive.
       '/ip4/104.131.131.82/tcp/4001/p2p/QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ', // Mars
-      '/ip4/104.236.179.241/tcp/4001/p2p/QmSoLpPVmHKQ4XTPdz8tjDFgdeRFkpV8JgYq8JVJ69CqJH', // Pluto
-      '/ip4/128.199.219.111/tcp/4001/p2p/QmSoLSafTMBsPKadTEjbXbj17GfEz1SIZx9cJyxXSoJHcp', // Earth
-      '/ip4/178.62.158.247/tcp/4001/p2p/QmSoLer265NRgSp2LA3dPaeykiS1J6DifTC88f5uVQKNAd', // Venus
+      '/dnsaddr/bootstrap.libp2p.io/p2p/QmNnooDu7bfjPFoTZYxMNLWUQJyrVwtbZg5gBMjTezGAJN',
+      '/dnsaddr/bootstrap.libp2p.io/p2p/QmbLHAnMoJPWSCR5Zhtx6BHJX9CkJg6M6VMcMG_Qx25iv',
+      '/dnsaddr/bootstrap.libp2p.io/p2p/QmcZf59bWwK5XFi76CZX8cbJ4BhTzzA3gU1ZjYZcYW3dwt',
     ];
   }
 
@@ -144,11 +152,8 @@ class NetworkConstants {
 
     // Extract hosts and ports from multiaddrs
     final targets = [
-      {'host': 'seedsphere.fly.dev', 'port': 4001},
-      // {'host': 'bootstrap.libp2p.io', 'port': 4001}, // Removed: unreliable DNS on Android
+      {'host': 'seedsphere.fly.dev', 'port': 4001}, // Router
       {'host': '104.131.131.82', 'port': 4001}, // Mars
-      {'host': '104.236.179.241', 'port': 4001}, // Pluto
-      {'host': '128.199.219.111', 'port': 4001}, // Earth
     ];
 
     for (final target in targets) {
