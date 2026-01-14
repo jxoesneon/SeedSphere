@@ -49,7 +49,11 @@ class MockScraperService extends _i1.Mock implements _i2.ScraperService {
     String? userId,
   }) =>
       (super.noSuchMethod(
-            Invocation.method(#getStreams, [type, id, settings], {#userId: userId}),
+            Invocation.method(
+              #getStreams,
+              [type, id, settings],
+              {#userId: userId},
+            ),
             returnValue: _i3.Future<List<Map<String, dynamic>>>.value(
               <Map<String, dynamic>>[],
             ),
