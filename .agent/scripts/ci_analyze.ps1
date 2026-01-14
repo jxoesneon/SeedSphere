@@ -57,7 +57,7 @@ if (Test-Match $Diff "^router/") {
 # GitHub Actions fails on empty matrix. We should handle this in workflow, or output a dummy "skip"
 if ($Matrix.include.Count -eq 0) {
     # Optional: logic to skip
-    Write-Host "{""include"":[]}"
+    Write-Output "{""include"":[]}"
 } else {
     $Matrix | ConvertTo-Json -Depth 5 -Compress
 }
