@@ -12,7 +12,10 @@ class AnidexScraper extends BaseScraper {
       super(name: 'AniDex', baseUrl: 'https://anidex.info');
 
   @override
-  Future<List<Map<String, dynamic>>> scrape(String imdbId) async {
+  Future<List<Map<String, dynamic>>> scrape(
+    String imdbId, {
+    Function(String)? onLog,
+  }) async {
     try {
       // Anidex is anime-focused
       final metaInfo =

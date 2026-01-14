@@ -6,9 +6,16 @@ class TitleVerifier {
     String result, {
     int? year,
     bool isSeries = false,
+    Function(String)? onLog,
   }) {
     final reqClean = _clean(requested);
     final resClean = _clean(result);
+
+    void log(String msg) {
+      if (onLog != null) onLog(msg);
+    }
+
+    log('Verifying "$requested" vs "$result" (Year: $year, Series: $isSeries)');
 
     // 0. Series Handling (High Priority)
     if (isSeries) {
@@ -28,15 +35,24 @@ class TitleVerifier {
         // Series often have "S01", "Complete", "Season", etc.
         // We modify _areSafeExtras to accept these for series
         if (_areSafeExtras(remaining, isSeries: true)) {
+          log('✅ Accepted: Series exact match with safe extras: $remaining');
           return true;
+        } else {
+          log('❌ Rejected: Series extras unsafe: $remaining');
         }
       }
 
       // Fallback to fuzzy ratio for slightly messy titles
       final ratio = _levenshteinRatio(reqClean, resClean);
       if (ratio > 0.65) {
+        log(
+          '✅ Accepted: Series fuzzy match (Ratio: ${ratio.toStringAsFixed(2)})',
+        );
         return true;
       }
+      log(
+        '❌ Rejected: Series fuzzy mismatch (Ratio: ${ratio.toStringAsFixed(2)})',
+      );
 
       // If year is present in request and result, enforce it?
       // Rarely happens for series torrents, usually just "Show Name Sxx"
@@ -47,22 +63,36 @@ class TitleVerifier {
       final yearStr = year.toString();
       if (resClean.contains(yearStr)) {
         // Year matches! We can be looser with title matching (messy torrents).
-        // Check fuzzy match.
-        final ratio = _levenshteinRatio(reqClean, resClean);
-        if (ratio > 0.3) {
-          return true; // Very loose because "Avngrs Endgm 2019" is fine
-        }
 
-        // Also check inclusion
+        // PRIORITIZE INCLUSION: If the result contains the query, it's almost certainly the movie.
         if (_containsAllWords(reqClean, resClean)) {
+          log('✅ Accepted: Year matched & inclusion pass');
           return true;
         }
+
+        // Check fuzzy match as fallback for messy titles
+        final ratio = _levenshteinRatio(reqClean, resClean);
+        if (ratio > 0.3) {
+          log(
+            '✅ Accepted: Year matched & basic fuzzy pass (Ratio: ${ratio.toStringAsFixed(2)})',
+          );
+          return true; // Very loose because "Avngrs Endgm 2019" is fine
+        }
+        log(
+          '❌ Rejected: Year matched but content mismatch (Ratio: ${ratio.toStringAsFixed(2)})',
+        );
       } else {
         // Result MISSING the year. Strict check.
         final ratio = _levenshteinRatio(reqClean, resClean);
         if (ratio >= 0.85) {
+          log(
+            '✅ Accepted: Missing year but high fuzzy match (Ratio: ${ratio.toStringAsFixed(2)})',
+          );
           return true;
         }
+        log(
+          '❌ Rejected: Missing year & fuzzy too low (Ratio: ${ratio.toStringAsFixed(2)})',
+        );
       }
     } else {
       // No year in request OR it's a series handled loosely above (but blocked there).
@@ -73,6 +103,9 @@ class TitleVerifier {
       // 0.85 rejects "Iron Man" vs "Iron Man 2" (dist=2, len=10, ratio=0.8).
       final ratio = _levenshteinRatio(reqClean, resClean);
       if (ratio >= 0.85) {
+        log(
+          '✅ Accepted: High fuzzy match (Ratio: ${ratio.toStringAsFixed(2)})',
+        );
         return true;
       }
 
@@ -90,8 +123,15 @@ class TitleVerifier {
 
         // If remaining words are "safe" with stricter defaults
         if (_areSafeExtras(remaining, isSeries: isSeries)) {
+          log('✅ Accepted: Inclusion + safe extras: $remaining');
           return true;
+        } else {
+          log('❌ Rejected: Unsafe extras: $remaining');
         }
+      } else {
+        log(
+          '❌ Rejected: Low fuzzy (${ratio.toStringAsFixed(2)}) & inclusion failed',
+        );
       }
     }
 

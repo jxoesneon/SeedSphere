@@ -12,7 +12,10 @@ class ZooqleScraper extends BaseScraper {
       super(name: 'Zooqle', baseUrl: 'https://zooqle.com');
 
   @override
-  Future<List<Map<String, dynamic>>> scrape(String imdbId) async {
+  Future<List<Map<String, dynamic>>> scrape(
+    String imdbId, {
+    Function(String)? onLog,
+  }) async {
     try {
       final type = imdbId.contains('tt') ? 'series' : 'movie';
       final metaInfo = await _fetchCinemetaTitle(type, imdbId);

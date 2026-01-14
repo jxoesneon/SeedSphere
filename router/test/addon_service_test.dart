@@ -14,8 +14,9 @@ class FakeScraperService extends Fake implements ScraperService {
   Future<List<Map<String, dynamic>>> getStreams(
     String type,
     String id,
-    Map<String, dynamic> settings,
-  ) async {
+    Map<String, dynamic> settings, {
+    String? userId,
+  }) async {
     return []; // Default empty
   }
 
@@ -130,8 +131,9 @@ class _StubScraperService extends FakeScraperService {
   Future<List<Map<String, dynamic>>> getStreams(
     String type,
     String id,
-    Map<String, dynamic> settings,
-  ) async {
+    Map<String, dynamic> settings, {
+    String? userId,
+  }) async {
     return streams;
   }
 }

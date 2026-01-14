@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 import 'package:router/tracker_service.dart';
 import 'package:router/services/ai_service.dart';
 import 'package:router/models/ai_models.dart';
+import 'package:router/event_service.dart'; // Import EventService
 
 /// Service that orchestrates metadata scraping from multiple sources.
 ///
@@ -13,70 +14,30 @@ class ScraperService {
   final ScraperEngine _engine;
   final TrackerService _trackers;
   final AiService _ai;
-  final http.Client _client;
+  final EventService? _eventService; // Optional for debugging
 
   /// Creates a new ScraperService instance.
-  ScraperService(this._trackers, {AiService? aiService, http.Client? client})
-    : _engine = ScraperEngine.defaults(),
-      _ai = aiService ?? AiService(),
-      _client = client ?? http.Client();
+  ScraperService(
+    this._trackers, {
+    AiService? aiService,
+    http.Client? client,
+    EventService? eventService,
+  }) : _engine = ScraperEngine.defaults(),
+       _ai = aiService ?? AiService(),
+       _eventService = eventService;
 
-  /// Map of known providers to probe.
-  static const _providers = {
-    'Torrentio': 'https://torrentio.strem.fun/manifest.json',
-    'YTS': 'https://yts.mx/api/v2/list_movies.json',
-    'EZTV': 'https://eztvx.to/api/get-torrents',
-    '1337x': 'https://1337x.to',
-    'ThePirateBay': 'https://thepiratebay.org',
-  };
-
-  /// Probes all providers for availability and latency.
+  /// Probes all providers for health status.
   Future<List<Map<String, dynamic>>> probeProviders() async {
-    final futures = _providers.entries.map((e) async {
-      final name = e.key;
-      final url = e.value;
-      final sw = Stopwatch()..start();
-      try {
-        final res = await _client
-            .head(Uri.parse(url))
-            .timeout(const Duration(seconds: 5));
-
-        if (res.statusCode == 405) {
-          throw Exception('HEAD not allowed');
-        }
-
-        sw.stop();
-        return {
-          'name': name,
-          'ok': res.statusCode < 500, // 404/403 is "reachable" technically
-          'ms': sw.elapsedMilliseconds,
-          'status': res.statusCode,
-        };
-      } catch (e) {
-        sw.stop();
-        // Try GET if HEAD fails (some block HEAD)
-        try {
-          final res = await _client
-              .get(Uri.parse(url))
-              .timeout(const Duration(seconds: 5));
-          return {
-            'name': name,
-            'ok': res.statusCode < 500,
-            'ms': sw.elapsedMilliseconds,
-            'status': res.statusCode,
-          };
-        } catch (_) {
-          return {
-            'name': name,
-            'ok': false,
-            'ms': sw.elapsedMilliseconds,
-            'error': 'timeout_or_error',
-          };
-        }
-      }
-    });
-
-    return Future.wait(futures);
+    return _engine.scrapers
+        .map(
+          (s) => {
+            'name': s.name,
+            'baseUrl': s.baseUrl,
+            'status': 'active',
+            'userAgent': s.userAgent,
+          },
+        )
+        .toList();
   }
 
   /// Aggregates streams for a given media [type], [id], and user [settings].
@@ -85,13 +46,22 @@ class ScraperService {
   Future<List<Map<String, dynamic>>> getStreams(
     String type,
     String id,
-    Map<String, dynamic> settings,
-  ) async {
+    Map<String, dynamic> settings, {
+    String? userId, // Optional: Target user for debug logs
+  }) async {
     // Determine IMDb ID (assuming 'tt' format for now)
     final imdbId = id;
 
+    // Define log callback if eventService and userId are available
+    Function(String)? logCallback;
+    if (_eventService != null && userId != null) {
+      logCallback = (msg) {
+        _eventService.publish(userId, 'log', {'message': msg, 'type': 'log'});
+      };
+    }
+
     // Run Engine
-    final rawResults = await _engine.scrapeAll(imdbId);
+    final rawResults = await _engine.scrapeAll(imdbId, onLog: logCallback);
 
     // Normalize
     final normalized = rawResults.map((raw) {
@@ -109,10 +79,14 @@ class ScraperService {
       // Let's rely on basic normalization for now.
       return MetadataNormalizer.normalize(raw, 'MultiScraper').toJson();
     }).toList();
+    // Filter out invalid streams
+    final validStreams = normalized
+        .where((s) => (s['infoHash'] as String).isNotEmpty)
+        .toList();
 
     // Map to Stremio Stream format
     final streams = <Map<String, dynamic>>[];
-    for (final s in normalized) {
+    for (final s in validStreams) {
       // TRACKER MANAGEMENT CORRECTION: Inject optimized trackers
       final optimized = await _trackers.optimize([]);
       final bestTrackers = optimized['added'] as List<String>;

@@ -12,7 +12,10 @@ class EztvScraper extends BaseScraper {
       super(name: 'EZTV', baseUrl: 'https://eztv.re/api');
 
   @override
-  Future<List<Map<String, dynamic>>> scrape(String imdbId) async {
+  Future<List<Map<String, dynamic>>> scrape(
+    String imdbId, {
+    Function(String)? onLog,
+  }) async {
     // EZTV is focused on TV Series; simple check if ID looks like TT ID but logic is mainly in API
     try {
       final url =

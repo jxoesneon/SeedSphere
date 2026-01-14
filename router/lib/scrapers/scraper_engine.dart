@@ -1,7 +1,7 @@
 import 'dart:async';
-import 'dart:math';
 import 'package:router/core/metadata_normalizer.dart';
 import 'package:router/core/user_agent_rotator.dart'; // Import Rotator
+import 'package:router/core/rate_limiter.dart'; // Import RateLimiter
 import 'package:router/scrapers/eztv_scraper.dart';
 import 'package:router/scrapers/nyaa_scraper.dart';
 import 'package:router/scrapers/x1337_scraper.dart';
@@ -57,70 +57,19 @@ abstract class BaseScraper {
   ///
   /// Should return a list of raw metadata maps, which will later be
   /// normalized by the [MetadataNormalizer].
-  Future<List<Map<String, dynamic>>> scrape(String imdbId);
+  Future<List<Map<String, dynamic>>> scrape(
+    String imdbId, {
+    Function(String)? onLog,
+  });
 
   /// Waits if necessary to comply with the rate limit.
   Future<void> waitForRateLimit() => _rateLimiter.wait();
 }
 
-/// A simple token bucket rate limiter with Jitter.
-class RateLimiter {
-  /// The maximum number of requests allowed per minute.
-  final int requestsPerMinute;
-
-  /// Whether to add random jitter to the wait time.
-  final bool jitter;
-
-  final Duration _interval;
-  final Random _random = Random();
-  DateTime _nextRequestTime = DateTime.now();
-
-  /// Creates a [RateLimiter] token bucket.
-  ///
-  /// [requestsPerMinute] defines the steady state rate.
-  /// If [jitter] is true, adds random delays to [wait].
-  RateLimiter(this.requestsPerMinute, {this.jitter = false})
-    : _interval = Duration(milliseconds: (60000 / requestsPerMinute).round());
-
-  /// Waits for the rate limit token bucket to allow a request.
-  Future<void> wait() async {
-    final now = DateTime.now();
-    var targetTime = _nextRequestTime;
-
-    if (jitter) {
-      // Add random jitter between 0% and 30% of the interval
-      final jitterMs = _random.nextInt(
-        (_interval.inMilliseconds * 0.3).round(),
-      );
-      targetTime = targetTime.add(Duration(milliseconds: jitterMs));
-    }
-
-    if (now.isBefore(targetTime)) {
-      final waitTime = targetTime.difference(now);
-      _nextRequestTime = targetTime.add(
-        _interval,
-      ); // Schedule next from JITTERED time
-      await Future.delayed(waitTime);
-    } else {
-      _nextRequestTime = now.add(_interval);
-    }
-  }
-}
+// ... (RateLimiter remains unchanged) ...
 
 /// Aggregation engine for running multiple scrapers in parallel.
-///
-/// Simplifies the process of fetching stream metadata from various sources
-/// by executing multiple [BaseScraper]s concurrently and merging their results.
-///
-/// Example:
-/// ```dart
-/// final engine = ScraperEngine(scrapers: [
-///   YTSScraper(),
-///   TorrentioScraper(),
-/// ]);
-///
-/// final allStreams = await engine.scrapeAll('tt1234567');
-/// ```
+// ... (docs) ...
 class ScraperEngine {
   /// The list of scrapers managed by this engine.
   final List<BaseScraper> scrapers;
@@ -156,14 +105,26 @@ class ScraperEngine {
   /// an empty list to the final result, allowing other scrapers to still succeed.
   ///
   /// Returns a combined list of raw metadata maps from all responsive scrapers.
-  Future<List<Map<String, dynamic>>> scrapeAll(String imdbId) async {
+  Future<List<Map<String, dynamic>>> scrapeAll(
+    String imdbId, {
+    Function(String)? onLog,
+  }) async {
     final List<Future<List<Map<String, dynamic>>>> futures = scrapers
         .map(
-          (s) => s.scrape(imdbId).catchError((e) {
-            // Log error and return empty list for this scraper to prevent
-            // a single failing scraper from breaking the entire request.
-            return <Map<String, dynamic>>[];
-          }),
+          (s) => s
+              .scrape(
+                imdbId,
+                onLog: (msg) {
+                  // Prefix log with scraper name for clarity
+                  if (onLog != null) onLog('[${s.name}] $msg');
+                },
+              )
+              .catchError((e) {
+                // Log error and return empty list for this scraper to prevent
+                // a single failing scraper from breaking the entire request.
+                if (onLog != null) onLog('[${s.name}] Error: $e');
+                return <Map<String, dynamic>>[];
+              }),
         )
         .toList();
 

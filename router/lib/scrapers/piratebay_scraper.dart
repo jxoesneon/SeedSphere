@@ -17,7 +17,10 @@ class PirateBayScraper extends BaseScraper {
       );
 
   @override
-  Future<List<Map<String, dynamic>>> scrape(String imdbId) async {
+  Future<List<Map<String, dynamic>>> scrape(
+    String imdbId, {
+    Function(String)? onLog,
+  }) async {
     try {
       final type = imdbId.contains('tt') ? 'series' : 'movie';
       var metaInfo = await _fetchCinemetaTitle(type, imdbId);

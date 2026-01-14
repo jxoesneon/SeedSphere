@@ -873,21 +873,21 @@ class P2PManager {
         }
       }
 
-      // Merge defaults with custom peers if auto-bootstrap is enabled
+      // Merge defaults with custom peers for later connection, but START EMPTY to avoid blocking
       fromMainPort.send('[DEBUG] P2P: Configuring Bootstrap Peers...');
       final finalBootstrapPeers = <String>[];
       if (autoBootstrap) {
         finalBootstrapPeers.addAll(NetworkConstants.p2pBootstrapPeers);
       }
       finalBootstrapPeers.addAll(bootstrapPeers);
-      for (var peer in finalBootstrapPeers) {
-        fromMainPort.send('[DEBUG] P2P: Bootstrap Peer: $peer');
-      }
+
       fromMainPort.send(
-        'P2P: Bootstrap list size: ${finalBootstrapPeers.length}',
+        'P2P: Bootstrap target list size: ${finalBootstrapPeers.length}',
       );
 
       fromMainPort.send('P2P: Creating IPFS Node instance...');
+      // CRITICAL FIX: Start with EMPTY bootstrap list to prevent node.start() from hanging
+      // on unreachable peers. We will dial them manually after startup.
       final IPFSNode node = await IPFSNode.create(
         IPFSConfig(
           dataPath: '$repoPath/data',
@@ -906,7 +906,7 @@ class P2PManager {
               '/ip4/0.0.0.0/tcp/0', // Use dynamic TCP port
               '/ip4/0.0.0.0/udp/0/quic', // Use dynamic QUIC port
             ],
-            bootstrapPeers: finalBootstrapPeers,
+            bootstrapPeers: [], // Start empty for instant boot
             enableNatTraversal: false, // Disabled for stability
           ),
           enableLibp2pBridge: (initMessage is P2PInitData)
@@ -918,6 +918,8 @@ class P2PManager {
 
       await node.start();
       fromMainPort.send('P2P: IPFS Node service started.');
+      // Update metadata immediately to show we are online
+      fromMainPort.send({'msg': 'Identity: ${node.peerId}', 'cat': 'NET'});
 
       // --- PUBSUB RELAY ---
       // Listen for incoming PubSub messages and relay to main thread
@@ -940,23 +942,29 @@ class P2PManager {
       });
       // --------------------
 
-      // FORCE DIAL
+      // ASYNC DIAL: Connect to bootstrap peers without blocking the main event loop
       stderr.writeln(
-        'DEBUG: P2P Force Dialing ${finalBootstrapPeers.length} Peers...',
+        'DEBUG: P2P Async Dialing ${finalBootstrapPeers.length} Peers...',
       );
+      fromMainPort.send({
+        'msg':
+            'P2P: Starting background bootstrap to ${finalBootstrapPeers.length} peers...',
+        'cat': 'NET',
+      });
+
       for (final peer in finalBootstrapPeers) {
-        try {
-          // Parse multiaddr to get PeerID if needed, but addPeer takes full multiaddr
-          // Assuming dart_ipfs API: node.network.addPeer or similar?
-          // Actually, IPFSNode usually handles bootstrap via config.
-          // But let's try to verify reachability.
-          // Since we don't have a direct 'dial' method exposed on IPFSNode easily without checking params,
-          // We will rely on the fact that if it's in bootstrapPeers, it *should* work.
-          // BUT, printing it confirms the isolate has it.
-          stderr.writeln('DEBUG: Isolate Bootstrap Target: $peer');
-        } catch (e) {
-          stderr.writeln('DEBUG: Dial error: $e');
-        }
+        // Did not await here to let them happen in parallel/background
+        unawaited(
+          node
+              .connectToPeer(peer)
+              .then((_) {
+                stderr.writeln('DEBUG: Connected to bootstrap peer: $peer');
+              })
+              .catchError((e) {
+                // meaningful debug log, but don't spam main UI
+                stderr.writeln('DEBUG: Failed to connect to $peer: $e');
+              }),
+        );
       }
 
       final peerId = node.peerId;
@@ -967,20 +975,15 @@ class P2PManager {
             'P2P: Federated Node Active | PeerID: $peerId | Listening: $addresses',
         'cat': 'NET',
       });
-      fromMainPort.send({'msg': 'Identity: $peerId', 'cat': 'NET'});
       fromMainPort.send({
         'msg': 'Listening on: ${addresses.join(', ')}',
-        'cat': 'NET',
-      });
-      fromMainPort.send({
-        'msg': 'Bootstrap list contains ${finalBootstrapPeers.length} nodes',
         'cat': 'NET',
       });
 
       // Initial active bootstrap is handled by node.start() using the config
       final initialPeers = await node.connectedPeers;
       fromMainPort.send({
-        'msg': 'Initial bootstrap complete. Peers: ${initialPeers.length}',
+        'msg': 'Initial connection count: ${initialPeers.length}',
         'cat': 'NET',
       });
 

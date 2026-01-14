@@ -43,6 +43,15 @@ class AddonService {
     return app;
   }
 
+  /// Generates the manifest map for a user (Public API).
+  Future<Map<String, dynamic>> generateManifest(String userId) async {
+    final manifest = Map<String, dynamic>.from(_baseManifest);
+    manifest['name'] = "SeedSphere (Private)";
+    manifest['configurationURL'] =
+        "https://seedsphere.app/dashboard.html"; // Default fallback
+    return manifest;
+  }
+
   // Define the base manifest structure
   Map<String, dynamic> get _baseManifest => {
     "id": "community.seedsphere",

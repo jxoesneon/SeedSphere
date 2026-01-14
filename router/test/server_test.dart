@@ -57,7 +57,7 @@ void main() {
   }, skip: isCI ? 'Skipped in CI - integration test' : null);
 
   test('API Status', () async {
-    final response = await get(Uri.parse('$host/api'));
+    final response = await get(Uri.parse('$host/api/status'));
     expect(response.statusCode, 200);
     expect(response.body, contains('"name":"SeedSphere Router"'));
     expect(response.body, contains('"status":"active"'));

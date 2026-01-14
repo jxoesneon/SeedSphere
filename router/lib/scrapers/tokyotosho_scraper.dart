@@ -12,7 +12,10 @@ class TokyoToshoScraper extends BaseScraper {
       super(name: 'TokyoTosho', baseUrl: 'https://tokyotosho.info');
 
   @override
-  Future<List<Map<String, dynamic>>> scrape(String imdbId) async {
+  Future<List<Map<String, dynamic>>> scrape(
+    String imdbId, {
+    Function(String)? onLog,
+  }) async {
     try {
       final metaInfo =
           await _fetchCinemetaTitle('series', imdbId) ??

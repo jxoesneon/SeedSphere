@@ -67,8 +67,11 @@ class _ExpertScreenState extends ConsumerState<ExpertScreen>
       final count = ref.read(p2pManagerProvider).peerCount.value;
       setState(() {
         // Add subtle jitter to the peer count density chart: +/- 0.5
+        // Add subtle jitter to the peer count density chart: +/- 0.5
+        // Live Wire Effect: Always jitter to show system is alive, even if peers are 0.
         final jitter = (_rng.nextDouble() * 1.0) - 0.5;
         _peerHistory.add(count.toDouble() + jitter);
+
         if (_peerHistory.length > 60) _peerHistory.removeAt(0);
 
         // Decay Scraper Status back to Idle if old

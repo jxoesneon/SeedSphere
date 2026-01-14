@@ -32,8 +32,13 @@ class X1337Scraper extends BaseScraper {
   };
 
   @override
-  Future<List<Map<String, dynamic>>> scrape(String imdbId) async {
+  Future<List<Map<String, dynamic>>> scrape(
+    String imdbId, {
+    Function(String)? onLog,
+  }) async {
     try {
+      if (onLog != null) onLog('Starting scrape for $imdbId');
+
       // 1. Fetch metadata title from Cinemeta to get query
       final type = imdbId.contains('tt') ? 'series' : 'movie';
       var metaInfo = await _fetchCinemetaTitle(type, imdbId);
@@ -41,9 +46,16 @@ class X1337Scraper extends BaseScraper {
         metaInfo = await _fetchCinemetaTitle('movie', imdbId);
       }
 
-      if (metaInfo == null) return [];
+      if (metaInfo == null) {
+        if (onLog != null) onLog('Failed to fetch Cinemeta metadata');
+        return [];
+      }
       final requestedTitle = metaInfo['title'] as String;
       final requestedYear = int.tryParse(metaInfo['year'].toString());
+
+      if (onLog != null) {
+        onLog('Resolved metadata: $requestedTitle ($requestedYear)');
+      }
 
       final searchQuery = Uri.encodeComponent(requestedTitle);
       final url = '$defaultBase/search/$searchQuery/1/';
@@ -55,6 +67,7 @@ class X1337Scraper extends BaseScraper {
 
       // FALLBACK: If banned (403/429), rotate UA and retry once
       if (response.statusCode == 403 || response.statusCode == 429) {
+        if (onLog != null) onLog('Rate limited/Banned. Rotating UA...');
         rotateUserAgent(); // Switch identity
         await waitForRateLimit(); // Wait again (limit + jitter)
         response = await _client
@@ -62,10 +75,18 @@ class X1337Scraper extends BaseScraper {
             .timeout(const Duration(seconds: 5));
       }
 
-      if (response.statusCode != 200) return [];
+      if (response.statusCode != 200) {
+        if (onLog != null) {
+          onLog('Search failed with status ${response.statusCode}');
+        }
+        return [];
+      }
 
       // Extract detail page links AND titles
       final candidates = _extractCandidates(response.body);
+      if (onLog != null) {
+        onLog('Found ${candidates.length} raw candidates');
+      }
 
       // Filter candidates using TitleVerifier BEFORE fetching details
       // This saves bandwidth/time and ensures quality.
@@ -76,10 +97,17 @@ class X1337Scraper extends BaseScraper {
               c.title,
               year: requestedYear,
               isSeries: type == 'series',
+              onLog: onLog,
             );
           })
           .take(5)
           .toList();
+
+      if (onLog != null) {
+        onLog(
+          'Proceeding with ${verifiedCandidates.length} verified candidates',
+        );
+      }
 
       if (verifiedCandidates.isEmpty) return [];
 
@@ -109,6 +137,9 @@ class X1337Scraper extends BaseScraper {
                 year: requestedYear,
                 isSeries:
                     type == 'series', // Also verify magnet DN with Series logic
+                onLog: (msg) {
+                  if (onLog != null) onLog('MagnetDN Check: $msg');
+                },
               )) {
                 return null;
               }

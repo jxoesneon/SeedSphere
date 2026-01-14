@@ -57,237 +57,90 @@ final mailerService =
             Platform.environment['SMTP_FROM'] ?? 'noreply@seedsphere.app',
       );
 final trackerService = TrackerService(db, healthService)..init();
-final scraperService = ScraperService(trackerService);
+final scraperService = ScraperService(
+  trackerService,
+  eventService: eventService,
+);
 final addonService = AddonService(scraperService);
 final authService = AuthService(db, mailerService, linkingService);
 final boostService = BoostService();
 final prefetchService = PrefetchService(scraperService);
-// Reuse Auth Secret for simplicity or generate new one.
+
 final taskService = TaskService(
-  Platform.environment['AUTH_JWT_SECRET'] ?? 'task-secret-fallback',
+  Platform.environment['JWT_SECRET'] ?? 'dev_secret_key',
 );
 
-// Configure routes.
-final _router = Router()
-  ..get('/api', _rootHandler) // Moved from root to /api
-  ..get('/health', _healthHandler)
-  // Legacy PIN-pairing (Deprecated in 1.0, kept for parity)
-  ..post('/api/pair/start', _createPairingHandler)
-  ..post('/api/pair/complete', _completePairingHandler)
-  ..get('/api/pair/status', _statusPairingHandler)
-  // 1:1 Parity Linking (HMAC Flow)
-  ..post('/api/link/start', _linkStartHandler)
-  ..post('/api/link/complete', _linkCompleteHandler)
-  ..get('/api/link/status', _linkStatusHandler)
-  // Real-time Signaling (SSE)
-  ..get('/api/rooms/<gardenerId>/events', _eventsHandler)
-  // Heartbeats (Secured)
-  ..post('/api/rooms/<gardenerId>/heartbeat', _heartbeatHandler)
-  // Telemetry & Greenhouse (Parity)
-  ..post('/api/telemetry/collect', _telemetryHandler)
-  ..post('/api/executor/register', _executorRegisterHandler)
-  // Swarm Discovery (Parity)
-  ..get('/api/swarm/query', _swarmQueryHandler)
-  // P2P Info
-  ..get('/p2p/info', _p2pInfoHandler)
-  ..get('/p2p/health', _p2pHealthHandler)
-  // Tracker Optimization
-  // Tracker Distributed Reputation
-  ..post('/api/trackers/optimize', _trackerOptimizeHandler) // Legacy/Bridge
-  ..get('/api/trackers/best', _trackerBestHandler) // Bridge/Client
-  ..get('/api/trackers/sync', _trackerSyncHandler) // Gardener
-  ..post('/api/trackers/vote', _trackerVoteHandler) // Gardener
-  // Boosts (Legacy Feature Parity)
-  ..get('/api/boosts/events', _boostEventsHandler)
-  ..get('/api/boosts/recent', _boostRecentHandler)
-  // Diagnostics
-  ..get('/api/providers/detect', _providersDetectHandler)
-  // Tracker Sweep
-  ..get('/api/trackers/sweep', _trackerSweepHandler)
-  // Task System
-  ..post('/api/tasks/request', _taskRequestHandler)
-  ..post('/api/tasks/result', _taskResultHandler)
-  // Downloads & Releases (Dynamic)
-  ..get('/downloads/<file>', _handleDownload)
-  ..get('/api/releases', _handleReleases)
-  // Mobile Linking (Universal Links)
-  ..get('/link', _linkHandler)
-  ..get('/.well-known/assetlinks.json', _assetLinksHandler)
-  ..get('/.well-known/apple-app-site-association', _appleAssociationHandler)
-  // Auth Restoration (Phase 2.5)
-  ..mount('/api/auth/', authService.router.call)
-  // Stremio Addon (Phase 3)
-  ..mount(
-    '/addon/',
-    addonService.router.call,
-  ) // Mounted under /addon/ to avoid conflict with root static files
-  // User-specific addon manifest at root for legacy compatibility
-  ..get('/u/<userId>/manifest.json', _userManifestHandler)
-  ..get('/u/<userId>/catalog/<type>/<id>.json', _userCatalogHandler)
-  ..get('/u/<userId>/stream/<type>/<id>.json', _userStreamHandler)
-  ..get('/api/devices/<id>/status', _deviceStatusHandler)
-  ..post('/api/devices/<id>/unlink', _deviceUnlinkHandler)
-  // Debug Tools
-  ..post('/api/debug/link_self', _debugLinkSelfHandler)
-  // Stream Resolution Fallback (HTTP alternative to P2P)
-  ..get('/api/streams/resolve', _streamResolveHandler);
-
-/// Mobile Interstitial Page (Deep Linking)
-Response _linkHandler(Request req) {
-  final token = req.url.queryParameters['token'] ?? '';
-  // Fallback Custom Scheme
-  final schemeUrl = 'seedsphere://link?token=$token';
-
-  final html =
-      '''
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <title>Link Device</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <style>
-    body { font-family: sans-serif; text-align: center; padding: 2rem; background: #0f172a; color: white; }
-    .btn { display: inline-block; background: #60a5fa; color: white; padding: 1rem 2rem; text-decoration: none; border-radius: 8px; font-weight: bold; margin-top: 1rem; }
-  </style>
-</head>
-<body>
-  <h1>Open in Gardener</h1>
-  <p>Linking your device...</p>
-  <a href="$schemeUrl" class="btn">Open App</a>
-  <p style="margin-top:2rem; opacity:0.7;">Don't have the app?</p>
-  <a href="/dashboard.html#downloads" style="color: #60a5fa;">Download Gardener</a>
-  <script>
-    // Auto-redirect attempt
-    window.location.href = "$schemeUrl";
-  </script>
-</body>
-</html>
-  ''';
-  return Response.ok(html, headers: {'content-type': 'text/html'});
-}
-
-/// Android App Links Verification
-///
-/// Returns the assetlinks.json for Android Deep Linking.
-/// SHA256 fingerprints are read from the ANDROID_SHA256 environment variable.
-/// Multiple fingerprints can be comma-separated.
-Response _assetLinksHandler(Request req) {
-  // Read SHA256 fingerprints from environment (comma-separated for multiple certs)
-  final sha256Env = Platform.environment['ANDROID_SHA256'] ?? '';
-  final fingerprints = sha256Env.isNotEmpty
-      ? sha256Env
-            .split(',')
-            .map((s) => s.trim())
-            .where((s) => s.isNotEmpty)
-            .toList()
-      : <String>[];
-
-  final json = [
-    {
-      "relation": ["delegate_permission/common.handle_all_urls"],
-      "target": {
-        "namespace": "android_app",
-        "package_name": "com.seedsphere.gardener",
-        "sha256_cert_fingerprints": fingerprints,
-      },
-    },
-  ];
-  return Response.ok(
-    jsonEncode(json),
-    headers: {'content-type': 'application/json'},
-  );
-}
-
-/// iOS Universal Links Verification
-///
-/// Returns the apple-app-site-association for iOS Deep Linking.
-/// Team ID is read from the IOS_TEAM_ID environment variable.
-Response _appleAssociationHandler(Request req) {
-  // Read Team ID from environment variable
-  final teamId = Platform.environment['IOS_TEAM_ID'] ?? 'TEAM_ID_NOT_SET';
-
-  final json = {
-    "applinks": {
-      "apps": [],
-      "details": [
-        {
-          "appID": "$teamId.com.seedsphere.gardener",
-          "paths": ["/link", "/auth/*"],
-        },
-      ],
-    },
-  };
-  return Response.ok(
-    jsonEncode(json),
-    headers: {'content-type': 'application/json'},
-  );
-}
-
 /// User-specific manifest handler for legacy /u/{userId}/manifest.json route.
-Response _userManifestHandler(Request req, String userId) {
-  final manifest = {
-    "id": "community.seedsphere.user.$userId",
-    "version": "2.0.1",
-    "name": "SeedSphere (Private)",
-    "description":
-        "Your personalized SeedSphere addon. Powered by a community swarm.",
-    "logo": "https://seedsphere.app/assets/icon.png",
-    "resources": ["catalog", "stream"],
-    "types": ["movie", "series", "anime"],
-    "idPrefixes": ["tt", "kitsu"],
-    "catalogs": [
-      {"type": "movie", "id": "top", "name": "Swarm Popular"},
-      {"type": "series", "id": "top", "name": "Swarm Popular"},
-    ],
-  };
+Future<Response> _userManifestHandler(Request req, String userId) async {
+  // Generate a personalized manifest with configuration hints
+  final manifest = await addonService.generateManifest(userId);
   return Response.ok(
     jsonEncode(manifest),
     headers: {
       'Content-Type': 'application/json',
       'Access-Control-Allow-Origin': '*',
-      'Cache-Control': 'max-age=300',
     },
   );
 }
 
-/// User-specific catalog handler for legacy /u/{userId}/catalog/{type}/{id}.json route.
-Future<Response> _userCatalogHandler(
-  Request req,
-  String userId,
-  String type,
-  String id,
-) async {
-  // Proxy Cinemeta V3 for "top" catalog (Swarm Popular)
-  if (id == 'top' || id == 'top.json') {
-    try {
-      final uri = Uri.parse(
-        'https://v3-cinemeta.strem.io/catalog/$type/top.json',
-      );
-      final resp = await http.get(uri);
-      if (resp.statusCode == 200) {
-        return Response.ok(
-          resp.body,
-          headers: {
-            'Content-Type': 'application/json',
-            'Access-Control-Allow-Origin': '*',
-            'Cache-Control': 'max-age=300',
-          },
-        );
-      }
-    } catch (e) {
-      print('Cinemeta Proxy Error: $e');
-    }
-  }
-  // Fallback: empty catalog
-  return Response.ok(
-    jsonEncode({'metas': []}),
-    headers: {
-      'Content-Type': 'application/json',
-      'Access-Control-Allow-Origin': '*',
-    },
-  );
-}
+// Router definition (1:1 Parity)
+final _router = Router()
+  ..get('/u/<userId>/stream/<type>/<id>.json', _userStreamHandler)
+  ..get('/u/<userId>/manifest.json', _userManifestHandler)
+  ..get(
+    '/manifest.json',
+    (Request req) => _userManifestHandler(req, 'public'),
+  ) // Public manifest
+  // Fallback public stream handler if user ID is missing/public
+  ..get(
+    '/stream/<type>/<id>.json',
+    (Request req, String type, String id) =>
+        _userStreamHandler(req, 'public', type, id),
+  )
+  ..get('/api/status', _rootHandler) // Moved to free up root for portal
+  ..get('/dl/<file>', _handleDownload)
+  ..get('/releases', _handleReleases)
+  ..get('/health', _healthHandler)
+  ..post('/pairing/create', _createPairingHandler)
+  ..post('/pairing/complete', _completePairingHandler)
+  ..get('/pairing/status', _statusPairingHandler)
+  ..post('/link/start', _linkStartHandler)
+  ..post('/link/complete', _linkCompleteHandler)
+  ..get('/link/status', _linkStatusHandler)
+  ..get(
+    '/api/events',
+    (Request req) =>
+        _eventsHandler(req, req.url.queryParameters['gardenerId'] ?? 'unknown'),
+  )
+  // Support legacy access or direct gardener event access
+  ..get(
+    '/api/rooms/<roomId>/events',
+    (Request req, String roomId) =>
+        _eventsHandler(req, req.url.queryParameters['gardenerId'] ?? roomId),
+  )
+  ..get('/device/<id>', _deviceStatusHandler)
+  ..delete('/device/<id>', _deviceUnlinkHandler)
+  ..get('/api/heartbeat/<gardenerId>', _heartbeatHandler)
+  ..post('/api/telemetry', _telemetryHandler)
+  ..post('/api/register', _executorRegisterHandler)
+  ..get('/api/swarm', _swarmQueryHandler)
+  ..get('/api/p2p/info', _p2pInfoHandler)
+  ..get('/api/p2p/health', _p2pHealthHandler)
+  ..get('/api/tracker/best', _trackerBestHandler)
+  ..get('/api/tracker/sync', _trackerSyncHandler)
+  ..post('/api/tracker/vote', _trackerVoteHandler)
+  ..post('/api/debug/link/self', _debugLinkSelfHandler)
+  ..get('/resolve', _streamResolveHandler)
+  ..post('/tracker/optimize', _trackerOptimizeHandler)
+  ..get('/api/boost/recent', _boostRecentHandler)
+  ..get('/api/boost/events', _boostEventsHandler)
+  ..get('/api/providers', _providersDetectHandler)
+  ..get('/api/tracker/sweep', _trackerSweepHandler)
+  ..post('/api/task', _taskRequestHandler)
+  ..post('/api/task/result', _taskResultHandler)
+  ..mount('/api/auth/', authService.router.call); // Mount Auth Service
+
+// ... (Rest of file) ...
 
 /// User-specific stream handler for legacy /u/{userId}/stream/{type}/{id}.json route.
 Future<Response> _userStreamHandler(
@@ -298,7 +151,12 @@ Future<Response> _userStreamHandler(
 ) async {
   // Delegate to the addon service scraper for stream resolution
   try {
-    final streams = await scraperService.getStreams(type, id, {});
+    final streams = await scraperService.getStreams(
+      type,
+      id,
+      {},
+      userId: userId,
+    );
     return Response.ok(
       jsonEncode({'streams': streams}),
       headers: {
@@ -326,7 +184,7 @@ Response _rootHandler(Request req) {
   return Response.ok(
     jsonEncode({
       'name': 'SeedSphere Router',
-      'version': '2.1.5',
+      'version': '2.1.6',
       'status': 'active',
       'mode': 'Federated Frontier (Parity)',
     }),

@@ -12,7 +12,10 @@ class MagnetDLScraper extends BaseScraper {
       super(name: 'MagnetDL', baseUrl: 'https://www.magnetdl.com');
 
   @override
-  Future<List<Map<String, dynamic>>> scrape(String imdbId) async {
+  Future<List<Map<String, dynamic>>> scrape(
+    String imdbId, {
+    Function(String)? onLog,
+  }) async {
     try {
       final type = imdbId.contains('tt') ? 'series' : 'movie';
       final metaInfo = await _fetchCinemetaTitle(type, imdbId);

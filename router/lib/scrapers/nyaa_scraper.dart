@@ -12,7 +12,10 @@ class NyaaScraper extends BaseScraper {
       super(name: 'Nyaa', baseUrl: 'https://nyaa.si');
 
   @override
-  Future<List<Map<String, dynamic>>> scrape(String imdbId) async {
+  Future<List<Map<String, dynamic>>> scrape(
+    String imdbId, {
+    Function(String)? onLog,
+  }) async {
     try {
       // 1. Fetch metadata title from Cinemeta (same as legacy)
       // Nyaa needs a query string, not just an ID

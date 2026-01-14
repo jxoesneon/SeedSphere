@@ -34,7 +34,10 @@ class YTSScraper extends BaseScraper {
   ///
   /// Returns an empty list if no movies are found or if the API request fails.
   @override
-  Future<List<Map<String, dynamic>>> scrape(String imdbId) async {
+  Future<List<Map<String, dynamic>>> scrape(
+    String imdbId, {
+    Function(String)? onLog,
+  }) async {
     final response = await _client.get(
       Uri.parse(
         '$baseUrl/list_movies.json',
