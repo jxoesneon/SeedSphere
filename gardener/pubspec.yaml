@@ -59,7 +59,7 @@ dev_dependencies:
   flutter_lints: ^6.0.0
   mocktail: ^1.0.4
   flutter_background_service_android: ^6.3.1
-  build_runner: ^2.10.4
+  build_runner: ^2.10.5
   mockito: ^5.6.1
   test: ^1.26.3
   plugin_platform_interface: ^2.1.8
