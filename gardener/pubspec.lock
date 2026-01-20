@@ -261,10 +261,10 @@ packages:
     dependency: "direct main"
     description:
       name: dart_ipfs
-      sha256: ae7fa1786298d3a8587933a66da339bb3f1b824297bc9901450fe69eeb890ca9
+      sha256: c8daf01bb6a47601cc77e0993a740333c0644960c2da8d513a4951098427188f
       url: "https://pub.dev"
     source: hosted
-    version: "1.8.8"
+    version: "1.9.0"
   dart_libp2p:
     dependency: "direct overridden"
     description:
