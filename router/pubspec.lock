@@ -261,10 +261,10 @@ packages:
     dependency: "direct main"
     description:
       name: dart_ipfs
-      sha256: d2d71309535e891c42c249176b1ccd67d048bb07b7008ea181561513b8df0982
+      sha256: "13168e667cc815618db45d4f8833c77a703d5d706f91185dd69e48212cc23ea9"
       url: "https://pub.dev"
     source: hosted
-    version: "1.8.0"
+    version: "1.9.4"
   dart_jsonwebtoken:
     dependency: "direct main"
     description:
@@ -273,14 +273,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "3.3.1"
-  dart_libp2p:
-    dependency: transitive
-    description:
-      name: dart_libp2p
-      sha256: d299e3761582693916e495d424caf6fd3fce5f081e3c7ebaa430458871454552
-      url: "https://pub.dev"
-    source: hosted
-    version: "0.5.3"
   dart_lz4:
     dependency: transitive
     description:
@@ -437,10 +429,10 @@ packages:
     dependency: transitive
     description:
       name: grpc
-      sha256: "807a4da90fc1ba94dccc3a44653d3ff7bcf26818f030259d6a8f9fab405cb880"
+      sha256: "86be3a7d39ad865b214a7370021ac80e68939238b507730de6d97fc662cb2723"
       url: "https://pub.dev"
     source: hosted
-    version: "4.3.1"
+    version: "5.1.0"
   hex:
     dependency: transitive
     description:
@@ -537,6 +529,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.0.5"
+  ipfs_libp2p:
+    dependency: transitive
+    description:
+      name: ipfs_libp2p
+      sha256: "86e99d81b43de25669ab054eea13d4e814267030ac5df76b644c83bdbdfb1f7f"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.5.6"
   jose:
     dependency: transitive
     description:
@@ -593,6 +593,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.12.18"
+  mdns_dart:
+    dependency: transitive
+    description:
+      name: mdns_dart
+      sha256: "5a8fae933ea51a5ff3da78dbec8442e7167bf1423f71069d767ff9be68054f55"
+      url: "https://pub.dev"
+    source: hosted
+    version: "2.1.0"
   meta:
     dependency: transitive
     description:
@@ -657,14 +665,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.0.2"
-  p2plib:
-    dependency: transitive
-    description:
-      name: p2plib
-      sha256: c709b0fb6a793c6b408cb445071bc34131757ce2776671d20f210b1530683ec3
-      url: "https://pub.dev"
-    source: hosted
-    version: "2.3.1"
   package_config:
     dependency: transitive
     description:
