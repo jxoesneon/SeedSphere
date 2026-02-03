@@ -132,6 +132,11 @@ void main() {
   test(
     'DesktopGoogleAuth full flow success (Real Server, Mock Client)',
     () async {
+      if (const String.fromEnvironment('GOOGLE_CLIENT_SECRET').isEmpty) {
+        // ignore: avoid_print
+        print('Skipping Google Auth test: GOOGLE_CLIENT_SECRET missing');
+        return;
+      }
       await HttpOverrides.runZoned(() async {
         // 1. Setup Launcher Mock
         when(() => mockLauncher.canLaunch(any())).thenAnswer((_) async => true);
@@ -168,6 +173,11 @@ void main() {
   );
 
   test('DesktopGoogleAuth logs debug traces when authGated is true', () async {
+    if (const String.fromEnvironment('GOOGLE_CLIENT_SECRET').isEmpty) {
+      // ignore: avoid_print
+      print('Skipping Google Auth test: GOOGLE_CLIENT_SECRET missing');
+      return;
+    }
     DebugConfig.authGated = true; // Enable Debug Mode checks
 
     await HttpOverrides.runZoned(() async {

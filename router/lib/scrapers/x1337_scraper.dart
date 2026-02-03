@@ -161,7 +161,8 @@ class X1337Scraper extends BaseScraper {
       );
 
       return results.whereType<Map<String, dynamic>>().toList();
-    } catch (_) {
+    } catch (e, stack) {
+      if (onLog != null) onLog('Scrape Error: $e\n$stack');
       return [];
     }
   }

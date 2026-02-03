@@ -42,6 +42,24 @@ class MockScraperService extends _i1.Mock implements _i2.ScraperService {
           as _i3.Future<List<Map<String, dynamic>>>);
 
   @override
+  _i3.Future<List<Map<String, dynamic>>> getDynamicCatalog(
+    String? type,
+    String? query,
+    String? userId,
+  ) =>
+      (super.noSuchMethod(
+            Invocation.method(#getDynamicCatalog, [type, query, userId]),
+            returnValue: _i3.Future<List<Map<String, dynamic>>>.value(
+              <Map<String, dynamic>>[],
+            ),
+            returnValueForMissingStub:
+                _i3.Future<List<Map<String, dynamic>>>.value(
+                  <Map<String, dynamic>>[],
+                ),
+          )
+          as _i3.Future<List<Map<String, dynamic>>>);
+
+  @override
   _i3.Future<List<Map<String, dynamic>>> getStreams(
     String? type,
     String? id,

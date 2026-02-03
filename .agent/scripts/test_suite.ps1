@@ -6,9 +6,9 @@ Write-Host " Running SeedSphere Test Suite..." -ForegroundColor Cyan
 
 if ($Quarantine) {
     Write-Host "☣️  RUNNING IN QUARANTINE MODE (Flaky Tests Only)" -ForegroundColor Red
-    $TagArg = "--tags flaky"
+    $TagArg = @("--tags", "flaky")
 } else {
-    $TagArg = "--exclude-tags flaky"
+    $TagArg = @("--exclude-tags", "flaky")
 }
 
 
@@ -63,7 +63,7 @@ Write-Host "`n All Tests Passed!" -ForegroundColor Green
 function Test-Documentation {
     Write-Host "`nTesting Documentation (Linting)..." -ForegroundColor Cyan
     $Errors = 0
-    $Files = Get-ChildItem -Path . -Recurse -Filter "*.md" | Where-Object { $_.FullName -notmatch "node_modules|\.git|\.agent" }
+    $Files = Get-ChildItem -Path . -Recurse -Filter "*.md" | Where-Object { $_.FullName -notmatch "node_modules|\.git|\.agent|vendor" }
 
     foreach ($File in $Files) {
         $Content = Get-Content $File.FullName

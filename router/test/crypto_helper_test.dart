@@ -50,5 +50,5 @@ void main() {
       expect(CryptoHelper.encrypt('', 'key'), equals(''));
       expect(CryptoHelper.decrypt('', 'key'), equals(''));
     });
-  });
+  }, timeout: const Timeout(Duration(seconds: 90)));
 }

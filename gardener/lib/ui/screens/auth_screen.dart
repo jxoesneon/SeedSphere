@@ -161,6 +161,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'idToken': idToken,
+          // ignore: use_null_aware_elements
           if (gardenerId != null) 'gardenerId': gardenerId,
         }),
       );

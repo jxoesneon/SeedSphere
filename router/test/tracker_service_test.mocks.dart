@@ -91,8 +91,23 @@ class MockDbService extends _i1.Mock implements _i2.DbService {
           as Map<String, dynamic>?);
 
   @override
+  List<Map<String, dynamic>> getSessions(String? userId) =>
+      (super.noSuchMethod(
+            Invocation.method(#getSessions, [userId]),
+            returnValue: <Map<String, dynamic>>[],
+            returnValueForMissingStub: <Map<String, dynamic>>[],
+          )
+          as List<Map<String, dynamic>>);
+
+  @override
   void deleteSession(String? sid) => super.noSuchMethod(
     Invocation.method(#deleteSession, [sid]),
+    returnValueForMissingStub: null,
+  );
+
+  @override
+  void revokeSession(String? sid) => super.noSuchMethod(
+    Invocation.method(#revokeSession, [sid]),
     returnValueForMissingStub: null,
   );
 
@@ -213,6 +228,47 @@ class MockDbService extends _i1.Mock implements _i2.DbService {
           as int);
 
   @override
+  List<Map<String, dynamic>> getBindings(String? entityId) =>
+      (super.noSuchMethod(
+            Invocation.method(#getBindings, [entityId]),
+            returnValue: <Map<String, dynamic>>[],
+            returnValueForMissingStub: <Map<String, dynamic>>[],
+          )
+          as List<Map<String, dynamic>>);
+
+  @override
+  String? getOwnerForDevice(String? seedlingId) =>
+      (super.noSuchMethod(
+            Invocation.method(#getOwnerForDevice, [seedlingId]),
+            returnValueForMissingStub: null,
+          )
+          as String?);
+
+  @override
+  List<Map<String, dynamic>> getUserActivity(String? userId) =>
+      (super.noSuchMethod(
+            Invocation.method(#getUserActivity, [userId]),
+            returnValue: <Map<String, dynamic>>[],
+            returnValueForMissingStub: <Map<String, dynamic>>[],
+          )
+          as List<Map<String, dynamic>>);
+
+  @override
+  List<Map<String, dynamic>>? getScrapCache(String? id) =>
+      (super.noSuchMethod(
+            Invocation.method(#getScrapCache, [id]),
+            returnValueForMissingStub: null,
+          )
+          as List<Map<String, dynamic>>?);
+
+  @override
+  void setScrapCache(String? id, List<Map<String, dynamic>>? results) =>
+      super.noSuchMethod(
+        Invocation.method(#setScrapCache, [id, results]),
+        returnValueForMissingStub: null,
+      );
+
+  @override
   Map<String, dynamic>? getUser(String? id) =>
       (super.noSuchMethod(
             Invocation.method(#getUser, [id]),
@@ -248,6 +304,19 @@ class MockDbService extends _i1.Mock implements _i2.DbService {
     Invocation.method(#deleteUser, [id]),
     returnValueForMissingStub: null,
   );
+
+  @override
+  void deleteUserBindings(String? userId) => super.noSuchMethod(
+    Invocation.method(#deleteUserBindings, [userId]),
+    returnValueForMissingStub: null,
+  );
+
+  @override
+  void deleteBinding(String? gardenerId, String? seedlingId) =>
+      super.noSuchMethod(
+        Invocation.method(#deleteBinding, [gardenerId, seedlingId]),
+        returnValueForMissingStub: null,
+      );
 
   @override
   T transaction<T>(T Function()? action) =>

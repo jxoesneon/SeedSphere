@@ -1,0 +1,28 @@
+﻿Running build hooks...Running build hooks...00:00 +0: loading test/scrapers/x1337_scraper_test.dart
+00:00 +0: X1337Scraper scrape follows links and returns magnets
+DEBUG: Starting scrape for ttmovie
+Starting scrape for ttmovie
+Resolved metadata: Specific Movie (null)
+Found 2 raw candidates
+Verifying "Specific Movie" vs "Specific Movie" (Year: null, Series: true)
+Γ£à Accepted: Series exact match with safe extras: []
+Verifying "Specific Movie" vs "Specific Movie Director Cut" (Year: null, Series: true)
+Γ£à Accepted: Series exact match with safe extras: [director, cut]
+Proceeding with 2 verified candidates
+MagnetDN Check: Verifying "Specific Movie" vs "Movie" (Year: null, Series: true)
+MagnetDN Check: Γ¥î Rejected: Series fuzzy mismatch (Ratio: 0.36)
+MagnetDN Check: Γ¥î Rejected: Low fuzzy (0.36) & inclusion failed
+MagnetDN Check: Verifying "Specific Movie" vs "Movie" (Year: null, Series: true)
+MagnetDN Check: Γ¥î Rejected: Series fuzzy mismatch (Ratio: 0.36)
+MagnetDN Check: Γ¥î Rejected: Low fuzzy (0.36) & inclusion failed
+00:00 +0 -1: X1337Scraper scrape follows links and returns magnets [E]
+  Expected: <2>
+    Actual: <0>
+  
+  package:matcher                             expect
+  test\scrapers\x1337_scraper_test.dart 53:7  main.<fn>.<fn>
+  
+00:00 +0 -1: Some tests failed.
+
+Consider enabling the flag chain-stack-traces to receive more detailed exceptions.
+For example, 'dart test --chain-stack-traces'.

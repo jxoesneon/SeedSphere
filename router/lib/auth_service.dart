@@ -193,6 +193,7 @@ class AuthService {
           'ok': true,
           'token': sid, // Client stores this as auth_token
           'user': {'id': userId, 'email': email},
+          // ignore: use_null_aware_elements
           if (deviceSecret != null) 'secret': deviceSecret,
         }),
         headers: {'Content-Type': 'application/json'},
@@ -373,6 +374,7 @@ class AuthService {
         'ok': true,
         'user': userData,
         'gardener_count': gardenerCount,
+        // ignore: use_null_aware_elements
         if (deviceSecret != null) 'secret': deviceSecret,
       }),
     );

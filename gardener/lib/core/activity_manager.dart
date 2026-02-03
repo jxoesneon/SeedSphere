@@ -36,6 +36,7 @@ class ActivityManager {
       'type': type,
       'title': title,
       'timestamp': now.millisecondsSinceEpoch,
+      // ignore: use_null_aware_elements
       if (meta != null) 'meta': meta,
     };
 

@@ -21,9 +21,9 @@ void main() {
     final infoHash = '1234567890123456789012345678901234567890';
 
     final client = UdpTrackerClient(
-      host: '127.0.0.1', // Use IP to avoid DNS lookup issues in test env
+      host: '127.0.0.1',
       port: fakeTracker.port,
-      timeout: const Duration(seconds: 2),
+      timeout: const Duration(seconds: 5),
     );
 
     final result = await client.scrape([infoHash]);

@@ -29,9 +29,11 @@ void main() {
                 <body>
                   <table>
                     <tr>
+                      <td><a class="detLink" title="Details for Big Buck Bunny" href="/torrent/123">Big Buck Bunny</a></td>
                       <td><a href="magnet:?xt=urn:btih:1234567890abcdef1234567890abcdef12345678&dn=Big+Buck+Bunny">Magnet 1</a></td>
                     </tr>
                     <tr>
+                      <td><a class="detLink" title="Details for Big Buck Bunny HD" href="/torrent/456">Big Buck Bunny HD</a></td>
                       <td><a href="magnet:?xt=urn:btih:abcdef1234567890abcdef1234567890abcdef12&dn=Big+Buck+Bunny+HD">Magnet 2</a></td>
                     </tr>
                   </table>

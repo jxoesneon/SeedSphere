@@ -10,7 +10,7 @@ Middleware securityMiddleware(
   Future<String?> Function(String gardenerId, String seedlingId) getSecret,
 ) {
   final nonceStore = <String, DateTime>{};
-  final Logger _logger = Logger('SecurityMiddleware');
+  final logger = Logger('SecurityMiddleware');
 
   return (Handler innerHandler) {
     return (Request request) async {
@@ -88,7 +88,7 @@ Middleware securityMiddleware(
         bodyHash,
       ].join('\n');
       if (DebugConfig.pulseGated) {
-        _logger.fine('[SecMiddleware] Canonical:\n$canonical');
+        logger.fine('[SecMiddleware] Canonical:\n$canonical');
       }
 
       // Convert to base64url format as used in legacy
@@ -103,7 +103,7 @@ Middleware securityMiddleware(
 
       if (sig != legacySig) {
         if (DebugConfig.pulseGated) {
-          _logger.warning(
+          logger.warning(
             '[SecMiddleware] Mismatch! Expected: $legacySig, Got: $sig',
           );
         }

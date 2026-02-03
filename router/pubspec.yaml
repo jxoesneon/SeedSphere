@@ -1,6 +1,6 @@
-name: router
+﻿name: router
 description: A server app using the shelf package and Docker.
-version: 2.1.7
+version: 2.1.8
 publish_to: none
 # repository: https://github.com/my_org/my_repo
 # Trigger Deployment 2.1.7
@@ -38,3 +38,4 @@ dependency_overrides:
   # Override protobuf to 6.0.0 for all dependencies
   protobuf: ^6.0.0
   # Use local dart_ipfs clone
+

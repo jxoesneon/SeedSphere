@@ -1,0 +1,193 @@
+﻿Running build hooks...Running build hooks...00:00 +0: loading test\addon_service_test.dart
+00:00 +0: test\addon_service_test.dart: AddonService Manifest returns valid JSON
+00:00 +1: test\addon_service_test.dart: AddonService Manifest returns valid JSON
+00:00 +2: test\addon_service_test.dart: AddonService Manifest returns valid JSON
+00:00 +3: test\addon_service_test.dart: AddonService Manifest returns valid JSON
+00:00 +4: test\addon_service_test.dart: AddonService Manifest returns valid JSON
+00:00 +5: test\ai_service_test.dart: AiService should enhance description using DeepSeek (OpenAI compatible)
+00:00 +6: test\addon_service_test.dart: AddonService Catalog proxy returns mock data
+00:00 +7: test\addon_service_test.dart: AddonService Catalog proxy returns mock data
+00:00 +8: test\ai_service_test.dart: AiService should handle API errors gracefully
+00:00 +9: test\addon_service_test.dart: AddonService Catalog fallback on error
+00:00 +10: test\addon_service_test.dart: AddonService Catalog fallback on error
+00:00 +11: test\ai_service_test.dart: AiService should handle Google Gemini format
+00:00 +12: test\addon_service_test.dart: AddonService Variant Manifest (Lite)
+00:00 +13: test\addon_service_test.dart: AddonService Variant Manifest (Lite)
+00:00 +14: test\addon_service_test.dart: AddonService Variant Stream handles scraper
+00:00 +15: test\auth_service_test.dart: AuthService Update Settings - Missing Session - 403
+00:00 +16: test\auth_service_test.dart: AuthService Update Settings - Missing Session - 403
+00:00 +17: test\auth_service_test.dart: AuthService Update Settings - Missing Session - 403
+00:00 +18: test\auth_service_test.dart: AuthService Update Settings - Missing Session - 403
+00:00 +19: test\auth_service_test.dart: AuthService Update Settings - Missing Session - 403
+00:00 +20: test\auth_service_test.dart: AuthService Update Settings - With Session / No CSRF - 403
+00:00 +21: test\auth_service_test.dart: AuthService Update Settings - With Session AND CSRF - 200
+00:00 +22: test\auth_service_test.dart: AuthService Delete Account - CSRF Enforcement
+00:00 +23: test\auth_service_test.dart: AuthService Unlink Devices - CSRF Enforcement
+00:00 +24: test\crypto_helper_test.dart: CryptoHelper Encrypt and Decrypt - Success
+00:01 +25: test\crypto_helper_test.dart: CryptoHelper Encrypt and Decrypt - Success
+00:01 +25: test\db_service_test.dart: DbService Link Tokens
+Ignored cleanup error: PathAccessException: Deletion failed, path = 'C:\Users\Eduardo\AppData\Local\Temp\db_testaf8f47' (OS Error: The process cannot access the file because it is being used by another process, errno = 32)
+00:01 +26: test\crypto_helper_test.dart: CryptoHelper Encrypt and Decrypt - Success
+00:01 +26: test\db_service_test.dart: DbService Link Token Expiry
+Ignored cleanup error: PathAccessException: Deletion failed, path = 'C:\Users\Eduardo\AppData\Local\Temp\db_testd743bcd4' (OS Error: The process cannot access the file because it is being used by another process, errno = 32)
+00:01 +27: test\crypto_helper_test.dart: CryptoHelper Encrypt and Decrypt - Success
+00:01 +27: test\db_service_test.dart: DbService Bindings and Caps
+Ignored cleanup error: PathAccessException: Deletion failed, path = 'C:\Users\Eduardo\AppData\Local\Temp\db_testc085151a' (OS Error: The process cannot access the file because it is being used by another process, errno = 32)
+00:01 +28: test\crypto_helper_test.dart: CryptoHelper Encrypt and Decrypt - Success
+00:01 +28: test\db_service_test.dart: DbService Reputation
+Ignored cleanup error: PathAccessException: Deletion failed, path = 'C:\Users\Eduardo\AppData\Local\Temp\db_testd43b3b0d' (OS Error: The process cannot access the file because it is being used by another process, errno = 32)
+00:01 +29: test\crypto_helper_test.dart: CryptoHelper Encrypt and Decrypt - Success
+00:01 +29: test\db_service_test.dart: DbService Whitelist
+Ignored cleanup error: PathAccessException: Deletion failed, path = 'C:\Users\Eduardo\AppData\Local\Temp\db_test36755f12' (OS Error: The process cannot access the file because it is being used by another process, errno = 32)
+00:01 +30: test\crypto_helper_test.dart: CryptoHelper Encrypt and Decrypt - Success
+00:01 +30: test\db_service_test.dart: DbService Audit
+Ignored cleanup error: PathAccessException: Deletion failed, path = 'C:\Users\Eduardo\AppData\Local\Temp\db_test5067d2a4' (OS Error: The process cannot access the file because it is being used by another process, errno = 32)
+00:01 +31: test\crypto_helper_test.dart: CryptoHelper Encrypt and Decrypt - Success
+00:01 +31: test\db_service_test.dart: DbService Prune Expired Data
+Ignored cleanup error: PathAccessException: Deletion failed, path = 'C:\Users\Eduardo\AppData\Local\Temp\db_testd2c96c7' (OS Error: The process cannot access the file because it is being used by another process, errno = 32)
+00:01 +32: test\crypto_helper_test.dart: CryptoHelper Encrypt and Decrypt - Success
+00:01 +32: test\db_service_test.dart: DbService User Management (Encryption)
+Ignored cleanup error: PathAccessException: Deletion failed, path = 'C:\Users\Eduardo\AppData\Local\Temp\db_test528e9b1a' (OS Error: The process cannot access the file because it is being used by another process, errno = 32)
+00:01 +33: test\crypto_helper_test.dart: CryptoHelper Encrypt and Decrypt - Success
+00:02 +33: test\db_service_test.dart: DbService User Deletion
+Ignored cleanup error: PathAccessException: Deletion failed, path = 'C:\Users\Eduardo\AppData\Local\Temp\db_testa37a1d93' (OS Error: The process cannot access the file because it is being used by another process, errno = 32)
+00:02 +34: test\crypto_helper_test.dart: CryptoHelper Encrypt and Decrypt - Success
+00:02 +35: test\crypto_helper_test.dart: CryptoHelper Encrypt and Decrypt - Success
+00:02 +36: test\crypto_helper_test.dart: CryptoHelper Encrypt and Decrypt - Success
+00:02 +36: test\db_service_test.dart: DbService Transaction rollback
+Ignored cleanup error: PathAccessException: Deletion failed, path = 'C:\Users\Eduardo\AppData\Local\Temp\db_test469ab37a' (OS Error: The process cannot access the file because it is being used by another process, errno = 32)
+00:02 +37: test\crypto_helper_test.dart: CryptoHelper Encrypt and Decrypt - Success
+00:02 +38: test\crypto_helper_test.dart: CryptoHelper Encrypt and Decrypt - Success
+00:02 +39: test\crypto_helper_test.dart: CryptoHelper Encrypt and Decrypt - Success
+00:02 +40: test\crypto_helper_test.dart: CryptoHelper Encrypt and Decrypt - Success
+00:02 +41: test\crypto_helper_test.dart: CryptoHelper Encrypt and Decrypt - Success
+00:03 +42: test\crypto_helper_test.dart: CryptoHelper Encrypt and Decrypt - Success
+00:03 +43: test\crypto_helper_test.dart: CryptoHelper Encrypt and Decrypt - Success
+00:03 +44: test\crypto_helper_test.dart: CryptoHelper Encrypt and Decrypt - Success
+00:03 +45: test\crypto_helper_test.dart: CryptoHelper Encrypt and Decrypt - Success
+00:03 +46: test\crypto_helper_test.dart: CryptoHelper Encrypt and Decrypt - Success
+00:04 +47: test\crypto_helper_test.dart: CryptoHelper Encrypt and Decrypt - Success
+00:04 +48: test\crypto_helper_test.dart: CryptoHelper Encrypt and Decrypt - Success
+00:04 +49: test\crypto_helper_test.dart: CryptoHelper Encrypt and Decrypt - Success
+00:04 +50: test\crypto_helper_test.dart: CryptoHelper Encrypt and Decrypt - Success
+00:04 +51: test\crypto_helper_test.dart: CryptoHelper Encrypt and Decrypt - Success
+00:04 +52: test\crypto_helper_test.dart: CryptoHelper Encrypt and Decrypt - Success
+00:04 +53: test\crypto_helper_test.dart: CryptoHelper Encrypt and Decrypt - Success
+00:04 +54: test\crypto_helper_test.dart: CryptoHelper Encrypt and Decrypt - Success
+00:04 +55: test\crypto_helper_test.dart: CryptoHelper Encrypt and Decrypt - Success
+00:04 +56: test\crypto_helper_test.dart: CryptoHelper Encrypt and Decrypt - Success
+00:04 +57: test\crypto_helper_test.dart: CryptoHelper Encrypt and Decrypt - Success
+00:04 +58: test\crypto_helper_test.dart: CryptoHelper Encrypt and Decrypt - Success
+00:04 +59: test\crypto_helper_test.dart: CryptoHelper Encrypt and Decrypt - Success
+00:04 +60: test\crypto_helper_test.dart: CryptoHelper Encrypt and Decrypt - Success
+00:04 +61: test\crypto_helper_test.dart: CryptoHelper Encrypt and Decrypt - Success
+00:04 +62: test\crypto_helper_test.dart: CryptoHelper Encrypt and Decrypt - Success
+00:05 +62: test\p2p_node_test.dart: P2PNode start initializes and starts IPFS node
+2026-02-03T08:24:24.527212 [INFO] [P2PNode] P2P: Bootstrap Node Active
+2026-02-03T08:24:24.533856 [INFO] [P2PNode] P2P: PeerID: QmPeerId123
+2026-02-03T08:24:24.536238 [INFO] [P2PNode] P2P: Listening on: [/ip4/127.0.0.1/tcp/4001]
+00:05 +63: test\crypto_helper_test.dart: CryptoHelper Encrypt and Decrypt - Success
+00:05 +63: test\p2p_node_test.dart: P2PNode start initializes and starts IPFS node
+2026-02-03T08:24:24.553009 [INFO] [P2PNode] P2P: Initializing SeedSphere Bootstrap Node...
+2026-02-03T08:24:24.554397 [FINE] [P2PNode] DEBUG: User Home: C:\Users\Eduardo
+2026-02-03T08:24:24.554901 [FINE] [P2PNode] DEBUG: Current PID: 3552
+2026-02-03T08:24:24.554901 [FINE] [P2PNode] DEBUG: Current Directory: C:\Users\Eduardo\Documents\seedsphere\router
+2026-02-03T08:24:24.556298 [FINE] [P2PNode] DEBUG: Resolved IPFS_PATH: C:\Users\Eduardo\.ipfs
+2026-02-03T08:24:24.558807 [FINE] [P2PNode] DEBUG: Write permission confirmed for C:\Users\Eduardo\.ipfs
+2026-02-03T08:24:24.559922 [INFO] [P2PNode] P2P: Private Swarm Key Configured
+2026-02-03T08:24:24.560923 [FINE] [P2PNode] DEBUG: Loading P2PNode with PORT 4005 CONFIG
+2026-02-03T08:24:24.563940 [INFO] [P2PNode] P2P: Bootstrap Node Active
+2026-02-03T08:24:24.564943 [INFO] [P2PNode] P2P: PeerID: Dummy_String_created_while_calling_peerId_on_MockIPFSNode.
+2026-02-03T08:24:24.564943 [INFO] [P2PNode] P2P: Listening on: []
+00:05 +64: test\crypto_helper_test.dart: CryptoHelper Encrypt and Decrypt - Success
+00:05 +64: test\p2p_node_test.dart: P2PNode start initializes and starts IPFS node
+2026-02-03T08:24:24.571023 [INFO] [P2PNode] P2P: Initializing SeedSphere Bootstrap Node...
+2026-02-03T08:24:24.571023 [FINE] [P2PNode] DEBUG: User Home: C:\Users\Eduardo
+2026-02-03T08:24:24.571023 [FINE] [P2PNode] DEBUG: Current PID: 3552
+2026-02-03T08:24:24.571023 [FINE] [P2PNode] DEBUG: Current Directory: C:\Users\Eduardo\Documents\seedsphere\router
+2026-02-03T08:24:24.572023 [FINE] [P2PNode] DEBUG: Resolved IPFS_PATH: C:\Users\Eduardo\.ipfs
+2026-02-03T08:24:24.573531 [FINE] [P2PNode] DEBUG: Write permission confirmed for C:\Users\Eduardo\.ipfs
+2026-02-03T08:24:24.575531 [INFO] [P2PNode] P2P: Private Swarm Key Configured
+2026-02-03T08:24:24.575531 [FINE] [P2PNode] DEBUG: Loading P2PNode with PORT 4005 CONFIG
+2026-02-03T08:24:24.577036 [INFO] [P2PNode] P2P: Bootstrap Node Active
+2026-02-03T08:24:24.577555 [INFO] [P2PNode] P2P: PeerID: Dummy_String_created_while_calling_peerId_on_MockIPFSNode.
+2026-02-03T08:24:24.577555 [INFO] [P2PNode] P2P: Listening on: []
+00:05 +65: test\crypto_helper_test.dart: CryptoHelper Encrypt and Decrypt - Success
+00:05 +66: test\crypto_helper_test.dart: CryptoHelper Encrypt and Decrypt - Success
+00:05 +67: test\crypto_helper_test.dart: CryptoHelper Encrypt and Decrypt - Success
+00:05 +68: test\crypto_helper_test.dart: CryptoHelper Encrypt and Decrypt - Success
+00:05 +69: test\crypto_helper_test.dart: CryptoHelper Encrypt and Decrypt - Success
+00:05 +70: test\crypto_helper_test.dart: CryptoHelper Encrypt and Decrypt - Success
+00:05 +71: test\crypto_helper_test.dart: CryptoHelper Encrypt and Decrypt - Success
+00:05 +72: test\crypto_helper_test.dart: CryptoHelper Encrypt and Decrypt - Success
+00:05 +73: test\crypto_helper_test.dart: CryptoHelper Encrypt and Decrypt - Success
+00:05 +74: test\crypto_helper_test.dart: CryptoHelper Encrypt and Decrypt - Success
+00:06 +75: test\crypto_helper_test.dart: CryptoHelper Encrypt and Decrypt - Success
+00:06 +76: test\crypto_helper_test.dart: CryptoHelper Encrypt and Decrypt - Success
+00:06 +77: test\crypto_helper_test.dart: CryptoHelper Encrypt and Decrypt - Success
+00:06 +78: test\crypto_helper_test.dart: CryptoHelper Encrypt and Decrypt - Success
+00:06 +79: test\crypto_helper_test.dart: CryptoHelper Encrypt and Decrypt - Success
+00:06 +80: test\crypto_helper_test.dart: CryptoHelper Encrypt and Decrypt - Success
+00:06 +81: test\crypto_helper_test.dart: CryptoHelper Encrypt and Decrypt - Success
+00:06 +82: test\crypto_helper_test.dart: CryptoHelper Encrypt and Decrypt - Success
+00:06 +83: test\crypto_helper_test.dart: CryptoHelper Encrypt and Decrypt - Success
+00:06 +83 -1: test\crypto_helper_test.dart: CryptoHelper Encrypt and Decrypt - Success
+00:06 +83 -1: test\scrapers\piratebay_scraper_test.dart: PirateBayScraper scrape returns results [E]
+  Expected: non-empty
+    Actual: []
+  
+  package:matcher                                 expect
+  test\scrapers\piratebay_scraper_test.dart 52:7  main.<fn>.<fn>
+  
+00:06 +84 -1: test\crypto_helper_test.dart: CryptoHelper Encrypt and Decrypt - Success
+00:07 +85 -1: test\crypto_helper_test.dart: CryptoHelper Encrypt and Decrypt - Success
+00:07 +86 -1: test\crypto_helper_test.dart: CryptoHelper Encrypt and Decrypt - Success
+00:10 +87 -1: test\crypto_helper_test.dart: CryptoHelper Encrypt and Decrypt - Success
+00:11 +88 -1: test\crypto_helper_test.dart: CryptoHelper Encrypt and Decrypt - Success
+00:12 +89 -1: test\crypto_helper_test.dart: CryptoHelper Encrypt and Decrypt - Success
+00:12 +90 -1: test\crypto_helper_test.dart: CryptoHelper Encrypt and Decrypt - Success
+00:12 +91 -1: test\crypto_helper_test.dart: CryptoHelper Encrypt and Decrypt - Success
+00:12 +92 -1: test\crypto_helper_test.dart: CryptoHelper Encrypt and Decrypt - Success
+00:12 +93 -1: test\crypto_helper_test.dart: CryptoHelper Encrypt and Decrypt - Success
+00:12 +93 -1: test\server_test.dart: Integration Portal (Root)
+  Skip: Integration test - manual run only
+00:12 +93 ~1 -1: test\crypto_helper_test.dart: CryptoHelper Encrypt and Decrypt - Success
+00:12 +93 ~1 -1: test\server_test.dart: Integration API Status
+  Skip: Integration test - manual run only
+00:12 +93 ~2 -1: test\crypto_helper_test.dart: CryptoHelper Encrypt and Decrypt - Success
+00:12 +93 ~2 -1: test\server_test.dart: Integration 404
+  Skip: Integration test - manual run only
+00:12 +93 ~3 -1: test\crypto_helper_test.dart: CryptoHelper Encrypt and Decrypt - Success
+00:12 +94 ~3 -1: test\crypto_helper_test.dart: CryptoHelper Encrypt and Decrypt - Success
+00:12 +95 ~3 -1: test\crypto_helper_test.dart: CryptoHelper Encrypt and Decrypt - Success
+00:12 +96 ~3 -1: test\crypto_helper_test.dart: CryptoHelper Encrypt and Decrypt - Success
+00:12 +97 ~3 -1: test\crypto_helper_test.dart: CryptoHelper Encrypt and Decrypt - Success
+00:13 +98 ~3 -1: test\crypto_helper_test.dart: CryptoHelper Encrypt and Decrypt - Success
+00:13 +99 ~3 -1: test\crypto_helper_test.dart: CryptoHelper Encrypt and Decrypt - Success
+00:13 +100 ~3 -1: test\crypto_helper_test.dart: CryptoHelper Encrypt and Decrypt - Success
+00:13 +101 ~3 -1: test\crypto_helper_test.dart: CryptoHelper Encrypt and Decrypt - Success
+00:13 +102 ~3 -1: test\crypto_helper_test.dart: CryptoHelper Encrypt and Decrypt - Success
+00:13 +103 ~3 -1: test\crypto_helper_test.dart: CryptoHelper Encrypt and Decrypt - Success
+00:13 +104 ~3 -1: test\crypto_helper_test.dart: CryptoHelper Encrypt and Decrypt - Success
+00:13 +105 ~3 -1: test\crypto_helper_test.dart: CryptoHelper Encrypt and Decrypt - Success
+00:14 +106 ~3 -1: test\crypto_helper_test.dart: CryptoHelper Encrypt and Decrypt - Success
+00:14 +107 ~3 -1: test\crypto_helper_test.dart: CryptoHelper Encrypt and Decrypt - Success
+00:14 +108 ~3 -1: test\crypto_helper_test.dart: CryptoHelper Encrypt and Decrypt - Success
+00:14 +109 ~3 -1: test\crypto_helper_test.dart: CryptoHelper Encrypt and Decrypt - Success
+00:14 +110 ~3 -1: test\crypto_helper_test.dart: CryptoHelper Encrypt and Decrypt - Success
+00:14 +111 ~3 -1: test\crypto_helper_test.dart: CryptoHelper Encrypt and Decrypt - Success
+00:14 +112 ~3 -1: test\crypto_helper_test.dart: CryptoHelper Encrypt and Decrypt - Success
+00:14 +113 ~3 -1: test\crypto_helper_test.dart: CryptoHelper Encrypt and Decrypt - Success
+00:14 +114 ~3 -1: test\crypto_helper_test.dart: CryptoHelper Encrypt and Decrypt - Success
+00:14 +115 ~3 -1: test\crypto_helper_test.dart: CryptoHelper Encrypt and Decrypt - Success
+00:14 +116 ~3 -1: test\crypto_helper_test.dart: CryptoHelper Encrypt and Decrypt - Success
+00:14 +117 ~3 -1: test\crypto_helper_test.dart: CryptoHelper Encrypt and Decrypt - Success
+00:14 +118 ~3 -1: test\crypto_helper_test.dart: CryptoHelper Encrypt and Decrypt - Success
+00:15 +119 ~3 -1: test\crypto_helper_test.dart: CryptoHelper Encryption should use random salts (Probabilistic)
+00:36 +120 ~3 -1: test\crypto_helper_test.dart: CryptoHelper Decrypt with wrong key fails
+00:46 +121 ~3 -1: test\crypto_helper_test.dart: CryptoHelper Decrypt garbage fails
+00:46 +122 ~3 -1: test\crypto_helper_test.dart: CryptoHelper Empty string handling
+00:46 +123 ~3 -1: Some tests failed.
+
+Consider enabling the flag chain-stack-traces to receive more detailed exceptions.
+For example, 'dart test --chain-stack-traces'.

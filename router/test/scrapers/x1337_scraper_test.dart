@@ -24,8 +24,8 @@ void main() {
         if (request.url.path.contains('/search/')) {
           return http.Response('''
             <html>
-              <a href="/torrent/123/Detail-Page/">Link</a>
-              <a href="/torrent/456/Another-Page/">Link 2</a>
+              <a href="/torrent/123/Specific-Movie/">Link</a>
+              <a href="/torrent/456/Specific-Movie-Director-Cut/">Link 2</a>
             </html>
             ''', 200);
         }
@@ -37,7 +37,7 @@ void main() {
               : '2222222222222222222222222222222222222222';
           return http.Response('''
              <html>
-               <a href="magnet:?xt=urn:btih:$hash&dn=Movie">Magnet</a>
+                <a href="magnet:?xt=urn:btih:$hash&dn=Specific+Movie">Magnet</a>
              </html>
              ''', 200);
         }
