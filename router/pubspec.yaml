@@ -16,7 +16,7 @@ dependencies:
   dart_ipfs: ^1.9.4
   uuid: ^4.5.2
   crypto: ^3.0.7
-  sqlite3: ^3.1.1
+  sqlite3: 3.0.0
   path: ^1.8.3
 
   http: ^1.6.0
@@ -38,4 +38,3 @@ dependency_overrides:
   # Override protobuf to 6.0.0 for all dependencies
   protobuf: ^6.0.0
   # Use local dart_ipfs clone
-
