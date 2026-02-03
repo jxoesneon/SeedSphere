@@ -6,10 +6,12 @@ import 'config.dart'; // For Config, Option, Libp2p
 
 // Imports for new defaults
 // For KeyPair, KeyType
-import '../core/crypto/ed25519.dart' as crypto_ed25519; // For generateEd25519KeyPair
+import '../core/crypto/ed25519.dart'
+    as crypto_ed25519; // For generateEd25519KeyPair
 import '../p2p/security/noise/noise_protocol.dart';
 import '../p2p/host/eventbus/basic.dart'; // For BasicBus
-import '../p2p/transport/connection_manager.dart' as p2p_conn_mgr; // For ConnectionManager
+import '../p2p/transport/connection_manager.dart'
+    as p2p_conn_mgr; // For ConnectionManager
 // No specific import for defaultAddrsFactory if defined in this file.
 // If imported from basic_host, it would be:
 // import '../p2p/host/basic/basic_host.dart' show defaultAddrsFactory;
@@ -23,28 +25,26 @@ import '../core/multiaddr.dart'; // For MultiAddr in defaultAddrsFactory
 /// signature. It assumes `secureConn` can be cast to `TransportConn` as required
 /// by `YamuxSession`. The actual connection upgrade logic (security + muxer negotiation)
 /// will be handled by the Swarm/Upgrader, which will then call this factory.
-Option defaultMuxers = Libp2p.muxer(
-  '/yamux/1.0.0',
-  (secureConn, isClient) {
-    // YamuxSession expects a TransportConn.
-    // The `secureConn` provided by the (future) Upgrader should be compatible.
-    if (secureConn is! TransportConn) {
-      // This might happen if the security layer doesn't output a TransportConn.
-      // Or if an insecure connection (which might be a raw TransportConn) is used directly.
-      // For now, we'll throw if it's not directly a TransportConn.
-      // A more robust solution might involve an adapter or ensuring the security
-      // layer preserves or wraps TransportConn capabilities.
-      throw ArgumentError(
-          'YamuxSession factory requires a TransportConn, but received ${secureConn.runtimeType}. '
-          'The Upgrader needs to ensure the connection passed to the muxer factory is suitable.');
-    }
-    return YamuxSession(
-      secureConn, // Already checked to be a TransportConn
-      const MultiplexerConfig(), // Use default Yamux config
-      isClient,
+Option defaultMuxers = Libp2p.muxer('/yamux/1.0.0', (secureConn, isClient) {
+  // YamuxSession expects a TransportConn.
+  // The `secureConn` provided by the (future) Upgrader should be compatible.
+  if (secureConn is! TransportConn) {
+    // This might happen if the security layer doesn't output a TransportConn.
+    // Or if an insecure connection (which might be a raw TransportConn) is used directly.
+    // For now, we'll throw if it's not directly a TransportConn.
+    // A more robust solution might involve an adapter or ensuring the security
+    // layer preserves or wraps TransportConn capabilities.
+    throw ArgumentError(
+      'YamuxSession factory requires a TransportConn, but received ${secureConn.runtimeType}. '
+      'The Upgrader needs to ensure the connection passed to the muxer factory is suitable.',
     );
-  },
-);
+  }
+  return YamuxSession(
+    secureConn, // Already checked to be a TransportConn
+    const MultiplexerConfig(), // Use default Yamux config
+    isClient,
+  );
+});
 
 /// Apply default options to a Config instance if they haven't been set by the user.
 Future<void> applyDefaults(Config config) async {
@@ -82,26 +82,20 @@ Future<void> applyDefaults(Config config) async {
     // This re-applies the Yamux default if it wasn't added via Option.
     // The defaultMuxers Option is usually added by Libp2p.new_ if no muxer options are given.
     // However, direct Config manipulation might bypass this, so ensuring it here is safe.
-    await config.withMuxer(
-      '/yamux/1.0.0',
-      (secureConn, isClient) {
-        if (secureConn is! TransportConn) {
-          throw ArgumentError(
-              'Default Yamux factory (via applyDefaults) requires a TransportConn, '
-              'but received ${secureConn.runtimeType}.');
-        }
-        return YamuxSession(
-          secureConn,
-          const MultiplexerConfig(),
-          isClient,
+    await config.withMuxer('/yamux/1.0.0', (secureConn, isClient) {
+      if (secureConn is! TransportConn) {
+        throw ArgumentError(
+          'Default Yamux factory (via applyDefaults) requires a TransportConn, '
+          'but received ${secureConn.runtimeType}.',
         );
-      },
-    );
+      }
+      return YamuxSession(secureConn, const MultiplexerConfig(), isClient);
+    });
   }
 
   // Default Connection Manager
   if (config.connManager == null) {
-    config.connManager = p2p_conn_mgr.ConnectionManager(); 
+    config.connManager = p2p_conn_mgr.ConnectionManager();
   }
 
   // Default Event Bus
@@ -136,7 +130,8 @@ List<MultiAddr> _defaultAddrsFactoryInternal(List<MultiAddr> addrs) {
     }
     final ip4Val = addr.valueForProtocol('ip4');
     final ip6Val = addr.valueForProtocol('ip6');
-    if ((ip4Val == '0.0.0.0' || ip4Val == '0.0.0.0.0.0') || (ip6Val == '::' || ip6Val == '0:0:0:0:0:0:0:0')) {
+    if ((ip4Val == '0.0.0.0' || ip4Val == '0.0.0.0.0.0') ||
+        (ip6Val == '::' || ip6Val == '0:0:0:0:0:0:0:0')) {
       return false;
     }
     return true;

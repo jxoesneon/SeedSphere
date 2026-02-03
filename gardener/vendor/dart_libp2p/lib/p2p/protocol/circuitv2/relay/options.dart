@@ -10,9 +10,7 @@ class RelayOptions {
   Resources _resources;
 
   /// Creates new relay options.
-  RelayOptions({
-    Resources? resources,
-  }) : _resources = resources ?? Resources();
+  RelayOptions({Resources? resources}) : _resources = resources ?? Resources();
 }
 
 /// Option is a function that configures a RelayOptions.

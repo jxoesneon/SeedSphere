@@ -28,11 +28,16 @@ class MockConnStats implements ConnStats {
   final int numStreams;
 
   MockConnStats({Stats? stats, this.numStreams = 0})
-      : stats = stats ?? Stats(direction: Direction.inbound, opened: DateTime.now()); // Removed const
+    : stats =
+          stats ??
+          Stats(
+            direction: Direction.inbound,
+            opened: DateTime.now(),
+          ); // Removed const
 }
 
 class MockConn implements Conn {
-  final String _id = 'mock-conn-${Random().nextInt(1<<32)}';
+  final String _id = 'mock-conn-${Random().nextInt(1 << 32)}';
 
   @override
   String get id => _id;
@@ -40,13 +45,15 @@ class MockConn implements Conn {
   // Conn interface expects synchronous PeerId. PeerId.random() is async.
   // Use a placeholder PeerId for the mock. PeerId implements PeerId.
   @override
-  PeerId get localPeer => PeerId.fromString("QmSoLnSGccFuZQJzRadHn95W2CrSFmGLwDsTU6gEdKnHv2"); // Example valid PeerID
+  PeerId get localPeer =>
+      PeerId.fromString("QmSoLnSGccFuZQJzRadHn95W2CrSFmGLwDsTU6gEdKnHv2"); // Example valid PeerID
 
   @override
   MultiAddr get localMultiaddr => MultiAddr('/ip4/127.0.0.1/tcp/0');
 
   @override
-  PeerId get remotePeer => PeerId.fromString("QmSoLSgciZgHiZ8isU3g2mQ3z5dSg2YV6x2v2tTjK2Yx8a"); // Example valid PeerID
+  PeerId get remotePeer =>
+      PeerId.fromString("QmSoLSgciZgHiZ8isU3g2mQ3z5dSg2YV6x2v2tTjK2Yx8a"); // Example valid PeerID
 
   @override
   MultiAddr get remoteMultiaddr => MultiAddr('/ip4/127.0.0.1/tcp/0');
@@ -55,7 +62,9 @@ class MockConn implements Conn {
   Future<P2PStream<dynamic>> newStream(Context context) async {
     // For simplicity, this mock doesn't actually create a new stream based on context/id.
     // It could be enhanced if tests need to verify stream creation logic.
-    throw UnimplementedError('MockConn.newStream not implemented for actual stream creation');
+    throw UnimplementedError(
+      'MockConn.newStream not implemented for actual stream creation',
+    );
   }
 
   @override
@@ -82,11 +91,11 @@ class MockConn implements Conn {
 
   @override
   ConnState get state => const ConnState(
-        streamMultiplexer: '', // Placeholder
-        security: '', // Placeholder
-        transport: 'mock', // Placeholder
-        usedEarlyMuxerNegotiation: false,
-      );
+    streamMultiplexer: '', // Placeholder
+    security: '', // Placeholder
+    transport: 'mock', // Placeholder
+    usedEarlyMuxerNegotiation: false,
+  );
 }
 
 class MockStreamStats implements StreamStats {
@@ -100,27 +109,33 @@ class MockStreamStats implements StreamStats {
   Map get extra => {};
 }
 
-
 // --- Mock P2PStream Implementation ---
 
 class MockP2PStream implements P2PStream<Uint8List> {
-  final String _id_internal = 'mock-stream-${Random().nextInt(1<<32)}';
-  final StreamController<Uint8List> _incomingDataController = StreamController<Uint8List>.broadcast();
+  final String _id_internal = 'mock-stream-${Random().nextInt(1 << 32)}';
+  final StreamController<Uint8List> _incomingDataController =
+      StreamController<Uint8List>.broadcast();
   final StreamController<Uint8List> _outgoingDataController;
 
   final BytesBuilder _readBuffer = BytesBuilder();
   final Completer<void> _localCloseCompleter = Completer<void>();
-  final Completer<void> _remoteCloseCompleter = Completer<void>(); // When the other side closes its write end
+  final Completer<void> _remoteCloseCompleter =
+      Completer<void>(); // When the other side closes its write end
   StreamSubscription? _incomingSubscription;
   String _protocol_internal = '';
   Completer<void>? _pendingReadCompleter;
-  final Conn _mockConn = MockConn(); // Each stream is associated with a mock connection
+  final Conn _mockConn =
+      MockConn(); // Each stream is associated with a mock connection
 
-  MockP2PStream(this._outgoingDataController, Stream<Uint8List> incomingStream) {
+  MockP2PStream(
+    this._outgoingDataController,
+    Stream<Uint8List> incomingStream,
+  ) {
     _incomingSubscription = incomingStream.listen(
       (data) {
         _readBuffer.add(data);
-        if (_pendingReadCompleter != null && !_pendingReadCompleter!.isCompleted) {
+        if (_pendingReadCompleter != null &&
+            !_pendingReadCompleter!.isCompleted) {
           _pendingReadCompleter!.complete();
           _pendingReadCompleter = null;
         }
@@ -129,9 +144,12 @@ class MockP2PStream implements P2PStream<Uint8List> {
         if (!_remoteCloseCompleter.isCompleted) {
           _remoteCloseCompleter.complete();
         }
-        if (_pendingReadCompleter != null && !_pendingReadCompleter!.isCompleted) {
+        if (_pendingReadCompleter != null &&
+            !_pendingReadCompleter!.isCompleted) {
           if (_readBuffer.isEmpty) {
-            _pendingReadCompleter!.completeError(StateError("Stream closed by remote while awaiting read"));
+            _pendingReadCompleter!.completeError(
+              StateError("Stream closed by remote while awaiting read"),
+            );
           } else {
             _pendingReadCompleter!.complete(); // Allow reading remaining buffer
           }
@@ -139,9 +157,9 @@ class MockP2PStream implements P2PStream<Uint8List> {
         }
       },
       onError: (e, s) {
-
         // Prioritize failing the pending read operation with the actual error.
-        if (_pendingReadCompleter != null && !_pendingReadCompleter!.isCompleted) {
+        if (_pendingReadCompleter != null &&
+            !_pendingReadCompleter!.isCompleted) {
           _pendingReadCompleter!.completeError(e, s);
           _pendingReadCompleter = null;
         }
@@ -159,19 +177,27 @@ class MockP2PStream implements P2PStream<Uint8List> {
   Future<Uint8List> read([int? count]) async {
     if (_readBuffer.isNotEmpty) {
       final available = _readBuffer.length;
-      final bytesToRead = (count != null && count < available && count > 0) ? count : available;
-      if (bytesToRead == 0 && count != null && count > 0) { // Requesting specific non-zero bytes but buffer is empty or smaller
-         // Fall through to wait for more data if not closed
+      final bytesToRead = (count != null && count < available && count > 0)
+          ? count
+          : available;
+      if (bytesToRead == 0 && count != null && count > 0) {
+        // Requesting specific non-zero bytes but buffer is empty or smaller
+        // Fall through to wait for more data if not closed
       } else if (bytesToRead > 0) {
-        final result = Uint8List.fromList(_readBuffer.toBytes().sublist(0, bytesToRead));
-        final remainingBytes = Uint8List.fromList(_readBuffer.toBytes().sublist(bytesToRead));
+        final result = Uint8List.fromList(
+          _readBuffer.toBytes().sublist(0, bytesToRead),
+        );
+        final remainingBytes = Uint8List.fromList(
+          _readBuffer.toBytes().sublist(bytesToRead),
+        );
         _readBuffer.clear();
         _readBuffer.add(remainingBytes);
         return result;
       }
     }
 
-    if (_remoteCloseCompleter.isCompleted || _localCloseCompleter.isCompleted && _readBuffer.isEmpty) {
+    if (_remoteCloseCompleter.isCompleted ||
+        _localCloseCompleter.isCompleted && _readBuffer.isEmpty) {
       return Uint8List(0); // EOF
     }
 
@@ -182,7 +208,8 @@ class MockP2PStream implements P2PStream<Uint8List> {
 
   @override
   Future<void> write(Uint8List data) async {
-    if (_localCloseCompleter.isCompleted) { // Check local completer first
+    if (_localCloseCompleter.isCompleted) {
+      // Check local completer first
       throw StateError('Cannot write to locally closed stream');
     }
     if (_outgoingDataController.isClosed) {
@@ -198,7 +225,7 @@ class MockP2PStream implements P2PStream<Uint8List> {
     }
     // Also ensure remote is completed, as close() is a full close.
     if (!_remoteCloseCompleter.isCompleted) {
-        _remoteCloseCompleter.complete();
+      _remoteCloseCompleter.complete();
     }
     await _incomingSubscription?.cancel();
     _incomingSubscription = null;
@@ -207,12 +234,12 @@ class MockP2PStream implements P2PStream<Uint8List> {
     }
     // If there's a pending read, and buffer is empty, error it out or complete with empty.
     if (_pendingReadCompleter != null && !_pendingReadCompleter!.isCompleted) {
-        if (_readBuffer.isEmpty) {
-             _pendingReadCompleter!.completeError(StateError("Stream closed"));
-        } else {
-            _pendingReadCompleter!.complete();
-        }
-        _pendingReadCompleter = null;
+      if (_readBuffer.isEmpty) {
+        _pendingReadCompleter!.completeError(StateError("Stream closed"));
+      } else {
+        _pendingReadCompleter!.complete();
+      }
+      _pendingReadCompleter = null;
     }
   }
 
@@ -233,7 +260,7 @@ class MockP2PStream implements P2PStream<Uint8List> {
     //   _localCloseCompleter.complete(); // Or a specific writeCloseCompleter
     // }
   }
-  
+
   @override
   Future<void> closeRead() async {
     if (!_remoteCloseCompleter.isCompleted) {
@@ -243,15 +270,21 @@ class MockP2PStream implements P2PStream<Uint8List> {
     }
     await _incomingSubscription?.cancel();
     _incomingSubscription = null;
-    if (_pendingReadCompleter != null && !_pendingReadCompleter!.isCompleted && _readBuffer.isEmpty) {
-      _pendingReadCompleter!.completeError(StateError("Stream closed for reading"));
+    if (_pendingReadCompleter != null &&
+        !_pendingReadCompleter!.isCompleted &&
+        _readBuffer.isEmpty) {
+      _pendingReadCompleter!.completeError(
+        StateError("Stream closed for reading"),
+      );
       _pendingReadCompleter = null;
     }
   }
 
   @override
   Future<void> reset() async {
-    final err = StateError("Stream reset"); // This error is for the other side of the pipe.
+    final err = StateError(
+      "Stream reset",
+    ); // This error is for the other side of the pipe.
     if (!_localCloseCompleter.isCompleted) {
       _localCloseCompleter.complete();
     }
@@ -264,7 +297,9 @@ class MockP2PStream implements P2PStream<Uint8List> {
 
     // Handle pending read completer
     if (_pendingReadCompleter != null && !_pendingReadCompleter!.isCompleted) {
-      _pendingReadCompleter!.completeError(StateError("Stream reset")); // Or a more specific "Stream reset during read"
+      _pendingReadCompleter!.completeError(
+        StateError("Stream reset"),
+      ); // Or a more specific "Stream reset during read"
       _pendingReadCompleter = null;
     }
 
@@ -273,7 +308,6 @@ class MockP2PStream implements P2PStream<Uint8List> {
       await _outgoingDataController.close();
     }
   }
-
 
   @override
   String id() => _id_internal;
@@ -289,34 +323,44 @@ class MockP2PStream implements P2PStream<Uint8List> {
   @override
   StreamStats stat() => MockStreamStats();
 
-
   @override
   StreamManagementScope scope() => NullScope(); // Use NullScope from rcmgr
-  
+
   @override
   P2PStream<Uint8List> get incoming => this; // Simplistic: stream is its own incoming representation
 
   // Sink is not part of P2PStream, but was used by old mock. Keeping wrapper for now if tests use it.
   // For P2PStream, direct `write` is used.
   // Sink<Uint8List> get sink => _StreamSinkWrapper(_outgoingDataController, _localCloseCompleter);
-  
+
   @override
   Future<void> get done async {
     await Future.wait([
-      _localCloseCompleter.future.catchError((_){ /* ignore errors for done check */ }), 
-      _remoteCloseCompleter.future.catchError((_){ /* ignore errors for done check */ })
+      _localCloseCompleter.future.catchError((_) {
+        /* ignore errors for done check */
+      }),
+      _remoteCloseCompleter.future.catchError((_) {
+        /* ignore errors for done check */
+      }),
     ]);
   }
 
   @override
-  Future<void> setDeadline(DateTime? time) async { /* no-op in mock */ }
+  Future<void> setDeadline(DateTime? time) async {
+    /* no-op in mock */
+  }
   @override
-  Future<void> setReadDeadline(DateTime time) async { /* no-op in mock */ }
+  Future<void> setReadDeadline(DateTime time) async {
+    /* no-op in mock */
+  }
   @override
-  Future<void> setWriteDeadline(DateTime time) async { /* no-op in mock */ }
+  Future<void> setWriteDeadline(DateTime time) async {
+    /* no-op in mock */
+  }
 
   @override
-  bool get isClosed => _localCloseCompleter.isCompleted && _remoteCloseCompleter.isCompleted;
+  bool get isClosed =>
+      _localCloseCompleter.isCompleted && _remoteCloseCompleter.isCompleted;
 
   @override
   Conn get conn => _mockConn;
@@ -326,14 +370,15 @@ class MockP2PStream implements P2PStream<Uint8List> {
 // Keeping it for now to minimize test changes initially.
 class _StreamSinkWrapper<S> implements Sink<S> {
   final StreamController<S> _controller;
-  final Completer<void> _closeCompleter; 
+  final Completer<void> _closeCompleter;
 
   _StreamSinkWrapper(this._controller, this._closeCompleter);
 
   @override
   void add(S data) {
-    if (_closeCompleter.isCompleted) { // Check if the stream itself is locally closed
-        throw StateError('Cannot add to sink of a closed stream');
+    if (_closeCompleter.isCompleted) {
+      // Check if the stream itself is locally closed
+      throw StateError('Cannot add to sink of a closed stream');
     }
     if (_controller.isClosed) {
       throw StateError('Cannot add to closed sink controller');
@@ -368,7 +413,9 @@ Future<void> readFull(P2PStream stream, Uint8List buffer) async {
   while (offset < buffer.length) {
     final chunk = await stream.read(buffer.length - offset);
     if (chunk.isEmpty) {
-      throw Exception('Stream closed prematurely while reading full buffer (got $offset of ${buffer.length})');
+      throw Exception(
+        'Stream closed prematurely while reading full buffer (got $offset of ${buffer.length})',
+      );
     }
     buffer.setRange(offset, offset + chunk.length, chunk);
     offset += chunk.length;
@@ -378,7 +425,9 @@ Future<void> readFull(P2PStream stream, Uint8List buffer) async {
 Future<void> verifyPipe(P2PStream a, P2PStream b) async {
   final messageSize = 1024;
   final random = Random();
-  final message = Uint8List.fromList(List<int>.generate(messageSize, (_) => random.nextInt(256)));
+  final message = Uint8List.fromList(
+    List<int>.generate(messageSize, (_) => random.nextInt(256)),
+  );
 
   var writeErrorA, writeErrorB;
   var readErrorA, readErrorB;
@@ -395,7 +444,7 @@ Future<void> verifyPipe(P2PStream a, P2PStream b) async {
     }
     completerBWriteDone.complete();
   })();
-  
+
   (() async {
     try {
       await a.write(message);
@@ -405,7 +454,6 @@ Future<void> verifyPipe(P2PStream a, P2PStream b) async {
     completerAWriteDone.complete();
   })();
 
-
   final bufferA = Uint8List(messageSize);
   final bufferB = Uint8List(messageSize);
 
@@ -414,7 +462,7 @@ Future<void> verifyPipe(P2PStream a, P2PStream b) async {
   } catch (e) {
     readErrorA = e;
   }
-  
+
   try {
     await readFull(b, bufferB);
   } catch (e) {
@@ -424,26 +472,43 @@ Future<void> verifyPipe(P2PStream a, P2PStream b) async {
   await completerAWriteDone.future;
   await completerBWriteDone.future;
 
-  if (writeErrorA != null) throw Exception('Failed to write on stream A: $writeErrorA');
-  if (writeErrorB != null) throw Exception('Failed to write on stream B: $writeErrorB');
-  if (readErrorA != null) throw Exception('Failed to read on stream A: $readErrorA');
-  if (readErrorB != null) throw Exception('Failed to read on stream B: $readErrorB');
-  
-  expect(bufferA, equals(message), reason: 'Stream A did not receive correct message');
-  expect(bufferB, equals(message), reason: 'Stream B did not receive correct message');
+  if (writeErrorA != null)
+    throw Exception('Failed to write on stream A: $writeErrorA');
+  if (writeErrorB != null)
+    throw Exception('Failed to write on stream B: $writeErrorB');
+  if (readErrorA != null)
+    throw Exception('Failed to read on stream A: $readErrorA');
+  if (readErrorB != null)
+    throw Exception('Failed to read on stream B: $readErrorB');
+
+  expect(
+    bufferA,
+    equals(message),
+    reason: 'Stream A did not receive correct message',
+  );
+  expect(
+    bufferB,
+    equals(message),
+    reason: 'Stream B did not receive correct message',
+  );
 }
 
 // Helper to write a delimited message (for testing error conditions like too large message)
 // This mimics the internal _writeDelimited but is for test setup.
 Future<void> writeTestDelimited(P2PStream stream, List<int> message) async {
-  final lengthBytes = MultiAddrCodec.encodeVarint(message.length + 1); // +1 for newline
+  final lengthBytes = MultiAddrCodec.encodeVarint(
+    message.length + 1,
+  ); // +1 for newline
   final fullMessage = Uint8List(lengthBytes.length + message.length + 1);
   fullMessage.setRange(0, lengthBytes.length, lengthBytes);
-  fullMessage.setRange(lengthBytes.length, lengthBytes.length + message.length, message);
+  fullMessage.setRange(
+    lengthBytes.length,
+    lengthBytes.length + message.length,
+    message,
+  );
   fullMessage[lengthBytes.length + message.length] = 10; // '\n'
   await stream.write(fullMessage);
 }
-
 
 // --- Test Suite ---
 
@@ -464,8 +529,8 @@ void main() {
 
     tearDown(() async {
       // Ensure streams are closed to prevent issues with pending operations in mock stream controllers
-      await streamA.close().catchError((_){});
-      await streamB.close().catchError((_){});
+      await streamA.close().catchError((_) {});
+      await streamB.close().catchError((_) {});
     });
 
     test('protocol negotiation succeeds', () async {
@@ -478,16 +543,21 @@ void main() {
       (() async {
         try {
           serverNegotiation.complete(await muxerA.negotiate(streamA));
-        } catch (e,s) {
-          serverNegotiation.completeError(e,s);
+        } catch (e, s) {
+          serverNegotiation.completeError(e, s);
         }
       })();
 
-      final clientSelectedProto = await muxerB.selectOneOf(streamB, ['/proto/x', '/proto/a']);
-      
+      final clientSelectedProto = await muxerB.selectOneOf(streamB, [
+        '/proto/x',
+        '/proto/a',
+      ]);
+
       expect(clientSelectedProto, equals('/proto/a'));
-      
-      final (negotiatedProto, _) = await serverNegotiation.future.timeout(Duration(seconds: 2));
+
+      final (negotiatedProto, _) = await serverNegotiation.future.timeout(
+        Duration(seconds: 2),
+      );
       expect(negotiatedProto, equals('/proto/a'));
 
       await verifyPipe(streamA, streamB);
@@ -498,20 +568,26 @@ void main() {
       muxerA.addHandler('/proto/d', (p, s) async {});
 
       final serverNegotiation = Completer<(ProtocolID, HandlerFunc)>();
-       (() async {
+      (() async {
         try {
           serverNegotiation.complete(await muxerA.negotiate(streamA));
-        } catch (e,s) {
-          serverNegotiation.completeError(e,s);
+        } catch (e, s) {
+          serverNegotiation.completeError(e, s);
         }
       })();
 
-      final clientSelectedProto = await muxerB.selectOneOf(streamB, ['/proto/x', '/proto/d', '/proto/c']);
+      final clientSelectedProto = await muxerB.selectOneOf(streamB, [
+        '/proto/x',
+        '/proto/d',
+        '/proto/c',
+      ]);
       expect(clientSelectedProto, equals('/proto/d'));
-      
-      final (negotiatedProto, _) = await serverNegotiation.future.timeout(Duration(seconds: 2));
+
+      final (negotiatedProto, _) = await serverNegotiation.future.timeout(
+        Duration(seconds: 2),
+      );
       expect(negotiatedProto, equals('/proto/d'));
-      
+
       await verifyPipe(streamA, streamB);
     });
 
@@ -522,29 +598,36 @@ void main() {
       final serverNegotiation = Completer<void>();
       (() async {
         try {
-          await muxerA.negotiate(streamA); // Server will negotiate, but client offers nothing it supports
+          await muxerA.negotiate(
+            streamA,
+          ); // Server will negotiate, but client offers nothing it supports
         } catch (e) {
           // Expected to fail if client closes after not finding a protocol
-          if (e is! IncorrectVersionException && !e.toString().contains('Stream closed')) {
-             // serverNegotiation.completeError(e); // Avoid completing if it's a client-side close error
+          if (e is! IncorrectVersionException &&
+              !e.toString().contains('Stream closed')) {
+            // serverNegotiation.completeError(e); // Avoid completing if it's a client-side close error
           }
         } finally {
-            if(!serverNegotiation.isCompleted) serverNegotiation.complete();
+          if (!serverNegotiation.isCompleted) serverNegotiation.complete();
         }
       })();
 
-
-      final clientSelectedProto = await muxerB.selectOneOf(streamB, ['/proto/x', '/proto/y']);
+      final clientSelectedProto = await muxerB.selectOneOf(streamB, [
+        '/proto/x',
+        '/proto/y',
+      ]);
       expect(clientSelectedProto, isNull);
-      
+
       // Wait for server side to finish (it might error out if client closes stream)
-      await serverNegotiation.future.timeout(Duration(seconds: 2)).catchError((_){});
+      await serverNegotiation.future
+          .timeout(Duration(seconds: 2))
+          .catchError((_) {});
     });
-    
+
     test('removeHandler works', () async {
       muxerA.addHandler('/proto/a', (p, s) async {});
       muxerA.addHandler('/proto/b', (p, s) async {});
-      
+
       var protocols = await muxerA.protocols();
       expect(protocols, containsAll(['/proto/a', '/proto/b']));
       expect(protocols.length, 2);
@@ -559,54 +642,78 @@ void main() {
       expect(protocols, equals(['/proto/b']));
     });
 
-    test('negotiate throws IncorrectVersionException for wrong protocol ID', () async {
-      final serverNegotiation = muxerA.negotiate(streamA);
-      
-      // Client sends wrong multistream ID
-      await writeTestDelimited(streamB, utf8.encode('/wrong/version/1.0.0'));
-      
-      await expectLater(serverNegotiation, throwsA(isA<IncorrectVersionException>()));
-    });
+    test(
+      'negotiate throws IncorrectVersionException for wrong protocol ID',
+      () async {
+        final serverNegotiation = muxerA.negotiate(streamA);
 
-    test('selectOneOf throws IncorrectVersionException if server sends wrong protocol ID', () async {
-      final clientSelection = muxerB.selectOneOf(streamA, ['/proto/a']);
+        // Client sends wrong multistream ID
+        await writeTestDelimited(streamB, utf8.encode('/wrong/version/1.0.0'));
 
-      // Server (streamB) sends its multistream ID correctly
-      await writeTestDelimited(streamB, utf8.encode(protocolID));
-      // Then server sends wrong multistream ID as acknowledgment
-      await writeTestDelimited(streamB, utf8.encode('/wrong/version/1.0.0'));
+        await expectLater(
+          serverNegotiation,
+          throwsA(isA<IncorrectVersionException>()),
+        );
+      },
+    );
 
-      await expectLater(clientSelection, throwsA(isA<IncorrectVersionException>()));
-    });
-    
+    test(
+      'selectOneOf throws IncorrectVersionException if server sends wrong protocol ID',
+      () async {
+        final clientSelection = muxerB.selectOneOf(streamA, ['/proto/a']);
+
+        // Server (streamB) sends its multistream ID correctly
+        await writeTestDelimited(streamB, utf8.encode(protocolID));
+        // Then server sends wrong multistream ID as acknowledgment
+        await writeTestDelimited(streamB, utf8.encode('/wrong/version/1.0.0'));
+
+        await expectLater(
+          clientSelection,
+          throwsA(isA<IncorrectVersionException>()),
+        );
+      },
+    );
+
     // Max message size in dart-libp2p's multistream.dart is 1024 for the protocol name part.
     // Go's default is 64k. We test against Dart's limit.
-    test('negotiate throws MessageTooLargeException for oversized protocol name', () async {
-      final serverNegotiation = muxerA.negotiate(streamA);
-      
-      // Client sends correct multistream ID
-      await writeTestDelimited(streamB, utf8.encode(protocolID));
-      // Then client sends an oversized protocol name
-      final oversizedProto = '/${'a' * 2048}'; // Well over 1024
-      await writeTestDelimited(streamB, utf8.encode(oversizedProto));
-      
-      // The server's _readDelimited should throw.
-      // This error might be wrapped or cause a generic stream error if not caught cleanly by negotiate.
-      // Let's expect MessageTooLargeException directly if _readDelimited is robust.
-      await expectLater(serverNegotiation, throwsA(isA<MessageTooLargeException>()));
-    });
+    test(
+      'negotiate throws MessageTooLargeException for oversized protocol name',
+      () async {
+        final serverNegotiation = muxerA.negotiate(streamA);
 
-    test('selectOneOf handles MessageTooLargeException from server response', () async {
-      final clientSelection = muxerB.selectOneOf(streamA, ['/proto/a']);
+        // Client sends correct multistream ID
+        await writeTestDelimited(streamB, utf8.encode(protocolID));
+        // Then client sends an oversized protocol name
+        final oversizedProto = '/${'a' * 2048}'; // Well over 1024
+        await writeTestDelimited(streamB, utf8.encode(oversizedProto));
 
-      // Server (streamB) sends its multistream ID correctly
-      await writeTestDelimited(streamB, utf8.encode(protocolID));
-      // Then server sends an oversized protocol name as its response (e.g. echoing client's offer)
-      final oversizedProto = '/${'a' * 2048}';
-      await writeTestDelimited(streamB, utf8.encode(oversizedProto));
-      
-      await expectLater(clientSelection, throwsA(isA<MessageTooLargeException>()));
-    });
+        // The server's _readDelimited should throw.
+        // This error might be wrapped or cause a generic stream error if not caught cleanly by negotiate.
+        // Let's expect MessageTooLargeException directly if _readDelimited is robust.
+        await expectLater(
+          serverNegotiation,
+          throwsA(isA<MessageTooLargeException>()),
+        );
+      },
+    );
+
+    test(
+      'selectOneOf handles MessageTooLargeException from server response',
+      () async {
+        final clientSelection = muxerB.selectOneOf(streamA, ['/proto/a']);
+
+        // Server (streamB) sends its multistream ID correctly
+        await writeTestDelimited(streamB, utf8.encode(protocolID));
+        // Then server sends an oversized protocol name as its response (e.g. echoing client's offer)
+        final oversizedProto = '/${'a' * 2048}';
+        await writeTestDelimited(streamB, utf8.encode(oversizedProto));
+
+        await expectLater(
+          clientSelection,
+          throwsA(isA<MessageTooLargeException>()),
+        );
+      },
+    );
 
     test('handle function selects protocol and calls handler', () async {
       bool handlerCalled = false;
@@ -626,28 +733,40 @@ void main() {
       // Client side
       final selected = await muxerB.selectOneOf(streamB, ['/proto/test']);
       expect(selected, equals('/proto/test'));
-      
+
       final testMessage = utf8.encode('hello');
       await streamB.write(testMessage);
-      
+
       final response = Uint8List(testMessage.length);
       await readFull(streamB, response);
       expect(utf8.decode(response), equals('hello'));
 
       // Ensure server handler completes or times out.
       // The timeout will throw if it occurs, failing the test as expected.
-      await serverHandling.timeout(const Duration(seconds: 2)); 
+      await serverHandling.timeout(const Duration(seconds: 2));
       expect(handlerCalled, isTrue);
       expect(handledProto, equals('/proto/test'));
     });
-    
+
     test('addHandler overrides existing handler for the same protocol name', () async {
       var callCount1 = 0;
       var callCount2 = 0;
 
       // Use addHandlerWithFunc and await it to ensure completion
-      await muxerA.addHandlerWithFunc('/proto/override', (protocolId) => protocolId == '/proto/override', (p, s) async { callCount1++; });
-      await muxerA.addHandlerWithFunc('/proto/override', (protocolId) => protocolId == '/proto/override', (p, s) async { callCount2++; });
+      await muxerA.addHandlerWithFunc(
+        '/proto/override',
+        (protocolId) => protocolId == '/proto/override',
+        (p, s) async {
+          callCount1++;
+        },
+      );
+      await muxerA.addHandlerWithFunc(
+        '/proto/override',
+        (protocolId) => protocolId == '/proto/override',
+        (p, s) async {
+          callCount2++;
+        },
+      );
 
       // muxerA.addHandler('/proto/override', (p, s) async { callCount1++; });
       // muxerA.addHandler('/proto/override', (p, s) async { callCount2++; }); // This should replace the first
@@ -658,7 +777,9 @@ void main() {
       (() async {
         try {
           // Call negotiate and get the protocol and handler function
-          final (negotiatedProto, handlerFunc) = await muxerA.negotiate(streamA);
+          final (negotiatedProto, handlerFunc) = await muxerA.negotiate(
+            streamA,
+          );
 
           // IMPORTANT: Now, execute the returned handler function
           // This is what will increment callCount2 if the correct handler is selected.
@@ -668,17 +789,15 @@ void main() {
           // The test might still pass if errors are expected due to client closing stream,
           // but the handler call is crucial.
         } finally {
-          if(!serverNegotiation.isCompleted) serverNegotiation.complete();
+          if (!serverNegotiation.isCompleted) serverNegotiation.complete();
         }
       })();
 
-
       await muxerB.selectOneOf(streamB, ['/proto/override']);
-      await serverNegotiation.future.timeout(Duration(seconds:1));
+      await serverNegotiation.future.timeout(Duration(seconds: 1));
 
       expect(callCount1, 0, reason: "Old handler should not be called");
       expect(callCount2, 1, reason: "New handler should be called");
     });
-
   });
 }

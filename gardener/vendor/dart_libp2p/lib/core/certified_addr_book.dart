@@ -15,8 +15,6 @@ import 'dart:async';
 import 'package:dart_libp2p/core/peer/peer_id.dart';
 import 'package:dart_libp2p/core/record/envelope.dart';
 
-
-
 /// CertifiedAddrBook manages signed peer records and "self-certified" addresses
 /// contained within them.
 abstract class CertifiedAddrBook {

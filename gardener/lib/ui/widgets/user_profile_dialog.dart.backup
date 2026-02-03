@@ -1,0 +1,211 @@
+import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:gardener/core/haptic_manager.dart';
+import 'package:gardener/core/services/auth_service.dart';
+import 'package:gardener/ui/theme/aetheric_theme.dart';
+import 'package:gardener/ui/widgets/aetheric_glass.dart';
+import 'package:gardener/ui/screens/home_screen.dart';
+
+class UserProfileDialog extends StatefulWidget {
+  const UserProfileDialog({super.key});
+
+  @override
+  State<UserProfileDialog> createState() => _UserProfileDialogState();
+}
+
+class _UserProfileDialogState extends State<UserProfileDialog> {
+  String _userId = 'Loading...';
+  String? _email;
+  bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadProfile();
+  }
+
+  Future<void> _loadProfile() async {
+    final prefs = await SharedPreferences.getInstance();
+    if (mounted) {
+      setState(() {
+        _userId = prefs.getString('user_id') ?? 'Unknown User';
+        _email = prefs.getString('user_email');
+      });
+    }
+  }
+
+  Future<void> _handleLogout() async {
+    await HapticManager.heavy();
+    setState(() => _isLoading = true);
+
+    // Call service to cleanup
+    await AuthService().logout();
+
+    if (mounted) {
+      // Navigate to Root/Home which will show AuthScreen
+      await Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (_) => const HomeScreen()),
+        (route) => false,
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      elevation: 0,
+      insetPadding: const EdgeInsets.all(24),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 400),
+        child: AethericGlass(
+          borderRadius: 24,
+          baseColor: const Color(0xFF0F172A).withValues(alpha: 0.8),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Header / Avatar
+              const SizedBox(height: 24),
+              Container(
+                width: 80,
+                height: 80,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: LinearGradient(
+                    colors: [AethericTheme.aetherBlue, Colors.purpleAccent],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AethericTheme.aetherBlue.withValues(alpha: 0.4),
+                      blurRadius: 20,
+                      spreadRadius: 2,
+                    ),
+                  ],
+                ),
+                child: Center(
+                  child: Text(
+                    _email?.isNotEmpty == true
+                        ? _email![0].toUpperCase()
+                        : _userId.isNotEmpty
+                        ? _userId[0].toUpperCase()
+                        : '?',
+                    style: GoogleFonts.outfit(
+                      fontSize: 32,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
+
+              // User Info
+              Text(
+                'ACTIVE NODE',
+                style: GoogleFonts.outfit(
+                  color: Colors.white38,
+                  fontSize: 10,
+                  letterSpacing: 2,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 8),
+              if (_email != null) ...[
+                Text(
+                  _email!,
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.outfit(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 4),
+              ],
+              Text(
+                _userId,
+                textAlign: TextAlign.center,
+                style: GoogleFonts.firaCode(
+                  color: Colors.white60,
+                  fontSize: 10,
+                ),
+              ),
+
+              const SizedBox(height: 32),
+
+              // Actions
+              _buildActionButton(
+                icon: Icons.settings_backup_restore_rounded,
+                label: 'NODE SETTINGS',
+                onTap: () {
+                  // TODO: Connect to settings if desired, or close
+                  Navigator.pop(context); // Close for now, dashboard has button
+                },
+                isPrimary: false,
+              ),
+              const SizedBox(height: 12),
+              _buildActionButton(
+                icon: Icons.power_settings_new_rounded,
+                label: _isLoading ? 'DISCONNECTING...' : 'DISCONNECT NODE',
+                onTap: _isLoading ? null : _handleLogout,
+                isPrimary: true,
+                isDestructive: true,
+              ),
+              const SizedBox(height: 16),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildActionButton({
+    required IconData icon,
+    required String label,
+    required VoidCallback? onTap,
+    bool isPrimary = false,
+    bool isDestructive = false,
+  }) {
+    final color = isDestructive ? Colors.redAccent : Colors.white;
+    return SizedBox(
+      width: double.infinity,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(12),
+          child: Container(
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            decoration: BoxDecoration(
+              border: Border.all(
+                color: color.withValues(alpha: isPrimary ? 0.3 : 0.1),
+              ),
+              borderRadius: BorderRadius.circular(12),
+              color: isPrimary
+                  ? color.withValues(alpha: 0.1)
+                  : Colors.transparent,
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(icon, color: color, size: 20),
+                const SizedBox(width: 12),
+                Text(
+                  label,
+                  style: GoogleFonts.outfit(
+                    color: color,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 1.2,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}

@@ -1,10 +1,12 @@
 import 'dart:async';
+import 'package:logging/logging.dart';
 import 'package:router/scraper_service.dart';
 
 /// Periodically prefetches metadata/streams for popular content to warm the cache.
 class PrefetchService {
   final ScraperService _scraper;
   Timer? _timer;
+  final Logger _logger = Logger('PrefetchService');
 
   // Popular content to keep warm (could be dynamic/config driven)
   static const _movies = [
@@ -23,7 +25,7 @@ class PrefetchService {
 
   /// Starts the background cache warming process.
   void start() {
-    print('PrefetchService: Starting background warmer...');
+    _logger.info('PrefetchService: Starting background warmer...');
     // Initial warm
     _warm();
     // Schedule periodic (every 6 hours)
@@ -36,7 +38,7 @@ class PrefetchService {
   }
 
   Future<void> _warm() async {
-    print('PrefetchService: Warming cache...');
+    _logger.fine('PrefetchService: Warming cache...');
 
     // Process sequentially to check load
     for (final id in _movies) {
@@ -45,7 +47,7 @@ class PrefetchService {
     for (final id in _series) {
       await _fetch('series', id);
     }
-    print('PrefetchService: Warm complete.');
+    _logger.fine('PrefetchService: Warm complete.');
   }
 
   Future<void> _fetch(String type, String id) async {
@@ -63,7 +65,7 @@ class PrefetchService {
 
       await _scraper.getStreams(type, id, {});
     } catch (e) {
-      print('PrefetchService: Failed to warm $type:$id - $e');
+      _logger.warning('PrefetchService: Failed to warm $type:$id - $e');
     }
   }
 }

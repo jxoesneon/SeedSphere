@@ -33,12 +33,8 @@ class HolePunchOptions {
   final AddrFilter? filter;
 
   /// Creates new holepunch options
-  const HolePunchOptions({
-    this.tracer,
-    this.filter,
-  });
+  const HolePunchOptions({this.tracer, this.filter});
 }
-
 
 /// Result of an incoming hole punch
 class IncomingHolePunchResult {
@@ -85,12 +81,13 @@ class HolePunchServiceImpl implements HolePunchService {
   /// Creates a new holepunch service
   ///
   /// listenAddrs MUST only return public addresses.
-  HolePunchServiceImpl(this._host, this._ids, this._listenAddrs, {
+  HolePunchServiceImpl(
+    this._host,
+    this._ids,
+    this._listenAddrs, {
     HolePunchOptions? options,
-  }) : 
-    _tracer = options?.tracer,
-    _filter = options?.filter {
-
+  }) : _tracer = options?.tracer,
+       _filter = options?.filter {
     _incrementRefCount();
     _waitForPublicAddr();
   }
@@ -126,32 +123,37 @@ class HolePunchServiceImpl implements HolePunchService {
     while (true) {
       // Check for cancellation BEFORE calling _listenAddrs() in a new iteration
       if (_ctxCancel.isCompleted) {
-        _log.fine('HolePunchService._waitForPublicAddr: Context cancelled at loop start, exiting.');
+        _log.fine(
+          'HolePunchService._waitForPublicAddr: Context cancelled at loop start, exiting.',
+        );
         await _decrementRefCount(); // Ensure ref count is decremented on this path
         return;
       }
 
       if (_listenAddrs().isNotEmpty) {
-        _log.fine('Host now has a public address. Starting holepunch protocol.');
+        _log.fine(
+          'Host now has a public address. Starting holepunch protocol.',
+        );
         _host.setStreamHandler(protocolId, _handleNewStream);
         break;
       }
 
       try {
-        await Future.any([
-          Future.delayed(duration),
-          _ctxCancel.future,
-        ]);
+        await Future.any([Future.delayed(duration), _ctxCancel.future]);
       } catch (_) {
         // Context cancelled (e.g., if _ctxCancel.future completed with an error)
-        _log.fine('HolePunchService._waitForPublicAddr: Context cancelled via Future.any catch, exiting.');
+        _log.fine(
+          'HolePunchService._waitForPublicAddr: Context cancelled via Future.any catch, exiting.',
+        );
         await _decrementRefCount();
         return;
       }
 
       // Explicit check for cancellation after Future.any completes normally
       if (_ctxCancel.isCompleted) {
-        _log.fine('HolePunchService._waitForPublicAddr: Context cancelled after delay/event, exiting loop.');
+        _log.fine(
+          'HolePunchService._waitForPublicAddr: Context cancelled after delay/event, exiting loop.',
+        );
         await _decrementRefCount(); // Ensure ref count is decremented on this path
         return;
       }
@@ -167,7 +169,13 @@ class HolePunchServiceImpl implements HolePunchService {
         // Service is closed
         return;
       }
-      _holePuncher = HolePuncher(_host, _ids, _listenAddrs, tracer: _tracer, filter: _filter);
+      _holePuncher = HolePuncher(
+        _host,
+        _ids,
+        _listenAddrs,
+        tracer: _tracer,
+        filter: _filter,
+      );
     });
 
     _hasPublicAddrsChan.complete();
@@ -197,12 +205,13 @@ class HolePunchServiceImpl implements HolePunchService {
     return _ctx.future;
   }
 
-
   /// Handles an incoming hole punch
   Future<IncomingHolePunchResult> _incomingHolePunch(P2PStream str) async {
     // Sanity check: a hole punch request should only come from peers behind a relay
     if (!isRelayAddress(str.conn.remoteMultiaddr)) {
-      throw Exception('Received hole punch stream: ${str.conn.remoteMultiaddr}');
+      throw Exception(
+        'Received hole punch stream: ${str.conn.remoteMultiaddr}',
+      );
     }
 
     var ownAddrs = _listenAddrs();
@@ -212,7 +221,9 @@ class HolePunchServiceImpl implements HolePunchService {
 
     // If we can't tell the peer where to dial us, there's no point in starting the hole punching.
     if (ownAddrs.isEmpty) {
-      throw Exception('Rejecting hole punch request, as we don\'t have any public addresses');
+      throw Exception(
+        'Rejecting hole punch request, as we don\'t have any public addresses',
+      );
     }
 
     await str.scope().reserveMemory(maxMsgSize, ReservationPriority.always);
@@ -223,7 +234,9 @@ class HolePunchServiceImpl implements HolePunchService {
       final msgBytes = await str.read();
       final msg = HolePunch.fromBuffer(msgBytes);
       if (msg.type != HolePunch_Type.CONNECT) {
-        throw Exception('Expected CONNECT message from initiator but got ${msg.type}');
+        throw Exception(
+          'Expected CONNECT message from initiator but got ${msg.type}',
+        );
       }
 
       var obsDial = removeRelayAddrs(addrsFromBytes(msg.obsAddrs));
@@ -231,9 +244,13 @@ class HolePunchServiceImpl implements HolePunchService {
         obsDial = _filter.filterRemote(str.conn.remotePeer, obsDial);
       }
 
-      _log.fine('Received hole punch request from ${str.conn.remotePeer} with addresses: $obsDial');
+      _log.fine(
+        'Received hole punch request from ${str.conn.remotePeer} with addresses: $obsDial',
+      );
       if (obsDial.isEmpty) {
-        throw Exception('Expected CONNECT message to contain at least one address');
+        throw Exception(
+          'Expected CONNECT message to contain at least one address',
+        );
       }
 
       // Write CONNECT message
@@ -249,7 +266,9 @@ class HolePunchServiceImpl implements HolePunchService {
       final syncMsgBytes = await str.read();
       final syncMsg = HolePunch.fromBuffer(syncMsgBytes);
       if (syncMsg.type != HolePunch_Type.SYNC) {
-        throw Exception('Expected SYNC message from initiator but got ${syncMsg.type}');
+        throw Exception(
+          'Expected SYNC message from initiator but got ${syncMsg.type}',
+        );
       }
 
       return IncomingHolePunchResult(
@@ -307,13 +326,18 @@ class HolePunchServiceImpl implements HolePunchService {
       await _holePunchConnect(pi, false);
       final dt = DateTime.now().difference(start);
       _tracer?.endHolePunch(rp, dt, null);
-      _tracer?.holePunchFinished('receiver', 1, result.remoteAddrs, result.ownAddrs, getDirectConnection(_host, rp));
+      _tracer?.holePunchFinished(
+        'receiver',
+        1,
+        result.remoteAddrs,
+        result.ownAddrs,
+        getDirectConnection(_host, rp),
+      );
     } catch (err) {
       final dt = DateTime.now().difference(start);
       _tracer?.endHolePunch(rp, dt, err);
     }
   }
-
 
   /// Performs a hole punch connection
   Future<void> _holePunchConnect(PeerInfo pi, bool isClient) async {
@@ -330,7 +354,8 @@ class HolePunchServiceImpl implements HolePunchService {
       final addrInfo = AddrInfo(pi.peerId, pi.addrs.toList());
       await _host.connect(
         addrInfo,
-        context: holePunchCtx.withValue('forceDirectDial', true)
+        context: holePunchCtx
+            .withValue('forceDirectDial', true)
             .withValue('forceDirectDialReason', 'hole-punching'),
       );
       _log.fine('Hole punch successful for peer ${pi.peerId}');
@@ -344,7 +369,9 @@ class HolePunchServiceImpl implements HolePunchService {
   Future<void> directConnect(PeerId peerId) async {
     await _hasPublicAddrsChan.future;
 
-    final holePuncher = await _holePuncherMutex.synchronized(() => _holePuncher);
+    final holePuncher = await _holePuncherMutex.synchronized(
+      () => _holePuncher,
+    );
     if (holePuncher == null) {
       throw Exception('Holepunch service not initialized');
     }

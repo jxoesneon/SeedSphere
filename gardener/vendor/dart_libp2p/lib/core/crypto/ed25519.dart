@@ -43,10 +43,7 @@ class Ed25519PublicKey implements PublicKey {
 
   @override
   Uint8List marshal() {
-    final pbKey = pb.PublicKey(
-      type: type,
-      data: raw,
-    );
+    final pbKey = pb.PublicKey(type: type, data: raw);
     return pbKey.writeToBuffer();
   }
 
@@ -85,7 +82,10 @@ class Ed25519PrivateKey implements PrivateKey {
   Ed25519PrivateKey._(this._keyPair, this._publicKey, [this._privateKeyBytes]);
 
   /// Factory constructor that initializes the public key
-  static Future<Ed25519PrivateKey> create(crypto.SimpleKeyPair keyPair, [Uint8List? privateKeyBytes]) async {
+  static Future<Ed25519PrivateKey> create(
+    crypto.SimpleKeyPair keyPair, [
+    Uint8List? privateKeyBytes,
+  ]) async {
     final algorithm = crypto.Ed25519();
     final publicKeyObj = await keyPair.extractPublicKey();
     final publicKey = Ed25519PublicKey(publicKeyObj);
@@ -93,7 +93,11 @@ class Ed25519PrivateKey implements PrivateKey {
   }
 
   /// Creates an Ed25519PrivateKey with a public key
-  Ed25519PrivateKey.withPublicKey(this._keyPair, this._publicKey, [this._privateKeyBytes]);
+  Ed25519PrivateKey.withPublicKey(
+    this._keyPair,
+    this._publicKey, [
+    this._privateKeyBytes,
+  ]);
 
   /// Creates an Ed25519PrivateKey from raw bytes
   static Future<Ed25519PrivateKey> fromRawBytes(Uint8List bytes) async {
@@ -114,7 +118,10 @@ class Ed25519PrivateKey implements PrivateKey {
 
       // Create the public key from the bytes in the marshaled data
       final publicKey = Ed25519PublicKey(
-        crypto.SimplePublicKey(publicKeyBytes, type: crypto.KeyPairType.ed25519)
+        crypto.SimplePublicKey(
+          publicKeyBytes,
+          type: crypto.KeyPairType.ed25519,
+        ),
       );
 
       return Ed25519PrivateKey.withPublicKey(keyPair, publicKey);
@@ -124,26 +131,26 @@ class Ed25519PrivateKey implements PrivateKey {
       final publicKeyObj = await keyPair.extractPublicKey();
 
       return Ed25519PrivateKey.withPublicKey(
-        keyPair, 
+        keyPair,
         Ed25519PublicKey(publicKeyObj),
-        bytes
+        bytes,
       );
     }
   }
 
   /// Creates an Ed25519PrivateKey from its protobuf bytes
   static Future<PrivateKey> unmarshal(Uint8List bytes) async {
-
     final pbKey = pb.PrivateKey.fromBuffer(bytes);
 
     if (pbKey.type != pb.KeyType.Ed25519) {
       throw FormatException('Not an Ed25519 private key');
     }
 
-    final kp = await generateEd25519KeyPairFromSeed(Uint8List.fromList(pbKey.data));
+    final kp = await generateEd25519KeyPairFromSeed(
+      Uint8List.fromList(pbKey.data),
+    );
 
     return await Ed25519PrivateKey.create(kp as crypto.SimpleKeyPair);
-
   }
 
   /// Initialize the public key
@@ -183,7 +190,7 @@ class Ed25519PrivateKey implements PrivateKey {
     // This is a limitation of the cryptography package
     throw UnimplementedError(
       'Cannot get raw bytes of private key. The cryptography package does not '
-      'provide access to the private key bytes after key generation.'
+      'provide access to the private key bytes after key generation.',
     );
   }
 
@@ -196,29 +203,28 @@ class Ed25519PrivateKey implements PrivateKey {
     // Leave the first 32 bytes as zeros (dummy private key)
     combined.setRange(32, combined.length, publicKeyBytes);
 
-    final pbKey = pb.PrivateKey(
-      type: type,
-      data: combined,
-    );
+    final pbKey = pb.PrivateKey(type: type, data: combined);
 
     return pbKey.writeToBuffer();
   }
 
   @override
   Future<Uint8List> sign(Uint8List data) async {
-
-    final wand = await crypto.Ed25519().newSignatureWandFromKeyPair(this._keyPair);
+    final wand = await crypto.Ed25519().newSignatureWandFromKeyPair(
+      this._keyPair,
+    );
 
     final sig = await wand.sign(data);
 
     return Uint8List.fromList(sig.bytes);
-
   }
 
   @override
   PublicKey get publicKey {
     if (!_publicKeyInitialized()) {
-      throw StateError('Public key not initialized. Call _initPublicKey() first.');
+      throw StateError(
+        'Public key not initialized. Call _initPublicKey() first.',
+      );
     }
     return _publicKey;
   }
@@ -274,7 +280,7 @@ bool _bytesEqual(List<int> a, List<int> b) {
   return true;
 }
 
-Future<KeyPair> generateEd25519KeyPairFromSeed(Uint8List privateKeySeed) async{
+Future<KeyPair> generateEd25519KeyPairFromSeed(Uint8List privateKeySeed) async {
   return Ed25519PrivateKey.generateKeyPairFromSeed(privateKeySeed);
 }
 

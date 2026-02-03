@@ -12,10 +12,7 @@ class DisconnectReason {
   /// A human-readable message explaining the reason for disConn
   final String message;
 
-  const DisconnectReason({
-    required this.code,
-    required this.message,
-  });
+  const DisconnectReason({required this.code, required this.message});
 }
 
 /// ConnGater can be implemented by a type that supports active

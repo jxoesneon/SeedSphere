@@ -18,15 +18,11 @@ class UpgradeProtocol {
   /// The priority of this protocol (higher numbers = higher priority)
   final int priority;
 
-  const UpgradeProtocol({
-    required this.id,
-    this.priority = 0,
-  });
+  const UpgradeProtocol({required this.id, this.priority = 0});
 
   @override
   String toString() => id;
 }
-
 
 /// Handles the full upgrade of connections to a secure and multiplexed state.
 abstract class Upgrader {

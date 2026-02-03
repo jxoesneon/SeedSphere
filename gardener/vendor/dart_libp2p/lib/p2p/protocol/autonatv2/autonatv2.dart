@@ -30,11 +30,11 @@ class AutoNATv2Impl implements AutoNATv2 {
   /// [host] and [dialerHost] should have the same dialing capabilities. In case the host doesn't support
   /// a transport, dial back requests for address for that transport will be ignored.
   AutoNATv2Impl(Host host, Host dialerHost, {List<AutoNATv2Option>? options})
-      : host = host,
-        allowPrivateAddrs = _applyOptions(options).allowPrivateAddrs,
-        server = AutoNATv2ServerImpl(host, dialerHost, _applyOptions(options)),
-        client = AutoNATv2ClientImpl(host),
-        _subscription = _subscribeToEvents(host);
+    : host = host,
+      allowPrivateAddrs = _applyOptions(options).allowPrivateAddrs,
+      server = AutoNATv2ServerImpl(host, dialerHost, _applyOptions(options)),
+      client = AutoNATv2ClientImpl(host),
+      _subscription = _subscribeToEvents(host);
 
   /// Apply options to the default settings
   static AutoNATv2Settings _applyOptions(List<AutoNATv2Option>? options) {
@@ -92,7 +92,9 @@ class AutoNATv2Impl implements AutoNATv2 {
     if (!allowPrivateAddrs) {
       for (final request in requests) {
         if (!request.addr.isPublic()) {
-          throw Exception('Private address cannot be verified by autonatv2: ${request.addr}');
+          throw Exception(
+            'Private address cannot be verified by autonatv2: ${request.addr}',
+          );
         }
       }
     }
@@ -120,7 +122,8 @@ class AutoNATv2Impl implements AutoNATv2 {
     final protocols = await host.peerStore.protoBook.getProtocols(peerId);
     final connectedness = host.network.connectedness(peerId);
 
-    if (protocols.contains(AutoNATv2Protocols.dialProtocol) && connectedness == Connectedness.connected) {
+    if (protocols.contains(AutoNATv2Protocols.dialProtocol) &&
+        connectedness == Connectedness.connected) {
       _peers.put(peerId);
     } else {
       _peers.delete(peerId);

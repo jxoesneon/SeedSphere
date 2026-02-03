@@ -41,7 +41,9 @@ void main() {
 
   setUpAll(() {
     // Create the PeerId once before all tests
-    peerIdFuture = PeerId.fromString('QmYyQSo1c1Ym7orWxLYvCrM2EmxFTANf8wXmmE7DWjhx5N');
+    peerIdFuture = PeerId.fromString(
+      'QmYyQSo1c1Ym7orWxLYvCrM2EmxFTANf8wXmmE7DWjhx5N',
+    );
   });
 
   group('MdnsDiscovery', () {

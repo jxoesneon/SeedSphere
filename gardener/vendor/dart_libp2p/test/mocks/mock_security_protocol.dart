@@ -23,24 +23,28 @@ class MockSecuredConnection extends SecuredConnection {
     PublicKey? establishedRemotePublicKey,
     String securityProtocolId,
   ) : super(
-          _underlying,
-          _DummySecretKey(), // dummy encryption key
-          _DummySecretKey(), // dummy decryption key
-          establishedRemotePeer: establishedRemotePeer,
-          establishedRemotePublicKey: establishedRemotePublicKey,
-          securityProtocolId: securityProtocolId,
-        );
+        _underlying,
+        _DummySecretKey(), // dummy encryption key
+        _DummySecretKey(), // dummy decryption key
+        establishedRemotePeer: establishedRemotePeer,
+        establishedRemotePublicKey: establishedRemotePublicKey,
+        securityProtocolId: securityProtocolId,
+      );
 
   // Override read/write to pass through without encryption for testing
   @override
   Future<Uint8List> read([int? length]) async {
-    _logger.fine('MockSecuredConnection.read: pass-through to underlying connection');
+    _logger.fine(
+      'MockSecuredConnection.read: pass-through to underlying connection',
+    );
     return await _underlying.read(length);
   }
 
   @override
   Future<void> write(Uint8List data) async {
-    _logger.fine('MockSecuredConnection.write: pass-through to underlying connection');
+    _logger.fine(
+      'MockSecuredConnection.write: pass-through to underlying connection',
+    );
     await _underlying.write(data);
   }
 }
@@ -72,41 +76,41 @@ class _DummySecretKey implements SecretKey {
 /// Mock security protocol for testing
 class MockSecurityProtocol implements SecurityProtocol {
   final Logger _logger = Logger('MockSecurityProtocol');
-  
+
   @override
   String get protocolId => '/noise';
 
   @override
   Future<SecuredConnection> secureInbound(TransportConn conn) async {
-    _logger.fine('MockSecurityProtocol: Securing inbound connection ${conn.id}');
-    
-    if (conn is EnhancedMockTransportConn || conn is StreamlinedMockTransportConn) {
+    _logger.fine(
+      'MockSecurityProtocol: Securing inbound connection ${conn.id}',
+    );
+
+    if (conn is EnhancedMockTransportConn ||
+        conn is StreamlinedMockTransportConn) {
       // Return a mock secured connection that doesn't encrypt for testing
-      return MockSecuredConnection(
-        conn,
-        conn.remotePeer,
-        null,
-        protocolId,
-      );
+      return MockSecuredConnection(conn, conn.remotePeer, null, protocolId);
     }
-    
-    throw Exception('MockSecurityProtocol can only secure EnhancedMockTransportConn or StreamlinedMockTransportConn');
+
+    throw Exception(
+      'MockSecurityProtocol can only secure EnhancedMockTransportConn or StreamlinedMockTransportConn',
+    );
   }
 
   @override
   Future<SecuredConnection> secureOutbound(TransportConn conn) async {
-    _logger.fine('MockSecurityProtocol: Securing outbound connection ${conn.id}');
-    
-    if (conn is EnhancedMockTransportConn || conn is StreamlinedMockTransportConn) {
+    _logger.fine(
+      'MockSecurityProtocol: Securing outbound connection ${conn.id}',
+    );
+
+    if (conn is EnhancedMockTransportConn ||
+        conn is StreamlinedMockTransportConn) {
       // Return a mock secured connection that doesn't encrypt for testing
-      return MockSecuredConnection(
-        conn,
-        conn.remotePeer,
-        null,
-        protocolId,
-      );
+      return MockSecuredConnection(conn, conn.remotePeer, null, protocolId);
     }
-    
-    throw Exception('MockSecurityProtocol can only secure EnhancedMockTransportConn or StreamlinedMockTransportConn');
+
+    throw Exception(
+      'MockSecurityProtocol can only secure EnhancedMockTransportConn or StreamlinedMockTransportConn',
+    );
   }
 }

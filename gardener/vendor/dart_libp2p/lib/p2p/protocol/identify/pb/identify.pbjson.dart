@@ -23,7 +23,13 @@ const Identify$json = {
     {'1': 'listenAddrs', '3': 2, '4': 3, '5': 12, '10': 'listenAddrs'},
     {'1': 'observedAddr', '3': 4, '4': 1, '5': 12, '10': 'observedAddr'},
     {'1': 'protocols', '3': 3, '4': 3, '5': 9, '10': 'protocols'},
-    {'1': 'signedPeerRecord', '3': 8, '4': 1, '5': 12, '10': 'signedPeerRecord'},
+    {
+      '1': 'signedPeerRecord',
+      '3': 8,
+      '4': 1,
+      '5': 12,
+      '10': 'signedPeerRecord'
+    },
   ],
 };
 
@@ -34,4 +40,3 @@ final $typed_data.Uint8List identifyDescriptor = $convert.base64Decode(
     'YmxpY0tleRIgCgtsaXN0ZW5BZGRycxgCIAMoDFILbGlzdGVuQWRkcnMSIgoMb2JzZXJ2ZWRBZG'
     'RyGAQgASgMUgxvYnNlcnZlZEFkZHISHAoJcHJvdG9jb2xzGAMgAygJUglwcm90b2NvbHMSKgoQ'
     'c2lnbmVkUGVlclJlY29yZBgIIAEoDFIQc2lnbmVkUGVlclJlY29yZA==');
-

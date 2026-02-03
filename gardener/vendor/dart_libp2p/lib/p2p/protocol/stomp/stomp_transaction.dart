@@ -9,7 +9,7 @@ class StompTransaction {
   final String id;
   final DateTime startTime;
   final List<StompFrame> _frames = [];
-  
+
   bool _isCommitted = false;
   bool _isAborted = false;
 
@@ -30,12 +30,18 @@ class StompTransaction {
   /// Adds a frame to this transaction
   void addFrame(StompFrame frame) {
     if (!isActive) {
-      throw StompTransactionException('Cannot add frame to inactive transaction', id);
+      throw StompTransactionException(
+        'Cannot add frame to inactive transaction',
+        id,
+      );
     }
 
     // Validate that the frame can be part of a transaction
     if (!_canBeTransactional(frame)) {
-      throw StompTransactionException('Frame ${frame.command} cannot be part of a transaction', id);
+      throw StompTransactionException(
+        'Frame ${frame.command} cannot be part of a transaction',
+        id,
+      );
     }
 
     _frames.add(frame.copy());
@@ -88,9 +94,12 @@ class StompTransaction {
 /// Manager for STOMP transactions
 class StompTransactionManager {
   final Map<String, StompTransaction> _transactions = {};
-  final StreamController<StompTransaction> _beginController = StreamController<StompTransaction>.broadcast();
-  final StreamController<StompTransaction> _commitController = StreamController<StompTransaction>.broadcast();
-  final StreamController<StompTransaction> _abortController = StreamController<StompTransaction>.broadcast();
+  final StreamController<StompTransaction> _beginController =
+      StreamController<StompTransaction>.broadcast();
+  final StreamController<StompTransaction> _commitController =
+      StreamController<StompTransaction>.broadcast();
+  final StreamController<StompTransaction> _abortController =
+      StreamController<StompTransaction>.broadcast();
 
   /// Stream of transaction begin events
   Stream<StompTransaction> get onBegin => _beginController.stream;
@@ -102,7 +111,7 @@ class StompTransactionManager {
   Stream<StompTransaction> get onAbort => _abortController.stream;
 
   /// Gets all active transactions
-  List<StompTransaction> get activeTransactions => 
+  List<StompTransaction> get activeTransactions =>
       _transactions.values.where((t) => t.isActive).toList();
 
   /// Gets a transaction by ID
@@ -117,7 +126,10 @@ class StompTransactionManager {
     }
 
     if (_transactions.length >= StompConstants.maxTransactions) {
-      throw StompTransactionException('Maximum number of transactions reached', id);
+      throw StompTransactionException(
+        'Maximum number of transactions reached',
+        id,
+      );
     }
 
     final transaction = StompTransaction(id: id);
@@ -259,7 +271,9 @@ class StompTransactionStats {
     }
 
     final averageDuration = transactions.isNotEmpty
-        ? Duration(microseconds: totalDuration.inMicroseconds ~/ transactions.length)
+        ? Duration(
+            microseconds: totalDuration.inMicroseconds ~/ transactions.length,
+          )
         : Duration.zero;
 
     return StompTransactionStats(
@@ -293,9 +307,7 @@ class StompTransactionFrameFactory {
     String? receipt,
     Map<String, String>? additionalHeaders,
   }) {
-    final headers = <String, String>{
-      StompHeaders.transaction: transactionId,
-    };
+    final headers = <String, String>{StompHeaders.transaction: transactionId};
 
     if (receipt != null) headers[StompHeaders.receipt] = receipt;
     if (additionalHeaders != null) headers.addAll(additionalHeaders);
@@ -309,9 +321,7 @@ class StompTransactionFrameFactory {
     String? receipt,
     Map<String, String>? additionalHeaders,
   }) {
-    final headers = <String, String>{
-      StompHeaders.transaction: transactionId,
-    };
+    final headers = <String, String>{StompHeaders.transaction: transactionId};
 
     if (receipt != null) headers[StompHeaders.receipt] = receipt;
     if (additionalHeaders != null) headers.addAll(additionalHeaders);
@@ -325,9 +335,7 @@ class StompTransactionFrameFactory {
     String? receipt,
     Map<String, String>? additionalHeaders,
   }) {
-    final headers = <String, String>{
-      StompHeaders.transaction: transactionId,
-    };
+    final headers = <String, String>{StompHeaders.transaction: transactionId};
 
     if (receipt != null) headers[StompHeaders.receipt] = receipt;
     if (additionalHeaders != null) headers.addAll(additionalHeaders);
@@ -336,7 +344,10 @@ class StompTransactionFrameFactory {
   }
 
   /// Adds transaction header to a frame
-  static StompFrame addTransactionHeader(StompFrame frame, String transactionId) {
+  static StompFrame addTransactionHeader(
+    StompFrame frame,
+    String transactionId,
+  ) {
     final newFrame = frame.copy();
     newFrame.setHeader(StompHeaders.transaction, transactionId);
     return newFrame;
@@ -379,7 +390,7 @@ class StompTransactionTimeoutManager {
   /// Sets a timeout for a transaction
   void setTimeout(String transactionId, Duration timeout) {
     _clearTimeout(transactionId);
-    
+
     final timer = Timer(timeout, () {
       try {
         _transactionManager.abortTransaction(transactionId);
@@ -387,7 +398,7 @@ class StompTransactionTimeoutManager {
         // Transaction might already be completed
       }
     });
-    
+
     _timeouts[transactionId] = timer;
   }
 

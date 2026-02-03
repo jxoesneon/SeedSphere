@@ -27,7 +27,12 @@ Future<HolePunchService> newHolePunchService(
   List<MultiAddr> Function() listenAddrs, {
   HolePunchOptions? options,
 }) async {
-  final service = HolePunchServiceImpl(host, ids, listenAddrs, options: options);
+  final service = HolePunchServiceImpl(
+    host,
+    ids,
+    listenAddrs,
+    options: options,
+  );
   await service.start();
   return service;
 }

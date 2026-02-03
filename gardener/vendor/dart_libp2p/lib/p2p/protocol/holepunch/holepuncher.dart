@@ -12,7 +12,8 @@ import 'package:dart_libp2p/core/multiaddr.dart';
 import 'package:dart_libp2p/core/network/conn.dart';
 import 'package:dart_libp2p/core/network/network.dart';
 import 'package:dart_libp2p/core/network/stream.dart'; // For P2PStream
-import 'package:dart_libp2p/core/network/common.dart' show Direction; // Import Direction
+import 'package:dart_libp2p/core/network/common.dart'
+    show Direction; // Import Direction
 import 'package:logging/logging.dart';
 import 'package:synchronized/synchronized.dart';
 
@@ -24,7 +25,6 @@ import '../../discovery/peer_info.dart';
 
 /// Logger for the holepuncher
 final _log = Logger('p2p-holepunch');
-
 
 /// Result of initiating a hole punch
 class HolePunchResult {
@@ -89,12 +89,14 @@ class HolePuncher {
   final AddrFilter? _filter;
 
   /// Creates a new holepuncher
-  HolePuncher(this._host, this._ids, this._listenAddrs, {
+  HolePuncher(
+    this._host,
+    this._ids,
+    this._listenAddrs, {
     HolePunchTracer? tracer,
     AddrFilter? filter,
-  }) : 
-    _tracer = tracer,
-    _filter = filter {
+  }) : _tracer = tracer,
+       _filter = filter {
     _host.network.notify(_NetNotifiee(this));
   }
 
@@ -149,7 +151,9 @@ class HolePuncher {
 
           final dt = DateTime.now().difference(tstart);
           _tracer?.directDialSuccessful(peerId, dt);
-          _log.fine('Direct connection to peer successful, no need for a hole punch');
+          _log.fine(
+            'Direct connection to peer successful, no need for a hole punch',
+          );
           return;
         } catch (err) {
           final dt = DateTime.now().difference(tstart);
@@ -186,7 +190,13 @@ class HolePuncher {
           final dt = DateTime.now().difference(start);
           _tracer?.endHolePunch(peerId, dt, null);
           _log.fine('Hole punching successful');
-          _tracer?.holePunchFinished('initiator', i, addrs, obsAddrs, getDirectConnection(_host, peerId));
+          _tracer?.holePunchFinished(
+            'initiator',
+            i,
+            addrs,
+            obsAddrs,
+            getDirectConnection(_host, peerId),
+          );
           return;
         } catch (err) {
           final dt = DateTime.now().difference(start);
@@ -204,7 +214,6 @@ class HolePuncher {
 
     throw Exception('All retries for hole punch with peer $peerId failed');
   }
-
 
   /// Initiates a hole punch with a remote peer
   Future<HolePunchResult> _initiateHolePunch(PeerId peerId) async {
@@ -245,7 +254,9 @@ class HolePuncher {
       }
 
       if (obsAddrs.isEmpty) {
-        throw Exception('Aborting hole punch initiation as we have no public address');
+        throw Exception(
+          'Aborting hole punch initiation as we have no public address',
+        );
       }
 
       final start = DateTime.now();
@@ -327,16 +338,22 @@ class _NetNotifiee implements Notifiee {
   Future<void> connected(Network network, Conn conn) async {
     // Hole punch if it's an inbound proxy connection.
     // If we already have a direct connection with the remote peer, this will be a no-op.
-    if (conn.stat.stats.direction == Direction.inbound && isRelayAddress(conn.remoteMultiaddr)) {
+    if (conn.stat.stats.direction == Direction.inbound &&
+        isRelayAddress(conn.remoteMultiaddr)) {
       // Waiting for Identify here will allow us to access the peer's public and observed addresses
       // that we can dial to for a hole punch.
-      _hp._ids.identifyWait(conn).then((_) {
-        _hp.directConnect(conn.remotePeer).catchError((err) {
-          _log.fine('Attempt to perform DirectConnect to ${conn.remotePeer} failed: $err');
-        });
-      }).catchError((_) {
-        // Ignore errors from identifyWait
-      });
+      _hp._ids
+          .identifyWait(conn)
+          .then((_) {
+            _hp.directConnect(conn.remotePeer).catchError((err) {
+              _log.fine(
+                'Attempt to perform DirectConnect to ${conn.remotePeer} failed: $err',
+              );
+            });
+          })
+          .catchError((_) {
+            // Ignore errors from identifyWait
+          });
     }
   }
 
@@ -373,7 +390,13 @@ abstract class HolePunchTracer {
   void endHolePunch(PeerId peerId, Duration dt, Object? err);
 
   /// Called when a hole punch finishes
-  void holePunchFinished(String side, int attempts, List<MultiAddr> addrs, List<MultiAddr> obsAddrs, Conn? conn);
+  void holePunchFinished(
+    String side,
+    int attempts,
+    List<MultiAddr> addrs,
+    List<MultiAddr> obsAddrs,
+    Conn? conn,
+  );
 
   /// Closes the tracer
   void close();

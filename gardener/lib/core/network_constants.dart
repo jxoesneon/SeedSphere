@@ -119,7 +119,6 @@ class NetworkConstants {
     return <String>[
       // SeedSphere Router (Primary)
       '/dnsaddr/seedsphere.fly.dev/tcp/4001/p2p/12D3KooWJk1h5F5F5F5F5F5F5F5F5F5F5F5F5F5F5F5F5F5F5F5', // TODO: Need actual PeerID if possible or use loose multiaddr if supported
-
       // Actually, if we use dnsaddr without PeerID, ipfs might reject it as a bootstrap node in strict mode.
       // But we can try just IP4 for now if we don't know the PeerID.
       // Wait, standard bootstrap nodes NEED PeerID.

@@ -72,14 +72,15 @@ class BaseLimit implements Limit {
   BaseLimit apply(BaseLimit other) {
     return BaseLimit(
       streams: streams == 0 ? other.streams : streams,
-      streamsInbound:
-          streamsInbound == 0 ? other.streamsInbound : streamsInbound,
-      streamsOutbound:
-          streamsOutbound == 0 ? other.streamsOutbound : streamsOutbound,
+      streamsInbound: streamsInbound == 0
+          ? other.streamsInbound
+          : streamsInbound,
+      streamsOutbound: streamsOutbound == 0
+          ? other.streamsOutbound
+          : streamsOutbound,
       conns: conns == 0 ? other.conns : conns,
       connsInbound: connsInbound == 0 ? other.connsInbound : connsInbound,
-      connsOutbound:
-          connsOutbound == 0 ? other.connsOutbound : connsOutbound,
+      connsOutbound: connsOutbound == 0 ? other.connsOutbound : connsOutbound,
       fd: fd == 0 ? other.fd : fd,
       memory: memory == 0 ? other.memory : memory,
     );
@@ -89,7 +90,8 @@ class BaseLimit implements Limit {
   // Using a large number, but not int.maxFinite to avoid issues if it's used in arithmetic directly.
   // Go uses math.MaxInt64, Dart's int can be arbitrarily large, but for practical limits,
   // a sufficiently large number is fine.
-  static final int _unlimitedValue = 2 * 1024 * 1024 * 1024; // Approx 2 billion, like Go's MaxInt32
+  static final int _unlimitedValue =
+      2 * 1024 * 1024 * 1024; // Approx 2 billion, like Go's MaxInt32
 
   static BaseLimit unlimited() {
     return BaseLimit(

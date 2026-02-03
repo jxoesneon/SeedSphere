@@ -40,11 +40,56 @@ final $typed_data.Uint8List statusDescriptor = $convert.base64Decode(
 const HopMessage$json = {
   '1': 'HopMessage',
   '2': [
-    {'1': 'type', '3': 1, '4': 1, '5': 14, '6': '.circuit.pb.HopMessage.Type', '9': 0, '10': 'type', '17': true},
-    {'1': 'peer', '3': 2, '4': 1, '5': 11, '6': '.circuit.pb.Peer', '9': 1, '10': 'peer', '17': true},
-    {'1': 'reservation', '3': 3, '4': 1, '5': 11, '6': '.circuit.pb.Reservation', '9': 2, '10': 'reservation', '17': true},
-    {'1': 'limit', '3': 4, '4': 1, '5': 11, '6': '.circuit.pb.Limit', '9': 3, '10': 'limit', '17': true},
-    {'1': 'status', '3': 5, '4': 1, '5': 14, '6': '.circuit.pb.Status', '9': 4, '10': 'status', '17': true},
+    {
+      '1': 'type',
+      '3': 1,
+      '4': 1,
+      '5': 14,
+      '6': '.circuit.pb.HopMessage.Type',
+      '9': 0,
+      '10': 'type',
+      '17': true
+    },
+    {
+      '1': 'peer',
+      '3': 2,
+      '4': 1,
+      '5': 11,
+      '6': '.circuit.pb.Peer',
+      '9': 1,
+      '10': 'peer',
+      '17': true
+    },
+    {
+      '1': 'reservation',
+      '3': 3,
+      '4': 1,
+      '5': 11,
+      '6': '.circuit.pb.Reservation',
+      '9': 2,
+      '10': 'reservation',
+      '17': true
+    },
+    {
+      '1': 'limit',
+      '3': 4,
+      '4': 1,
+      '5': 11,
+      '6': '.circuit.pb.Limit',
+      '9': 3,
+      '10': 'limit',
+      '17': true
+    },
+    {
+      '1': 'status',
+      '3': 5,
+      '4': 1,
+      '5': 14,
+      '6': '.circuit.pb.Status',
+      '9': 4,
+      '10': 'status',
+      '17': true
+    },
   ],
   '4': [HopMessage_Type$json],
   '8': [
@@ -80,10 +125,46 @@ final $typed_data.Uint8List hopMessageDescriptor = $convert.base64Decode(
 const StopMessage$json = {
   '1': 'StopMessage',
   '2': [
-    {'1': 'type', '3': 1, '4': 1, '5': 14, '6': '.circuit.pb.StopMessage.Type', '9': 0, '10': 'type', '17': true},
-    {'1': 'peer', '3': 2, '4': 1, '5': 11, '6': '.circuit.pb.Peer', '9': 1, '10': 'peer', '17': true},
-    {'1': 'limit', '3': 3, '4': 1, '5': 11, '6': '.circuit.pb.Limit', '9': 2, '10': 'limit', '17': true},
-    {'1': 'status', '3': 4, '4': 1, '5': 14, '6': '.circuit.pb.Status', '9': 3, '10': 'status', '17': true},
+    {
+      '1': 'type',
+      '3': 1,
+      '4': 1,
+      '5': 14,
+      '6': '.circuit.pb.StopMessage.Type',
+      '9': 0,
+      '10': 'type',
+      '17': true
+    },
+    {
+      '1': 'peer',
+      '3': 2,
+      '4': 1,
+      '5': 11,
+      '6': '.circuit.pb.Peer',
+      '9': 1,
+      '10': 'peer',
+      '17': true
+    },
+    {
+      '1': 'limit',
+      '3': 3,
+      '4': 1,
+      '5': 11,
+      '6': '.circuit.pb.Limit',
+      '9': 2,
+      '10': 'limit',
+      '17': true
+    },
+    {
+      '1': 'status',
+      '3': 4,
+      '4': 1,
+      '5': 14,
+      '6': '.circuit.pb.Status',
+      '9': 3,
+      '10': 'status',
+      '17': true
+    },
   ],
   '4': [StopMessage_Type$json],
   '8': [
@@ -135,7 +216,15 @@ const Reservation$json = {
   '2': [
     {'1': 'expire', '3': 1, '4': 1, '5': 4, '9': 0, '10': 'expire', '17': true},
     {'1': 'addrs', '3': 2, '4': 3, '5': 12, '10': 'addrs'},
-    {'1': 'voucher', '3': 3, '4': 1, '5': 12, '9': 1, '10': 'voucher', '17': true},
+    {
+      '1': 'voucher',
+      '3': 3,
+      '4': 1,
+      '5': 12,
+      '9': 1,
+      '10': 'voucher',
+      '17': true
+    },
   ],
   '8': [
     {'1': '_expire'},
@@ -153,7 +242,15 @@ final $typed_data.Uint8List reservationDescriptor = $convert.base64Decode(
 const Limit$json = {
   '1': 'Limit',
   '2': [
-    {'1': 'duration', '3': 1, '4': 1, '5': 13, '9': 0, '10': 'duration', '17': true},
+    {
+      '1': 'duration',
+      '3': 1,
+      '4': 1,
+      '5': 13,
+      '9': 0,
+      '10': 'duration',
+      '17': true
+    },
     {'1': 'data', '3': 2, '4': 1, '5': 4, '9': 1, '10': 'data', '17': true},
   ],
   '8': [
@@ -166,4 +263,3 @@ const Limit$json = {
 final $typed_data.Uint8List limitDescriptor = $convert.base64Decode(
     'CgVMaW1pdBIfCghkdXJhdGlvbhgBIAEoDUgAUghkdXJhdGlvbogBARIXCgRkYXRhGAIgASgESA'
     'FSBGRhdGGIAQFCCwoJX2R1cmF0aW9uQgcKBV9kYXRh');
-

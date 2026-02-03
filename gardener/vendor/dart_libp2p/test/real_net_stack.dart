@@ -9,7 +9,8 @@ import 'package:dart_libp2p/core/multiaddr.dart';
 import 'package:dart_libp2p/core/network/conn.dart';
 import 'package:dart_libp2p/core/network/transport_conn.dart';
 import 'package:dart_libp2p/core/peer/peer_id.dart' as core_peer_id_lib;
-import 'package:dart_libp2p/p2p/host/eventbus/basic.dart' as p2p_eventbus; // Aliased
+import 'package:dart_libp2p/p2p/host/eventbus/basic.dart'
+    as p2p_eventbus; // Aliased
 import 'package:dart_libp2p/config/config.dart' as p2p_config;
 import 'package:dart_libp2p/p2p/security/noise/noise_protocol.dart';
 import 'package:dart_libp2p/p2p/transport/basic_upgrader.dart';
@@ -18,7 +19,8 @@ import 'package:dart_libp2p/p2p/transport/multiplexing/multiplexer.dart';
 import 'package:dart_libp2p/config/stream_muxer.dart';
 import 'package:dart_libp2p/p2p/transport/udx_transport.dart';
 import 'package:dart_udx/dart_udx.dart';
-import 'package:dart_libp2p/p2p/transport/connection_manager.dart' as p2p_transport;
+import 'package:dart_libp2p/p2p/transport/connection_manager.dart'
+    as p2p_transport;
 import 'package:dart_libp2p/core/network/rcmgr.dart'; // Interface - Corrected Path
 import 'package:dart_libp2p/p2p/network/swarm/swarm.dart';
 import 'package:dart_libp2p/p2p/host/basic/basic_host.dart';
@@ -38,16 +40,17 @@ class _TestYamuxMuxerProvider extends StreamMuxer {
   final MultiplexerConfig yamuxConfig;
 
   _TestYamuxMuxerProvider({required this.yamuxConfig})
-      : super(
-          id: YamuxConstants.protocolId, // Use the constant from YamuxSession
-          muxerFactory: (Conn secureConn, bool isClient) {
-            if (secureConn is! TransportConn) {
-              throw ArgumentError(
-                  'YamuxMuxer factory expects a TransportConn, got ${secureConn.runtimeType}');
-            }
-            return YamuxSession(secureConn, yamuxConfig, isClient);
-          },
-        );
+    : super(
+        id: YamuxConstants.protocolId, // Use the constant from YamuxSession
+        muxerFactory: (Conn secureConn, bool isClient) {
+          if (secureConn is! TransportConn) {
+            throw ArgumentError(
+              'YamuxMuxer factory expects a TransportConn, got ${secureConn.runtimeType}',
+            );
+          }
+          return YamuxSession(secureConn, yamuxConfig, isClient);
+        },
+      );
 }
 
 // Record type for returning node details
@@ -55,7 +58,7 @@ typedef Libp2pNode = ({
   BasicHost host,
   core_peer_id_lib.PeerId peerId,
   List<MultiAddr> listenAddrs,
-  KeyPair keyPair
+  KeyPair keyPair,
 });
 
 Future<Libp2pNode> createLibp2pNode({
@@ -78,7 +81,9 @@ Future<Libp2pNode> createLibp2pNode({
     streamWriteTimeout: Duration(seconds: 10),
     maxStreams: 256,
   );
-  final muxerDefs = [_TestYamuxMuxerProvider(yamuxConfig: yamuxMultiplexerConfig)];
+  final muxerDefs = [
+    _TestYamuxMuxerProvider(yamuxConfig: yamuxMultiplexerConfig),
+  ];
   final securityProtocols = [await NoiseSecurity.create(kp)];
   final peerstore = MemoryPeerstore();
 
@@ -87,7 +92,10 @@ Future<Libp2pNode> createLibp2pNode({
   peerstore.keyBook.addPrivKey(peerId, kp.privateKey);
   peerstore.keyBook.addPubKey(peerId, kp.publicKey);
 
-  final transport = UDXTransport(connManager: connManager, udxInstance: udxInstance);
+  final transport = UDXTransport(
+    connManager: connManager,
+    udxInstance: udxInstance,
+  );
   // final transport = TCPTransport(resourceManager: resourceManager, connManager: connManager);
   final upgrader = BasicUpgrader(resourceManager: resourceManager);
 
@@ -97,15 +105,16 @@ Future<Libp2pNode> createLibp2pNode({
   // Swarm Config
   final swarmConfig = p2p_config.Config()
     ..peerKey = kp
-    ..enableAutoNAT= false
+    ..enableAutoNAT = false
     ..enableHolePunching = false
-    ..enableRelay =false
+    ..enableRelay = false
     ..connManager = connManager
-    ..eventBus = p2p_eventbus.BasicBus() // Swarm's own event bus
+    ..eventBus =
+        p2p_eventbus.BasicBus() // Swarm's own event bus
     ..addrsFactory = passThroughAddrsFactory
     ..securityProtocols = securityProtocols
     ..muxers = muxerDefs;
-  
+
   if (listenAddrsOverride == null || listenAddrsOverride.isNotEmpty) {
     // Only set listenAddrs if we intend to listen (e.g. server node or client that might accept incoming)
     swarmConfig.listenAddrs = currentListenAddrs;
@@ -117,40 +126,38 @@ Future<Libp2pNode> createLibp2pNode({
     upgrader: upgrader,
     config: swarmConfig,
     transports: [transport],
-    resourceManager: resourceManager, host: null,
+    resourceManager: resourceManager,
+    host: null,
   );
 
   // BasicHost Config
   final hostConfig = p2p_config.Config()
     ..peerKey = kp
-    ..eventBus = hostEventBus // Shared event bus for hosts
+    ..eventBus =
+        hostEventBus // Shared event bus for hosts
     ..connManager = connManager
-    ..enableAutoNAT= false
+    ..enableAutoNAT = false
     ..enableHolePunching = false
-    ..enableRelay =false
+    ..enableRelay = false
     ..disableSignedPeerRecord = false
     ..addrsFactory = passThroughAddrsFactory
     ..negotiationTimeout = Duration(seconds: 20)
-    ..identifyUserAgent = "${userAgentPrefix ?? 'dart-libp2p-node'}/${peerId.toBase58().substring(0,6)}";
-    // ..muxers = muxerDefs // Removed, should rely on Swarm's upgrader config
-    // ..securityProtocols = securityProtocols; // Removed, should rely on Swarm's upgrader config
-  
+    ..identifyUserAgent =
+        "${userAgentPrefix ?? 'dart-libp2p-node'}/${peerId.toBase58().substring(0, 6)}";
+  // ..muxers = muxerDefs // Removed, should rely on Swarm's upgrader config
+  // ..securityProtocols = securityProtocols; // Removed, should rely on Swarm's upgrader config
+
   if (listenAddrsOverride == null || listenAddrsOverride.isNotEmpty) {
-     hostConfig.listenAddrs = currentListenAddrs;
+    hostConfig.listenAddrs = currentListenAddrs;
   }
 
-
-
   // final host = await hostConfig.newNode();
-  final host = await BasicHost.create(
-    network: network,
-    config: hostConfig,
-  );
+  final host = await BasicHost.create(network: network, config: hostConfig);
   network.setHost(host); // Link Swarm back to its Host
 
   RecordRegistry.register<pb.PeerRecord>(
-      String.fromCharCodes(PeerRecordEnvelopePayloadType),
-      pb.PeerRecord.fromBuffer
+    String.fromCharCodes(PeerRecordEnvelopePayloadType),
+    pb.PeerRecord.fromBuffer,
   );
 
   // Start Identify service (BasicHost.start() does this by default if config has it)
@@ -167,22 +174,29 @@ Future<Libp2pNode> createLibp2pNode({
       actualListenAddrs = host.addrs; // Get actual listen addrs after binding
       _log.fine('Host ${peerId.toBase58()} listening on: $actualListenAddrs');
       if (actualListenAddrs.isEmpty) {
-        _log.warning('Host ${peerId.toBase58()} started but has no listen addresses after listen() call.');
+        _log.warning(
+          'Host ${peerId.toBase58()} started but has no listen addresses after listen() call.',
+        );
       }
     } catch (e, s) {
-      _log.severe('Error making host ${peerId.toBase58()} listen on $currentListenAddrs: $e', e, s);
+      _log.severe(
+        'Error making host ${peerId.toBase58()} listen on $currentListenAddrs: $e',
+        e,
+        s,
+      );
       // Decide if this should throw or if a host can exist without listening.
       // For tests requiring connections TO this host, it's an issue.
     }
   } else {
-     _log.fine('Host ${peerId.toBase58()} configured not to listen (empty listenAddrsOverride).');
+    _log.fine(
+      'Host ${peerId.toBase58()} configured not to listen (empty listenAddrsOverride).',
+    );
   }
-
 
   return (
     host: host,
     peerId: peerId,
     listenAddrs: actualListenAddrs,
-    keyPair: kp
+    keyPair: kp,
   );
 }

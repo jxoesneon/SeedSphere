@@ -1,4 +1,3 @@
-
 import 'package:dart_libp2p/core/peer/peer_id.dart';
 import '../../core/multiaddr.dart';
 
@@ -29,11 +28,11 @@ class PeerInfo {
     Map<String, dynamic>? metadata,
     DateTime? firstSeen,
     DateTime? lastSeen,
-  })  : addrs = addrs ?? {},
-        protocols = protocols ?? {},
-        metadata = metadata ?? {},
-        firstSeen = firstSeen ?? DateTime.now(),
-        lastSeen = lastSeen ?? DateTime.now();
+  }) : addrs = addrs ?? {},
+       protocols = protocols ?? {},
+       metadata = metadata ?? {},
+       firstSeen = firstSeen ?? DateTime.now(),
+       lastSeen = lastSeen ?? DateTime.now();
 
   /// Updates the last seen timestamp
   void updateLastSeen() {
@@ -70,12 +69,10 @@ class PeerInfo {
       peerId: peerId,
       addrs: addrs,
       protocols: protocols,
-      metadata: metadata
+      metadata: metadata,
     );
   }
-
 }
-
 
 // /// Stores information about known peers
 // class PeerStore {

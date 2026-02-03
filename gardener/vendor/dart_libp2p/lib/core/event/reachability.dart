@@ -31,7 +31,5 @@ class EvtLocalReachabilityChanged {
   }
 
   /// Creates a new EvtLocalReachabilityChanged event.
-  EvtLocalReachabilityChanged({
-    required this.reachability,
-  });
+  EvtLocalReachabilityChanged({required this.reachability});
 }

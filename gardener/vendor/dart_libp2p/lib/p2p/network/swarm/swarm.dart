@@ -18,7 +18,8 @@ import 'package:logging/logging.dart';
 import 'package:synchronized/synchronized.dart';
 // For NetworkInterface.list
 // For protocol constants
-import 'package:dart_libp2p/core/network/mux.dart' as core_mux; // Changed to package import
+import 'package:dart_libp2p/core/network/mux.dart'
+    as core_mux; // Changed to package import
 
 import '../../../core/network/common.dart' show Direction;
 import '../../../config/config.dart'; // Added for Config
@@ -66,7 +67,8 @@ class Swarm implements Network {
   final Lock _connLock = Lock();
 
   /// Map of protocol IDs to stream handlers
-  final Map<String, Future<void> Function(dynamic stream, PeerId remotePeer)> _protocolHandlers = {};
+  final Map<String, Future<void> Function(dynamic stream, PeerId remotePeer)>
+  _protocolHandlers = {};
 
   /// Default stream handler for backward compatibility
   StreamHandler? _defaultStreamHandler;
@@ -91,7 +93,6 @@ class Swarm implements Network {
   /// Event-driven connection health tracking
   final Map<String, ConnectionHealthState> _connectionHealthStates = {};
 
-
   /// Creates a new Swarm
   Swarm({
     required Host? host, // Added Host parameter, made nullable
@@ -101,17 +102,17 @@ class Swarm implements Network {
     required BasicUpgrader upgrader, // Added upgrader
     required Config config, // Added config
     List<Transport>? transports,
-  }) : 
-    _host = host, // Initialize Host
-    _localPeer = localPeer,
-    _peerstore = peerstore,
-    _resourceManager = resourceManager,
-    _upgrader = upgrader, // Initialize upgrader
-    _config = config { // Initialize config
+  }) : _host = host, // Initialize Host
+       _localPeer = localPeer,
+       _peerstore = peerstore,
+       _resourceManager = resourceManager,
+       _upgrader = upgrader, // Initialize upgrader
+       _config = config {
+    // Initialize config
     if (transports != null) {
       _transports.addAll(transports);
     }
-    
+
     // Start connection health monitoring
     _startConnectionHealthMonitoring();
   }
@@ -127,11 +128,11 @@ class Swarm implements Network {
       if (_isClosed) return;
       _isClosed = true;
 
-
       // Close all listeners
       final listenersToClose = List<Listener>.from(_listeners); // Create a copy
       for (final listener in listenersToClose) {
-        await listener.close(); // This might trigger onDone/onError, modifying original _listeners
+        await listener
+            .close(); // This might trigger onDone/onError, modifying original _listeners
       }
       _listeners.clear(); // Clear original list after all are processed
 
@@ -154,14 +155,15 @@ class Swarm implements Network {
         for (final conn in allConnsToClose) {
           await conn.close();
         }
-        _connections.clear(); // Clear after all connections are processed and closed.
+        _connections
+            .clear(); // Clear after all connections are processed and closed.
       });
 
       // Notify all notifiees about closed listeners and connections
       await _notifieeLock.synchronized(() async {
         // Create copies of lists to iterate over, to prevent concurrent modification
         final currentListenAddrs = List<MultiAddr>.from(_listenAddrs);
-        
+
         // For connections, we need a deep enough copy if the inner lists could change.
         // However, connections should have been closed and removed from _connections by now.
         // The _connections map should be empty here if the above logic is correct.
@@ -194,8 +196,7 @@ class Swarm implements Network {
       });
 
       await _transportsLock.synchronized(() async {
-
-        for (final transport in _transports){
+        for (final transport in _transports) {
           await transport.dispose();
         }
       });
@@ -203,7 +204,10 @@ class Swarm implements Network {
   }
 
   @override
-  void setStreamHandler(String protocol, Future<void> Function(dynamic stream, PeerId remotePeer) handler) {
+  void setStreamHandler(
+    String protocol,
+    Future<void> Function(dynamic stream, PeerId remotePeer) handler,
+  ) {
     _protocolHandlers[protocol] = handler;
 
     // For backward compatibility, set the default stream handler to use the protocol handler
@@ -215,42 +219,64 @@ class Swarm implements Network {
 
   @override
   Future<P2PStream> newStream(Context context, PeerId peerId) async {
-    _logger.warning('Swarm.newStream: Entered for peer ${peerId.toString()}. Context HashCode: ${context.hashCode}');
+    _logger.warning(
+      'Swarm.newStream: Entered for peer ${peerId.toString()}. Context HashCode: ${context.hashCode}',
+    );
     // Check if we're closed
     if (_isClosed) {
-      _logger.warning('Swarm.newStream: Swarm is closed for peer ${peerId.toString()}. Throwing exception.');
+      _logger.warning(
+        'Swarm.newStream: Swarm is closed for peer ${peerId.toString()}. Throwing exception.',
+      );
       throw Exception('Swarm is closed');
     }
-    _logger.warning('Swarm.newStream: Swarm is open for peer ${peerId.toString()}.');
+    _logger.warning(
+      'Swarm.newStream: Swarm is open for peer ${peerId.toString()}.',
+    );
 
     // Get or create a connection to the peer
-    _logger.warning('Swarm.newStream: Calling dialPeer(context, ${peerId.toString()}).');
+    _logger.warning(
+      'Swarm.newStream: Calling dialPeer(context, ${peerId.toString()}).',
+    );
     final Conn conn; // Type is Conn, but runtime type should be SwarmConn
     try {
       conn = await dialPeer(context, peerId);
     } catch (e, st) {
-      _logger.severe('Swarm.newStream: Error from dialPeer for ${peerId.toString()}: $e\n$st');
+      _logger.severe(
+        'Swarm.newStream: Error from dialPeer for ${peerId.toString()}: $e\n$st',
+      );
       rethrow;
     }
-    _logger.warning('Swarm.newStream: Successfully dialed peer ${peerId.toString()}. Conn runtimeType: ${conn.runtimeType}, Conn ID: ${conn.id}, Conn local: ${conn.localPeer}, Conn remote: ${conn.remotePeer}');
+    _logger.warning(
+      'Swarm.newStream: Successfully dialed peer ${peerId.toString()}. Conn runtimeType: ${conn.runtimeType}, Conn ID: ${conn.id}, Conn local: ${conn.localPeer}, Conn remote: ${conn.remotePeer}',
+    );
 
     if (conn is! SwarmConn) {
-        _logger.severe('Swarm.newStream: conn from dialPeer is NOT SwarmConn. Actual type: ${conn.runtimeType}. Peer: ${peerId.toString()}');
-        throw StateError('Connection from dialPeer is not a SwarmConn. Type: ${conn.runtimeType}');
+      _logger.severe(
+        'Swarm.newStream: conn from dialPeer is NOT SwarmConn. Actual type: ${conn.runtimeType}. Peer: ${peerId.toString()}',
+      );
+      throw StateError(
+        'Connection from dialPeer is not a SwarmConn. Type: ${conn.runtimeType}',
+      );
     }
 
     // Create a new stream - let the underlying connection manage stream IDs
-    _logger.warning('Swarm.newStream: About to call (conn as SwarmConn).newStream() for peer ${peerId.toString()} on SwarmConn ${conn.id}.');
-    
+    _logger.warning(
+      'Swarm.newStream: About to call (conn as SwarmConn).newStream() for peer ${peerId.toString()} on SwarmConn ${conn.id}.',
+    );
+
     final P2PStream stream;
     try {
       stream = await conn.newStream(context);
     } catch (e, st) {
-      _logger.severe('Swarm.newStream: Error from (conn as SwarmConn).newStream() for peer ${peerId.toString()}: $e\n$st');
+      _logger.severe(
+        'Swarm.newStream: Error from (conn as SwarmConn).newStream() for peer ${peerId.toString()}: $e\n$st',
+      );
       rethrow;
     }
-    
-    _logger.warning('Swarm.newStream: Successfully called (conn as SwarmConn).newStream() for peer ${peerId.toString()}. Returned Stream ID: ${stream.id()}, Stream protocol: ${stream.protocol}');
+
+    _logger.warning(
+      'Swarm.newStream: Successfully called (conn as SwarmConn).newStream() for peer ${peerId.toString()}. Returned Stream ID: ${stream.id()}, Stream protocol: ${stream.protocol}',
+    );
     // Note: Protocol negotiation (multistreamMuxer.selectOneOf) happens in BasicHost.newStream *after* this Swarm.newStream returns.
     // So, a log for "Protocol negotiation complete" belongs in BasicHost.newStream.
 
@@ -259,16 +285,22 @@ class Swarm implements Network {
 
   @override
   Future<void> listen(List<MultiAddr> addrs) async {
-    _logger.fine('[Swarm listen] Called with addrs: $addrs for peer ${_localPeer.toString()}'); // Changed from _localPeer.short()
+    _logger.fine(
+      '[Swarm listen] Called with addrs: $addrs for peer ${_localPeer.toString()}',
+    ); // Changed from _localPeer.short()
     _logger.fine('Swarm.listen called with addrs: $addrs');
     // Check if we're closed
     if (_isClosed) {
-      _logger.fine('[Swarm listen] Swarm is closed. Throwing exception. Peer: ${_localPeer.toString()}');
+      _logger.fine(
+        '[Swarm listen] Swarm is closed. Throwing exception. Peer: ${_localPeer.toString()}',
+      );
       throw Exception('Swarm is closed');
     }
 
     for (final addr in addrs) {
-      _logger.fine('[Swarm listen] Processing address: $addr for peer ${_localPeer.toString()}');
+      _logger.fine(
+        '[Swarm listen] Processing address: $addr for peer ${_localPeer.toString()}',
+      );
       // Find a transport that can listen on this address
       Transport? transport;
       for (final t in _transports) {
@@ -279,141 +311,201 @@ class Swarm implements Network {
       }
 
       if (transport == null) {
-        _logger.fine('[Swarm listen] No transport found for address: $addr for peer ${_localPeer.toString()}');
+        _logger.fine(
+          '[Swarm listen] No transport found for address: $addr for peer ${_localPeer.toString()}',
+        );
         _logger.warning('No transport found for address: $addr');
         continue;
       }
 
       // Listen on the address
-      _logger.fine('[Swarm listen] Attempting transport.listen() for $addr with transport ${transport.runtimeType} for peer ${_localPeer.toString()}');
-      _logger.fine('Swarm.listen: Attempting to listen on $addr with transport ${transport.runtimeType}');
+      _logger.fine(
+        '[Swarm listen] Attempting transport.listen() for $addr with transport ${transport.runtimeType} for peer ${_localPeer.toString()}',
+      );
+      _logger.fine(
+        'Swarm.listen: Attempting to listen on $addr with transport ${transport.runtimeType}',
+      );
       final Listener listener;
       try {
         listener = await transport.listen(addr);
       } catch (e) {
-        _logger.fine('[Swarm listen] Error calling transport.listen() for $addr: $e for peer ${_localPeer.toString()}');
-        _logger.severe('Error listening on $addr with transport $transport: $e'); // Use logger.severe for errors
+        _logger.fine(
+          '[Swarm listen] Error calling transport.listen() for $addr: $e for peer ${_localPeer.toString()}',
+        );
+        _logger.severe(
+          'Error listening on $addr with transport $transport: $e',
+        ); // Use logger.severe for errors
         continue; // Continue to next address if listen fails
       }
-      
-      final actualListenAddr = listener.addr; // Get the actual address the listener bound to
+
+      final actualListenAddr =
+          listener.addr; // Get the actual address the listener bound to
       // The Listener interface does not have a 'listenAddrs' getter.
       // We already log actualListenAddr which comes from listener.addr.
-      _logger.fine('[Swarm listen] transport.listen() successful for $addr. Listener: ${listener.runtimeType}, Listener.addr: $actualListenAddr for peer ${_localPeer.toString()}');
-      _logger.fine('Swarm.listen: transport.listen for $addr returned listener ${listener.runtimeType} with actual addr: $actualListenAddr');
+      _logger.fine(
+        '[Swarm listen] transport.listen() successful for $addr. Listener: ${listener.runtimeType}, Listener.addr: $actualListenAddr for peer ${_localPeer.toString()}',
+      );
+      _logger.fine(
+        'Swarm.listen: transport.listen for $addr returned listener ${listener.runtimeType} with actual addr: $actualListenAddr',
+      );
       _listeners.add(listener);
       _listenAddrs.add(actualListenAddr); // Store the actual listen address
-      _logger.fine('[Swarm listen] Added listener for $actualListenAddr. Current _listeners count: ${_listeners.length}, _listenAddrs: $_listenAddrs for peer ${_localPeer.toString()}');
-      _logger.fine('Swarm.listen: Added listener. Current _listeners count: ${_listeners.length}, _listenAddrs: $_listenAddrs');
+      _logger.fine(
+        '[Swarm listen] Added listener for $actualListenAddr. Current _listeners count: ${_listeners.length}, _listenAddrs: $_listenAddrs for peer ${_localPeer.toString()}',
+      );
+      _logger.fine(
+        'Swarm.listen: Added listener. Current _listeners count: ${_listeners.length}, _listenAddrs: $_listenAddrs',
+      );
 
       // Add our own listen address to our own peerstore, but only if it's not unspecified
       // Use a long TTL, like permanent, for own addresses.
       // Assuming AddressTTL.permanentAddrTTL is accessible or use an appropriate Duration.
       // The Peerstore interface defines AddressTTL, so it should be available.
       if (!_isUnspecifiedAddress(actualListenAddr)) {
-        await _peerstore.addrBook.addAddrs(_localPeer, [actualListenAddr], AddressTTL.permanentAddrTTL);
-        _logger.fine('[Swarm listen] Added concrete listen address to peerstore: $actualListenAddr for peer ${_localPeer.toString()}');
+        await _peerstore.addrBook.addAddrs(_localPeer, [
+          actualListenAddr,
+        ], AddressTTL.permanentAddrTTL);
+        _logger.fine(
+          '[Swarm listen] Added concrete listen address to peerstore: $actualListenAddr for peer ${_localPeer.toString()}',
+        );
       } else {
-        _logger.warning('[Swarm listen] Skipping addition of unspecified listen address to peerstore: $actualListenAddr for peer ${_localPeer.toString()}. This should be resolved to concrete addresses by the host.');
+        _logger.warning(
+          '[Swarm listen] Skipping addition of unspecified listen address to peerstore: $actualListenAddr for peer ${_localPeer.toString()}. This should be resolved to concrete addresses by the host.',
+        );
       }
 
       // Notify listeners
       await _notifieeLock.synchronized(() async {
         for (final notifiee in _notifiees) {
-          notifiee.listen(this, actualListenAddr); // Notify with the actual listen address
+          notifiee.listen(
+            this,
+            actualListenAddr,
+          ); // Notify with the actual listen address
         }
       });
-
 
       // Handle incoming connections
       _handleIncomingConnections(listener);
     }
-    _logger.fine('[Swarm listen] listen() method finished for peer ${_localPeer.toString()}.');
+    _logger.fine(
+      '[Swarm listen] listen() method finished for peer ${_localPeer.toString()}.',
+    );
   }
 
   /// Handles incoming connections from a listener
   void _handleIncomingConnections(Listener listener) {
-    _logger.fine('Swarm._handleIncomingConnections called for listener: ${listener.runtimeType} on addr ${listener.addr}');
+    _logger.fine(
+      'Swarm._handleIncomingConnections called for listener: ${listener.runtimeType} on addr ${listener.addr}',
+    );
     // Explicitly type the stream's data event
-    listener.connectionStream.listen((TransportConn transportConn) async { 
-      try {
-        // Obtain a ConnManagementScope for the new inbound connection
-        // Assuming 'usefd' is true for real connections.
-        // The endpoint is the remote multiaddress of the incoming transport connection.
-        // Upgrade the raw transport connection
-        final Conn upgradedConn;
+    listener.connectionStream.listen(
+      (TransportConn transportConn) async {
         try {
-          upgradedConn = await _upgrader.upgradeInbound(
-            connection: transportConn, 
-            config: _config,
-          );
-        } catch (e, s) {
-          _logger.warning('Inbound connection upgrade failed for ${transportConn.remoteMultiaddr}: $e\n$s');
-          await transportConn.close(); 
-          return; 
-        }
-
-        final connManagementScope = await _resourceManager.openConnection(
-          Direction.inbound,
-          true, 
-          upgradedConn.remoteMultiaddr, 
-        );
-        
-        await connManagementScope.setPeer(upgradedConn.remotePeer);
-
-        final connID = _nextConnID++;
-        final swarmConn = SwarmConn(
-          id: connID.toString(),
-          conn: upgradedConn, 
-          localPeer: _localPeer, 
-          remotePeer: upgradedConn.remotePeer, 
-          direction: Direction.inbound,
-          swarm: this,
-          managementScope: connManagementScope,
-        );
-
-        // Use upgradedConn.remotePeer for the map key
-        final String remotePeerIdStr = upgradedConn.remotePeer.toString();
-        _logger.warning('=== STORING INBOUND CONNECTION ===');
-        _logger.warning('Storing connection for peer: ${upgradedConn.remotePeer}');
-        _logger.warning('Peer ID toString(): "$remotePeerIdStr"');
-        _logger.warning('Peer ID toBase58(): ${upgradedConn.remotePeer.toBase58()}');
-        _logger.warning('Connection ID: ${swarmConn.id}');
-        _logger.warning('=== END STORING INBOUND CONNECTION ===');
-        
-        await _connLock.synchronized(() {
-          if (!_connections.containsKey(remotePeerIdStr)) {
-            _connections[remotePeerIdStr] = [];
-          }
-          _connections[remotePeerIdStr]!.add(swarmConn);
-          _logger.warning('Connection stored. Total connections for "$remotePeerIdStr": ${_connections[remotePeerIdStr]!.length}');
-        });
-
-        await _notifieeLock.synchronized(() async {
-          for (final notifiee in _notifiees) {
-            notifiee.connected(this, swarmConn);
-          }
-        });
-
-        _handleIncomingStreams(swarmConn);
-      } catch (e, s) { // Catch for processing an individual transportConn
-        _logger.severe('Error processing individual incoming transportConn on listener ${listener.addr}: $e. TransportConn remote: ${transportConn.remoteMultiaddr}', e, s);
-        if (!transportConn.isClosed) {
+          // Obtain a ConnManagementScope for the new inbound connection
+          // Assuming 'usefd' is true for real connections.
+          // The endpoint is the remote multiaddress of the incoming transport connection.
+          // Upgrade the raw transport connection
+          final Conn upgradedConn;
+          try {
+            upgradedConn = await _upgrader.upgradeInbound(
+              connection: transportConn,
+              config: _config,
+            );
+          } catch (e, s) {
+            _logger.warning(
+              'Inbound connection upgrade failed for ${transportConn.remoteMultiaddr}: $e\n$s',
+            );
             await transportConn.close();
+            return;
+          }
+
+          final connManagementScope = await _resourceManager.openConnection(
+            Direction.inbound,
+            true,
+            upgradedConn.remoteMultiaddr,
+          );
+
+          await connManagementScope.setPeer(upgradedConn.remotePeer);
+
+          final connID = _nextConnID++;
+          final swarmConn = SwarmConn(
+            id: connID.toString(),
+            conn: upgradedConn,
+            localPeer: _localPeer,
+            remotePeer: upgradedConn.remotePeer,
+            direction: Direction.inbound,
+            swarm: this,
+            managementScope: connManagementScope,
+          );
+
+          // Use upgradedConn.remotePeer for the map key
+          final String remotePeerIdStr = upgradedConn.remotePeer.toString();
+          _logger.warning('=== STORING INBOUND CONNECTION ===');
+          _logger.warning(
+            'Storing connection for peer: ${upgradedConn.remotePeer}',
+          );
+          _logger.warning('Peer ID toString(): "$remotePeerIdStr"');
+          _logger.warning(
+            'Peer ID toBase58(): ${upgradedConn.remotePeer.toBase58()}',
+          );
+          _logger.warning('Connection ID: ${swarmConn.id}');
+          _logger.warning('=== END STORING INBOUND CONNECTION ===');
+
+          await _connLock.synchronized(() {
+            if (!_connections.containsKey(remotePeerIdStr)) {
+              _connections[remotePeerIdStr] = [];
+            }
+            _connections[remotePeerIdStr]!.add(swarmConn);
+            _logger.warning(
+              'Connection stored. Total connections for "$remotePeerIdStr": ${_connections[remotePeerIdStr]!.length}',
+            );
+          });
+
+          await _notifieeLock.synchronized(() async {
+            for (final notifiee in _notifiees) {
+              notifiee.connected(this, swarmConn);
+            }
+          });
+
+          _handleIncomingStreams(swarmConn);
+        } catch (e, s) {
+          // Catch for processing an individual transportConn
+          _logger.severe(
+            'Error processing individual incoming transportConn on listener ${listener.addr}: $e. TransportConn remote: ${transportConn.remoteMultiaddr}',
+            e,
+            s,
+          );
+          if (!transportConn.isClosed) {
+            await transportConn.close();
+          }
         }
-      }
-    }, onError: (e, s) async { // For errors on the listener.connectionStream itself
-        _logger.severe('Listener ${listener.addr} connectionStream encountered an error: $e. Removing listener.', e, s);
+      },
+      onError: (e, s) async {
+        // For errors on the listener.connectionStream itself
+        _logger.severe(
+          'Listener ${listener.addr} connectionStream encountered an error: $e. Removing listener.',
+          e,
+          s,
+        );
         _listeners.remove(listener);
         // Safe to call close on listener, it should be idempotent or handle already being closed.
-        await listener.close(); 
-        removeListenAddress(listener.addr); // Also remove from _listenAddrs and notify
-    }, onDone: () async { // When the listener.connectionStream is done
-        _logger.fine('Listener ${listener.addr} connectionStream is done. Removing listener.');
+        await listener.close();
+        removeListenAddress(
+          listener.addr,
+        ); // Also remove from _listenAddrs and notify
+      },
+      onDone: () async {
+        // When the listener.connectionStream is done
+        _logger.fine(
+          'Listener ${listener.addr} connectionStream is done. Removing listener.',
+        );
         _listeners.remove(listener);
         await listener.close();
-        removeListenAddress(listener.addr); // Also remove from _listenAddrs and notify
-    });
+        removeListenAddress(
+          listener.addr,
+        ); // Also remove from _listenAddrs and notify
+      },
+    );
   }
 
   /// Handles incoming streams from a connection
@@ -421,7 +513,8 @@ class Swarm implements Network {
     // This streamHandler is set on the SwarmConn.
     // It's invoked by the underlying Conn when it accepts a new muxed stream.
     // The 'muxedStream' parameter is the P2PStream from the multiplexer.
-    conn.streamHandler = (P2PStream muxedStream) async { // Ensure type is P2PStream
+    conn.streamHandler = (P2PStream muxedStream) async {
+      // Ensure type is P2PStream
       // Obtain a StreamManagementScope for the new inbound stream
       final streamManagementScope = await _resourceManager.openStream(
         conn.remotePeer, // The peer this stream is from
@@ -430,11 +523,13 @@ class Swarm implements Network {
 
       // Create a SwarmStream wrapper for the muxed stream using the actual stream ID
       final swarmStream = SwarmStream(
-        id: muxedStream.id(), // Use the actual stream ID from the underlying muxed stream
+        id: muxedStream
+            .id(), // Use the actual stream ID from the underlying muxed stream
         conn: conn,
         direction: Direction.inbound,
         opened: DateTime.now(), // Or get from muxedStream if available
-        underlyingMuxedStream: muxedStream as P2PStream<Uint8List>, // Cast if necessary
+        underlyingMuxedStream:
+            muxedStream as P2PStream<Uint8List>, // Cast if necessary
         managementScope: streamManagementScope,
       );
 
@@ -444,7 +539,9 @@ class Swarm implements Network {
       try {
         await _host?.mux.handle(swarmStream);
       } catch (e, s) {
-        _logger.warning('Error handling incoming stream from ${conn.remotePeer} with multistream muxer: $e\n$s');
+        _logger.warning(
+          'Error handling incoming stream from ${conn.remotePeer} with multistream muxer: $e\n$s',
+        );
         await swarmStream.reset(); // Reset the SwarmStream, which closes scope
       }
     };
@@ -456,19 +553,26 @@ class Swarm implements Network {
         while (!conn.isClosed) {
           // conn.conn is the UpgradedConnectionImpl, which implements MuxedConn
           // Cast to core_mux.MuxedConn to access acceptStream()
-          if (conn.conn is! core_mux.MuxedConn) { // Use the alias
-            _logger.severe('Underlying connection for SwarmConn ${conn.id} is not a MuxedConn. Type: ${conn.conn.runtimeType}. Cannot accept streams.');
+          if (conn.conn is! core_mux.MuxedConn) {
+            // Use the alias
+            _logger.severe(
+              'Underlying connection for SwarmConn ${conn.id} is not a MuxedConn. Type: ${conn.conn.runtimeType}. Cannot accept streams.',
+            );
             await conn.close(); // Close the problematic connection
             return; // Exit the loop
           }
-          final core_mux.MuxedStream acceptedStreamBase = await (conn.conn as core_mux.MuxedConn).acceptStream(); // Use the alias
+          final core_mux.MuxedStream acceptedStreamBase =
+              await (conn.conn as core_mux.MuxedConn)
+                  .acceptStream(); // Use the alias
 
           if (acceptedStreamBase is! P2PStream) {
-            _logger.severe('Accepted stream from conn ${conn.id} is not a P2PStream. Type: ${acceptedStreamBase.runtimeType}. Resetting it.');
+            _logger.severe(
+              'Accepted stream from conn ${conn.id} is not a P2PStream. Type: ${acceptedStreamBase.runtimeType}. Resetting it.',
+            );
             await acceptedStreamBase.reset();
             continue;
           }
-          
+
           final P2PStream acceptedP2PStream = acceptedStreamBase as P2PStream;
 
           if (conn.streamHandler != null) {
@@ -478,18 +582,24 @@ class Swarm implements Network {
           } else {
             // This case should ideally not happen if _handleIncomingStreams is always called
             // before streams can be accepted, or if streamHandler is set at conn construction.
-            _logger.warning('SwarmConn for ${conn.remotePeer} (conn id ${conn.id}) has no streamHandler set. Resetting accepted stream ${acceptedP2PStream.id()}.');
+            _logger.warning(
+              'SwarmConn for ${conn.remotePeer} (conn id ${conn.id}) has no streamHandler set. Resetting accepted stream ${acceptedP2PStream.id()}.',
+            );
             await acceptedP2PStream.reset();
           }
         }
       } catch (e) {
         if (!conn.isClosed) {
-          _logger.warning('Error in acceptStream loop for conn ${conn.id} to ${conn.remotePeer}: $e. Loop terminating.');
+          _logger.warning(
+            'Error in acceptStream loop for conn ${conn.id} to ${conn.remotePeer}: $e. Loop terminating.',
+          );
           // Attempt to close the connection gracefully.
           // The error might be due to the connection being reset or closed abruptly.
-          await conn.close(); 
+          await conn.close();
         } else {
-          _logger.fine('AcceptStream loop for conn ${conn.id} to ${conn.remotePeer} terminated due to connection closure.');
+          _logger.fine(
+            'AcceptStream loop for conn ${conn.id} to ${conn.remotePeer} terminated due to connection closure.',
+          );
         }
       }
     });
@@ -504,7 +614,9 @@ class Swarm implements Network {
     // For now, we just log what's being returned.
     final result = List<MultiAddr>.unmodifiable(_listenAddrs);
     // _logger.fine('[Swarm listenAddresses GETTER] Returning: $result from _listenAddrs for peer ${_localPeer.toString()}');
-    _logger.fine('Swarm.listenAddresses getter called. Returning: $_listenAddrs');
+    _logger.fine(
+      'Swarm.listenAddresses getter called. Returning: $_listenAddrs',
+    );
     return result;
   }
 
@@ -517,7 +629,9 @@ class Swarm implements Network {
 
   @override
   Future<List<MultiAddr>> getListenAddrs() async {
-    _logger.fine('Swarm.getListenAddrs called. Current _listeners count: ${_listeners.length}, current _listenAddrs: $_listenAddrs');
+    _logger.fine(
+      'Swarm.getListenAddrs called. Current _listeners count: ${_listeners.length}, current _listenAddrs: $_listenAddrs',
+    );
     // For now, it simply returns the known _listenAddrs.
     // A more complex version might query listeners directly if _listenAddrs could be stale.
     final List<MultiAddr> currentAddrs = List.unmodifiable(_listenAddrs);
@@ -536,23 +650,31 @@ class Swarm implements Network {
 
   @override
   Future<Conn> dialPeer(Context context, PeerId peerId) async {
-    _logger.warning('Swarm.dialPeer: Entered for peer ${peerId.toString()}. Context: ${context.hashCode}');
-    
+    _logger.warning(
+      'Swarm.dialPeer: Entered for peer ${peerId.toString()}. Context: ${context.hashCode}',
+    );
+
     // Debug peer ID information
     _logger.warning('=== SWARM DIAL PEER DEBUG ===');
     _logger.warning('Target peer ID: ${peerId.toString()}');
     _logger.warning('Target peer ID toBase58(): ${peerId.toBase58()}');
     _logger.warning('Target peer ID hashCode: ${peerId.hashCode}');
-    _logger.warning('Current connections map keys: ${_connections.keys.toList()}');
+    _logger.warning(
+      'Current connections map keys: ${_connections.keys.toList()}',
+    );
     _logger.warning('Total connections in map: ${_connections.length}');
     for (final entry in _connections.entries) {
-      _logger.warning('  Connection key: "${entry.key}" -> ${entry.value.length} connections');
+      _logger.warning(
+        '  Connection key: "${entry.key}" -> ${entry.value.length} connections',
+      );
       for (final conn in entry.value) {
-        _logger.warning('    Conn ${conn.id}: remotePeer=${conn.remotePeer}, remotePeer.toString()="${conn.remotePeer.toString()}", isClosed=${conn.isClosed}');
+        _logger.warning(
+          '    Conn ${conn.id}: remotePeer=${conn.remotePeer}, remotePeer.toString()="${conn.remotePeer.toString()}", isClosed=${conn.isClosed}',
+        );
       }
     }
     _logger.warning('=== END SWARM DIAL PEER DEBUG ===');
-    
+
     // Check if we're closed
     if (_isClosed) {
       throw Exception('Swarm is closed');
@@ -570,27 +692,35 @@ class Swarm implements Network {
     final existingConns = await _connLock.synchronized(() {
       return _connections[peerIDStr] ?? [];
     });
-    _logger.warning('Found ${existingConns.length} existing connections for peer ID string: "$peerIDStr"');
+    _logger.warning(
+      'Found ${existingConns.length} existing connections for peer ID string: "$peerIDStr"',
+    );
 
     if (existingConns.isNotEmpty) {
-      _logger.warning('Swarm.dialPeer: Found ${existingConns.length} existing connection(s) for peer ${peerId.toString()}. Validating health...');
-      
+      _logger.warning(
+        'Swarm.dialPeer: Found ${existingConns.length} existing connection(s) for peer ${peerId.toString()}. Validating health...',
+      );
+
       // Filter out closed/unhealthy connections
       final healthyConns = <SwarmConn>[];
       final staleConns = <SwarmConn>[];
-      
+
       for (final conn in existingConns) {
         if (conn.isClosed || !_isConnectionHealthy(conn)) {
           staleConns.add(conn);
-          _logger.warning('Swarm.dialPeer: Connection ${conn.id} to peer ${peerId.toString()} is stale/closed');
+          _logger.warning(
+            'Swarm.dialPeer: Connection ${conn.id} to peer ${peerId.toString()} is stale/closed',
+          );
         } else {
           healthyConns.add(conn);
         }
       }
-      
+
       // Clean up stale connections
       if (staleConns.isNotEmpty) {
-        _logger.warning('Swarm.dialPeer: Cleaning up ${staleConns.length} stale connection(s) for peer ${peerId.toString()}');
+        _logger.warning(
+          'Swarm.dialPeer: Cleaning up ${staleConns.length} stale connection(s) for peer ${peerId.toString()}',
+        );
         for (final staleConn in staleConns) {
           // Remove from connections map without calling full removeConnection to avoid deadlock
           final conns = _connections[peerIDStr] ?? [];
@@ -603,25 +733,35 @@ class Swarm implements Network {
             try {
               await staleConn.close();
             } catch (e) {
-              _logger.warning('Swarm.dialPeer: Error closing stale connection ${staleConn.id}: $e');
+              _logger.warning(
+                'Swarm.dialPeer: Error closing stale connection ${staleConn.id}: $e',
+              );
             }
           });
         }
       }
-      
+
       if (healthyConns.isNotEmpty) {
-        _logger.warning('Swarm.dialPeer: Found healthy connection for peer ${peerId.toString()}. Returning connection ID: ${healthyConns.first.id}');
+        _logger.warning(
+          'Swarm.dialPeer: Found healthy connection for peer ${peerId.toString()}. Returning connection ID: ${healthyConns.first.id}',
+        );
         return healthyConns.first;
       } else {
-        _logger.warning('Swarm.dialPeer: No healthy connections found for peer ${peerId.toString()}. Will create new connection.');
+        _logger.warning(
+          'Swarm.dialPeer: No healthy connections found for peer ${peerId.toString()}. Will create new connection.',
+        );
       }
     }
-    _logger.warning('Swarm.dialPeer: No existing connection found for peer ${peerId.toString()}. Attempting new dial.');
+    _logger.warning(
+      'Swarm.dialPeer: No existing connection found for peer ${peerId.toString()}. Attempting new dial.',
+    );
 
     // Get addresses for the peer
     final allAddrs = await _peerstore.addrBook.addrs(peerId);
     if (allAddrs.isEmpty) {
-      _logger.warning('Swarm.dialPeer: No addresses found in peerstore for peer: $peerId');
+      _logger.warning(
+        'Swarm.dialPeer: No addresses found in peerstore for peer: $peerId',
+      );
       throw Exception('No addresses found for peer: $peerId');
     }
 
@@ -639,11 +779,15 @@ class Swarm implements Network {
     }).toList();
 
     if (dialableAddrs.isEmpty) {
-      _logger.warning('Swarm.dialPeer: No dialable addresses found for peer: $peerId. Original addrs: $allAddrs');
+      _logger.warning(
+        'Swarm.dialPeer: No dialable addresses found for peer: $peerId. Original addrs: $allAddrs',
+      );
       throw Exception('No dialable addresses found for peer: $peerId');
     }
 
-    _logger.warning('Swarm.dialPeer: Found dialable addresses for peer $peerId: $dialableAddrs. Trying them...');
+    _logger.warning(
+      'Swarm.dialPeer: Found dialable addresses for peer $peerId: $dialableAddrs. Trying them...',
+    );
 
     // Try each address until we connect
     Exception? lastError;
@@ -674,21 +818,24 @@ class Swarm implements Network {
             connection: transportConn as TransportConn,
             remotePeerId: peerId, // The target peerId
             config: _config,
-            remoteAddr: transportConn.remoteMultiaddr, // The address we dialed on the transport
+            remoteAddr: transportConn
+                .remoteMultiaddr, // The address we dialed on the transport
           );
         } catch (e, s) {
-          _logger.warning('Outbound connection upgrade failed for $peerId at $addr: $e\n$s');
+          _logger.warning(
+            'Outbound connection upgrade failed for $peerId at $addr: $e\n$s',
+          );
           await transportConn.close(); // Close the raw transport connection
           lastError = e is Exception ? e : Exception(e.toString());
           continue; // Try next address
         }
-        
+
         // Obtain a ConnManagementScope for the new outbound connection
         // The endpoint is the remote multiaddress of the UPGRADED connection.
         final connManagementScope = await _resourceManager.openConnection(
           Direction.outbound,
           true, // usefd
-          upgradedConn.remoteMultiaddr, 
+          upgradedConn.remoteMultiaddr,
         );
 
         // Set peer on scope (remotePeerId should be available from upgradedConn)
@@ -701,7 +848,8 @@ class Swarm implements Network {
           id: connID.toString(),
           conn: upgradedConn, // Use the UPGRADED connection
           localPeer: _localPeer, // Swarm's local peer
-          remotePeer: upgradedConn.remotePeer, // PeerId from upgraded connection
+          remotePeer:
+              upgradedConn.remotePeer, // PeerId from upgraded connection
           direction: Direction.outbound,
           swarm: this,
           managementScope: connManagementScope,
@@ -709,22 +857,28 @@ class Swarm implements Network {
 
         // Add the connection to our map
         _logger.warning('=== STORING OUTBOUND CONNECTION ===');
-        _logger.warning('Storing connection for peer: ${upgradedConn.remotePeer}');
+        _logger.warning(
+          'Storing connection for peer: ${upgradedConn.remotePeer}',
+        );
         _logger.warning('Peer ID toString(): "$peerIDStr"');
-        _logger.warning('Peer ID toBase58(): ${upgradedConn.remotePeer.toBase58()}');
+        _logger.warning(
+          'Peer ID toBase58(): ${upgradedConn.remotePeer.toBase58()}',
+        );
         _logger.warning('Connection ID: ${swarmConn.id}');
         _logger.warning('Target peer we intended to dial: $peerId');
         _logger.warning('Target peer toString(): "${peerId.toString()}"');
         _logger.warning('Target peer toBase58(): ${peerId.toBase58()}');
         _logger.warning('Are they equal? ${upgradedConn.remotePeer == peerId}');
         _logger.warning('=== END STORING OUTBOUND CONNECTION ===');
-        
+
         await _connLock.synchronized(() {
           if (!_connections.containsKey(peerIDStr)) {
             _connections[peerIDStr] = [];
           }
           _connections[peerIDStr]!.add(swarmConn);
-          _logger.warning('Outbound connection stored. Total connections for "$peerIDStr": ${_connections[peerIDStr]!.length}');
+          _logger.warning(
+            'Outbound connection stored. Total connections for "$peerIDStr": ${_connections[peerIDStr]!.length}',
+          );
         });
 
         // Notify connection opened
@@ -889,39 +1043,48 @@ class Swarm implements Network {
   bool _isUnspecifiedAddress(MultiAddr addr) {
     final ip4Val = addr.valueForProtocol('ip4');
     final ip6Val = addr.valueForProtocol('ip6');
-    
+
     // Check for IPv4 unspecified addresses
     if (ip4Val == '0.0.0.0' || ip4Val == '0.0.0.0.0.0') {
       return true;
     }
-    
+
     // Check for IPv6 unspecified addresses
     if (ip6Val == '::' || ip6Val == '0:0:0:0:0:0:0:0') {
       return true;
     }
-    
+
     return false;
   }
 
   /// Event-driven connection health change handler
-  void onConnectionHealthChanged(SwarmConn conn, ConnectionHealthState newState) {
+  void onConnectionHealthChanged(
+    SwarmConn conn,
+    ConnectionHealthState newState,
+  ) {
     final peerIdStr = conn.remotePeer.toString();
     final oldState = _connectionHealthStates[peerIdStr];
     _connectionHealthStates[peerIdStr] = newState;
-    
-    _logger.info('Swarm: Connection health changed for ${conn.remotePeer} (${conn.id}): $oldState -> $newState');
-    
+
+    _logger.info(
+      'Swarm: Connection health changed for ${conn.remotePeer} (${conn.id}): $oldState -> $newState',
+    );
+
     // Handle failed connections immediately
     if (newState == ConnectionHealthState.failed) {
-      _logger.warning('Swarm: Connection ${conn.id} to ${conn.remotePeer} has failed - scheduling immediate removal');
+      _logger.warning(
+        'Swarm: Connection ${conn.id} to ${conn.remotePeer} has failed - scheduling immediate removal',
+      );
       _removeFailedConnection(conn);
     }
   }
-  
+
   /// Immediately removes a failed connection
   Future<void> _removeFailedConnection(SwarmConn conn) async {
     try {
-      _logger.warning('Swarm: Removing failed connection ${conn.id} to ${conn.remotePeer}');
+      _logger.warning(
+        'Swarm: Removing failed connection ${conn.id} to ${conn.remotePeer}',
+      );
       await removeConnection(conn);
       await conn.close();
     } catch (e) {
@@ -944,13 +1107,14 @@ class Swarm implements Network {
 
       // Check event-driven health state
       final peerIdStr = conn.remotePeer.toString();
-      final healthState = _connectionHealthStates[peerIdStr] ?? ConnectionHealthState.unknown;
-      
+      final healthState =
+          _connectionHealthStates[peerIdStr] ?? ConnectionHealthState.unknown;
+
       // If we have health state information, use it
       if (healthState == ConnectionHealthState.failed) {
         return false;
       }
-      
+
       // For degraded connections, do additional checks
       if (healthState == ConnectionHealthState.degraded) {
         // Check if the connection has been degraded for too long
@@ -973,14 +1137,15 @@ class Swarm implements Network {
       return true;
     } catch (e) {
       // If any error occurs during health check, consider connection unhealthy
-      _logger.warning('Swarm._isConnectionHealthy: Error checking connection health for ${conn.id}: $e');
+      _logger.warning(
+        'Swarm._isConnectionHealthy: Error checking connection health for ${conn.id}: $e',
+      );
       return false;
     }
   }
 
   /// Starts the connection health monitoring system
-  void _startConnectionHealthMonitoring() {
-  }
+  void _startConnectionHealthMonitoring() {}
 
   /// Proactively cleans up stale connections
   Future<void> _cleanupStaleConnections() async {
@@ -995,13 +1160,15 @@ class Swarm implements Network {
       for (final entry in _connections.entries) {
         final peerIdStr = entry.key;
         final conns = entry.value;
-        
+
         for (final conn in conns) {
           totalConnections++;
-          
+
           if (conn.isClosed || !_isConnectionHealthy(conn)) {
             staleConnections.add(conn);
-            _logger.fine('Swarm._cleanupStaleConnections: Found stale connection ${conn.id} to peer $peerIdStr');
+            _logger.fine(
+              'Swarm._cleanupStaleConnections: Found stale connection ${conn.id} to peer $peerIdStr',
+            );
           } else {
             healthyConnections++;
           }
@@ -1011,18 +1178,24 @@ class Swarm implements Network {
 
     // Clean up stale connections
     if (staleConnections.isNotEmpty) {
-      _logger.info('Swarm._cleanupStaleConnections: Cleaning up ${staleConnections.length} stale connections ($healthyConnections/$totalConnections healthy)');
-      
+      _logger.info(
+        'Swarm._cleanupStaleConnections: Cleaning up ${staleConnections.length} stale connections ($healthyConnections/$totalConnections healthy)',
+      );
+
       for (final staleConn in staleConnections) {
         try {
           await removeConnection(staleConn);
           await staleConn.close();
         } catch (e) {
-          _logger.warning('Swarm._cleanupStaleConnections: Error cleaning up stale connection ${staleConn.id}: $e');
+          _logger.warning(
+            'Swarm._cleanupStaleConnections: Error cleaning up stale connection ${staleConn.id}: $e',
+          );
         }
       }
     } else if (totalConnections > 0) {
-      _logger.fine('Swarm._cleanupStaleConnections: All $totalConnections connections are healthy');
+      _logger.fine(
+        'Swarm._cleanupStaleConnections: All $totalConnections connections are healthy',
+      );
     }
   }
 }

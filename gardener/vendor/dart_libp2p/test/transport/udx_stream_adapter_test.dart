@@ -14,7 +14,15 @@ import 'package:mockito/mockito.dart';
 
 import 'udx_stream_adapter_test.mocks.dart';
 
-@GenerateMocks([UDXStream, UDXSessionConn, UDPSocket, UDX, UDXTransport, ConnManager, UDXMultiplexer])
+@GenerateMocks([
+  UDXStream,
+  UDXSessionConn,
+  UDPSocket,
+  UDX,
+  UDXTransport,
+  ConnManager,
+  UDXMultiplexer,
+])
 void main() {
   group('UDXP2PStreamAdapter', () {
     late MockUDXStream mockUdxStream;
@@ -31,7 +39,9 @@ void main() {
 
       when(mockUdxStream.id).thenReturn(1);
       when(mockUdxStream.data).thenAnswer((_) => udxDataController.stream);
-      when(mockUdxStream.closeEvents).thenAnswer((_) => udxCloseController.stream);
+      when(
+        mockUdxStream.closeEvents,
+      ).thenAnswer((_) => udxCloseController.stream);
       when(mockParentConn.notifyActivity()).thenAnswer((_) {});
 
       adapter = UDXP2PStreamAdapter(
@@ -66,9 +76,9 @@ void main() {
 
     test('read() waits for data if buffer is empty', () async {
       final testData = Uint8List.fromList([4, 5, 6]);
-      
+
       final readFuture = adapter.read();
-      
+
       // Ensure read is waiting
       await Future.delayed(const Duration(milliseconds: 50));
       udxDataController.add(testData);
@@ -89,27 +99,31 @@ void main() {
       expect(part2, equals(Uint8List.fromList([4, 5])));
     });
 
-    test('read() returns EOF when stream is closed and buffer is empty', () async {
-      await udxDataController.close();
-      await adapter.close();
+    test(
+      'read() returns EOF when stream is closed and buffer is empty',
+      () async {
+        await udxDataController.close();
+        await adapter.close();
 
-      final result = await adapter.read();
-      expect(result, isEmpty);
-    });
+        final result = await adapter.read();
+        expect(result, isEmpty);
+      },
+    );
 
-    test('read() throws TimeoutException if no data arrives', () async {
-      final readFuture = adapter.read();
-      
-      expect(
-        () async => await readFuture,
-        throwsA(isA<TimeoutException>()),
-      );
-    }, timeout: const Timeout(Duration(seconds: 31))); // Test timeout needs to be longer than read timeout
+    test(
+      'read() throws TimeoutException if no data arrives',
+      () async {
+        final readFuture = adapter.read();
+
+        expect(() async => await readFuture, throwsA(isA<TimeoutException>()));
+      },
+      timeout: const Timeout(Duration(seconds: 31)),
+    ); // Test timeout needs to be longer than read timeout
 
     test('write() sends data to udx stream', () async {
       final testData = Uint8List.fromList([7, 8, 9]);
       when(mockUdxStream.add(any)).thenAnswer((_) async {});
-      
+
       await adapter.write(testData);
 
       verify(mockUdxStream.add(testData)).called(1);
@@ -118,7 +132,7 @@ void main() {
 
     test('write() throws StateError if stream is closed', () async {
       await adapter.close();
-      
+
       expect(
         () async => await adapter.write([1, 2, 3]),
         throwsA(isA<StateError>()),
@@ -127,7 +141,7 @@ void main() {
 
     test('close() closes the stream and underlying resources', () async {
       when(mockUdxStream.close()).thenAnswer((_) async {});
-      
+
       await adapter.close();
 
       expect(adapter.isClosed, isTrue);
@@ -137,7 +151,7 @@ void main() {
 
     test('reset() closes the stream with an error', () async {
       when(mockUdxStream.close()).thenAnswer((_) async {});
-      
+
       // Call reset() to get the future, but don't await it yet.
       final resetFuture = adapter.reset();
 
@@ -153,7 +167,7 @@ void main() {
 
     test('remote close event closes the adapter', () async {
       when(mockUdxStream.close()).thenAnswer((_) async {});
-      
+
       udxCloseController.add(null);
       await adapter.onClose;
 
@@ -178,7 +192,9 @@ void main() {
       mockConnManager = MockConnManager();
       connectionsController = StreamController<UDPSocket>.broadcast();
 
-      when(mockMultiplexer.connections).thenAnswer((_) => connectionsController.stream);
+      when(
+        mockMultiplexer.connections,
+      ).thenAnswer((_) => connectionsController.stream);
       when(mockMultiplexer.close()).thenAnswer((_) async {});
       when(mockConnManager.registerConnection(any)).thenReturn(true);
       when(mockSocket.getStreamBuffer()).thenReturn(<UDXStream>[]);
@@ -190,21 +206,22 @@ void main() {
         boundAddr: MultiAddr('/ip4/127.0.0.1/udp/12345/udx'),
         transport: mockTransport,
         connManager: mockConnManager,
-        sessionConnFactory: ({
-          required udpSocket,
-          required initialStream,
-          required localMultiaddr,
-          required remoteMultiaddr,
-          required transport,
-          required connManager,
-          required isDialer,
-          required onClosed,
-        }) {
-          final mockConn = MockUDXSessionConn();
-          when(mockConn.id).thenReturn('mock-conn-id');
-          when(mockConn.close()).thenAnswer((_) async {});
-          return mockConn;
-        },
+        sessionConnFactory:
+            ({
+              required udpSocket,
+              required initialStream,
+              required localMultiaddr,
+              required remoteMultiaddr,
+              required transport,
+              required connManager,
+              required isDialer,
+              required onClosed,
+            }) {
+              final mockConn = MockUDXSessionConn();
+              when(mockConn.id).thenReturn('mock-conn-id');
+              when(mockConn.close()).thenAnswer((_) async {});
+              return mockConn;
+            },
       );
     });
 
@@ -223,24 +240,26 @@ void main() {
     test('handles incoming connection and creates a session', () async {
       final mockIncomingUdxStream = MockUDXStream();
       final streamController = StreamController<UDXEvent>.broadcast();
-      
+
       when(mockIncomingUdxStream.id).thenReturn(100);
       when(mockIncomingUdxStream.close()).thenAnswer((_) async {});
-      when(mockSocket.remoteAddress).thenReturn(InternetAddress('192.168.1.10'));
+      when(
+        mockSocket.remoteAddress,
+      ).thenReturn(InternetAddress('192.168.1.10'));
       when(mockSocket.remotePort).thenReturn(54321);
       when(mockSocket.on('stream')).thenAnswer((_) => streamController.stream);
       when(mockSocket.close()).thenAnswer((_) async {});
 
       final event = UDXEvent('stream', mockIncomingUdxStream);
-      
+
       final acceptFuture = listener.accept();
-      
+
       // Simulate new connection from multiplexer
       connectionsController.add(mockSocket);
-      
+
       // Add a small delay to ensure the listener subscription is set up
       await Future.delayed(const Duration(milliseconds: 10));
-      
+
       // Simulate initial stream on that connection
       streamController.add(event);
 
@@ -248,17 +267,19 @@ void main() {
 
       expect(conn, isA<MockUDXSessionConn>());
       verify(mockConnManager.registerConnection(any)).called(1);
-      
+
       await streamController.close();
     });
 
     test('ignores incoming connection if listener is closed', () async {
       when(mockSocket.close()).thenAnswer((_) async {});
-      when(mockSocket.remoteAddress).thenReturn(InternetAddress('192.168.1.10'));
+      when(
+        mockSocket.remoteAddress,
+      ).thenReturn(InternetAddress('192.168.1.10'));
       when(mockSocket.remotePort).thenReturn(54321);
-      
+
       await listener.close();
-      
+
       connectionsController.add(mockSocket);
       await Future.delayed(Duration.zero);
 

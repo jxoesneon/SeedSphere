@@ -28,34 +28,43 @@ class NoiseExtensions extends $pb.GeneratedMessage {
     return $result;
   }
   NoiseExtensions._() : super();
-  factory NoiseExtensions.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory NoiseExtensions.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+  factory NoiseExtensions.fromBuffer($core.List<$core.int> i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(i, r);
+  factory NoiseExtensions.fromJson($core.String i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(i, r);
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'NoiseExtensions', package: const $pb.PackageName(_omitMessageNames ? '' : 'noise.pb'), createEmptyInstance: create)
-    ..p<$core.List<$core.int>>(1, _omitFieldNames ? '' : 'webtransportCerthashes', $pb.PbFieldType.PY)
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'NoiseExtensions',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'noise.pb'),
+      createEmptyInstance: create)
+    ..p<$core.List<$core.int>>(
+        1, _omitFieldNames ? '' : 'webtransportCerthashes', $pb.PbFieldType.PY)
     ..pPS(2, _omitFieldNames ? '' : 'streamMuxers')
-    ..hasRequiredFields = false
-  ;
+    ..hasRequiredFields = false;
 
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-  'Will be removed in next major version')
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+      'Will be removed in next major version')
   NoiseExtensions clone() => NoiseExtensions()..mergeFromMessage(this);
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-  'Will be removed in next major version')
-  NoiseExtensions copyWith(void Function(NoiseExtensions) updates) => super.copyWith((message) => updates(message as NoiseExtensions)) as NoiseExtensions;
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+      'Will be removed in next major version')
+  NoiseExtensions copyWith(void Function(NoiseExtensions) updates) =>
+      super.copyWith((message) => updates(message as NoiseExtensions))
+          as NoiseExtensions;
 
   $pb.BuilderInfo get info_ => _i;
 
   @$core.pragma('dart2js:noInline')
   static NoiseExtensions create() => NoiseExtensions._();
   NoiseExtensions createEmptyInstance() => create();
-  static $pb.PbList<NoiseExtensions> createRepeated() => $pb.PbList<NoiseExtensions>();
+  static $pb.PbList<NoiseExtensions> createRepeated() =>
+      $pb.PbList<NoiseExtensions>();
   @$core.pragma('dart2js:noInline')
-  static NoiseExtensions getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<NoiseExtensions>(create);
+  static NoiseExtensions getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<NoiseExtensions>(create);
   static NoiseExtensions? _defaultInstance;
 
   @$pb.TagNumber(1)
@@ -88,42 +97,59 @@ class NoiseHandshakePayload extends $pb.GeneratedMessage {
     return $result;
   }
   NoiseHandshakePayload._() : super();
-  factory NoiseHandshakePayload.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory NoiseHandshakePayload.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+  factory NoiseHandshakePayload.fromBuffer($core.List<$core.int> i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(i, r);
+  factory NoiseHandshakePayload.fromJson($core.String i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(i, r);
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'NoiseHandshakePayload', package: const $pb.PackageName(_omitMessageNames ? '' : 'noise.pb'), createEmptyInstance: create)
-    ..a<$core.List<$core.int>>(1, _omitFieldNames ? '' : 'identityKey', $pb.PbFieldType.OY)
-    ..a<$core.List<$core.int>>(2, _omitFieldNames ? '' : 'identitySig', $pb.PbFieldType.OY)
-    ..a<$core.List<$core.int>>(3, _omitFieldNames ? '' : 'staticKey', $pb.PbFieldType.OY)
-    ..aOM<NoiseExtensions>(4, _omitFieldNames ? '' : 'extensions', subBuilder: NoiseExtensions.create)
-    ..hasRequiredFields = false
-  ;
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'NoiseHandshakePayload',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'noise.pb'),
+      createEmptyInstance: create)
+    ..a<$core.List<$core.int>>(
+        1, _omitFieldNames ? '' : 'identityKey', $pb.PbFieldType.OY)
+    ..a<$core.List<$core.int>>(
+        2, _omitFieldNames ? '' : 'identitySig', $pb.PbFieldType.OY)
+    ..a<$core.List<$core.int>>(
+        3, _omitFieldNames ? '' : 'staticKey', $pb.PbFieldType.OY)
+    ..aOM<NoiseExtensions>(4, _omitFieldNames ? '' : 'extensions',
+        subBuilder: NoiseExtensions.create)
+    ..hasRequiredFields = false;
 
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-  'Will be removed in next major version')
-  NoiseHandshakePayload clone() => NoiseHandshakePayload()..mergeFromMessage(this);
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-  'Will be removed in next major version')
-  NoiseHandshakePayload copyWith(void Function(NoiseHandshakePayload) updates) => super.copyWith((message) => updates(message as NoiseHandshakePayload)) as NoiseHandshakePayload;
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+      'Will be removed in next major version')
+  NoiseHandshakePayload clone() =>
+      NoiseHandshakePayload()..mergeFromMessage(this);
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+      'Will be removed in next major version')
+  NoiseHandshakePayload copyWith(
+          void Function(NoiseHandshakePayload) updates) =>
+      super.copyWith((message) => updates(message as NoiseHandshakePayload))
+          as NoiseHandshakePayload;
 
   $pb.BuilderInfo get info_ => _i;
 
   @$core.pragma('dart2js:noInline')
   static NoiseHandshakePayload create() => NoiseHandshakePayload._();
   NoiseHandshakePayload createEmptyInstance() => create();
-  static $pb.PbList<NoiseHandshakePayload> createRepeated() => $pb.PbList<NoiseHandshakePayload>();
+  static $pb.PbList<NoiseHandshakePayload> createRepeated() =>
+      $pb.PbList<NoiseHandshakePayload>();
   @$core.pragma('dart2js:noInline')
-  static NoiseHandshakePayload getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<NoiseHandshakePayload>(create);
+  static NoiseHandshakePayload getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<NoiseHandshakePayload>(create);
   static NoiseHandshakePayload? _defaultInstance;
 
   @$pb.TagNumber(1)
   $core.List<$core.int> get identityKey => $_getN(0);
   @$pb.TagNumber(1)
-  set identityKey($core.List<$core.int> v) { $_setBytes(0, v); }
+  set identityKey($core.List<$core.int> v) {
+    $_setBytes(0, v);
+  }
+
   @$pb.TagNumber(1)
   $core.bool hasIdentityKey() => $_has(0);
   @$pb.TagNumber(1)
@@ -132,7 +158,10 @@ class NoiseHandshakePayload extends $pb.GeneratedMessage {
   @$pb.TagNumber(2)
   $core.List<$core.int> get identitySig => $_getN(1);
   @$pb.TagNumber(2)
-  set identitySig($core.List<$core.int> v) { $_setBytes(1, v); }
+  set identitySig($core.List<$core.int> v) {
+    $_setBytes(1, v);
+  }
+
   @$pb.TagNumber(2)
   $core.bool hasIdentitySig() => $_has(1);
   @$pb.TagNumber(2)
@@ -141,7 +170,10 @@ class NoiseHandshakePayload extends $pb.GeneratedMessage {
   @$pb.TagNumber(3)
   $core.List<$core.int> get staticKey => $_getN(2);
   @$pb.TagNumber(3)
-  set staticKey($core.List<$core.int> v) { $_setBytes(2, v); }
+  set staticKey($core.List<$core.int> v) {
+    $_setBytes(2, v);
+  }
+
   @$pb.TagNumber(3)
   $core.bool hasStaticKey() => $_has(2);
   @$pb.TagNumber(3)
@@ -150,7 +182,10 @@ class NoiseHandshakePayload extends $pb.GeneratedMessage {
   @$pb.TagNumber(4)
   NoiseExtensions get extensions => $_getN(3);
   @$pb.TagNumber(4)
-  set extensions(NoiseExtensions v) { setField(4, v); }
+  set extensions(NoiseExtensions v) {
+    setField(4, v);
+  }
+
   @$pb.TagNumber(4)
   $core.bool hasExtensions() => $_has(3);
   @$pb.TagNumber(4)
@@ -159,6 +194,6 @@ class NoiseHandshakePayload extends $pb.GeneratedMessage {
   NoiseExtensions ensureExtensions() => $_ensure(3);
 }
 
-
 const _omitFieldNames = $core.bool.fromEnvironment('protobuf.omit_field_names');
-const _omitMessageNames = $core.bool.fromEnvironment('protobuf.omit_message_names');
+const _omitMessageNames =
+    $core.bool.fromEnvironment('protobuf.omit_message_names');

@@ -16,21 +16,22 @@ import 'package:protobuf/protobuf.dart' as $pb;
 class KeyType extends $pb.ProtobufEnum {
   static const KeyType RSA = KeyType._(0, _omitEnumNames ? '' : 'RSA');
   static const KeyType Ed25519 = KeyType._(1, _omitEnumNames ? '' : 'Ed25519');
-  static const KeyType Secp256k1 = KeyType._(2, _omitEnumNames ? '' : 'Secp256k1');
+  static const KeyType Secp256k1 =
+      KeyType._(2, _omitEnumNames ? '' : 'Secp256k1');
   static const KeyType ECDSA = KeyType._(3, _omitEnumNames ? '' : 'ECDSA');
 
-  static const $core.List<KeyType> values = <KeyType> [
+  static const $core.List<KeyType> values = <KeyType>[
     RSA,
     Ed25519,
     Secp256k1,
     ECDSA,
   ];
 
-  static final $core.Map<$core.int, KeyType> _byValue = $pb.ProtobufEnum.initByValue(values);
+  static final $core.Map<$core.int, KeyType> _byValue =
+      $pb.ProtobufEnum.initByValue(values);
   static KeyType? valueOf($core.int value) => _byValue[value];
 
   const KeyType._($core.int v, $core.String n) : super(v, n);
 }
-
 
 const _omitEnumNames = $core.bool.fromEnvironment('protobuf.omit_enum_names');

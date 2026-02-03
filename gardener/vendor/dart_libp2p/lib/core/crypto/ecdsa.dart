@@ -30,18 +30,20 @@ class EcdsaPublicKey implements p2pkeys.PublicKey {
     try {
       final parser = pc.ASN1Parser(bytes);
       final asn1Sequence = parser.nextObject() as pc.ASN1Sequence;
-      
+
       // Extract the x and y coordinates
       final x = (asn1Sequence.elements![0] as pc.ASN1Integer).integer!;
       final y = (asn1Sequence.elements![1] as pc.ASN1Integer).integer!;
-      
+
       // Create the public key
       final curve = ECCurve_secp256r1();
       final point = curve.curve.createPoint(x, y);
-      
+
       return EcdsaPublicKey(ECPublicKey(point, ECDSACurve));
     } catch (e) {
-      throw ECDSAKeyException('Failed to parse ECDSA public key: ${e.toString()}');
+      throw ECDSAKeyException(
+        'Failed to parse ECDSA public key: ${e.toString()}',
+      );
     }
   }
 
@@ -63,28 +65,27 @@ class EcdsaPublicKey implements p2pkeys.PublicKey {
     try {
       // Get the point Q from the public key
       final q = _key.Q!;
-      
+
       // Get the x and y coordinates as bytes
       final x = q.x!.toBigInteger()!;
       final y = q.y!.toBigInteger()!;
-      
+
       // Create a simple ASN.1 sequence with the x and y coordinates
       final asn1Sequence = pc.ASN1Sequence();
       asn1Sequence.add(pc.ASN1Integer(x));
       asn1Sequence.add(pc.ASN1Integer(y));
-      
+
       return Uint8List.fromList(asn1Sequence.encode());
     } catch (e) {
-      throw ECDSAKeyException('Failed to encode ECDSA public key: ${e.toString()}');
+      throw ECDSAKeyException(
+        'Failed to encode ECDSA public key: ${e.toString()}',
+      );
     }
   }
 
   @override
   Uint8List marshal() {
-    final pbKey = pb.PublicKey(
-      type: type,
-      data: raw,
-    );
+    final pbKey = pb.PublicKey(type: type, data: raw);
     return pbKey.writeToBuffer();
   }
 
@@ -94,20 +95,20 @@ class EcdsaPublicKey implements p2pkeys.PublicKey {
       // Parse the ASN.1 encoded signature
       final parser = pc.ASN1Parser(signature);
       final asn1Sequence = parser.nextObject() as pc.ASN1Sequence;
-      
+
       final r = (asn1Sequence.elements![0] as pc.ASN1Integer).integer!;
       final s = (asn1Sequence.elements![1] as pc.ASN1Integer).integer!;
-      
+
       // Create the signer
       final signer = ECDSASigner(SHA256Digest());
       signer.init(false, PublicKeyParameter<ECPublicKey>(_key));
-      
+
       // Hash the data
       final digest = SHA256Digest();
       final hash = Uint8List(digest.digestSize);
       digest.update(data, 0, data.length);
       digest.doFinal(hash, 0);
-      
+
       // Verify the signature
       return signer.verifySignature(hash, ECSignature(r, s));
     } catch (e) {
@@ -122,9 +123,9 @@ class EcdsaPublicKey implements p2pkeys.PublicKey {
     // Compare the Q points
     final q1 = _key.Q!;
     final q2 = other._key.Q!;
-    
-    return q1.x!.toBigInteger() == q2.x!.toBigInteger() && 
-           q1.y!.toBigInteger() == q2.y!.toBigInteger();
+
+    return q1.x!.toBigInteger() == q2.x!.toBigInteger() &&
+        q1.y!.toBigInteger() == q2.y!.toBigInteger();
   }
 }
 
@@ -140,24 +141,26 @@ class EcdsaPrivateKey implements p2pkeys.PrivateKey {
     try {
       final parser = pc.ASN1Parser(bytes);
       final asn1Sequence = parser.nextObject() as pc.ASN1Sequence;
-      
+
       // Extract the private value (d)
       final d = (asn1Sequence.elements![0] as pc.ASN1Integer).integer!;
-      
+
       // Extract the public key coordinates (if present)
       final x = (asn1Sequence.elements![1] as pc.ASN1Integer).integer!;
       final y = (asn1Sequence.elements![2] as pc.ASN1Integer).integer!;
-      
+
       // Create the public key
       final curve = ECCurve_secp256r1();
       final point = curve.curve.createPoint(x, y);
-      
+
       final privateKey = ECPrivateKey(d, ECDSACurve);
       final publicKey = ECPublicKey(point, ECDSACurve);
-      
+
       return EcdsaPrivateKey(privateKey, EcdsaPublicKey(publicKey));
     } catch (e) {
-      throw ECDSAKeyException('Failed to parse ECDSA private key: ${e.toString()}');
+      throw ECDSAKeyException(
+        'Failed to parse ECDSA private key: ${e.toString()}',
+      );
     }
   }
 
@@ -168,7 +171,7 @@ class EcdsaPrivateKey implements p2pkeys.PrivateKey {
     if (pbKey.type != pb.KeyType.ECDSA) {
       throw FormatException('Not an ECDSA private key');
     }
-    
+
     return fromRawBytes(Uint8List.fromList(pbKey.data));
   }
 
@@ -180,28 +183,27 @@ class EcdsaPrivateKey implements p2pkeys.PrivateKey {
     try {
       // Get the private value
       final d = _key.d!;
-      
+
       // Get the public key point
       final q = _publicKey._key.Q!;
-      
+
       // Create a simple ASN.1 sequence with the private value and public key coordinates
       final asn1Sequence = pc.ASN1Sequence();
       asn1Sequence.add(pc.ASN1Integer(d));
       asn1Sequence.add(pc.ASN1Integer(q.x!.toBigInteger()!));
       asn1Sequence.add(pc.ASN1Integer(q.y!.toBigInteger()!));
-      
+
       return Uint8List.fromList(asn1Sequence.encode());
     } catch (e) {
-      throw ECDSAKeyException('Failed to encode ECDSA private key: ${e.toString()}');
+      throw ECDSAKeyException(
+        'Failed to encode ECDSA private key: ${e.toString()}',
+      );
     }
   }
 
   @override
   Uint8List marshal() {
-    final pbKey = pb.PrivateKey(
-      type: type,
-      data: raw,
-    );
+    final pbKey = pb.PrivateKey(type: type, data: raw);
     return pbKey.writeToBuffer();
   }
 
@@ -211,21 +213,21 @@ class EcdsaPrivateKey implements p2pkeys.PrivateKey {
       // Create the signer
       final signer = ECDSASigner(SHA256Digest());
       signer.init(true, PrivateKeyParameter<ECPrivateKey>(_key));
-      
+
       // Hash the data
       final digest = SHA256Digest();
       final hash = Uint8List(digest.digestSize);
       digest.update(data, 0, data.length);
       digest.doFinal(hash, 0);
-      
+
       // Sign the hash
       final signature = signer.generateSignature(hash) as ECSignature;
-      
+
       // Encode the signature in ASN.1 DER format
       final asn1Sequence = pc.ASN1Sequence();
       asn1Sequence.add(pc.ASN1Integer(signature.r));
       asn1Sequence.add(pc.ASN1Integer(signature.s));
-      
+
       return Uint8List.fromList(asn1Sequence.encode());
     } catch (e) {
       throw ECDSAKeyException('Failed to sign data: ${e.toString()}');
@@ -238,11 +240,11 @@ class EcdsaPrivateKey implements p2pkeys.PrivateKey {
   @override
   Future<bool> equals(p2pkeys.PrivateKey other) async {
     if (other is! EcdsaPrivateKey) return false;
-    
+
     // Compare public keys
     final publicKeyEquals = await _publicKey.equals(other.publicKey);
     if (!publicKeyEquals) return false;
-    
+
     // Compare private values
     return _key.d == other._key.d;
   }
@@ -254,9 +256,9 @@ Future<p2pkeys.KeyPair> generateEcdsaKeyPair() async {
   final keyPair = await generateEcdsaKeyPair();
   final publicKey = keyPair.publicKey as ECPublicKey;
   final privateKey = keyPair.privateKey as ECPrivateKey;
-  
+
   final ecdsaPublicKey = EcdsaPublicKey(publicKey);
   final ecdsaPrivateKey = EcdsaPrivateKey(privateKey, ecdsaPublicKey);
-  
+
   return p2pkeys.KeyPair(ecdsaPublicKey, ecdsaPrivateKey);
 }

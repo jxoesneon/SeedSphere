@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:typed_data';
 import 'dart:math';
+import 'package:logging/logging.dart';
 import 'package:pointycastle/export.dart';
 
 /// Utility class for cryptographic operations (AES-GCM encryption/decryption).
@@ -11,6 +12,7 @@ class CryptoHelper {
   static const int _iterations =
       600000; // OWASP recommendation for PBKDF2-HMAC-SHA256
   static const int _keyLength = 32; // 256-bit key
+  static final Logger _logger = Logger('CryptoHelper');
 
   static SecureRandom _getSecureRandom() {
     final secureRandom = FortunaRandom();
@@ -60,7 +62,7 @@ class CryptoHelper {
 
       return base64Encode(combined);
     } catch (e) {
-      print('Encryption error: $e');
+      _logger.warning('Encryption error: $e');
       throw Exception('Encryption failed');
     }
   }
@@ -107,7 +109,7 @@ class CryptoHelper {
       // But user said "proceed with all" implies fix. Breaking change IS the fix usually.
       // I will assume breaking change is acceptable or I'd need to try-catch-fallback.
       // Let's stick to secure only.
-      print('Decryption error: $e');
+      _logger.warning('Decryption error: $e');
       throw Exception('Decryption failed (Invalid Key or Corrupt Data)');
     }
   }

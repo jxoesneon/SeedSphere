@@ -37,8 +37,8 @@ class Envelope {
     required this.payloadType,
     required Uint8List rawPayload,
     required Uint8List signature,
-  })  : _signature = signature,
-        rawPayload = Uint8List.fromList(rawPayload);
+  }) : _signature = signature,
+       rawPayload = Uint8List.fromList(rawPayload);
 
   /// Creates a new envelope by marshaling the given [RecordBase], placing the marshaled bytes
   /// inside an [Envelope], and signing with the given private key.
@@ -55,7 +55,11 @@ class Envelope {
       throw Exception('payloadType must not be empty');
     }
 
-    final unsigned = _makeUnsigned(domain, Uint8List.fromList(payloadType), Uint8List.fromList(payload));
+    final unsigned = _makeUnsigned(
+      domain,
+      Uint8List.fromList(payloadType),
+      Uint8List.fromList(payload),
+    );
     final sig = await privateKey.sign(unsigned);
 
     return Envelope(
@@ -68,17 +72,25 @@ class Envelope {
 
   /// Unmarshals a serialized [Envelope] and validates its signature using the provided 'domain' string.
   /// If validation fails, an error is returned.
-  static Future<(Envelope, RecordBase)> consumeEnvelope( Uint8List data, String domain) async {
+  static Future<(Envelope, RecordBase)> consumeEnvelope(
+    Uint8List data,
+    String domain,
+  ) async {
     final e = unmarshalEnvelopeFromProto(data);
     await e.validate(domain);
-    final rec = PeerRecord.fromProtobufBytes((await e.record()).writeToBuffer());
+    final rec = PeerRecord.fromProtobufBytes(
+      (await e.record()).writeToBuffer(),
+    );
     return (e, rec);
   }
 
   /// Unmarshals a serialized [Envelope] and validates its signature.
   /// Unlike [consumeEnvelope], this method does not try to automatically determine
   /// the type of RecordBase to unmarshal the Envelope's payload into.
-  static Future<Envelope> consumeTypedEnvelope<T extends RecordBase>( Uint8List data, RecordBase destRecord) async {
+  static Future<Envelope> consumeTypedEnvelope<T extends RecordBase>(
+    Uint8List data,
+    RecordBase destRecord,
+  ) async {
     final e = unmarshalEnvelopeFromProto(data);
     try {
       await e.validate(destRecord.domain());
@@ -87,13 +99,10 @@ class Envelope {
       e._cached = pb.PeerRecord.fromBuffer(destRecord.marshalRecord());
 
       return e;
-    }catch (e){
-
-    }
+    } catch (e) {}
 
     return e;
   }
-
 
   /// Returns a byte slice containing a serialized protobuf representation of an [Envelope].
   Future<Uint8List> marshal() async {
@@ -151,12 +160,11 @@ class Envelope {
 
   /// Helper function that prepares a buffer to sign or verify.
   static Uint8List _makeUnsigned(
-      String domain, Uint8List payloadType, Uint8List payload) {
-    final fields = [
-      Uint8List.fromList(domain.codeUnits),
-      payloadType,
-      payload
-    ];
+    String domain,
+    Uint8List payloadType,
+    Uint8List payload,
+  ) {
+    final fields = [Uint8List.fromList(domain.codeUnits), payloadType, payload];
 
     // Calculate total size needed
     var size = 0;
@@ -188,7 +196,6 @@ class Envelope {
     return true;
   }
 }
-
 
 /// Unmarshals a serialized [Envelope] protobuf message,
 /// without validating its contents.

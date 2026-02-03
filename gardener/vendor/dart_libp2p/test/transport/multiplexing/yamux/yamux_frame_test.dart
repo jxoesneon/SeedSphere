@@ -8,7 +8,7 @@ void main() {
     test('creates data frame correctly', () {
       final data = Uint8List.fromList([1, 2, 3, 4, 5]);
       final frame = YamuxFrame.createData(1, data);
-      
+
       expect(frame.type, equals(YamuxFrameType.dataFrame));
       expect(frame.flags, equals(0));
       expect(frame.streamId, equals(1));
@@ -18,17 +18,20 @@ void main() {
 
     test('creates window update frame correctly', () {
       final frame = YamuxFrame.windowUpdate(1, 1024);
-      
+
       expect(frame.type, equals(YamuxFrameType.windowUpdate));
       expect(frame.flags, equals(0));
       expect(frame.streamId, equals(1));
       expect(frame.length, equals(4));
-      expect(frame.data.buffer.asByteData().getUint32(0, Endian.big), equals(1024));
+      expect(
+        frame.data.buffer.asByteData().getUint32(0, Endian.big),
+        equals(1024),
+      );
     });
 
     test('creates new stream frame correctly', () {
       final frame = YamuxFrame.newStream(1);
-      
+
       expect(frame.type, equals(YamuxFrameType.newStream));
       expect(frame.flags, equals(YamuxFlags.syn));
       expect(frame.streamId, equals(1));
@@ -38,7 +41,7 @@ void main() {
 
     test('creates reset frame correctly', () {
       final frame = YamuxFrame.reset(1);
-      
+
       expect(frame.type, equals(YamuxFrameType.reset));
       expect(frame.flags, equals(YamuxFlags.rst));
       expect(frame.streamId, equals(1));
@@ -48,32 +51,41 @@ void main() {
 
     test('creates ping frame correctly', () {
       final frame = YamuxFrame.ping(false, 42);
-      
+
       expect(frame.type, equals(YamuxFrameType.ping));
       expect(frame.flags, equals(0));
       expect(frame.streamId, equals(0));
       expect(frame.length, equals(8));
-      expect(frame.data.buffer.asByteData().getUint64(0, Endian.big), equals(42));
+      expect(
+        frame.data.buffer.asByteData().getUint64(0, Endian.big),
+        equals(42),
+      );
     });
 
     test('creates ping ack frame correctly', () {
       final frame = YamuxFrame.ping(true, 42);
-      
+
       expect(frame.type, equals(YamuxFrameType.ping));
       expect(frame.flags, equals(YamuxFlags.ack));
       expect(frame.streamId, equals(0));
       expect(frame.length, equals(8));
-      expect(frame.data.buffer.asByteData().getUint64(0, Endian.big), equals(42));
+      expect(
+        frame.data.buffer.asByteData().getUint64(0, Endian.big),
+        equals(42),
+      );
     });
 
     test('creates go away frame correctly', () {
       final frame = YamuxFrame.goAway(1);
-      
+
       expect(frame.type, equals(YamuxFrameType.goAway));
       expect(frame.flags, equals(0));
       expect(frame.streamId, equals(0));
       expect(frame.length, equals(4));
-      expect(frame.data.buffer.asByteData().getUint32(0, Endian.big), equals(1));
+      expect(
+        frame.data.buffer.asByteData().getUint32(0, Endian.big),
+        equals(1),
+      );
     });
 
     group('frame serialization', () {
@@ -82,7 +94,7 @@ void main() {
         final original = YamuxFrame.createData(1, data);
         final bytes = original.toBytes();
         final decoded = YamuxFrame.fromBytes(bytes);
-        
+
         expect(decoded.type, equals(original.type));
         expect(decoded.flags, equals(original.flags));
         expect(decoded.streamId, equals(original.streamId));
@@ -94,7 +106,7 @@ void main() {
         final original = YamuxFrame.windowUpdate(1, 1024);
         final bytes = original.toBytes();
         final decoded = YamuxFrame.fromBytes(bytes);
-        
+
         expect(decoded.type, equals(original.type));
         expect(decoded.flags, equals(original.flags));
         expect(decoded.streamId, equals(original.streamId));
@@ -103,9 +115,9 @@ void main() {
       });
 
       test('handles invalid frame version', () {
-        final data = Uint8List(12);  // Empty frame with wrong version
-        data[0] = 1;  // Set version to 1 (invalid)
-        
+        final data = Uint8List(12); // Empty frame with wrong version
+        data[0] = 1; // Set version to 1 (invalid)
+
         expect(
           () => YamuxFrame.fromBytes(data),
           throwsA(isA<FormatException>()),
@@ -113,8 +125,8 @@ void main() {
       });
 
       test('handles frame too short', () {
-        final data = Uint8List(11);  // One byte too short
-        
+        final data = Uint8List(11); // One byte too short
+
         expect(
           () => YamuxFrame.fromBytes(data),
           throwsA(isA<FormatException>()),
@@ -122,10 +134,14 @@ void main() {
       });
 
       test('handles data length mismatch', () {
-        final data = Uint8List(16);  // 12 byte header + 4 bytes data
+        final data = Uint8List(16); // 12 byte header + 4 bytes data
         final header = ByteData.view(data.buffer, 0, 12);
-        header.setUint32(8, 8, Endian.big);  // Set length to 8 but only 4 bytes present
-        
+        header.setUint32(
+          8,
+          8,
+          Endian.big,
+        ); // Set length to 8 but only 4 bytes present
+
         expect(
           () => YamuxFrame.fromBytes(data),
           throwsA(isA<FormatException>()),
@@ -133,4 +149,4 @@ void main() {
       });
     });
   });
-} 
+}

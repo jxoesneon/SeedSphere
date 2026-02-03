@@ -44,7 +44,11 @@ class NATEmitter {
   NATEmitter._(Host host, this._observedAddrMgr, this._eventInterval);
 
   /// Factory constructor that creates and initializes a NAT emitter.
-  static Future<NATEmitter> create(Host host, ObservedAddrManager observedAddrMgr, Duration eventInterval) async {
+  static Future<NATEmitter> create(
+    Host host,
+    ObservedAddrManager observedAddrMgr,
+    Duration eventInterval,
+  ) async {
     final emitter = NATEmitter._(host, observedAddrMgr, eventInterval);
     await emitter._initialize(host);
     return emitter;
@@ -53,13 +57,18 @@ class NATEmitter {
   /// Initialize the NAT emitter.
   Future<void> _initialize(Host host) async {
     // Subscribe to reachability events
-    final Subscription subscription = await host.eventBus.subscribe(EvtLocalReachabilityChanged);
+    final Subscription subscription = await host.eventBus.subscribe(
+      EvtLocalReachabilityChanged,
+    );
     _reachabilitySub = subscription.stream.listen((event) {
       _reachability = event.reachability;
     });
 
     // Create emitter for NAT device type changes
-    _emitNATDeviceTypeChanged = await host.eventBus.emitter(EvtNATDeviceTypeChanged, opts: [stateful()]);
+    _emitNATDeviceTypeChanged = await host.eventBus.emitter(
+      EvtNATDeviceTypeChanged,
+      opts: [stateful()],
+    );
 
     // Start the worker
     _startWorker();
@@ -85,18 +94,22 @@ class NATEmitter {
 
       if (tcpNATType != _currentTCPNATDeviceType) {
         _currentTCPNATDeviceType = tcpNATType;
-        _emitNATDeviceTypeChanged.emit(EvtNATDeviceTypeChanged(
-          transportProtocol: NATTransportProtocol.tcp,
-          natDeviceType: _currentTCPNATDeviceType,
-        ));
+        _emitNATDeviceTypeChanged.emit(
+          EvtNATDeviceTypeChanged(
+            transportProtocol: NATTransportProtocol.tcp,
+            natDeviceType: _currentTCPNATDeviceType,
+          ),
+        );
       }
 
       if (udpNATType != _currentUDPNATDeviceType) {
         _currentUDPNATDeviceType = udpNATType;
-        _emitNATDeviceTypeChanged.emit(EvtNATDeviceTypeChanged(
-          transportProtocol: NATTransportProtocol.udp,
-          natDeviceType: _currentUDPNATDeviceType,
-        ));
+        _emitNATDeviceTypeChanged.emit(
+          EvtNATDeviceTypeChanged(
+            transportProtocol: NATTransportProtocol.udp,
+            natDeviceType: _currentUDPNATDeviceType,
+          ),
+        );
       }
     }
   }

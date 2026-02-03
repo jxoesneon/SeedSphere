@@ -1,4 +1,3 @@
-
 import 'dart:async';
 import 'dart:math';
 import 'dart:typed_data';
@@ -9,7 +8,8 @@ import 'package:dart_libp2p/core/crypto/keys.dart';
 import 'package:dart_libp2p/core/multiaddr.dart';
 import 'package:dart_libp2p/core/network/conn.dart';
 import 'package:dart_libp2p/core/network/context.dart' as core_context;
-import 'package:dart_libp2p/core/network/mux.dart' as core_mux_types; // Aliased import
+import 'package:dart_libp2p/core/network/mux.dart'
+    as core_mux_types; // Aliased import
 import 'package:dart_libp2p/core/network/transport_conn.dart';
 import 'package:dart_libp2p/core/peer/peer_id.dart';
 import 'package:dart_libp2p/p2p/host/eventbus/basic.dart';
@@ -23,7 +23,8 @@ import 'package:dart_libp2p/config/stream_muxer.dart'; // For StreamMuxer base c
 import 'package:dart_libp2p/p2p/transport/udx_transport.dart';
 import 'package:dart_udx/dart_udx.dart';
 import 'package:test/test.dart';
-import 'package:dart_libp2p/p2p/transport/connection_manager.dart' as p2p_transport; // Aliased for clarity
+import 'package:dart_libp2p/p2p/transport/connection_manager.dart'
+    as p2p_transport; // Aliased for clarity
 // For type casting if needed
 import 'package:dart_libp2p/p2p/host/resource_manager/resource_manager_impl.dart'; // Added for ResourceManagerImpl
 import 'package:dart_libp2p/p2p/host/resource_manager/limiter.dart'; // Added for FixedLimiter
@@ -36,7 +37,6 @@ import 'package:dart_libp2p/core/peerstore.dart'; // For AddressTTL
 import 'package:dart_libp2p/core/network/network.dart'; // For Network type in TestNotifiee
 import 'package:dart_libp2p/core/network/notifiee.dart'; // For Notifiee interface
 
-
 // Custom AddrsFactory for testing that doesn't filter loopback
 List<MultiAddr> passThroughAddrsFactory(List<MultiAddr> addrs) {
   return addrs;
@@ -47,16 +47,17 @@ class _TestYamuxMuxerProvider extends StreamMuxer {
   final MultiplexerConfig yamuxConfig;
 
   _TestYamuxMuxerProvider({required this.yamuxConfig})
-      : super(
-    id: '/yamux/1.0.0', // Matches YamuxSession.protocolId
-    muxerFactory: (Conn secureConn, bool isClient) {
-      if (secureConn is! TransportConn) {
-        throw ArgumentError(
-            'YamuxMuxer factory expects a TransportConn, got ${secureConn.runtimeType}');
-      }
-      return YamuxSession(secureConn, yamuxConfig, isClient);
-    },
-  );
+    : super(
+        id: '/yamux/1.0.0', // Matches YamuxSession.protocolId
+        muxerFactory: (Conn secureConn, bool isClient) {
+          if (secureConn is! TransportConn) {
+            throw ArgumentError(
+              'YamuxMuxer factory expects a TransportConn, got ${secureConn.runtimeType}',
+            );
+          }
+          return YamuxSession(secureConn, yamuxConfig, isClient);
+        },
+      );
 }
 
 // Helper Notifiee for tests
@@ -132,7 +133,7 @@ void main() {
         maxStreams: 256,
       );
       final muxerDefs = [
-        _TestYamuxMuxerProvider(yamuxConfig: yamuxMultiplexerConfig)
+        _TestYamuxMuxerProvider(yamuxConfig: yamuxMultiplexerConfig),
       ];
 
       final clientSecurity = [await NoiseSecurity.create(clientKeyPair)];
@@ -156,10 +157,14 @@ void main() {
         ..eventBus = eventBus
         ..addrsFactory = passThroughAddrsFactory;
 
-      clientUdxTransport =
-          UDXTransport(connManager: connManager, udxInstance: udxInstance);
-      serverUdxTransport =
-          UDXTransport(connManager: connManager, udxInstance: udxInstance);
+      clientUdxTransport = UDXTransport(
+        connManager: connManager,
+        udxInstance: udxInstance,
+      );
+      serverUdxTransport = UDXTransport(
+        connManager: connManager,
+        udxInstance: udxInstance,
+      );
 
       final clientPeerstore = MemoryPeerstore();
       final serverPeerstore = MemoryPeerstore();
@@ -186,18 +191,22 @@ void main() {
 
       await serverSwarm.listen(serverP2PConfig.listenAddrs);
       expect(serverSwarm.listenAddresses.isNotEmpty, isTrue);
-      serverListenAddr = serverSwarm.listenAddresses.firstWhere((addr) =>
-          addr.hasProtocol(multiaddr_protocol.Protocols.udx.name));
+      serverListenAddr = serverSwarm.listenAddresses.firstWhere(
+        (addr) => addr.hasProtocol(multiaddr_protocol.Protocols.udx.name),
+      );
       print('Server Swarm listening on: $serverListenAddr');
 
-      clientSwarm.peerstore.addrBook.addAddrs(
-          serverPeerId, [serverListenAddr], AddressTTL.permanentAddrTTL);
+      clientSwarm.peerstore.addrBook.addAddrs(serverPeerId, [
+        serverListenAddr,
+      ], AddressTTL.permanentAddrTTL);
       clientSwarm.peerstore.keyBook.addPubKey(
-          serverPeerId, serverKeyPair.publicKey);
+        serverPeerId,
+        serverKeyPair.publicKey,
+      );
 
-      print('Swarm-to-Swarm Setup Complete. Client: ${clientPeerId
-          .toString()}, Server: ${serverPeerId
-          .toString()} listening on $serverListenAddr');
+      print(
+        'Swarm-to-Swarm Setup Complete. Client: ${clientPeerId.toString()}, Server: ${serverPeerId.toString()} listening on $serverListenAddr',
+      );
     });
 
     tearDownAll(() async {
@@ -211,100 +220,119 @@ void main() {
     });
 
     test(
-        'should establish connection, upgrade, and ping directly between Swarms', () async {
-      final Completer<Conn> serverConnCompleter = Completer();
-      serverNotifiee = TestNotifiee(
+      'should establish connection, upgrade, and ping directly between Swarms',
+      () async {
+        final Completer<Conn> serverConnCompleter = Completer();
+        serverNotifiee = TestNotifiee(
           connectedCallback: (network, conn) {
             if (conn.remotePeer.toString() == clientPeerId.toString() &&
                 !serverConnCompleter.isCompleted) {
-              print('Server Swarm Notifiee: Connected to client ${conn
-                  .remotePeer}');
+              print(
+                'Server Swarm Notifiee: Connected to client ${conn.remotePeer}',
+              );
               serverConnCompleter.complete(conn);
             }
-          }
-      );
-      serverSwarm.notify(serverNotifiee!);
+          },
+        );
+        serverSwarm.notify(serverNotifiee!);
 
-      print('Client Swarm (${clientPeerId
-          .toString()}) dialing Server Swarm (${serverPeerId
-          .toString()}) at $serverListenAddr');
-      final Conn clientSwarmConn = await clientSwarm.dialPeer(
-          core_context.Context(), serverPeerId);
-      print('Client Swarm connected to Server. Connection ID: ${clientSwarmConn
-          .id}, Remote: ${clientSwarmConn.remotePeer}');
-      expect(clientSwarmConn.remotePeer.toString(), serverPeerId.toString());
+        print(
+          'Client Swarm (${clientPeerId.toString()}) dialing Server Swarm (${serverPeerId.toString()}) at $serverListenAddr',
+        );
+        final Conn clientSwarmConn = await clientSwarm.dialPeer(
+          core_context.Context(),
+          serverPeerId,
+        );
+        print(
+          'Client Swarm connected to Server. Connection ID: ${clientSwarmConn.id}, Remote: ${clientSwarmConn.remotePeer}',
+        );
+        expect(clientSwarmConn.remotePeer.toString(), serverPeerId.toString());
 
-      final Conn serverSwarmConn = await serverConnCompleter.future.timeout(
+        final Conn serverSwarmConn = await serverConnCompleter.future.timeout(
           Duration(seconds: 10),
+          onTimeout: () => throw TimeoutException(
+            'Server did not receive connection from client in time',
+          ),
+        );
+        print(
+          'Server Swarm received connection from Client. Connection ID: ${serverSwarmConn.id}, Remote: ${serverSwarmConn.remotePeer}',
+        );
+        expect(serverSwarmConn.remotePeer.toString(), clientPeerId.toString());
+
+        late core_network_stream.P2PStream serverP2PStream;
+        final serverAcceptStreamFuture =
+            ((serverSwarmConn as dynamic).conn as core_mux_types.MuxedConn)
+                .acceptStream()
+                .then((stream) {
+                  serverP2PStream =
+                      stream
+                          as core_network_stream.P2PStream; // Cast MuxedStream to P2PStream
+                  print(
+                    'Server Swarm accepted P2PStream: ${serverP2PStream.id()} from ${serverP2PStream.conn.remotePeer}',
+                  );
+                  return serverP2PStream;
+                });
+
+        await Future.delayed(Duration(milliseconds: 100));
+
+        final core_network_stream.P2PStream clientP2PStream =
+            await ((clientSwarmConn as dynamic).conn
+                        as core_mux_types.MuxedConn)
+                    .openStream(core_context.Context())
+                as core_network_stream.P2PStream; // Use openStream, no context, cast MuxedStream
+        print(
+          'Client Swarm opened P2PStream: ${clientP2PStream.id()} to ${clientP2PStream.conn.remotePeer}',
+        );
+
+        await serverAcceptStreamFuture.timeout(
+          Duration(seconds: 5),
           onTimeout: () =>
-          throw TimeoutException(
-              'Server did not receive connection from client in time')
-      );
-      print(
-          'Server Swarm received connection from Client. Connection ID: ${serverSwarmConn
-              .id}, Remote: ${serverSwarmConn.remotePeer}');
-      expect(serverSwarmConn.remotePeer.toString(), clientPeerId.toString());
+              throw TimeoutException('Server did not accept stream in time'),
+        );
 
-      late core_network_stream.P2PStream serverP2PStream;
-      final serverAcceptStreamFuture = ((serverSwarmConn as dynamic)
-          .conn as core_mux_types.MuxedConn).acceptStream().then((stream) {
-        serverP2PStream = stream as core_network_stream
-            .P2PStream; // Cast MuxedStream to P2PStream
-        print('Server Swarm accepted P2PStream: ${serverP2PStream
-            .id()} from ${serverP2PStream.conn.remotePeer}');
-        return serverP2PStream;
-      });
+        expect(clientP2PStream, isNotNull);
+        expect(serverP2PStream, isNotNull);
 
-      await Future.delayed(Duration(milliseconds: 100));
+        final random = Random();
+        final pingData = Uint8List.fromList(
+          List.generate(32, (_) => random.nextInt(256)),
+        );
 
-      final core_network_stream
-          .P2PStream clientP2PStream = await ((clientSwarmConn as dynamic)
-          .conn as core_mux_types.MuxedConn).openStream(
-          core_context.Context()) as core_network_stream
-          .P2PStream; // Use openStream, no context, cast MuxedStream
-      print('Client Swarm opened P2PStream: ${clientP2PStream
-          .id()} to ${clientP2PStream.conn.remotePeer}');
+        print(
+          'Client sending ping data (${pingData.length} bytes) over P2PStream ${clientP2PStream.id()}',
+        );
+        await clientP2PStream.write(pingData);
+        print('Client ping data sent.');
 
-      await serverAcceptStreamFuture.timeout(Duration(seconds: 5),
-          onTimeout: () =>
-          throw TimeoutException(
-              'Server did not accept stream in time'));
+        final receivedOnServer = await serverP2PStream.read().timeout(
+          Duration(seconds: 5),
+        );
+        print(
+          'Server received ${receivedOnServer.length} bytes data over P2PStream ${serverP2PStream.id()}',
+        );
+        expect(receivedOnServer, orderedEquals(pingData));
 
-      expect(clientP2PStream, isNotNull);
-      expect(serverP2PStream, isNotNull);
+        await serverP2PStream.write(receivedOnServer);
+        print('Server echoed data over P2PStream ${serverP2PStream.id()}');
 
-      final random = Random();
-      final pingData = Uint8List.fromList(
-          List.generate(32, (_) => random.nextInt(256)));
+        final echoedToClient = await clientP2PStream.read().timeout(
+          Duration(seconds: 5),
+        );
+        print(
+          'Client received ${echoedToClient.length} echoed data over P2PStream ${clientP2PStream.id()}',
+        );
+        expect(echoedToClient, orderedEquals(pingData));
 
-      print('Client sending ping data (${pingData
-          .length} bytes) over P2PStream ${clientP2PStream.id()}');
-      await clientP2PStream.write(pingData);
-      print('Client ping data sent.');
+        print('Swarm-to-Swarm Ping successful.');
 
-      final receivedOnServer = await serverP2PStream.read().timeout(
-          Duration(seconds: 5));
-      print('Server received ${receivedOnServer
-          .length} bytes data over P2PStream ${serverP2PStream.id()}');
-      expect(receivedOnServer, orderedEquals(pingData));
+        await clientP2PStream.close();
+        await serverP2PStream.close();
 
-      await serverP2PStream.write(receivedOnServer);
-      print('Server echoed data over P2PStream ${serverP2PStream.id()}');
-
-      final echoedToClient = await clientP2PStream.read().timeout(
-          Duration(seconds: 5));
-      print('Client received ${echoedToClient
-          .length} echoed data over P2PStream ${clientP2PStream.id()}');
-      expect(echoedToClient, orderedEquals(pingData));
-
-      print('Swarm-to-Swarm Ping successful.');
-
-      await clientP2PStream.close();
-      await serverP2PStream.close();
-
-      if (serverNotifiee != null) {
-        serverSwarm.stopNotify(serverNotifiee!);
-      }
-    }, timeout: Timeout(Duration(seconds: 30)));
+        if (serverNotifiee != null) {
+          serverSwarm.stopNotify(serverNotifiee!);
+        }
+      },
+      timeout: Timeout(Duration(seconds: 30)),
+    );
   });
 }

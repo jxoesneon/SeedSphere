@@ -33,10 +33,42 @@ final $typed_data.Uint8List dialStatusDescriptor = $convert.base64Decode(
 const Message$json = {
   '1': 'Message',
   '2': [
-    {'1': 'dialRequest', '3': 1, '4': 1, '5': 11, '6': '.autonatv2.pb.DialRequest', '9': 0, '10': 'dialRequest'},
-    {'1': 'dialResponse', '3': 2, '4': 1, '5': 11, '6': '.autonatv2.pb.DialResponse', '9': 0, '10': 'dialResponse'},
-    {'1': 'dialDataRequest', '3': 3, '4': 1, '5': 11, '6': '.autonatv2.pb.DialDataRequest', '9': 0, '10': 'dialDataRequest'},
-    {'1': 'dialDataResponse', '3': 4, '4': 1, '5': 11, '6': '.autonatv2.pb.DialDataResponse', '9': 0, '10': 'dialDataResponse'},
+    {
+      '1': 'dialRequest',
+      '3': 1,
+      '4': 1,
+      '5': 11,
+      '6': '.autonatv2.pb.DialRequest',
+      '9': 0,
+      '10': 'dialRequest'
+    },
+    {
+      '1': 'dialResponse',
+      '3': 2,
+      '4': 1,
+      '5': 11,
+      '6': '.autonatv2.pb.DialResponse',
+      '9': 0,
+      '10': 'dialResponse'
+    },
+    {
+      '1': 'dialDataRequest',
+      '3': 3,
+      '4': 1,
+      '5': 11,
+      '6': '.autonatv2.pb.DialDataRequest',
+      '9': 0,
+      '10': 'dialDataRequest'
+    },
+    {
+      '1': 'dialDataResponse',
+      '3': 4,
+      '4': 1,
+      '5': 11,
+      '6': '.autonatv2.pb.DialDataResponse',
+      '9': 0,
+      '10': 'dialDataResponse'
+    },
   ],
   '8': [
     {'1': 'msg'},
@@ -84,9 +116,23 @@ final $typed_data.Uint8List dialDataRequestDescriptor = $convert.base64Decode(
 const DialResponse$json = {
   '1': 'DialResponse',
   '2': [
-    {'1': 'status', '3': 1, '4': 1, '5': 14, '6': '.autonatv2.pb.DialResponse.ResponseStatus', '10': 'status'},
+    {
+      '1': 'status',
+      '3': 1,
+      '4': 1,
+      '5': 14,
+      '6': '.autonatv2.pb.DialResponse.ResponseStatus',
+      '10': 'status'
+    },
     {'1': 'addrIdx', '3': 2, '4': 1, '5': 13, '10': 'addrIdx'},
-    {'1': 'dialStatus', '3': 3, '4': 1, '5': 14, '6': '.autonatv2.pb.DialStatus', '10': 'dialStatus'},
+    {
+      '1': 'dialStatus',
+      '3': 3,
+      '4': 1,
+      '5': 14,
+      '6': '.autonatv2.pb.DialStatus',
+      '10': 'dialStatus'
+    },
   ],
   '4': [DialResponse_ResponseStatus$json],
 };
@@ -119,8 +165,8 @@ const DialDataResponse$json = {
 };
 
 /// Descriptor for `DialDataResponse`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List dialDataResponseDescriptor = $convert.base64Decode(
-    'ChBEaWFsRGF0YVJlc3BvbnNlEhIKBGRhdGEYASABKAxSBGRhdGE=');
+final $typed_data.Uint8List dialDataResponseDescriptor = $convert
+    .base64Decode('ChBEaWFsRGF0YVJlc3BvbnNlEhIKBGRhdGEYASABKAxSBGRhdGE=');
 
 @$core.Deprecated('Use dialBackDescriptor instead')
 const DialBack$json = {
@@ -131,14 +177,21 @@ const DialBack$json = {
 };
 
 /// Descriptor for `DialBack`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List dialBackDescriptor = $convert.base64Decode(
-    'CghEaWFsQmFjaxIUCgVub25jZRgBIAEoBlIFbm9uY2U=');
+final $typed_data.Uint8List dialBackDescriptor =
+    $convert.base64Decode('CghEaWFsQmFjaxIUCgVub25jZRgBIAEoBlIFbm9uY2U=');
 
 @$core.Deprecated('Use dialBackResponseDescriptor instead')
 const DialBackResponse$json = {
   '1': 'DialBackResponse',
   '2': [
-    {'1': 'status', '3': 1, '4': 1, '5': 14, '6': '.autonatv2.pb.DialBackResponse.DialBackStatus', '10': 'status'},
+    {
+      '1': 'status',
+      '3': 1,
+      '4': 1,
+      '5': 14,
+      '6': '.autonatv2.pb.DialBackResponse.DialBackStatus',
+      '10': 'status'
+    },
   ],
   '4': [DialBackResponse_DialBackStatus$json],
 };
@@ -156,4 +209,3 @@ final $typed_data.Uint8List dialBackResponseDescriptor = $convert.base64Decode(
     'ChBEaWFsQmFja1Jlc3BvbnNlEkUKBnN0YXR1cxgBIAEoDjItLmF1dG9uYXR2Mi5wYi5EaWFsQm'
     'Fja1Jlc3BvbnNlLkRpYWxCYWNrU3RhdHVzUgZzdGF0dXMiGAoORGlhbEJhY2tTdGF0dXMSBgoC'
     'T0sQAA==');
-

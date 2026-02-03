@@ -5,14 +5,15 @@
 import 'dart:async';
 import 'dart:typed_data';
 
-
 // Explicit import for Host
 import 'package:dart_libp2p/core/peer/peer_id.dart';
 import 'package:dart_libp2p/core/multiaddr.dart';
 import 'package:dart_libp2p/core/network/context.dart';
-import 'package:dart_libp2p/core/network/stream.dart' show P2PStream; // Explicit import for P2PStream
+import 'package:dart_libp2p/core/network/stream.dart'
+    show P2PStream; // Explicit import for P2PStream
 import 'package:dart_libp2p/p2p/protocol/circuitv2/client/client.dart';
-import 'package:dart_libp2p/p2p/protocol/circuitv2/pb/circuit.pb.dart' as pb; // Alias for protobuf messages
+import 'package:dart_libp2p/p2p/protocol/circuitv2/pb/circuit.pb.dart'
+    as pb; // Alias for protobuf messages
 import 'package:dart_libp2p/p2p/protocol/circuitv2/proto.dart';
 import 'package:dart_libp2p/p2p/protocol/circuitv2/util/io.dart';
 // peerInfoToPeerV2 was not found in pbconv.dart, assuming it's not needed for HopMessage or can be constructed directly.
@@ -25,7 +26,8 @@ Stream<Uint8List> _p2pStreamToDartStream(P2PStream p2pStream) {
 
   Future<void> readLoop() async {
     try {
-      while (true) { // Loop indefinitely, relying on read() to throw on close/EOF
+      while (true) {
+        // Loop indefinitely, relying on read() to throw on close/EOF
         if (controller.isClosed) break;
         // It's generally safer to let read() throw if the stream is closed.
         // Checking p2pStream.isClosed here might lead to race conditions
@@ -73,27 +75,44 @@ class ReservationError implements Exception {
 }
 
 /// Extension methods for the CircuitV2Client class to handle reservations.
-extension ReservationExtension on CircuitV2Client { // Changed from Client to CircuitV2Client
+extension ReservationExtension on CircuitV2Client {
+  // Changed from Client to CircuitV2Client
   /// Reserves a slot on a relay.
   Future<Reservation> reserve(PeerId relayPeerId) async {
     // Open a stream to the relay using Hop protocol
     // 'this.host' or simply 'host' refers to the host field of CircuitV2Client
-    final stream = await host.newStream(relayPeerId, [CircuitV2Protocol.protoIDv2Hop], Context());
+    final stream = await host.newStream(relayPeerId, [
+      CircuitV2Protocol.protoIDv2Hop,
+    ], Context());
 
     // Set deadline for the entire operation, including stream opening, write, and read.
     // Dart's newStream doesn't have a per-operation deadline like Go's s.SetDeadline.
     // We'll rely on the timeout for the Future.
-    return _reserveStream(stream, relayPeerId).timeout(reserveTimeout, onTimeout: () {
-      stream.close(); // Ensure stream is closed on timeout
-      throw ReservationError(status: pb.Status.CONNECTION_FAILED, reason: 'reservation timed out');
-    });
+    return _reserveStream(stream, relayPeerId).timeout(
+      reserveTimeout,
+      onTimeout: () {
+        stream.close(); // Ensure stream is closed on timeout
+        throw ReservationError(
+          status: pb.Status.CONNECTION_FAILED,
+          reason: 'reservation timed out',
+        );
+      },
+    );
   }
 
-  Future<Reservation> _reserveStream(P2PStream stream, PeerId relayPeerId) async {
+  Future<Reservation> _reserveStream(
+    P2PStream stream,
+    PeerId relayPeerId,
+  ) async {
     // 'host' is accessible here as 'this.host' from the CircuitV2Client instance
     try {
-      final writer = StreamSinkFromP2PStream(stream); // Adapt P2PStream to Sink for writeDelimitedMessage
-      final reader = DelimitedReader(_p2pStreamToDartStream(stream), 4096); // maxMessageSize, similar to Go
+      final writer = StreamSinkFromP2PStream(
+        stream,
+      ); // Adapt P2PStream to Sink for writeDelimitedMessage
+      final reader = DelimitedReader(
+        _p2pStreamToDartStream(stream),
+        4096,
+      ); // maxMessageSize, similar to Go
 
       // Create a reserve message
       final requestMsg = pb.HopMessage()..type = pb.HopMessage_Type.RESERVE;
@@ -106,26 +125,38 @@ extension ReservationExtension on CircuitV2Client { // Changed from Client to Ci
 
       if (responseMsg.type != pb.HopMessage_Type.STATUS) {
         throw ReservationError(
-            status: pb.Status.MALFORMED_MESSAGE,
-            reason: 'unexpected relay response: not a status message (${responseMsg.type})');
+          status: pb.Status.MALFORMED_MESSAGE,
+          reason:
+              'unexpected relay response: not a status message (${responseMsg.type})',
+        );
       }
 
       if (responseMsg.status != pb.Status.OK) {
-        throw ReservationError(status: responseMsg.status, reason: 'reservation failed with status ${responseMsg.status.name}');
+        throw ReservationError(
+          status: responseMsg.status,
+          reason: 'reservation failed with status ${responseMsg.status.name}',
+        );
       }
 
       if (!responseMsg.hasReservation()) {
-        throw ReservationError(status: pb.Status.MALFORMED_MESSAGE, reason: 'missing reservation info in response');
+        throw ReservationError(
+          status: pb.Status.MALFORMED_MESSAGE,
+          reason: 'missing reservation info in response',
+        );
       }
 
       final rsvpData = responseMsg.reservation;
       final int expireInSeconds = rsvpData.expire.toInt();
-      final expiration = DateTime.fromMillisecondsSinceEpoch(expireInSeconds * 1000);
+      final expiration = DateTime.fromMillisecondsSinceEpoch(
+        expireInSeconds * 1000,
+      );
 
       if (expiration.isBefore(DateTime.now())) {
         throw ReservationError(
-            status: pb.Status.MALFORMED_MESSAGE,
-            reason: 'received reservation with expiration date in the past: $expiration');
+          status: pb.Status.MALFORMED_MESSAGE,
+          reason:
+              'received reservation with expiration date in the past: $expiration',
+        );
       }
 
       final addrs = <MultiAddr>[];
@@ -144,7 +175,7 @@ extension ReservationExtension on CircuitV2Client { // Changed from Client to Ci
         // TODO: Implement voucher parsing and validation (record.ConsumeEnvelope equivalent)
         // For now, we store the raw voucher bytes.
       }
-      
+
       Duration? limitDuration;
       BigInt? limitData;
       if (responseMsg.hasLimit()) {
@@ -169,7 +200,11 @@ extension ReservationExtension on CircuitV2Client { // Changed from Client to Ci
       if (e is ReservationError) {
         rethrow;
       }
-      throw ReservationError(status: pb.Status.CONNECTION_FAILED, reason: 'error during reservation stream handling', cause: e is Exception ? e : Exception(e.toString()));
+      throw ReservationError(
+        status: pb.Status.CONNECTION_FAILED,
+        reason: 'error during reservation stream handling',
+        cause: e is Exception ? e : Exception(e.toString()),
+      );
     } finally {
       // Close the stream
       await stream.close();
@@ -184,7 +219,7 @@ class StreamSinkFromP2PStream implements Sink<List<int>> {
 
   @override
   void add(List<int> data) {
-    _stream.write(Uint8List.fromList(data)); 
+    _stream.write(Uint8List.fromList(data));
     // Note: P2PStream.write is often async. If writeDelimitedMessage expects synchronous writes
     // or needs flow control, this adapter might need to be more complex (e.g., using a StreamController).
     // For now, assuming P2PStream.write handles buffering or is suitably async.
@@ -197,7 +232,6 @@ class StreamSinkFromP2PStream implements Sink<List<int>> {
     // If DelimitedWriter needs to signal end-of-writes, this might need to do more.
   }
 }
-
 
 /// Represents a reservation on a relay.
 class Reservation {
@@ -218,7 +252,12 @@ class Reservation {
   /// resetting a relayed connection. If null, there is no limit.
   final BigInt? limitData;
 
-
   /// Creates a new reservation.
-  Reservation(this.expire, this.addrs, this.voucher, {this.limitDuration, this.limitData});
+  Reservation(
+    this.expire,
+    this.addrs,
+    this.voucher, {
+    this.limitDuration,
+    this.limitData,
+  });
 }

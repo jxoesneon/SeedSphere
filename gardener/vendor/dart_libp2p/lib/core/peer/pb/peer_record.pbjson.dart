@@ -19,7 +19,14 @@ const PeerRecord$json = {
   '2': [
     {'1': 'peer_id', '3': 1, '4': 1, '5': 12, '10': 'peerId'},
     {'1': 'seq', '3': 2, '4': 1, '5': 4, '10': 'seq'},
-    {'1': 'addresses', '3': 3, '4': 3, '5': 11, '6': '.peer.pb.PeerRecord.AddressInfo', '10': 'addresses'},
+    {
+      '1': 'addresses',
+      '3': 3,
+      '4': 3,
+      '5': 11,
+      '6': '.peer.pb.PeerRecord.AddressInfo',
+      '10': 'addresses'
+    },
   ],
   '3': [PeerRecord_AddressInfo$json],
 };
@@ -37,4 +44,3 @@ final $typed_data.Uint8List peerRecordDescriptor = $convert.base64Decode(
     'CgpQZWVyUmVjb3JkEhcKB3BlZXJfaWQYASABKAxSBnBlZXJJZBIQCgNzZXEYAiABKARSA3NlcR'
     'I9CglhZGRyZXNzZXMYAyADKAsyHy5wZWVyLnBiLlBlZXJSZWNvcmQuQWRkcmVzc0luZm9SCWFk'
     'ZHJlc3NlcxorCgtBZGRyZXNzSW5mbxIcCgltdWx0aWFkZHIYASABKAxSCW11bHRpYWRkcg==');
-

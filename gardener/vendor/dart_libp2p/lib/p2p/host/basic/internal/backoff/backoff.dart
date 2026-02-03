@@ -23,10 +23,7 @@ class ExpBackoff {
   DateTime? _lastRun;
 
   /// Creates a new ExpBackoff instance with optional delay and maxDelay parameters.
-  ExpBackoff({
-    this.delay = defaultDelay,
-    this.maxDelay = defaultMaxDelay,
-  });
+  ExpBackoff({this.delay = defaultDelay, this.maxDelay = defaultMaxDelay});
 
   /// Initializes default values if not set
   void _init() {
@@ -46,7 +43,7 @@ class ExpBackoff {
   }
 
   /// Runs the provided function with exponential backoff.
-  /// 
+  ///
   /// Returns a tuple containing the error (if any) and a boolean indicating
   /// whether the function was actually run.
   Future<(Object?, bool)> run(Future<void> Function() f) async {

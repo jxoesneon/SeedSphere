@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'package:logging/logging.dart';
 import 'package:http/http.dart' as http;
 import 'package:router/db_service.dart';
 import 'package:router/health_service.dart';
@@ -10,6 +11,7 @@ class TrackerService {
   final DbService _db;
   final HealthService _health;
   final Set<String> _privateIps = {'127.0.0.1', 'localhost', '::1'};
+  final Logger _logger = Logger('TrackerService');
 
   // Source: ngosang/trackerslist - All IPs
   static const _sourceUrl =
@@ -22,7 +24,7 @@ class TrackerService {
   Future<void> init() async {
     // Ingest immediately if DB is empty or stale
     final stored = _db.getTrackers();
-    print('TrackerService: Loaded ${stored.length} trackers from DB.');
+    _logger.info('TrackerService: Loaded ${stored.length} trackers from DB.');
 
     // Background verification loop
     unawaited(_verificationLoop());
@@ -45,7 +47,7 @@ class TrackerService {
   /// Does NOT verify them. Leaves verification to Gardeners.
   Future<void> refreshMasterList() async {
     try {
-      print('TrackerService: Ingesting master list from ngosang...');
+      _logger.info('TrackerService: Ingesting master list from ngosang...');
       final res = await _safeGet(_sourceUrl);
       if (res != null && res.statusCode == 200) {
         final allTrackers = res.body
@@ -64,10 +66,12 @@ class TrackerService {
           return true;
         });
 
-        print('TrackerService: Ingested ${allTrackers.length} trackers.');
+        _logger.info(
+          'TrackerService: Ingested ${allTrackers.length} trackers.',
+        );
       }
     } catch (e) {
-      print('TrackerService: Ingestion error: $e');
+      _logger.warning('TrackerService: Ingestion error: $e');
     }
   }
 

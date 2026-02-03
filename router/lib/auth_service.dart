@@ -4,6 +4,7 @@ import 'dart:math';
 
 import 'package:dart_jsonwebtoken/dart_jsonwebtoken.dart';
 import 'package:http/http.dart' as http;
+import 'package:logging/logging.dart';
 import 'package:shelf/shelf.dart';
 import 'package:shelf_router/shelf_router.dart';
 import 'package:router/db_service.dart';
@@ -19,6 +20,8 @@ class AuthService {
   final String? _googleClientSecret;
   final LinkingService _linkingService;
   final http.Client _client;
+  static final Logger _logger = Logger('AuthService');
+  final Logger _instanceLogger = Logger('AuthService');
 
   /// Creates a new AuthService with the required system dependencies.
   AuthService(
@@ -37,8 +40,8 @@ class AuthService {
        _client = client ?? http.Client();
 
   static String _generateRandomSecret() {
-    print(
-      'WARN: AUTH_JWT_SECRET not set. Using random secret for this session.',
+    _logger.warning(
+      'AUTH_JWT_SECRET not set. Using random secret for this session.',
     );
     final random = Random.secure();
     final values = List<int>.generate(32, (i) => random.nextInt(255));
@@ -180,7 +183,7 @@ class AuthService {
           _db.upsertGardener(gardenerId, platform: 'mobile_auto');
           deviceSecret = _linkingService.bindDirectly(gardenerId, 'mobile-app');
         } catch (e) {
-          print('Auto-linking failed: $e');
+          _instanceLogger.warning('Auto-linking failed: $e');
         }
       }
 
@@ -303,7 +306,7 @@ class AuthService {
 
       return Response.ok(jsonEncode({'ok': true}));
     } catch (e) {
-      print('Magic Link Error: $e');
+      _instanceLogger.severe('Magic Link Error: $e');
       return Response.internalServerError(
         body: jsonEncode({'ok': false, 'error': 'Server Error: $e'}),
       );

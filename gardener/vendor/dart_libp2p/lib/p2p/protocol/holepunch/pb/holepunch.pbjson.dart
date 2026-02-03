@@ -17,7 +17,14 @@ import 'dart:typed_data' as $typed_data;
 const HolePunch$json = {
   '1': 'HolePunch',
   '2': [
-    {'1': 'type', '3': 1, '4': 2, '5': 14, '6': '.holepunch.pb.HolePunch.Type', '10': 'type'},
+    {
+      '1': 'type',
+      '3': 1,
+      '4': 2,
+      '5': 14,
+      '6': '.holepunch.pb.HolePunch.Type',
+      '10': 'type'
+    },
     {'1': 'ObsAddrs', '3': 2, '4': 3, '5': 12, '10': 'ObsAddrs'},
   ],
   '4': [HolePunch_Type$json],
@@ -37,4 +44,3 @@ final $typed_data.Uint8List holePunchDescriptor = $convert.base64Decode(
     'CglIb2xlUHVuY2gSMAoEdHlwZRgBIAIoDjIcLmhvbGVwdW5jaC5wYi5Ib2xlUHVuY2guVHlwZV'
     'IEdHlwZRIaCghPYnNBZGRycxgCIAMoDFIIT2JzQWRkcnMiHgoEVHlwZRILCgdDT05ORUNUEGQS'
     'CQoEU1lOQxCsAg==');
-

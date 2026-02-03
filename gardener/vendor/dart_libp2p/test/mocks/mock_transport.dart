@@ -99,14 +99,13 @@ class MockListener implements Listener {
   final MultiAddr addr;
 
   /// The controller for the connection stream
-  final StreamController<TransportConn> _connectionController = StreamController<TransportConn>.broadcast();
-  
+  final StreamController<TransportConn> _connectionController =
+      StreamController<TransportConn>.broadcast();
+
   /// Flag to track if the listener is closed
   bool _closed = false;
 
-  MockListener({
-    required this.addr,
-  });
+  MockListener({required this.addr});
 
   @override
   Future<void> close() async {
@@ -123,7 +122,7 @@ class MockListener implements Listener {
   @override
   Future<TransportConn?> accept() async {
     if (isClosed) return null;
-    
+
     // Return the next connection from the stream, or null if the stream is closed
     try {
       return await connectionStream.first;

@@ -7,11 +7,13 @@ import 'package:dart_libp2p/core/multiaddr.dart';
 import 'package:dart_libp2p/core/network/common.dart';
 // Conn, ConnState, ConnStats, Stats are used from conn.dart
 // ConnScope will come from rcmgr.dart
-import 'package:dart_libp2p/core/network/conn.dart' show Conn, ConnState, ConnStats, Stats; 
+import 'package:dart_libp2p/core/network/conn.dart'
+    show Conn, ConnState, ConnStats, Stats;
 import 'package:dart_libp2p/core/network/transport_conn.dart';
 import 'package:dart_libp2p/core/network/context.dart';
 import 'package:dart_libp2p/core/network/stream.dart'; // For P2PStream
-import 'package:dart_libp2p/core/network/rcmgr.dart' show ConnScope, ScopeStat, ResourceScopeSpan, ResourceScope;
+import 'package:dart_libp2p/core/network/rcmgr.dart'
+    show ConnScope, ScopeStat, ResourceScopeSpan, ResourceScope;
 import 'package:dart_libp2p/core/peer/peer_id.dart';
 
 /// Mock connection specialized for secured connection tests
@@ -84,10 +86,14 @@ class SecuredMockConnection implements TransportConn {
   MultiAddr get remoteMultiaddr => MultiAddr('/ip4/127.0.0.1/tcp/5678');
 
   @override
-  PeerId get localPeer => throw UnimplementedError('localPeer not implemented in SecuredMockConnection');
+  PeerId get localPeer => throw UnimplementedError(
+    'localPeer not implemented in SecuredMockConnection',
+  );
 
   @override
-  PeerId get remotePeer => throw UnimplementedError('remotePeer not implemented in SecuredMockConnection');
+  PeerId get remotePeer => throw UnimplementedError(
+    'remotePeer not implemented in SecuredMockConnection',
+  );
 
   @override
   Future<PublicKey?> get remotePublicKey async => null;
@@ -102,10 +108,7 @@ class SecuredMockConnection implements TransportConn {
 
   @override
   ConnStats get stat => _MockConnStats(
-    stats: Stats(
-      direction: Direction.outbound,
-      opened: DateTime.now(),
-    ),
+    stats: Stats(direction: Direction.outbound, opened: DateTime.now()),
     numStreams: 0,
   );
 
@@ -114,14 +117,18 @@ class SecuredMockConnection implements TransportConn {
 
   @override
   Future<P2PStream> newStream(Context context) async {
-    throw UnimplementedError('Stream multiplexing not implemented in SecuredMockConnection');
+    throw UnimplementedError(
+      'Stream multiplexing not implemented in SecuredMockConnection',
+    );
   }
 
   @override
   Future<List<P2PStream>> get streams async => [];
 
   @override
-  Socket get socket => throw UnimplementedError('Socket is not implemented in SecuredMockConnection');
+  Socket get socket => throw UnimplementedError(
+    'Socket is not implemented in SecuredMockConnection',
+  );
 
   @override
   void setReadTimeout(Duration timeout) {}
@@ -195,10 +202,7 @@ class _MockConnStats implements ConnStats {
   @override
   final int numStreams;
 
-  const _MockConnStats({
-    required this.stats,
-    required this.numStreams,
-  });
+  const _MockConnStats({required this.stats, required this.numStreams});
 }
 
 /// Mock implementation of ConnScope
@@ -219,9 +223,11 @@ class _MockConnScope implements ConnScope {
 }
 
 /// Mock implementation of ResourceScopeSpan
-class _MockResourceScopeSpan implements ResourceScopeSpan { // ResourceScopeSpan from rcmgr.dart
+class _MockResourceScopeSpan implements ResourceScopeSpan {
+  // ResourceScopeSpan from rcmgr.dart
   @override
-  Future<ResourceScopeSpan> beginSpan() async { // ResourceScopeSpan from rcmgr.dart
+  Future<ResourceScopeSpan> beginSpan() async {
+    // ResourceScopeSpan from rcmgr.dart
     return this;
   }
 

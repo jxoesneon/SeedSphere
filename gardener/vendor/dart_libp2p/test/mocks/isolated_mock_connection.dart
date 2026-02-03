@@ -7,19 +7,17 @@ import 'package:dart_libp2p/core/multiaddr.dart';
 import 'package:dart_libp2p/core/network/common.dart';
 // Conn, ConnState, ConnStats, Stats are used from conn.dart
 // ConnScope will come from rcmgr.dart
-import 'package:dart_libp2p/core/network/conn.dart' show Conn, ConnState, ConnStats, Stats; 
+import 'package:dart_libp2p/core/network/conn.dart'
+    show Conn, ConnState, ConnStats, Stats;
 import 'package:dart_libp2p/core/network/context.dart';
 import 'package:dart_libp2p/core/network/stream.dart'; // For P2PStream
-import 'package:dart_libp2p/core/network/rcmgr.dart' show ConnScope, ScopeStat, ResourceScopeSpan, ResourceScope;
+import 'package:dart_libp2p/core/network/rcmgr.dart'
+    show ConnScope, ScopeStat, ResourceScopeSpan, ResourceScope;
 import 'package:dart_libp2p/core/peer/peer_id.dart';
 import 'package:meta/meta.dart';
 
 /// Message types for isolate communication
-enum MessageType {
-  data,
-  close,
-  error,
-}
+enum MessageType { data, close, error }
 
 /// Message wrapper for isolate communication
 class ConnectionMessage {
@@ -27,11 +25,7 @@ class ConnectionMessage {
   final Uint8List? data;
   final String? error;
 
-  ConnectionMessage({
-    required this.type,
-    this.data,
-    this.error,
-  });
+  ConnectionMessage({required this.type, this.data, this.error});
 }
 
 /// A mock connection that simulates TCP-like stream behavior
@@ -66,18 +60,22 @@ class MockConnection implements Conn {
     conn1._subscription = conn2._outgoingData.stream.listen((data) {
       print('${conn1.id} received data: ${data.length} bytes');
       if (!conn1.isClosed) {
-        conn1._buffer.addAll(data);  // Add to continuous buffer
+        conn1._buffer.addAll(data); // Add to continuous buffer
         conn1._incomingData.add(data);
-        print('${conn1.id} buffered data, total buffer size: ${conn1._buffer.length}');
+        print(
+          '${conn1.id} buffered data, total buffer size: ${conn1._buffer.length}',
+        );
       }
     });
 
     conn2._subscription = conn1._outgoingData.stream.listen((data) {
       print('${conn2.id} received data: ${data.length} bytes');
       if (!conn2.isClosed) {
-        conn2._buffer.addAll(data);  // Add to continuous buffer
+        conn2._buffer.addAll(data); // Add to continuous buffer
         conn2._incomingData.add(data);
-        print('${conn2.id} buffered data, total buffer size: ${conn2._buffer.length}');
+        print(
+          '${conn2.id} buffered data, total buffer size: ${conn2._buffer.length}',
+        );
       }
     });
 
@@ -120,10 +118,14 @@ class MockConnection implements Conn {
   MultiAddr get remoteAddr => remoteMultiaddr;
 
   @override
-  PeerId get localPeer => throw UnimplementedError('localPeer not implemented in IsolatedMockConnection');
+  PeerId get localPeer => throw UnimplementedError(
+    'localPeer not implemented in IsolatedMockConnection',
+  );
 
   @override
-  PeerId get remotePeer => throw UnimplementedError('remotePeer not implemented in IsolatedMockConnection');
+  PeerId get remotePeer => throw UnimplementedError(
+    'remotePeer not implemented in IsolatedMockConnection',
+  );
 
   @override
   Future<PublicKey?> get remotePublicKey async => null;
@@ -138,10 +140,7 @@ class MockConnection implements Conn {
 
   @override
   ConnStats get stat => _MockConnStats(
-    stats: Stats(
-      direction: Direction.outbound,
-      opened: DateTime.now(),
-    ),
+    stats: Stats(direction: Direction.outbound, opened: DateTime.now()),
     numStreams: 0,
   );
 
@@ -150,7 +149,9 @@ class MockConnection implements Conn {
 
   @override
   Future<P2PStream> newStream(Context context) async {
-    throw UnimplementedError('Stream multiplexing not implemented in IsolatedMockConnection');
+    throw UnimplementedError(
+      'Stream multiplexing not implemented in IsolatedMockConnection',
+    );
   }
 
   @override
@@ -169,12 +170,16 @@ class MockConnection implements Conn {
             Duration(seconds: 5),
             onTimeout: () => throw TimeoutException('Read timed out'),
           );
-          print('$_id read ${data.length} bytes from stream (no length specified)');
+          print(
+            '$_id read ${data.length} bytes from stream (no length specified)',
+          );
           return Uint8List.fromList(data);
         }
         final result = Uint8List.fromList(_buffer);
         _buffer.clear();
-        print('$_id returning ${result.length} bytes from buffer (no length specified)');
+        print(
+          '$_id returning ${result.length} bytes from buffer (no length specified)',
+        );
         return result;
       }
 
@@ -182,16 +187,21 @@ class MockConnection implements Conn {
       if (_buffer.length >= length) {
         final result = Uint8List.fromList(_buffer.take(length).toList());
         _buffer.removeRange(0, length);
-        print('$_id returning ${result.length} bytes from buffer, ${_buffer.length} bytes remaining');
+        print(
+          '$_id returning ${result.length} bytes from buffer, ${_buffer.length} bytes remaining',
+        );
         return result;
       }
 
       // Wait until we have enough data
       while (_buffer.length < length) {
-        print('$_id buffer has ${_buffer.length} bytes, waiting for more data to reach $length bytes');
+        print(
+          '$_id buffer has ${_buffer.length} bytes, waiting for more data to reach $length bytes',
+        );
         final data = await _incomingData.stream.first.timeout(
           Duration(seconds: 5),
-          onTimeout: () => throw TimeoutException('Read timed out waiting for more data'),
+          onTimeout: () =>
+              throw TimeoutException('Read timed out waiting for more data'),
         );
         print('$_id received ${data.length} additional bytes');
         _buffer.addAll(data);
@@ -200,7 +210,9 @@ class MockConnection implements Conn {
       // Return exactly the requested number of bytes
       final result = Uint8List.fromList(_buffer.take(length).toList());
       _buffer.removeRange(0, length);
-      print('$_id returning ${result.length} bytes, ${_buffer.length} bytes remaining in buffer');
+      print(
+        '$_id returning ${result.length} bytes, ${_buffer.length} bytes remaining in buffer',
+      );
       return result;
     } catch (e) {
       print('$_id error during read: $e');
@@ -213,13 +225,15 @@ class MockConnection implements Conn {
     if (_closed) throw StateError('Connection is closed');
     print('$_id writing ${data.length} bytes');
 
-    writes.add(data);  // For test verification only
+    writes.add(data); // For test verification only
     _outgoingData.add(data);
     print('$_id wrote ${data.length} bytes to outgoing stream');
   }
 
   @override
-  Socket get socket => throw UnimplementedError('Socket is not implemented in IsolatedMockConnection');
+  Socket get socket => throw UnimplementedError(
+    'Socket is not implemented in IsolatedMockConnection',
+  );
 
   @override
   void setReadTimeout(Duration timeout) {}
@@ -266,16 +280,14 @@ class _MockConnStats implements ConnStats {
   @override
   final int numStreams;
 
-  const _MockConnStats({
-    required this.stats,
-    required this.numStreams,
-  });
+  const _MockConnStats({required this.stats, required this.numStreams});
 }
 
 /// Mock implementation of ConnScope
 class _MockConnScope implements ConnScope {
   @override
-  Future<ResourceScopeSpan> beginSpan() async { // ResourceScopeSpan from rcmgr.dart
+  Future<ResourceScopeSpan> beginSpan() async {
+    // ResourceScopeSpan from rcmgr.dart
     return _MockResourceScopeSpan();
   }
 
@@ -290,9 +302,11 @@ class _MockConnScope implements ConnScope {
 }
 
 /// Mock implementation of ResourceScopeSpan
-class _MockResourceScopeSpan implements ResourceScopeSpan { // ResourceScopeSpan from rcmgr.dart
+class _MockResourceScopeSpan implements ResourceScopeSpan {
+  // ResourceScopeSpan from rcmgr.dart
   @override
-  Future<ResourceScopeSpan> beginSpan() async { // ResourceScopeSpan from rcmgr.dart
+  Future<ResourceScopeSpan> beginSpan() async {
+    // ResourceScopeSpan from rcmgr.dart
     return this;
   }
 

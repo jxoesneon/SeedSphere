@@ -18,30 +18,30 @@ import 'package:logging/logging.dart';
 /// Enhanced mock transport connection that can simulate multistream protocol negotiation
 class EnhancedMockTransportConn implements TransportConn {
   final Logger _logger = Logger('EnhancedMockTransportConn');
-  
+
   final String _id;
   final MultiAddr _localAddr;
   final MultiAddr _remoteAddr;
   final PeerId _localPeer;
   final PeerId _remotePeer;
-  
+
   bool _isClosed = false;
   final List<Uint8List> _writeBuffer = [];
   final List<Uint8List> _readBuffer = [];
   int _readIndex = 0;
-  
+
   // Protocol negotiation state
   bool _multistreamHandshakeComplete = false;
   bool _securityNegotiationComplete = false;
   bool _muxerNegotiationComplete = false;
   String? _negotiatedSecurityProtocol;
   String? _negotiatedMuxerProtocol;
-  
+
   // Supported protocols
   static const String multistreamProtocol = '/multistream/1.0.0';
   static const List<String> supportedSecurityProtocols = ['/noise'];
   static const List<String> supportedMuxerProtocols = ['/yamux/1.0.0'];
-  
+
   EnhancedMockTransportConn({
     required String id,
     required MultiAddr localAddr,
@@ -126,7 +126,7 @@ class EnhancedMockTransportConn implements TransportConn {
 
     _writeBuffer.add(data);
     _logger.fine('Mock write: ${utf8.decode(data, allowMalformed: true)}');
-    
+
     // Process the write immediately to generate responses
     await _processProtocolNegotiation();
   }
@@ -207,12 +207,16 @@ class EnhancedMockTransportConn implements TransportConn {
   Future<void> _sendDelimitedMessage(String message) async {
     final messageBytes = utf8.encode(message);
     final lengthBytes = MultiAddrCodec.encodeVarint(messageBytes.length + 1);
-    
+
     final fullMessage = Uint8List(lengthBytes.length + messageBytes.length + 1);
     fullMessage.setRange(0, lengthBytes.length, lengthBytes);
-    fullMessage.setRange(lengthBytes.length, lengthBytes.length + messageBytes.length, messageBytes);
+    fullMessage.setRange(
+      lengthBytes.length,
+      lengthBytes.length + messageBytes.length,
+      messageBytes,
+    );
     fullMessage[lengthBytes.length + messageBytes.length] = 10; // '\n'
-    
+
     _readBuffer.add(fullMessage);
     _logger.fine('Queued response: "$message"');
   }
@@ -244,7 +248,9 @@ class EnhancedMockTransportConn implements TransportConn {
 
   @override
   Future<P2PStream> newStream(Context context) async {
-    throw UnimplementedError('newStream should be handled by upgraded connection');
+    throw UnimplementedError(
+      'newStream should be handled by upgraded connection',
+    );
   }
 }
 
@@ -306,34 +312,35 @@ class MockSecuredConnection implements TransportConn {
   Future<void> close() => _transportConn.close();
 
   @override
-  void setReadTimeout(Duration timeout) => _transportConn.setReadTimeout(timeout);
+  void setReadTimeout(Duration timeout) =>
+      _transportConn.setReadTimeout(timeout);
 
   @override
-  void setWriteTimeout(Duration timeout) => _transportConn.setWriteTimeout(timeout);
+  void setWriteTimeout(Duration timeout) =>
+      _transportConn.setWriteTimeout(timeout);
 
   @override
   void notifyActivity() => _transportConn.notifyActivity();
 
   @override
-  Future<P2PStream> newStream(Context context) => _transportConn.newStream(context);
+  Future<P2PStream> newStream(Context context) =>
+      _transportConn.newStream(context);
 }
 
 /// Mock implementation of ConnStats for testing
 class MockConnStats extends ConnStats {
-  MockConnStats() : super(
-    stats: MockStats(),
-    numStreams: 0,
-  );
+  MockConnStats() : super(stats: MockStats(), numStreams: 0);
 }
 
 /// Mock implementation of Stats for testing
 class MockStats extends Stats {
-  MockStats() : super(
-    direction: Direction.outbound,
-    opened: DateTime.now(),
-    limited: false,
-    extra: const {},
-  );
+  MockStats()
+    : super(
+        direction: Direction.outbound,
+        opened: DateTime.now(),
+        limited: false,
+        extra: const {},
+      );
 }
 
 /// Null implementation of ConnScope for testing

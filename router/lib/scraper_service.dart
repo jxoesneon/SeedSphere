@@ -1,3 +1,4 @@
+import 'package:logging/logging.dart';
 import 'package:router/core/metadata_normalizer.dart';
 import 'package:router/scrapers/scraper_engine.dart';
 import 'package:http/http.dart' as http;
@@ -13,8 +14,10 @@ import 'package:router/event_service.dart'; // Import EventService
 class ScraperService {
   final ScraperEngine _engine;
   final TrackerService _trackers;
+  final Logger _logger = Logger('ScraperService');
   final AiService _ai;
   final EventService? _eventService; // Optional for debugging
+  final http.Client _httpClient;
 
   /// Creates a new ScraperService instance.
   ScraperService(
@@ -24,20 +27,34 @@ class ScraperService {
     EventService? eventService,
   }) : _engine = ScraperEngine.defaults(),
        _ai = aiService ?? AiService(),
-       _eventService = eventService;
+       _eventService = eventService,
+       _httpClient = client ?? http.Client();
 
   /// Probes all providers for health status.
   Future<List<Map<String, dynamic>>> probeProviders() async {
-    return _engine.scrapers
-        .map(
-          (s) => {
-            'name': s.name,
-            'baseUrl': s.baseUrl,
-            'status': 'active',
-            'userAgent': s.userAgent,
-          },
-        )
-        .toList();
+    final results = <Map<String, dynamic>>[];
+
+    for (final s in _engine.scrapers) {
+      bool ok = false;
+      int status = 0;
+      try {
+        final res = await _httpClient
+            .get(Uri.parse(s.baseUrl))
+            .timeout(const Duration(seconds: 5));
+        status = res.statusCode;
+        ok = status < 500;
+      } catch (e) {
+        _logger.warning('Probe failed for ${s.name}: $e');
+      }
+      results.add({
+        'name': s.name,
+        'baseUrl': s.baseUrl,
+        'ok': ok,
+        'status': status,
+        'userAgent': s.userAgent,
+      });
+    }
+    return results;
   }
 
   /// Fetches a dynamic catalog based on a [query].
@@ -143,7 +160,7 @@ class ScraperService {
           }
         } catch (e) {
           // Silently fail AI enhancement, use basic description
-          print('AI enhancement failed: $e');
+          _logger.fine('AI enhancement failed: $e');
         }
       }
 

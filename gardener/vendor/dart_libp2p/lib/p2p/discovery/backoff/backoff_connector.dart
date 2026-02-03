@@ -23,10 +23,10 @@ class BackoffConnector {
     int cacheSize,
     Duration connectionTryDuration,
     BackoffFactory backoff,
-  )   : _host = host,
-        _cache = LRUCache<PeerId, ConnCacheData>(cacheSize),
-        _connTryDur = connectionTryDuration,
-        _backoff = backoff;
+  ) : _host = host,
+      _cache = LRUCache<PeerId, ConnCacheData>(cacheSize),
+      _connTryDur = connectionTryDuration,
+      _backoff = backoff;
 
   /// Connect attempts to connect to the peers passed in by peerStream. Will not connect to peers if they are within the backoff period.
   /// As Connect will attempt to dial peers as soon as it learns about them, the caller should try to keep the number,
@@ -60,24 +60,24 @@ class BackoffConnector {
   Future<void> _connectToPeer(AddrInfo pi) async {
     // Create a timeout for the connection attempt
     final timeoutCompleter = Completer<void>();
-    Timer(
-      _connTryDur,
-      () {
-        if (!timeoutCompleter.isCompleted) {
-          timeoutCompleter.complete();
-        }
-      },
-    );
+    Timer(_connTryDur, () {
+      if (!timeoutCompleter.isCompleted) {
+        timeoutCompleter.complete();
+      }
+    });
 
     try {
       // Add the peer's addresses to the peerstore
       for (final addr in pi.addrs) {
-        _host.network.peerstore.addrBook.addAddr(pi.id, addr, Duration(hours: 1));
+        _host.network.peerstore.addrBook.addAddr(
+          pi.id,
+          addr,
+          Duration(hours: 1),
+        );
       }
 
       // Create a context with a timeout
       final context = Context(timeout: _connTryDur);
-
 
       // Try to dial the peer
       try {

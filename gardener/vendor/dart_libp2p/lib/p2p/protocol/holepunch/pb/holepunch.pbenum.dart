@@ -14,19 +14,21 @@ import 'dart:core' as $core;
 import 'package:protobuf/protobuf.dart' as $pb;
 
 class HolePunch_Type extends $pb.ProtobufEnum {
-  static const HolePunch_Type CONNECT = HolePunch_Type._(100, _omitEnumNames ? '' : 'CONNECT');
-  static const HolePunch_Type SYNC = HolePunch_Type._(300, _omitEnumNames ? '' : 'SYNC');
+  static const HolePunch_Type CONNECT =
+      HolePunch_Type._(100, _omitEnumNames ? '' : 'CONNECT');
+  static const HolePunch_Type SYNC =
+      HolePunch_Type._(300, _omitEnumNames ? '' : 'SYNC');
 
-  static const $core.List<HolePunch_Type> values = <HolePunch_Type> [
+  static const $core.List<HolePunch_Type> values = <HolePunch_Type>[
     CONNECT,
     SYNC,
   ];
 
-  static final $core.Map<$core.int, HolePunch_Type> _byValue = $pb.ProtobufEnum.initByValue(values);
+  static final $core.Map<$core.int, HolePunch_Type> _byValue =
+      $pb.ProtobufEnum.initByValue(values);
   static HolePunch_Type? valueOf($core.int value) => _byValue[value];
 
   const HolePunch_Type._($core.int v, $core.String n) : super(v, n);
 }
-
 
 const _omitEnumNames = $core.bool.fromEnvironment('protobuf.omit_enum_names');

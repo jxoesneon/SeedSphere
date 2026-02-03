@@ -13,7 +13,7 @@ abstract class Multiplexer {
   String get protocolId;
 
   // newStream removed, users should get a MuxedConn via newConnOnTransport and use its openStream.
-  // Future<P2PStream> newStream(Context context); 
+  // Future<P2PStream> newStream(Context context);
 
   /// Accepts an inbound stream
   Future<P2PStream> acceptStream();
@@ -54,7 +54,7 @@ abstract class Multiplexer {
   Future<core_mux.MuxedConn> newConnOnTransport(
     TransportConn secureConnection,
     bool isServer,
-    PeerScope scope
+    PeerScope scope,
   );
 }
 

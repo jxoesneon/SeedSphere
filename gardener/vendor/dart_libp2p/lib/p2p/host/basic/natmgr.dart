@@ -1,5 +1,5 @@
 /// NAT manager implementation for the basic host.
-/// 
+///
 /// This is a port of the Go implementation from go-libp2p/p2p/host/basic/natmgr.go
 /// to Dart, using native Dart idioms.
 
@@ -46,7 +46,8 @@ abstract class NATManager {
 }
 
 /// Creates a new NAT manager.
-NATManager newNATManager(Network net, {
+NATManager newNATManager(
+  Network net, {
   StunClientPool? stunClientPool,
   Duration? behaviorCheckInterval,
 }) {
@@ -142,14 +143,16 @@ class _NATManager implements NATManager {
 
   @override
   bool hasDiscoveredNAT() {
-    return _behaviorTracker.currentBehavior.mappingBehavior != NatMappingBehavior.unknown;
+    return _behaviorTracker.currentBehavior.mappingBehavior !=
+        NatMappingBehavior.unknown;
   }
 
   @override
   NatBehavior get currentBehavior => _behaviorTracker.currentBehavior;
 
   @override
-  TraversalStrategy get traversalStrategy => NatTraversalStrategy.selectStrategy(currentBehavior);
+  TraversalStrategy get traversalStrategy =>
+      NatTraversalStrategy.selectStrategy(currentBehavior);
 
   @override
   void addBehaviorChangeCallback(NatBehaviorChangeCallback callback) {
@@ -189,15 +192,20 @@ class _NATManager implements NATManager {
         try {
           // First try to bind to the requested port
           try {
-            socket = await RawDatagramSocket.bind(InternetAddress.anyIPv4, entry.port);
+            socket = await RawDatagramSocket.bind(
+              InternetAddress.anyIPv4,
+              entry.port,
+            );
           } catch (e) {
             // If that fails, bind to a random port
             socket = await RawDatagramSocket.bind(InternetAddress.anyIPv4, 0);
           }
-          
+
           final response = await _stunClientPool.discover();
-          if (response.externalAddress != null && response.externalPort != null) {
-            final ipPart = response.externalAddress!.type == InternetAddressType.IPv4
+          if (response.externalAddress != null &&
+              response.externalPort != null) {
+            final ipPart =
+                response.externalAddress!.type == InternetAddressType.IPv4
                 ? '/ip4/${response.externalAddress!.address}'
                 : '/ip6/${response.externalAddress!.address}';
             final protocolPart = '/${entry.protocol}/${response.externalPort}';
@@ -210,7 +218,8 @@ class _NATManager implements NATManager {
         // For TCP, we can use the default STUN discovery
         final response = await _stunClientPool.discover();
         if (response.externalAddress != null && response.externalPort != null) {
-          final ipPart = response.externalAddress!.type == InternetAddressType.IPv4
+          final ipPart =
+              response.externalAddress!.type == InternetAddressType.IPv4
               ? '/ip4/${response.externalAddress!.address}'
               : '/ip6/${response.externalAddress!.address}';
           final protocolPart = '/${entry.protocol}/${response.externalPort}';

@@ -16,7 +16,10 @@ const String PeerRecordEnvelopeDomain = "libp2p-peer-record";
 // PeerRecordEnvelopePayloadType is the type hint used to identify peer records in an Envelope.
 // Defined in https://github.com/multiformats/multicodec/blob/master/table.csv
 // with name "libp2p-peer-record".
-final Uint8List PeerRecordEnvelopePayloadType = Uint8List.fromList([0x03, 0x01]);
+final Uint8List PeerRecordEnvelopePayloadType = Uint8List.fromList([
+  0x03,
+  0x01,
+]);
 
 /// PeerRecord contains information that is broadly useful to share with other peers,
 /// either through a direct exchange (as in the libp2p identify protocol), or through
@@ -28,7 +31,7 @@ final Uint8List PeerRecordEnvelopePayloadType = Uint8List.fromList([0x03, 0x01])
 /// PeerRecords are ordered in time by their Seq field. Newer PeerRecords must have
 /// greater Seq values than older records. The NewPeerRecord function will create
 /// a PeerRecord with a timestamp-based Seq value.
-class PeerRecord implements RecordBase{
+class PeerRecord implements RecordBase {
   /// PeerID is the ID of the peer this record pertains to.
   final PeerId peerId;
 
@@ -41,11 +44,7 @@ class PeerRecord implements RecordBase{
   /// for the same peer.
   final int seq;
 
-  PeerRecord({
-    required this.peerId,
-    required this.addrs,
-    required this.seq,
-  });
+  PeerRecord({required this.peerId, required this.addrs, required this.seq});
 
   /// Creates a new PeerRecord with a timestamp-based sequence number.
   /// The returned record is otherwise empty and should be populated by the caller.
@@ -71,11 +70,7 @@ class PeerRecord implements RecordBase{
   factory PeerRecord.fromProtobuf(pb.PeerRecord msg) {
     final id = PeerId.fromBytes(Uint8List.fromList(msg.peerId));
     final addrs = _addrsFromProtobuf(msg.addresses);
-    return PeerRecord(
-      peerId: id,
-      addrs: addrs,
-      seq: msg.seq.toInt(),
-    );
+    return PeerRecord(peerId: id, addrs: addrs, seq: msg.seq.toInt());
   }
 
   /// Domain is used when signing and validating PeerRecords contained in Envelopes.
@@ -109,19 +104,16 @@ class PeerRecord implements RecordBase{
   /// Unmarshal a record payload into a concrete PeerRecord instance
   ///
   static PeerRecord fromProtobufBytes(Uint8List payload) {
-
-      try {
-        final msg = pb.PeerRecord.fromBuffer(payload);
-        return PeerRecord(
-            peerId :  PeerId.fromBytes(Uint8List.fromList(msg.peerId)),
-            addrs: _addrsFromProtobuf(msg.addresses),
-            seq: msg.seq.toInt()
-        );
-
-      } catch (e) {
-        throw FormatException('Failed to unmarshal PeerRecord: $e');
-      }
-
+    try {
+      final msg = pb.PeerRecord.fromBuffer(payload);
+      return PeerRecord(
+        peerId: PeerId.fromBytes(Uint8List.fromList(msg.peerId)),
+        addrs: _addrsFromProtobuf(msg.addresses),
+        seq: msg.seq.toInt(),
+      );
+    } catch (e) {
+      throw FormatException('Failed to unmarshal PeerRecord: $e');
+    }
   }
 
   /// MarshalRecord serializes a PeerRecord to a byte slice.
@@ -141,7 +133,7 @@ class PeerRecord implements RecordBase{
     if (peerId != other.peerId) return false;
     if (seq != other.seq) return false;
     if (addrs.length != other.addrs.length) return false;
-    
+
     for (var i = 0; i < addrs.length; i++) {
       if (!addrs[i].equals(other.addrs[i])) return false;
     }
@@ -157,13 +149,20 @@ class PeerRecord implements RecordBase{
     );
   }
 
-  static List<MultiAddr> _addrsFromProtobuf(List<pb.PeerRecord_AddressInfo> addrs) {
-    return addrs.map((addr) => MultiAddr.fromBytes(Uint8List.fromList(addr.multiaddr))).toList();
+  static List<MultiAddr> _addrsFromProtobuf(
+    List<pb.PeerRecord_AddressInfo> addrs,
+  ) {
+    return addrs
+        .map((addr) => MultiAddr.fromBytes(Uint8List.fromList(addr.multiaddr)))
+        .toList();
   }
 
-  static List<pb.PeerRecord_AddressInfo> _addrsToProtobuf(List<MultiAddr> addrs) {
-    return addrs.map((addr) => pb.PeerRecord_AddressInfo(multiaddr: addr.toBytes())).toList();
-
+  static List<pb.PeerRecord_AddressInfo> _addrsToProtobuf(
+    List<MultiAddr> addrs,
+  ) {
+    return addrs
+        .map((addr) => pb.PeerRecord_AddressInfo(multiaddr: addr.toBytes()))
+        .toList();
   }
 
   static int _lastTimestamp = 0;
@@ -184,4 +183,3 @@ class PeerRecord implements RecordBase{
     });
   }
 }
-

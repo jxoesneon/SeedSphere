@@ -34,10 +34,7 @@ class UpdatedAddress {
   final AddrAction action;
 
   /// Creates a new UpdatedAddress.
-  UpdatedAddress({
-    required this.address,
-    required this.action,
-  });
+  UpdatedAddress({required this.address, required this.action});
 }
 
 /// EvtLocalAddressesUpdated should be emitted when the set of listen addresses for
@@ -81,11 +78,10 @@ class EvtLocalAddressesUpdated {
 
   /// SignedPeerRecord contains our own updated peer.PeerRecord, listing the addresses enumerated in Current,
   /// wrapped in a record.Envelope and signed by the Host's private key.
-  /// 
+  ///
   /// Note: In the Dart implementation, we're using a dynamic type for now as the record.Envelope
   /// type is not yet defined. This should be updated when the record package is implemented.
   final dynamic signedPeerRecord;
-
 
   @override
   String toString() {

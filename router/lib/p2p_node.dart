@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:logging/logging.dart';
 import 'package:dart_ipfs/dart_ipfs.dart';
 import 'package:router/core/debug_config.dart';
 
@@ -10,6 +11,7 @@ class P2PNode {
   IPFSNode? _node;
   bool _initialized = false;
   final NodeFactory _nodeFactory;
+  final Logger _logger = Logger('P2PNode');
 
   /// Creates a new P2PNode instance.
   P2PNode({NodeFactory? nodeFactory})
@@ -20,7 +22,7 @@ class P2PNode {
     if (_initialized) return;
 
     try {
-      print('P2P: Initializing SeedSphere Bootstrap Node...');
+      _logger.info('P2P: Initializing SeedSphere Bootstrap Node...');
 
       // 0. Cleanup Stale Locks (State Management)
       // Fixes "lock failed" error after crashes
@@ -29,9 +31,9 @@ class P2PNode {
       // 0.5 Permission & Path Auditing
       final homeDir =
           Platform.environment['HOME'] ?? Platform.environment['USERPROFILE'];
-      print('DEBUG: User Home: $homeDir');
-      print('DEBUG: Current PID: $pid');
-      print('DEBUG: Current Directory: ${Directory.current.path}');
+      _logger.fine('DEBUG: User Home: $homeDir');
+      _logger.fine('DEBUG: Current PID: $pid');
+      _logger.fine('DEBUG: Current Directory: ${Directory.current.path}');
 
       final dataDir = Directory('./ipfs_data');
       if (dataDir.existsSync()) {
@@ -42,10 +44,10 @@ class P2PNode {
 
           for (final file in lockFiles) {
             file.deleteSync();
-            print('P2P: 🧹 Removed stale lock file: ${file.path}');
+            _logger.fine('P2P: Removed stale lock file: ${file.path}');
           }
         } catch (e) {
-          print('P2P: ⚠️ Could not ensure lock cleanup: $e');
+          _logger.warning('P2P: Could not ensure lock cleanup: $e');
         }
       }
 
@@ -59,11 +61,11 @@ class P2PNode {
       final repoPath =
           Platform.environment['IPFS_PATH'] ??
           (Platform.isWindows ? '$home\\.ipfs' : '$home/.ipfs');
-      print('DEBUG: Resolved IPFS_PATH: $repoPath');
+      _logger.fine('DEBUG: Resolved IPFS_PATH: $repoPath');
 
       final dir = Directory(repoPath);
       if (!dir.existsSync()) {
-        print('DEBUG: Creating repo directory...');
+        _logger.fine('DEBUG: Creating repo directory...');
         dir.createSync(recursive: true);
       }
 
@@ -71,20 +73,20 @@ class P2PNode {
         final testFile = File('${dir.path}/perm_test');
         testFile.writeAsStringSync('write_test');
         testFile.deleteSync();
-        print('DEBUG: ✅ Write permission confirmed for $repoPath');
+        _logger.fine('DEBUG: Write permission confirmed for $repoPath');
       } catch (e) {
-        print('DEBUG: ❌ Write permission FAILED for $repoPath: $e');
+        _logger.warning('DEBUG: Write permission FAILED for $repoPath: $e');
       }
 
       final keyFile = File('${dir.path}/swarm.key');
       // swarm.key format: /key/swarm/psk/1.0.0/\n/base16/\n<key>
       if (!keyFile.existsSync() || keyFile.readAsStringSync() != swarmKey) {
         keyFile.writeAsStringSync('/key/swarm/psk/1.0.0/\n/base16/\n$swarmKey');
-        print('P2P: Private Swarm Key Configured');
+        _logger.info('P2P: Private Swarm Key Configured');
       }
 
       // 1. Configure Private Swarm if Key Provided
-      print('DEBUG: Loading P2PNode with PORT 4005 CONFIG');
+      _logger.fine('DEBUG: Loading P2PNode with PORT 4005 CONFIG');
       _node = await _nodeFactory(
         IPFSConfig(
           offline: false,
@@ -109,12 +111,12 @@ class P2PNode {
       _initialized = true;
 
       if (DebugConfig.p2pGated) {
-        print('P2P: Bootstrap Node Active');
-        print('P2P: PeerID: ${_node!.peerId}');
-        print('P2P: Listening on: ${_node!.addresses}');
+        _logger.info('P2P: Bootstrap Node Active');
+        _logger.info('P2P: PeerID: ${_node!.peerId}');
+        _logger.info('P2P: Listening on: ${_node!.addresses}');
       }
     } catch (e) {
-      print('P2P: Failed to start bootstrap node: $e');
+      _logger.severe('P2P: Failed to start bootstrap node: $e');
       rethrow;
     }
   }

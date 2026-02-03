@@ -33,7 +33,14 @@ final $typed_data.Uint8List keyTypeDescriptor = $convert.base64Decode(
 const PublicKey$json = {
   '1': 'PublicKey',
   '2': [
-    {'1': 'Type', '3': 1, '4': 2, '5': 14, '6': '.crypto.pb.KeyType', '10': 'Type'},
+    {
+      '1': 'Type',
+      '3': 1,
+      '4': 2,
+      '5': 14,
+      '6': '.crypto.pb.KeyType',
+      '10': 'Type'
+    },
     {'1': 'Data', '3': 2, '4': 2, '5': 12, '10': 'Data'},
   ],
 };
@@ -47,7 +54,14 @@ final $typed_data.Uint8List publicKeyDescriptor = $convert.base64Decode(
 const PrivateKey$json = {
   '1': 'PrivateKey',
   '2': [
-    {'1': 'Type', '3': 1, '4': 2, '5': 14, '6': '.crypto.pb.KeyType', '10': 'Type'},
+    {
+      '1': 'Type',
+      '3': 1,
+      '4': 2,
+      '5': 14,
+      '6': '.crypto.pb.KeyType',
+      '10': 'Type'
+    },
     {'1': 'Data', '3': 2, '4': 2, '5': 12, '10': 'Data'},
   ],
 };
@@ -56,4 +70,3 @@ const PrivateKey$json = {
 final $typed_data.Uint8List privateKeyDescriptor = $convert.base64Decode(
     'CgpQcml2YXRlS2V5EiYKBFR5cGUYASACKA4yEi5jcnlwdG8ucGIuS2V5VHlwZVIEVHlwZRISCg'
     'REYXRhGAIgAigMUgREYXRh');
-

@@ -23,4 +23,4 @@ abstract class Listener {
 
   /// Returns true if this listener supports the given multiaddress
   bool supportsAddr(MultiAddr addr);
-} 
+}

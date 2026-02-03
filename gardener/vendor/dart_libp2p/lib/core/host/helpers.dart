@@ -5,8 +5,5 @@ import 'host.dart';
 
 /// InfoFromHost returns an AddrInfo struct with the Host's ID and all of its Addrs.
 AddrInfo infoFromHost(Host h) {
-  return AddrInfo(
-    h.id,
-    h.addrs,
-  );
+  return AddrInfo(h.id, h.addrs);
 }

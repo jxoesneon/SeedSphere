@@ -11,7 +11,6 @@ import 'package:dart_libp2p/core/protocol/protocol.dart';
 import 'package:dart_libp2p/p2p/protocol/multistream/multistream.dart';
 import 'package:dart_libp2p/p2p/protocol/multistream/client.dart';
 
-
 /// LazyConn is a ReadWriteCloser adapter that lazily negotiates a protocol
 /// using multistream-select on first use.
 abstract class LazyConn {
@@ -31,20 +30,14 @@ abstract class LazyConn {
 /// NewMSSelect returns a new Multistream which is able to perform
 /// protocol selection with a MultistreamMuxer.
 LazyConn newMSSelect(P2PStream<dynamic> stream, ProtocolID proto) {
-  return _LazyClientConn(
-    protos: [protocolID, proto],
-    stream: stream,
-  );
+  return _LazyClientConn(protos: [protocolID, proto], stream: stream);
 }
 
 /// NewMultistream returns a multistream for the given protocol. This will not
 /// perform any protocol selection. If you are using a MultistreamMuxer, use
 /// NewMSSelect.
 LazyConn newMultistream(P2PStream<dynamic> stream, ProtocolID proto) {
-  return _LazyClientConn(
-    protos: [proto],
-    stream: stream,
-  );
+  return _LazyClientConn(protos: [proto], stream: stream);
 }
 
 /// _LazyClientConn is a ReadWriteCloser adapter that lazily negotiates a protocol
@@ -69,10 +62,7 @@ class _LazyClientConn implements LazyConn {
   // The inner connection.
   final P2PStream<dynamic> stream;
 
-  _LazyClientConn({
-    required this.protos,
-    required this.stream,
-  });
+  _LazyClientConn({required this.protos, required this.stream});
 
   /// Read reads data from the stream.
   ///
@@ -120,7 +110,9 @@ class _LazyClientConn implements LazyConn {
         }
 
         if (tok != proto) {
-          _readError = FormatException('Protocol mismatch in lazy handshake ($tok != $proto)');
+          _readError = FormatException(
+            'Protocol mismatch in lazy handshake ($tok != $proto)',
+          );
           _readHandshakeLock.complete();
           _readHandshakeDone = true;
           return;
@@ -193,7 +185,11 @@ class _LazyClientConn implements LazyConn {
         // Write handshake and extra data
         final combined = Uint8List(handshakeBytes.length + extra.length);
         combined.setRange(0, handshakeBytes.length, handshakeBytes);
-        combined.setRange(handshakeBytes.length, handshakeBytes.length + extra.length, extra);
+        combined.setRange(
+          handshakeBytes.length,
+          handshakeBytes.length + extra.length,
+          extra,
+        );
         stream.write(combined);
         _writeHandshakeLock.complete();
         _writeHandshakeDone = true;

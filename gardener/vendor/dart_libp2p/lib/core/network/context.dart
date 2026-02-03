@@ -11,7 +11,9 @@ class Context {
     if (timeout != null) {
       Timer(timeout, () {
         if (!_completer.isCompleted) {
-          _completer.completeError(TimeoutException('Context timed out', timeout));
+          _completer.completeError(
+            TimeoutException('Context timed out', timeout),
+          );
         }
       });
     }
@@ -59,12 +61,12 @@ class Context {
     if (clientValue != null) {
       return (true, true, clientValue as String);
     }
-    
+
     final serverValue = getValue(_simConnectIsServerKey);
     if (serverValue != null) {
       return (true, false, serverValue as String);
     }
-    
+
     return (false, false, '');
   }
 
@@ -111,14 +113,14 @@ class Context {
   }
 
   /// Creates a new Context with the use transient option
-  /// 
+  ///
   /// Deprecated: Use withAllowLimitedConn instead
   Context withUseTransient(String reason) {
     return withAllowLimitedConn(reason);
   }
 
   /// Gets the use transient option from the Context
-  /// 
+  ///
   /// Deprecated: Use getAllowLimitedConn instead
   (bool, String) getUseTransient() {
     return getAllowLimitedConn();

@@ -11,7 +11,8 @@ import 'package:dart_libp2p/core/network/network.dart';
 import 'package:dart_libp2p/core/network/stream.dart';
 import 'package:dart_libp2p/core/peerstore.dart'; // KeyBook is part of this
 import 'package:dart_libp2p/p2p/host/host.dart';
-import 'package:dart_libp2p/p2p/multiaddr/protocol.dart' as multiaddr_protocol; // Aliased import
+import 'package:dart_libp2p/p2p/multiaddr/protocol.dart'
+    as multiaddr_protocol; // Aliased import
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
 import 'package:test/test.dart';
@@ -56,7 +57,9 @@ void main() {
       protoBook = MockProtoBook();
       mockKeyBook = MockKeyBook();
       mockPrivKey = MockPrivateKey();
-      localPeerId = PeerId.fromString('QmYyQSo1c1Ym7orWxLYvCrM2EmxFTANf8wXmmE7DWjhx5N');
+      localPeerId = PeerId.fromString(
+        'QmYyQSo1c1Ym7orWxLYvCrM2EmxFTANf8wXmmE7DWjhx5N',
+      );
       eventBus = BasicBus();
 
       // Setup mock behavior
@@ -65,30 +68,40 @@ void main() {
       when(peerstore.addrBook).thenReturn(addrBook);
       when(peerstore.protoBook).thenReturn(protoBook);
       when(peerstore.keyBook).thenReturn(mockKeyBook);
-      when(mockKeyBook.privKey(localPeerId)).thenAnswer((_) async => mockPrivKey);
+      when(
+        mockKeyBook.privKey(localPeerId),
+      ).thenAnswer((_) async => mockPrivKey);
       when(network.listenAddresses).thenReturn([]);
       when(network.resourceManager).thenReturn(mockResourceManager);
     });
 
     // Helper to setup common stubs for MockMultiAddr
-    void setupMockMultiAddr(MockMultiAddr addr, {String? ip4Value, String? p2pValue, bool isLoopback = false}) {
-      when(addr.components).thenReturn(List<(multiaddr_protocol.Protocol, String)>.empty());
-      when(addr.protocols).thenReturn(List<multiaddr_protocol.Protocol>.empty());
+    void setupMockMultiAddr(
+      MockMultiAddr addr, {
+      String? ip4Value,
+      String? p2pValue,
+      bool isLoopback = false,
+    }) {
+      when(
+        addr.components,
+      ).thenReturn(List<(multiaddr_protocol.Protocol, String)>.empty());
+      when(
+        addr.protocols,
+      ).thenReturn(List<multiaddr_protocol.Protocol>.empty());
       when(addr.toBytes()).thenReturn(Uint8List(0));
-      when(addr.isLoopback()).thenReturn(isLoopback); 
+      when(addr.isLoopback()).thenReturn(isLoopback);
       when(addr.valueForProtocol(any)).thenReturn(null);
       if (ip4Value != null) {
         when(addr.valueForProtocol('ip4')).thenReturn(ip4Value);
       }
       if (p2pValue != null) {
-         when(addr.valueForProtocol('p2p')).thenReturn(p2pValue);
+        when(addr.valueForProtocol('p2p')).thenReturn(p2pValue);
       }
     }
 
-
     test('Host creation and closing', () async {
-      final config = Config(); 
-      config.eventBus = eventBus; 
+      final config = Config();
+      config.eventBus = eventBus;
 
       when(network.resourceManager).thenReturn(mockResourceManager);
 
@@ -106,24 +119,27 @@ void main() {
     });
 
     group('Host Listening Logic on Start', () {
-      test('Host does not attempt to listen if no listenAddrs are configured', () async {
-        final config = Config(); 
-        config.eventBus = eventBus;
-        
-        when(network.resourceManager).thenReturn(mockResourceManager);
+      test(
+        'Host does not attempt to listen if no listenAddrs are configured',
+        () async {
+          final config = Config();
+          config.eventBus = eventBus;
 
-        final host = await BasicHost.create(network: network, config: config);
-        await host.start();
+          when(network.resourceManager).thenReturn(mockResourceManager);
 
-        verifyNever(network.listen(any));
-        expect(host.addrs, isEmpty);
+          final host = await BasicHost.create(network: network, config: config);
+          await host.start();
 
-        await host.close();
-      });
+          verifyNever(network.listen(any));
+          expect(host.addrs, isEmpty);
+
+          await host.close();
+        },
+      );
 
       test('Host start fails if network.listen() fails', () async {
         final listenAddr1 = MockMultiAddr();
-        setupMockMultiAddr(listenAddr1, ip4Value: '127.0.0.1'); 
+        setupMockMultiAddr(listenAddr1, ip4Value: '127.0.0.1');
         final configListenAddrs = [listenAddr1];
         final config = Config()..listenAddrs = configListenAddrs;
         config.eventBus = eventBus;
@@ -131,7 +147,7 @@ void main() {
         when(network.listen(configListenAddrs)).thenAnswer((_) async {
           return Future.error(Exception('Mock Network Listen Failed'));
         });
-        
+
         when(network.resourceManager).thenReturn(mockResourceManager);
 
         final host = await BasicHost.create(network: network, config: config);
@@ -155,27 +171,27 @@ void main() {
 
       final addr1 = MockMultiAddr();
       setupMockMultiAddr(addr1, ip4Value: '192.168.1.10');
-      when(addr1.toBytes()).thenReturn(Uint8List.fromList([1,2])); 
+      when(addr1.toBytes()).thenReturn(Uint8List.fromList([1, 2]));
 
       final addr2 = MockMultiAddr();
       setupMockMultiAddr(addr2, ip4Value: '10.0.0.5');
-      
+
       when(network.listenAddresses).thenReturn([addr1, addr2]);
 
-      host.signalAddressChange(); 
+      host.signalAddressChange();
 
       expect(host.addrs.length, equals(2));
 
       final customAddr = MockMultiAddr();
       setupMockMultiAddr(customAddr, ip4Value: '172.16.0.1');
-      
+
       final config2 = Config();
       config2.addrsFactory = (_) => [customAddr];
-      
+
       when(network.resourceManager).thenReturn(mockResourceManager);
       final hostWithCustomAddrs = await BasicHost.create(
         network: network,
-        config: config2
+        config: config2,
       );
 
       expect(hostWithCustomAddrs.addrs.length, equals(1));
@@ -183,7 +199,7 @@ void main() {
 
     test('Protocol handler management', () async {
       final config = Config();
-      config.eventBus = eventBus; 
+      config.eventBus = eventBus;
       when(network.resourceManager).thenReturn(mockResourceManager);
       final host = await BasicHost.create(network: network, config: config);
 
@@ -212,23 +228,33 @@ void main() {
       final config = Config();
       when(network.resourceManager).thenReturn(mockResourceManager);
       final host = await BasicHost.create(network: network, config: config);
-      
+
       final listenAddrForStart = MockMultiAddr();
-      setupMockMultiAddr(listenAddrForStart, ip4Value: '0.0.0.0'); 
-      when(network.listenAddresses).thenReturn([listenAddrForStart]); 
+      setupMockMultiAddr(listenAddrForStart, ip4Value: '0.0.0.0');
+      when(network.listenAddresses).thenReturn([listenAddrForStart]);
 
       await host.start();
 
-      final remotePeerId = PeerId.fromString('QmcgpsyWgH8Y8ajJz1Cu72KnS5uo2Aa2LpzU7kinSupNKC');
+      final remotePeerId = PeerId.fromString(
+        'QmcgpsyWgH8Y8ajJz1Cu72KnS5uo2Aa2LpzU7kinSupNKC',
+      );
       final remoteAddr = MockMultiAddr();
-      setupMockMultiAddr(remoteAddr, ip4Value: '1.2.3.4', p2pValue: remotePeerId.toString());
+      setupMockMultiAddr(
+        remoteAddr,
+        ip4Value: '1.2.3.4',
+        p2pValue: remotePeerId.toString(),
+      );
 
       final mockConn = MockConn();
-      when(mockConn.remotePeer).thenReturn(remotePeerId); 
-      when(mockConn.id).thenReturn('mock-conn-id'); 
+      when(mockConn.remotePeer).thenReturn(remotePeerId);
+      when(mockConn.id).thenReturn('mock-conn-id');
       when(mockConn.isClosed).thenReturn(false); // Stub isClosed
-      when(network.connectedness(remotePeerId)).thenReturn(Connectedness.notConnected);
-      when(network.dialPeer(any, remotePeerId)).thenAnswer((_) async => mockConn);
+      when(
+        network.connectedness(remotePeerId),
+      ).thenReturn(Connectedness.notConnected);
+      when(
+        network.dialPeer(any, remotePeerId),
+      ).thenAnswer((_) async => mockConn);
 
       await host.connect(AddrInfo(remotePeerId, [remoteAddr]));
 
@@ -240,11 +266,17 @@ void main() {
       when(network.resourceManager).thenReturn(mockResourceManager);
       final host = await BasicHost.create(network: network, config: config);
 
-      final remotePeerId = PeerId.fromString('QmcgpsyWgH8Y8ajJz1Cu72KnS5uo2Aa2LpzU7kinSupNKC');
+      final remotePeerId = PeerId.fromString(
+        'QmcgpsyWgH8Y8ajJz1Cu72KnS5uo2Aa2LpzU7kinSupNKC',
+      );
 
       final mockStream = MockP2PStream();
-      when(network.connectedness(remotePeerId)).thenReturn(Connectedness.connected);
-      when(network.newStream(any, remotePeerId)).thenAnswer((_) async => mockStream);
+      when(
+        network.connectedness(remotePeerId),
+      ).thenReturn(Connectedness.connected);
+      when(
+        network.newStream(any, remotePeerId),
+      ).thenAnswer((_) async => mockStream);
 
       try {
         await host.newStream(remotePeerId, ['/test/1.0.0'], Context());

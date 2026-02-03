@@ -10,14 +10,18 @@ void main() {
       final response = await client.discover();
       expect(response, isNotNull);
     });
-    
-    test('should retrieve external IP address', () async {
-      final client = StunClient();
-      final response = await client.discover();
-      expect(response.externalAddress, isNotNull);
-      expect(response.externalAddress?.toString(), isNot(equals('0.0.0.0')));
-    }, timeout: Timeout(Duration(seconds: 10)));
-    
+
+    test(
+      'should retrieve external IP address',
+      () async {
+        final client = StunClient();
+        final response = await client.discover();
+        expect(response.externalAddress, isNotNull);
+        expect(response.externalAddress?.toString(), isNot(equals('0.0.0.0')));
+      },
+      timeout: Timeout(Duration(seconds: 10)),
+    );
+
     test('should detect NAT type', () async {
       final client = StunClient();
       final response = await client.discover();
@@ -36,4 +40,4 @@ void main() {
       }
     });
   });
-} 
+}

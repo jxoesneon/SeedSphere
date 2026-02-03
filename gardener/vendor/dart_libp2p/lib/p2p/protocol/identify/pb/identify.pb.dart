@@ -48,30 +48,44 @@ class Identify extends $pb.GeneratedMessage {
     return $result;
   }
   Identify._() : super();
-  factory Identify.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory Identify.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+  factory Identify.fromBuffer($core.List<$core.int> i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(i, r);
+  factory Identify.fromJson($core.String i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(i, r);
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'Identify', package: const $pb.PackageName(_omitMessageNames ? '' : 'identify.pb'), createEmptyInstance: create)
-    ..a<$core.List<$core.int>>(1, _omitFieldNames ? '' : 'publicKey', $pb.PbFieldType.OY, protoName: 'publicKey')
-    ..p<$core.List<$core.int>>(2, _omitFieldNames ? '' : 'listenAddrs', $pb.PbFieldType.PY, protoName: 'listenAddrs')
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'Identify',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'identify.pb'),
+      createEmptyInstance: create)
+    ..a<$core.List<$core.int>>(
+        1, _omitFieldNames ? '' : 'publicKey', $pb.PbFieldType.OY,
+        protoName: 'publicKey')
+    ..p<$core.List<$core.int>>(
+        2, _omitFieldNames ? '' : 'listenAddrs', $pb.PbFieldType.PY,
+        protoName: 'listenAddrs')
     ..pPS(3, _omitFieldNames ? '' : 'protocols')
-    ..a<$core.List<$core.int>>(4, _omitFieldNames ? '' : 'observedAddr', $pb.PbFieldType.OY, protoName: 'observedAddr')
-    ..aOS(5, _omitFieldNames ? '' : 'protocolVersion', protoName: 'protocolVersion')
+    ..a<$core.List<$core.int>>(
+        4, _omitFieldNames ? '' : 'observedAddr', $pb.PbFieldType.OY,
+        protoName: 'observedAddr')
+    ..aOS(5, _omitFieldNames ? '' : 'protocolVersion',
+        protoName: 'protocolVersion')
     ..aOS(6, _omitFieldNames ? '' : 'agentVersion', protoName: 'agentVersion')
-    ..a<$core.List<$core.int>>(8, _omitFieldNames ? '' : 'signedPeerRecord', $pb.PbFieldType.OY, protoName: 'signedPeerRecord')
-    ..hasRequiredFields = false
-  ;
+    ..a<$core.List<$core.int>>(
+        8, _omitFieldNames ? '' : 'signedPeerRecord', $pb.PbFieldType.OY,
+        protoName: 'signedPeerRecord')
+    ..hasRequiredFields = false;
 
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-  'Will be removed in next major version')
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+      'Will be removed in next major version')
   Identify clone() => Identify()..mergeFromMessage(this);
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-  'Will be removed in next major version')
-  Identify copyWith(void Function(Identify) updates) => super.copyWith((message) => updates(message as Identify)) as Identify;
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+      'Will be removed in next major version')
+  Identify copyWith(void Function(Identify) updates) =>
+      super.copyWith((message) => updates(message as Identify)) as Identify;
 
   $pb.BuilderInfo get info_ => _i;
 
@@ -80,7 +94,8 @@ class Identify extends $pb.GeneratedMessage {
   Identify createEmptyInstance() => create();
   static $pb.PbList<Identify> createRepeated() => $pb.PbList<Identify>();
   @$core.pragma('dart2js:noInline')
-  static Identify getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<Identify>(create);
+  static Identify getDefault() =>
+      _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<Identify>(create);
   static Identify? _defaultInstance;
 
   /// publicKey is this node's public key (which also gives its node.ID)
@@ -89,7 +104,10 @@ class Identify extends $pb.GeneratedMessage {
   @$pb.TagNumber(1)
   $core.List<$core.int> get publicKey => $_getN(0);
   @$pb.TagNumber(1)
-  set publicKey($core.List<$core.int> v) { $_setBytes(0, v); }
+  set publicKey($core.List<$core.int> v) {
+    $_setBytes(0, v);
+  }
+
   @$pb.TagNumber(1)
   $core.bool hasPublicKey() => $_has(0);
   @$pb.TagNumber(1)
@@ -109,7 +127,10 @@ class Identify extends $pb.GeneratedMessage {
   @$pb.TagNumber(4)
   $core.List<$core.int> get observedAddr => $_getN(3);
   @$pb.TagNumber(4)
-  set observedAddr($core.List<$core.int> v) { $_setBytes(3, v); }
+  set observedAddr($core.List<$core.int> v) {
+    $_setBytes(3, v);
+  }
+
   @$pb.TagNumber(4)
   $core.bool hasObservedAddr() => $_has(3);
   @$pb.TagNumber(4)
@@ -119,7 +140,10 @@ class Identify extends $pb.GeneratedMessage {
   @$pb.TagNumber(5)
   $core.String get protocolVersion => $_getSZ(4);
   @$pb.TagNumber(5)
-  set protocolVersion($core.String v) { $_setString(4, v); }
+  set protocolVersion($core.String v) {
+    $_setString(4, v);
+  }
+
   @$pb.TagNumber(5)
   $core.bool hasProtocolVersion() => $_has(4);
   @$pb.TagNumber(5)
@@ -130,7 +154,10 @@ class Identify extends $pb.GeneratedMessage {
   @$pb.TagNumber(6)
   $core.String get agentVersion => $_getSZ(5);
   @$pb.TagNumber(6)
-  set agentVersion($core.String v) { $_setString(5, v); }
+  set agentVersion($core.String v) {
+    $_setString(5, v);
+  }
+
   @$pb.TagNumber(6)
   $core.bool hasAgentVersion() => $_has(5);
   @$pb.TagNumber(6)
@@ -144,13 +171,16 @@ class Identify extends $pb.GeneratedMessage {
   @$pb.TagNumber(8)
   $core.List<$core.int> get signedPeerRecord => $_getN(6);
   @$pb.TagNumber(8)
-  set signedPeerRecord($core.List<$core.int> v) { $_setBytes(6, v); }
+  set signedPeerRecord($core.List<$core.int> v) {
+    $_setBytes(6, v);
+  }
+
   @$pb.TagNumber(8)
   $core.bool hasSignedPeerRecord() => $_has(6);
   @$pb.TagNumber(8)
   void clearSignedPeerRecord() => clearField(8);
 }
 
-
 const _omitFieldNames = $core.bool.fromEnvironment('protobuf.omit_field_names');
-const _omitMessageNames = $core.bool.fromEnvironment('protobuf.omit_message_names');
+const _omitMessageNames =
+    $core.bool.fromEnvironment('protobuf.omit_message_names');

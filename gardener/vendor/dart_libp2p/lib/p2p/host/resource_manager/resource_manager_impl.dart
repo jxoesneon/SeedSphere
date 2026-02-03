@@ -17,9 +17,7 @@ import 'package:logging/logging.dart';
 
 // A simple logger placeholder
 
-
 class ResourceManagerImpl implements ResourceManager {
-
   final Logger _logger = Logger('ResourceManagerImpl');
 
   final Limiter _limiter;
@@ -33,8 +31,10 @@ class ResourceManagerImpl implements ResourceManager {
   // late final SystemScopeImpl _allowlistedSystemScope;
   // late final ResourceScopeImpl _allowlistedTransientScope;
 
-  final Map<String, ServiceScopeImpl> _serviceScopes = {}; // Use ServiceScopeImpl
-  final Map<ProtocolID, ProtocolScopeImpl> _protocolScopes = {}; // Use ProtocolScopeImpl
+  final Map<String, ServiceScopeImpl> _serviceScopes =
+      {}; // Use ServiceScopeImpl
+  final Map<ProtocolID, ProtocolScopeImpl> _protocolScopes =
+      {}; // Use ProtocolScopeImpl
   final Map<PeerId, PeerScopeImpl> _peerScopes = {}; // Use PeerScopeImpl
 
   // For managing "sticky" scopes that shouldn't be GC'd
@@ -46,7 +46,8 @@ class ResourceManagerImpl implements ResourceManager {
 
   // TODO: Add connLimiter, trace, metrics later
 
-  ResourceManagerImpl({Limiter? limiter}) : _limiter = limiter ?? FixedLimiter() {
+  ResourceManagerImpl({Limiter? limiter})
+    : _limiter = limiter ?? FixedLimiter() {
     _systemScope = SystemScopeImpl(_limiter.getSystemLimits(), 'system');
     _systemScope.incRef(); // System scope is always active
 
@@ -110,13 +111,18 @@ class ResourceManagerImpl implements ResourceManager {
   }
 
   @override
-  Future<ConnManagementScope> openConnection(Direction direction, bool useFd, MultiAddr remoteAddr) async {
+  Future<ConnManagementScope> openConnection(
+    Direction direction,
+    bool useFd,
+    MultiAddr remoteAddr,
+  ) async {
     // TODO: Implement IP-based connection limiting (connLimiter from Go)
     // TODO: Handle allowlisted connections
     // TODO: Determine correct limit (system/transient or allowlisted)
 
     final connLimit = _limiter.getConnLimits();
-    final connName = 'conn-${DateTime.now().millisecondsSinceEpoch}-${remoteAddr.toString().hashCode % 10000}';
+    final connName =
+        'conn-${DateTime.now().millisecondsSinceEpoch}-${remoteAddr.toString().hashCode % 10000}';
     final concreteConnScope = ConnectionScopeImpl(
       this, // Pass ResourceManagerImpl instance
       connLimit,
@@ -144,19 +150,28 @@ class ResourceManagerImpl implements ResourceManager {
   }
 
   @override
-  Future<StreamManagementScope> openStream(PeerId peer, Direction direction) async {
-    final concretePeerId = peer ;
-    final peerScope = getPeerScopeInternal(concretePeerId); // Corrected method name
+  Future<StreamManagementScope> openStream(
+    PeerId peer,
+    Direction direction,
+  ) async {
+    final concretePeerId = peer;
+    final peerScope = getPeerScopeInternal(
+      concretePeerId,
+    ); // Corrected method name
 
     final streamLimit = _limiter.getStreamLimits(concretePeerId);
-    final streamName = 'stream-${DateTime.now().millisecondsSinceEpoch}-${peer.toString().hashCode % 10000}';
+    final streamName =
+        'stream-${DateTime.now().millisecondsSinceEpoch}-${peer.toString().hashCode % 10000}';
     final concreteStreamScope = StreamScopeImpl(
       this, // Pass ResourceManagerImpl instance
       streamLimit,
       streamName,
       direction,
       peerScope, // Pass the concrete PeerScopeImpl
-      edges: [peerScope, _transientScope], // Reverted: PeerScope and TransientScope will propagate to SystemScope
+      edges: [
+        peerScope,
+        _transientScope,
+      ], // Reverted: PeerScope and TransientScope will propagate to SystemScope
     );
 
     try {
@@ -169,16 +184,18 @@ class ResourceManagerImpl implements ResourceManager {
     }
 
     // TODO: metrics.AllowStream(p, dir);
-    _logger.fine('Opened stream scope: ${concreteStreamScope.name} for peer ${peer.toString()}');
+    _logger.fine(
+      'Opened stream scope: ${concreteStreamScope.name} for peer ${peer.toString()}',
+    );
     return concreteStreamScope;
   }
 
   // Renamed from _getServiceScope
-  ServiceScopeImpl getServiceScopeInternal(String service) { 
+  ServiceScopeImpl getServiceScopeInternal(String service) {
     return _serviceScopes.putIfAbsent(service, () {
       _logger.fine('Creating new service scope: $service');
       // Use ServiceScopeImpl constructor
-      final scope = ServiceScopeImpl( 
+      final scope = ServiceScopeImpl(
         _limiter.getServiceLimits(service),
         service, // Pass the service name directly for the 'name' field in ServiceScopeImpl
         edges: [_systemScope],
@@ -189,7 +206,7 @@ class ResourceManagerImpl implements ResourceManager {
   }
 
   // Renamed from _getProtocolScope
-  ProtocolScopeImpl getProtocolScopeInternal(ProtocolID protocol) { 
+  ProtocolScopeImpl getProtocolScopeInternal(ProtocolID protocol) {
     return _protocolScopes.putIfAbsent(protocol, () {
       _logger.fine('Creating new protocol scope: $protocol');
       // Use ProtocolScopeImpl constructor
@@ -204,7 +221,7 @@ class ResourceManagerImpl implements ResourceManager {
   }
 
   // Renamed from _getPeerScope to be accessible within the library for ConnectionScopeImpl etc.
-  PeerScopeImpl getPeerScopeInternal(PeerId peer) { 
+  PeerScopeImpl getPeerScopeInternal(PeerId peer) {
     return _peerScopes.putIfAbsent(peer, () {
       _logger.fine('Creating new peer scope: $peer');
       // Use PeerScopeImpl constructor
@@ -218,7 +235,6 @@ class ResourceManagerImpl implements ResourceManager {
     });
   }
 
-
   @override
   Future<T> viewSystem<T>(Future<T> Function(ResourceScope scope) f) async {
     return await f(_systemScope);
@@ -230,7 +246,10 @@ class ResourceManagerImpl implements ResourceManager {
   }
 
   @override
-  Future<T> viewService<T>(String serviceName, Future<T> Function(ServiceScope scope) f) async {
+  Future<T> viewService<T>(
+    String serviceName,
+    Future<T> Function(ServiceScope scope) f,
+  ) async {
     final scope = getServiceScopeInternal(serviceName);
     // This requires ServiceScopeImpl to implement ServiceScope and extend ResourceScopeImpl
     try {
@@ -242,14 +261,20 @@ class ResourceManagerImpl implements ResourceManager {
   }
 
   @override
-  Future<T> viewProtocol<T>(ProtocolID protocol, Future<T> Function(ProtocolScope scope) f) async {
+  Future<T> viewProtocol<T>(
+    ProtocolID protocol,
+    Future<T> Function(ProtocolScope scope) f,
+  ) async {
     final scope = getProtocolScopeInternal(protocol);
     // The cast is now valid as getProtocolScopeInternal returns ProtocolScopeImpl
     return await f(scope);
   }
 
   @override
-  Future<T> viewPeer<T>(PeerId peer, Future<T> Function(PeerScope scope) f) async {
+  Future<T> viewPeer<T>(
+    PeerId peer,
+    Future<T> Function(PeerScope scope) f,
+  ) async {
     // Assuming PeerId can be used where PeerId is expected
     final scope = getPeerScopeInternal(peer);
     // The cast is now valid as getPeerScopeInternal returns PeerScopeImpl

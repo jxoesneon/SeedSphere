@@ -20,7 +20,13 @@ abstract class BackoffStrategy {
 /// Jitter implementations taken roughly from https://aws.amazon.com/blogs/architecture/exponential-backoff-and-jitter/
 
 /// Jitter must return a duration between min and max. Min must be lower than, or equal to, max.
-typedef Jitter = Duration Function(Duration duration, Duration min, Duration max, Random rng);
+typedef Jitter =
+    Duration Function(
+      Duration duration,
+      Duration min,
+      Duration max,
+      Random rng,
+    );
 
 /// FullJitter returns a random number, uniformly chosen from the range [min, boundedDur].
 /// boundedDur is the duration bounded between min and max.
@@ -34,7 +40,7 @@ Duration fullJitter(Duration duration, Duration min, Duration max, Random rng) {
   return boundedDuration(
     Duration(microseconds: rng.nextInt(normalizedDur.inMicroseconds)) + min,
     min,
-    max
+    max,
   );
 }
 
@@ -73,7 +79,7 @@ class AttemptBackoff extends RandomizedBackoff {
   final Jitter jitter;
 
   AttemptBackoff(Duration min, Duration max, this.jitter, Random rng)
-      : super(min, max, rng);
+    : super(min, max, rng);
 
   @override
   void reset() {
@@ -106,12 +112,13 @@ class FixedBackoff implements BackoffStrategy {
 /// timeUnits are the units of time the polynomial is evaluated in
 /// polyCoefs is the array of polynomial coefficients from [c0, c1, ... cn]
 BackoffFactory newPolynomialBackoff(
-    Duration min,
-    Duration max,
-    Jitter jitter,
-    Duration timeUnits,
-    List<double> polyCoefs,
-    Random rng) {
+  Duration min,
+  Duration max,
+  Jitter jitter,
+  Duration timeUnits,
+  List<double> polyCoefs,
+  Random rng,
+) {
   return () => PolynomialBackoff(
     AttemptBackoff(min, max, jitter, rng),
     timeUnits,
@@ -150,7 +157,7 @@ class PolynomialBackoff implements BackoffStrategy {
       Duration(microseconds: (timeUnits.inMicroseconds * polySum).round()),
       attemptBackoff.min,
       attemptBackoff.max,
-      attemptBackoff.rng
+      attemptBackoff.rng,
     );
   }
 
@@ -164,13 +171,14 @@ class PolynomialBackoff implements BackoffStrategy {
 /// jitter is the function for adding randomness around the backoff
 /// timeUnits are the units of time the base^x is evaluated in
 BackoffFactory newExponentialBackoff(
-    Duration min,
-    Duration max,
-    Jitter jitter,
-    Duration timeUnits,
-    double base,
-    Duration offset,
-    Random rng) {
+  Duration min,
+  Duration max,
+  Jitter jitter,
+  Duration timeUnits,
+  double base,
+  Duration offset,
+  Random rng,
+) {
   return () => ExponentialBackoff(
     AttemptBackoff(min, max, jitter, rng),
     timeUnits,
@@ -186,19 +194,25 @@ class ExponentialBackoff implements BackoffStrategy {
   final double base;
   final Duration offset;
 
-  ExponentialBackoff(this.attemptBackoff, this.timeUnits, this.base, this.offset);
+  ExponentialBackoff(
+    this.attemptBackoff,
+    this.timeUnits,
+    this.base,
+    this.offset,
+  );
 
   @override
   Duration delay() {
     final attempt = attemptBackoff.attempt;
     attemptBackoff.attempt++;
 
-    final durationMicros = (pow(base, attempt) * timeUnits.inMicroseconds).round();
+    final durationMicros = (pow(base, attempt) * timeUnits.inMicroseconds)
+        .round();
     return attemptBackoff.jitter(
       Duration(microseconds: durationMicros) + offset,
       attemptBackoff.min,
       attemptBackoff.max,
-      attemptBackoff.rng
+      attemptBackoff.rng,
     );
   }
 
@@ -212,14 +226,13 @@ class ExponentialBackoff implements BackoffStrategy {
 /// Delays start at the minimum duration and after each attempt delay = rand(min, delay * base), bounded by the max
 /// See https://aws.amazon.com/blogs/architecture/exponential-backoff-and-jitter/ for more information
 BackoffFactory newExponentialDecorrelatedJitter(
-    Duration min,
-    Duration max,
-    double base,
-    Random rng) {
-  return () => ExponentialDecorrelatedJitter(
-    RandomizedBackoff(min, max, rng),
-    base,
-  );
+  Duration min,
+  Duration max,
+  double base,
+  Random rng,
+) {
+  return () =>
+      ExponentialDecorrelatedJitter(RandomizedBackoff(min, max, rng), base);
 }
 
 /// A backoff strategy that uses decorrelated jitter with exponential backoff
@@ -239,9 +252,15 @@ class ExponentialDecorrelatedJitter implements BackoffStrategy {
 
     final nextMax = (lastDelay.inMicroseconds * base).round();
     lastDelay = boundedDuration(
-      Duration(microseconds: randomizedBackoff.rng.nextInt(nextMax - randomizedBackoff.min.inMicroseconds) + randomizedBackoff.min.inMicroseconds),
+      Duration(
+        microseconds:
+            randomizedBackoff.rng.nextInt(
+              nextMax - randomizedBackoff.min.inMicroseconds,
+            ) +
+            randomizedBackoff.min.inMicroseconds,
+      ),
       randomizedBackoff.min,
-      randomizedBackoff.max
+      randomizedBackoff.max,
     );
 
     return lastDelay;

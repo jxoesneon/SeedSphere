@@ -27,39 +27,53 @@ class PeerRecord_AddressInfo extends $pb.GeneratedMessage {
     return $result;
   }
   PeerRecord_AddressInfo._() : super();
-  factory PeerRecord_AddressInfo.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory PeerRecord_AddressInfo.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+  factory PeerRecord_AddressInfo.fromBuffer($core.List<$core.int> i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(i, r);
+  factory PeerRecord_AddressInfo.fromJson($core.String i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(i, r);
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'PeerRecord.AddressInfo', package: const $pb.PackageName(_omitMessageNames ? '' : 'peer.pb'), createEmptyInstance: create)
-    ..a<$core.List<$core.int>>(1, _omitFieldNames ? '' : 'multiaddr', $pb.PbFieldType.OY)
-    ..hasRequiredFields = false
-  ;
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'PeerRecord.AddressInfo',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'peer.pb'),
+      createEmptyInstance: create)
+    ..a<$core.List<$core.int>>(
+        1, _omitFieldNames ? '' : 'multiaddr', $pb.PbFieldType.OY)
+    ..hasRequiredFields = false;
 
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-  'Will be removed in next major version')
-  PeerRecord_AddressInfo clone() => PeerRecord_AddressInfo()..mergeFromMessage(this);
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-  'Will be removed in next major version')
-  PeerRecord_AddressInfo copyWith(void Function(PeerRecord_AddressInfo) updates) => super.copyWith((message) => updates(message as PeerRecord_AddressInfo)) as PeerRecord_AddressInfo;
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+      'Will be removed in next major version')
+  PeerRecord_AddressInfo clone() =>
+      PeerRecord_AddressInfo()..mergeFromMessage(this);
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+      'Will be removed in next major version')
+  PeerRecord_AddressInfo copyWith(
+          void Function(PeerRecord_AddressInfo) updates) =>
+      super.copyWith((message) => updates(message as PeerRecord_AddressInfo))
+          as PeerRecord_AddressInfo;
 
   $pb.BuilderInfo get info_ => _i;
 
   @$core.pragma('dart2js:noInline')
   static PeerRecord_AddressInfo create() => PeerRecord_AddressInfo._();
   PeerRecord_AddressInfo createEmptyInstance() => create();
-  static $pb.PbList<PeerRecord_AddressInfo> createRepeated() => $pb.PbList<PeerRecord_AddressInfo>();
+  static $pb.PbList<PeerRecord_AddressInfo> createRepeated() =>
+      $pb.PbList<PeerRecord_AddressInfo>();
   @$core.pragma('dart2js:noInline')
-  static PeerRecord_AddressInfo getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<PeerRecord_AddressInfo>(create);
+  static PeerRecord_AddressInfo getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<PeerRecord_AddressInfo>(create);
   static PeerRecord_AddressInfo? _defaultInstance;
 
   @$pb.TagNumber(1)
   $core.List<$core.int> get multiaddr => $_getN(0);
   @$pb.TagNumber(1)
-  set multiaddr($core.List<$core.int> v) { $_setBytes(0, v); }
+  set multiaddr($core.List<$core.int> v) {
+    $_setBytes(0, v);
+  }
+
   @$pb.TagNumber(1)
   $core.bool hasMultiaddr() => $_has(0);
   @$pb.TagNumber(1)
@@ -93,26 +107,35 @@ class PeerRecord extends $pb.GeneratedMessage {
     return $result;
   }
   PeerRecord._() : super();
-  factory PeerRecord.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory PeerRecord.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+  factory PeerRecord.fromBuffer($core.List<$core.int> i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(i, r);
+  factory PeerRecord.fromJson($core.String i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(i, r);
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'PeerRecord', package: const $pb.PackageName(_omitMessageNames ? '' : 'peer.pb'), createEmptyInstance: create)
-    ..a<$core.List<$core.int>>(1, _omitFieldNames ? '' : 'peerId', $pb.PbFieldType.OY)
-    ..a<$fixnum.Int64>(2, _omitFieldNames ? '' : 'seq', $pb.PbFieldType.OU6, defaultOrMaker: $fixnum.Int64.ZERO)
-    ..pc<PeerRecord_AddressInfo>(3, _omitFieldNames ? '' : 'addresses', $pb.PbFieldType.PM, subBuilder: PeerRecord_AddressInfo.create)
-    ..hasRequiredFields = false
-  ;
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'PeerRecord',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'peer.pb'),
+      createEmptyInstance: create)
+    ..a<$core.List<$core.int>>(
+        1, _omitFieldNames ? '' : 'peerId', $pb.PbFieldType.OY)
+    ..a<$fixnum.Int64>(2, _omitFieldNames ? '' : 'seq', $pb.PbFieldType.OU6,
+        defaultOrMaker: $fixnum.Int64.ZERO)
+    ..pc<PeerRecord_AddressInfo>(
+        3, _omitFieldNames ? '' : 'addresses', $pb.PbFieldType.PM,
+        subBuilder: PeerRecord_AddressInfo.create)
+    ..hasRequiredFields = false;
 
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-  'Will be removed in next major version')
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+      'Will be removed in next major version')
   PeerRecord clone() => PeerRecord()..mergeFromMessage(this);
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-  'Will be removed in next major version')
-  PeerRecord copyWith(void Function(PeerRecord) updates) => super.copyWith((message) => updates(message as PeerRecord)) as PeerRecord;
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+      'Will be removed in next major version')
+  PeerRecord copyWith(void Function(PeerRecord) updates) =>
+      super.copyWith((message) => updates(message as PeerRecord)) as PeerRecord;
 
   $pb.BuilderInfo get info_ => _i;
 
@@ -121,14 +144,18 @@ class PeerRecord extends $pb.GeneratedMessage {
   PeerRecord createEmptyInstance() => create();
   static $pb.PbList<PeerRecord> createRepeated() => $pb.PbList<PeerRecord>();
   @$core.pragma('dart2js:noInline')
-  static PeerRecord getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<PeerRecord>(create);
+  static PeerRecord getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<PeerRecord>(create);
   static PeerRecord? _defaultInstance;
 
   /// peer_id contains a libp2p peer id in its binary representation.
   @$pb.TagNumber(1)
   $core.List<$core.int> get peerId => $_getN(0);
   @$pb.TagNumber(1)
-  set peerId($core.List<$core.int> v) { $_setBytes(0, v); }
+  set peerId($core.List<$core.int> v) {
+    $_setBytes(0, v);
+  }
+
   @$pb.TagNumber(1)
   $core.bool hasPeerId() => $_has(0);
   @$pb.TagNumber(1)
@@ -138,7 +165,10 @@ class PeerRecord extends $pb.GeneratedMessage {
   @$pb.TagNumber(2)
   $fixnum.Int64 get seq => $_getI64(1);
   @$pb.TagNumber(2)
-  set seq($fixnum.Int64 v) { $_setInt64(1, v); }
+  set seq($fixnum.Int64 v) {
+    $_setInt64(1, v);
+  }
+
   @$pb.TagNumber(2)
   $core.bool hasSeq() => $_has(1);
   @$pb.TagNumber(2)
@@ -149,6 +179,6 @@ class PeerRecord extends $pb.GeneratedMessage {
   $core.List<PeerRecord_AddressInfo> get addresses => $_getList(2);
 }
 
-
 const _omitFieldNames = $core.bool.fromEnvironment('protobuf.omit_field_names');
-const _omitMessageNames = $core.bool.fromEnvironment('protobuf.omit_message_names');
+const _omitMessageNames =
+    $core.bool.fromEnvironment('protobuf.omit_message_names');

@@ -13,8 +13,11 @@ abstract class Limiter {
   Limit getProtocolLimits(ProtocolID protocol);
   Limit getProtocolPeerLimits(ProtocolID protocol, PeerId peer); // Added PeerId
   Limit getPeerLimits(PeerId peer);
-  Limit getStreamLimits(PeerId peer); // Corresponds to GetStreamLimits(p peer.ID) in Go, used for individual streams
-  Limit getConnLimits(); // Corresponds to GetConnLimits() in Go, used for individual connections
+  Limit getStreamLimits(
+    PeerId peer,
+  ); // Corresponds to GetStreamLimits(p peer.ID) in Go, used for individual streams
+  Limit
+  getConnLimits(); // Corresponds to GetConnLimits() in Go, used for individual connections
 }
 
 /// FixedLimiter is a limiter with fixed limits.
@@ -36,19 +39,30 @@ class FixedLimiter implements Limiter {
 
   // TODO: Add proper configuration loading (e.g. from a ConcreteLimitConfig class)
   FixedLimiter()
-      : _defaultSystemLimit = BaseLimit.unlimited(),
-        _defaultTransientLimit = BaseLimit.unlimited(),
-        _defaultAllowlistedSystemLimit = BaseLimit.unlimited(),
-        _defaultAllowlistedTransientLimit = BaseLimit.unlimited(),
-        _defaultServiceLimit = BaseLimit.unlimited(),
-        _defaultServicePeerLimit = BaseLimit.unlimited(),
-        _defaultProtocolLimit = BaseLimit.unlimited(),
-        _defaultProtocolPeerLimit = BaseLimit.unlimited(),
-        _defaultPeerLimit = BaseLimit.unlimited(),
-        _defaultStreamLimit = BaseLimit( // Streams usually have more constrained default limits
-            streams: 1024, streamsInbound: 512, streamsOutbound: 512, memory: 1024 * 1024 * 8 /* 8 MiB */),
-        _defaultConnLimit = BaseLimit( // Conns also have more constrained default limits
-            conns: 256, connsInbound: 128, connsOutbound: 128, fd: 128, memory: 1024 * 1024 * 4 /* 4 MiB */);
+    : _defaultSystemLimit = BaseLimit.unlimited(),
+      _defaultTransientLimit = BaseLimit.unlimited(),
+      _defaultAllowlistedSystemLimit = BaseLimit.unlimited(),
+      _defaultAllowlistedTransientLimit = BaseLimit.unlimited(),
+      _defaultServiceLimit = BaseLimit.unlimited(),
+      _defaultServicePeerLimit = BaseLimit.unlimited(),
+      _defaultProtocolLimit = BaseLimit.unlimited(),
+      _defaultProtocolPeerLimit = BaseLimit.unlimited(),
+      _defaultPeerLimit = BaseLimit.unlimited(),
+      _defaultStreamLimit = BaseLimit(
+        // Streams usually have more constrained default limits
+        streams: 1024,
+        streamsInbound: 512,
+        streamsOutbound: 512,
+        memory: 1024 * 1024 * 8 /* 8 MiB */,
+      ),
+      _defaultConnLimit = BaseLimit(
+        // Conns also have more constrained default limits
+        conns: 256,
+        connsInbound: 128,
+        connsOutbound: 128,
+        fd: 128,
+        memory: 1024 * 1024 * 4 /* 4 MiB */,
+      );
 
   @override
   Limit getSystemLimits() => _defaultSystemLimit;
@@ -58,7 +72,7 @@ class FixedLimiter implements Limiter {
 
   @override
   Limit getAllowlistedSystemLimits() => _defaultAllowlistedSystemLimit;
-  
+
   @override
   Limit getAllowlistedTransientLimits() => _defaultAllowlistedTransientLimit;
 

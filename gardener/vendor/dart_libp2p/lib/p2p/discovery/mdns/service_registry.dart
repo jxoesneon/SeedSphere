@@ -22,25 +22,26 @@ class MdnsServiceRegistry {
     required String name,
     required int port,
     required List<String> txtRecords,
-  }) : 
-    _client = client,
-    _serviceName = serviceName,
-    _domain = domain,
-    _name = name,
-    _port = port,
-    _txtRecords = txtRecords;
+  }) : _client = client,
+       _serviceName = serviceName,
+       _domain = domain,
+       _name = name,
+       _port = port,
+       _txtRecords = txtRecords;
 
   /// Registers the service with mDNS
   void register() {
     if (_isRegistered) return;
 
     // Listen for PTR queries for our service
-    _ptrSubscription = _client.lookup<PtrResourceRecord>(
-      ResourceRecordQuery.serverPointer('$_serviceName.$_domain'),
-    ).listen((event) {
-      // When someone queries for our service, respond with our records
-      _sendServiceRecords();
-    });
+    _ptrSubscription = _client
+        .lookup<PtrResourceRecord>(
+          ResourceRecordQuery.serverPointer('$_serviceName.$_domain'),
+        )
+        .listen((event) {
+          // When someone queries for our service, respond with our records
+          _sendServiceRecords();
+        });
 
     // Announce our service immediately
     _sendServiceRecords();
@@ -58,14 +59,10 @@ class MdnsServiceRegistry {
     final String fullName = '$_name.$_serviceName.$_domain';
 
     // Send SRV record
-    _client.lookup<SrvResourceRecord>(
-      ResourceRecordQuery.service(fullName),
-    );
+    _client.lookup<SrvResourceRecord>(ResourceRecordQuery.service(fullName));
 
     // Send TXT records
-    _client.lookup<TxtResourceRecord>(
-      ResourceRecordQuery.text(fullName),
-    );
+    _client.lookup<TxtResourceRecord>(ResourceRecordQuery.text(fullName));
   }
 
   /// Unregisters the service
@@ -85,14 +82,10 @@ class MdnsServiceRegistry {
     );
 
     // Send SRV record (TTL=0 not supported in this version)
-    _client.lookup<SrvResourceRecord>(
-      ResourceRecordQuery.service(fullName),
-    );
+    _client.lookup<SrvResourceRecord>(ResourceRecordQuery.service(fullName));
 
     // Send TXT records (TTL=0 not supported in this version)
-    _client.lookup<TxtResourceRecord>(
-      ResourceRecordQuery.text(fullName),
-    );
+    _client.lookup<TxtResourceRecord>(ResourceRecordQuery.text(fullName));
 
     _isRegistered = false;
   }

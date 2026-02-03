@@ -8,7 +8,8 @@ import 'package:logging/logging.dart';
 import '../../../core/interfaces.dart';
 
 /// DialFunc is a function that dials a peer at a specific address
-typedef DialFunc = Future<Conn> Function(Context context, MultiAddr addr, PeerId peerId);
+typedef DialFunc =
+    Future<Conn> Function(Context context, MultiAddr addr, PeerId peerId);
 
 /// AddrDialer is a helper for dialing multiple addresses in parallel
 class AddrDialer {
@@ -32,11 +33,10 @@ class AddrDialer {
     required List<MultiAddr> addrs,
     required DialFunc dialFunc,
     required Context context,
-  }) : 
-    _peerId = peerId,
-    _addrs = addrs,
-    _dialFunc = dialFunc,
-    _context = context;
+  }) : _peerId = peerId,
+       _addrs = addrs,
+       _dialFunc = dialFunc,
+       _context = context;
 
   /// Dials the addresses in parallel and returns the first successful connection
   Future<Conn> dial() async {
@@ -55,23 +55,29 @@ class AddrDialer {
 
     // Dial each address in parallel
     for (final addr in _addrs) {
-      _dialAddr(addr).then((conn) {
-        // If we haven't completed yet, complete with this connection
-        if (!completer.isCompleted) {
-          completer.complete(conn);
-        }
-      }).catchError((error) {
-        // Add the error to our list
-        errors.add(error is Exception ? error : Exception(error.toString()));
+      _dialAddr(addr)
+          .then((conn) {
+            // If we haven't completed yet, complete with this connection
+            if (!completer.isCompleted) {
+              completer.complete(conn);
+            }
+          })
+          .catchError((error) {
+            // Add the error to our list
+            errors.add(
+              error is Exception ? error : Exception(error.toString()),
+            );
 
-        // Decrement the dials in progress
-        dialsInProgress--;
+            // Decrement the dials in progress
+            dialsInProgress--;
 
-        // If all dials have failed, complete with an error
-        if (dialsInProgress == 0 && !completer.isCompleted) {
-          completer.completeError(Exception('Failed to dial any address: ${errors.join(', ')}'));
-        }
-      });
+            // If all dials have failed, complete with an error
+            if (dialsInProgress == 0 && !completer.isCompleted) {
+              completer.completeError(
+                Exception('Failed to dial any address: ${errors.join(', ')}'),
+              );
+            }
+          });
     }
 
     return completer.future;
@@ -98,8 +104,10 @@ class DelayDialRanker {
 
     for (final addr in addrs) {
       bool isRelay = false;
-      for (final p in addr.protocols) { // This 'p' is of type multiaddr_protocol.Protocol
-        if (p.code == multiaddr_protocol.Protocols.circuit.code) { // Corrected access to P_CIRCUIT code
+      for (final p in addr.protocols) {
+        // This 'p' is of type multiaddr_protocol.Protocol
+        if (p.code == multiaddr_protocol.Protocols.circuit.code) {
+          // Corrected access to P_CIRCUIT code
           isRelay = true;
           break;
         }
@@ -141,10 +149,9 @@ class DialBackoff {
   DialBackoff({
     Duration baseDelay = const Duration(milliseconds: 100),
     Duration maxDelay = const Duration(minutes: 5),
-  }) : 
-    _baseDelay = baseDelay,
-    _maxDelay = maxDelay,
-    _currentDelay = baseDelay;
+  }) : _baseDelay = baseDelay,
+       _maxDelay = maxDelay,
+       _currentDelay = baseDelay;
 
   /// Gets the next delay and increases the backoff
   Duration nextDelay() {

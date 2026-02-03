@@ -19,10 +19,8 @@ enum ConnectionState {
   closed,
 
   /// Connection encountered an error
-  error
+  error,
 }
-
-
 
 /// Represents a state change event in a connection
 class ConnectionStateChange {
@@ -43,12 +41,12 @@ class ConnectionStateChange {
     required this.previousState,
     required this.newState,
     Object? error,
-  })  : timestamp = DateTime.now(),
-        error = error;
+  }) : timestamp = DateTime.now(),
+       error = error;
 
   @override
   String toString() {
     final errorStr = error != null ? ' (Error: $error)' : '';
     return 'ConnectionStateChange: $previousState -> $newState$errorStr';
   }
-} 
+}

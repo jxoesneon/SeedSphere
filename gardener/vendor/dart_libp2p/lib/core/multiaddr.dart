@@ -12,8 +12,7 @@ class MultiAddr {
   /// Creates a new Multiaddr from a string
   /// Format: /protocol1/value1/protocol2/value2
   /// Example: /ip4/127.0.0.1/tcp/1234
-  MultiAddr(this._addr): _components = _parseAddr(_addr);
-
+  MultiAddr(this._addr) : _components = _parseAddr(_addr);
 
   static List<(Protocol, String)> _parseAddr(String addr) {
     final components = <(Protocol, String)>[];
@@ -87,7 +86,10 @@ class MultiAddr {
 
     while (offset < bytes.length) {
       // Read protocol code
-      final (code, protocolBytesRead) = MultiAddrCodec.decodeVarint(bytes, offset);
+      final (code, protocolBytesRead) = MultiAddrCodec.decodeVarint(
+        bytes,
+        offset,
+      );
       offset += protocolBytesRead;
 
       final protocol = Protocols.byCode(code);
@@ -98,7 +100,10 @@ class MultiAddr {
       // Read value
       int valueLength;
       if (protocol.isVariableSize) {
-        final (length, lengthBytesRead) = MultiAddrCodec.decodeVarint(bytes, offset);
+        final (length, lengthBytesRead) = MultiAddrCodec.decodeVarint(
+          bytes,
+          offset,
+        );
         offset += lengthBytesRead;
         valueLength = length;
       } else {
@@ -106,7 +111,9 @@ class MultiAddr {
       }
 
       if (offset + valueLength > bytes.length) {
-        throw FormatException('Invalid multiaddr bytes: unexpected end of input');
+        throw FormatException(
+          'Invalid multiaddr bytes: unexpected end of input',
+        );
       }
 
       final valueBytes = bytes.sublist(offset, offset + valueLength);
@@ -120,7 +127,8 @@ class MultiAddr {
     final sb = StringBuffer();
     for (final (protocol, value) in components) {
       sb.write('/${protocol.name}');
-      if (protocol.size != 0) { // Only add value if protocol is not size 0
+      if (protocol.size != 0) {
+        // Only add value if protocol is not size 0
         sb.write('/$value');
       }
       // If protocol.size == 0, we add nothing more for this component.
@@ -135,7 +143,7 @@ class MultiAddr {
 
   String? valueForProtocol(String protocol) {
     final component = _components.firstWhere(
-          (c) => c.$1.name == protocol,
+      (c) => c.$1.name == protocol,
       orElse: () => (Protocols.ip4, ''),
     );
     return component.$1.name == protocol ? component.$2 : null;
@@ -218,7 +226,8 @@ class MultiAddr {
       if (addr.startsWith('10.')) return true;
       if (addr.startsWith('172.') &&
           int.parse(addr.split('.')[1]) >= 16 &&
-          int.parse(addr.split('.')[1]) <= 31) return true;
+          int.parse(addr.split('.')[1]) <= 31)
+        return true;
       if (addr.startsWith('192.168.')) return true;
     } else {
       // Check private IPv6 ranges
@@ -235,72 +244,72 @@ class MultiAddr {
   // ========== Named Component Getters ==========
 
   /// Network Address Getters
-  
+
   /// Returns the IPv4 address if present
   String? get ip4 => valueForProtocol('ip4');
-  
+
   /// Returns the IPv6 address if present
   String? get ip6 => valueForProtocol('ip6');
-  
+
   /// Returns the first available IP address (IPv4 or IPv6)
   String? get ip => ip4 ?? ip6;
-  
+
   /// Returns the DNS4 address if present
   String? get dns4 => valueForProtocol('dns4');
-  
+
   /// Returns the DNS6 address if present
   String? get dns6 => valueForProtocol('dns6');
-  
+
   /// Returns the DNS address if present
   String? get dnsaddr => valueForProtocol('dnsaddr');
 
   /// Port Getters
-  
+
   /// Returns the TCP port number if present
   int? get tcpPort => _parsePort(valueForProtocol('tcp'));
-  
+
   /// Returns the UDP port number if present
   int? get udpPort => _parsePort(valueForProtocol('udp'));
-  
+
   /// Returns the first available port number (TCP or UDP)
   int? get port => tcpPort ?? udpPort;
 
   /// Protocol Flag Getters
-  
+
   /// Returns true if UDX protocol is present
   bool get hasUdx => hasProtocol('udx');
-  
+
   /// Returns true if QUIC-v1 protocol is present
   bool get hasQuicV1 => hasProtocol('quic-v1');
-  
+
   /// Returns true if WebTransport protocol is present
   bool get hasWebtransport => hasProtocol('webtransport');
-  
+
   /// Returns true if P2P circuit protocol is present
   bool get hasCircuit => hasProtocol('p2p-circuit');
 
   /// Identity and Path Getters
-  
+
   /// Returns the peer ID if present
   String? get peerId => valueForProtocol('p2p');
-  
+
   /// Returns the Unix path if present
   String? get unixPath => valueForProtocol('unix');
-  
+
   /// Returns the certificate hash if present
   String? get certhash => valueForProtocol('certhash');
-  
+
   /// Returns the SNI value if present
   String? get sni => valueForProtocol('sni');
 
   /// Convenience Methods
-  
+
   /// Helper method for parsing port strings to integers
   int? _parsePort(String? portStr) {
     if (portStr == null) return null;
     return int.tryParse(portStr);
   }
-  
+
   /// Returns all transport protocols present in this multiaddr
   List<String> get transports {
     final transports = <String>[];
@@ -311,5 +320,4 @@ class MultiAddr {
     if (hasWebtransport) transports.add('webtransport');
     return transports;
   }
-
 }

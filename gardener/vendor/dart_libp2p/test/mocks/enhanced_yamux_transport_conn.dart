@@ -23,13 +23,13 @@ class MockConnStats extends ConnStats {
     Map<dynamic, dynamic> extra = const {},
     super.numStreams = 0,
   }) : super(
-    stats: Stats(
-      direction: direction,
-      opened: opened,
-      limited: limited,
-      extra: extra,
-    ),
-  );
+         stats: Stats(
+           direction: direction,
+           opened: opened,
+           limited: limited,
+           extra: extra,
+         ),
+       );
 }
 
 /// Enhanced YamuxMockConnection that can be used as a TransportConn in swarm tests
@@ -57,7 +57,8 @@ class EnhancedYamuxTransportConn implements TransportConn {
        _scope = scope;
 
   /// Creates a pair of connected enhanced Yamux transport connections
-  static (EnhancedYamuxTransportConn, EnhancedYamuxTransportConn) createConnectedPair({
+  static (EnhancedYamuxTransportConn, EnhancedYamuxTransportConn)
+  createConnectedPair({
     required PeerId peer1,
     required PeerId peer2,
     required MultiAddr addr1,
@@ -106,7 +107,8 @@ class EnhancedYamuxTransportConn implements TransportConn {
   Future<void> write(Uint8List data) => _yamuxConn.write(data);
 
   @override
-  Socket get socket => throw UnimplementedError('Socket not available in mock connection');
+  Socket get socket =>
+      throw UnimplementedError('Socket not available in mock connection');
 
   @override
   void setReadTimeout(Duration timeout) => _yamuxConn.setReadTimeout(timeout);
@@ -169,5 +171,6 @@ class EnhancedYamuxTransportConn implements TransportConn {
   );
 
   @override
-  String toString() => 'EnhancedYamuxTransportConn($id: ${_localPeer.toString().substring(0, 8)}...→${_remotePeer.toString().substring(0, 8)}...)';
+  String toString() =>
+      'EnhancedYamuxTransportConn($id: ${_localPeer.toString().substring(0, 8)}...→${_remotePeer.toString().substring(0, 8)}...)';
 }

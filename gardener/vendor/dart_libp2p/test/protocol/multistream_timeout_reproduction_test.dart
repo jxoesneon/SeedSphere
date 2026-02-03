@@ -17,13 +17,15 @@ class MockConn implements Conn {
   String get id => 'mock-conn-timeout-test';
 
   @override
-  PeerId get localPeer => PeerId.fromString("QmSoLnSGccFuZQJzRadHn95W2CrSFmGLwDsTU6gEdKnHv2");
+  PeerId get localPeer =>
+      PeerId.fromString("QmSoLnSGccFuZQJzRadHn95W2CrSFmGLwDsTU6gEdKnHv2");
 
   @override
   MultiAddr get localMultiaddr => MultiAddr('/ip4/127.0.0.1/tcp/0');
 
   @override
-  PeerId get remotePeer => PeerId.fromString("QmSoLSgciZgHiZ8isU3g2mQ3z5dSg2YV6x2v2tTjK2Yx8a");
+  PeerId get remotePeer =>
+      PeerId.fromString("QmSoLSgciZgHiZ8isU3g2mQ3z5dSg2YV6x2v2tTjK2Yx8a");
 
   @override
   MultiAddr get remoteMultiaddr => MultiAddr('/ip4/127.0.0.1/tcp/0');
@@ -62,8 +64,11 @@ class MockConn implements Conn {
 
 class MockConnStats implements ConnStats {
   @override
-  final Stats stats = Stats(direction: Direction.inbound, opened: DateTime.now());
-  
+  final Stats stats = Stats(
+    direction: Direction.inbound,
+    opened: DateTime.now(),
+  );
+
   @override
   final int numStreams = 0;
 }
@@ -80,7 +85,8 @@ class HangingMockStream implements P2PStream<Uint8List> {
   HangingMockStream({
     Duration hangDuration = const Duration(minutes: 5),
     bool shouldHangForever = true,
-  }) : _hangDuration = hangDuration, _shouldHangForever = shouldHangForever;
+  }) : _hangDuration = hangDuration,
+       _shouldHangForever = shouldHangForever;
 
   @override
   String id() => _id;
@@ -94,10 +100,8 @@ class HangingMockStream implements P2PStream<Uint8List> {
   }
 
   @override
-  StreamStats stat() => StreamStats(
-    direction: Direction.inbound,
-    opened: DateTime.now(),
-  );
+  StreamStats stat() =>
+      StreamStats(direction: Direction.inbound, opened: DateTime.now());
 
   @override
   Conn get conn => _mockConn;
@@ -110,7 +114,7 @@ class HangingMockStream implements P2PStream<Uint8List> {
     if (_isClosed) {
       return Uint8List(0);
     }
-    
+
     if (_shouldHangForever) {
       // This simulates a peer that never responds - hangs indefinitely
       await Future.delayed(const Duration(hours: 1));
@@ -181,17 +185,17 @@ void main() {
         maxRetries: 0, // No retries to get exact timeout behavior
       );
       final muxer = MultistreamMuxer(config: config);
-      
+
       // Create a stream that hangs indefinitely (simulating unresponsive peer)
       final hangingStream = HangingMockStream(shouldHangForever: true);
-      
+
       // Record the start time
       final stopwatch = Stopwatch()..start();
-      
+
       // This should reproduce the exact error:
       // "TimeoutException after 0:00:30.000000: Multistream read operation timed out"
       TimeoutException? caughtException;
-      
+
       try {
         await muxer.selectOneOf(hangingStream, ['/test/protocol']);
         fail('Expected TimeoutException but operation completed');
@@ -202,17 +206,20 @@ void main() {
           fail('Expected TimeoutException but got: ${e.runtimeType}: $e');
         }
       }
-      
+
       stopwatch.stop();
-      
+
       // Verify the timeout occurred at the expected time (30 seconds ± 1 second tolerance)
       expect(stopwatch.elapsed.inSeconds, greaterThanOrEqualTo(29));
       expect(stopwatch.elapsed.inSeconds, lessThanOrEqualTo(31));
-      
+
       // Verify the exception details match the client app error
       expect(caughtException, isNotNull);
       expect(caughtException.duration, equals(const Duration(seconds: 30)));
-      expect(caughtException.message, contains('Multistream read operation timed out'));
+      expect(
+        caughtException.message,
+        contains('Multistream read operation timed out'),
+      );
     });
 
     test('demonstrates timer exception handling problem', () async {
@@ -223,24 +230,27 @@ void main() {
       );
       final muxer = MultistreamMuxer(config: config);
       final hangingStream = HangingMockStream(shouldHangForever: true);
-      
+
       bool exceptionCaught = false;
       bool unhandledExceptionOccurred = false;
-      
+
       // Set up a zone to catch unhandled exceptions
-      await runZonedGuarded(() async {
-        try {
-          await muxer.selectOneOf(hangingStream, ['/test/protocol']);
-        } catch (e) {
-          exceptionCaught = true;
-          expect(e, isA<TimeoutException>());
-        }
-      }, (error, stack) {
-        // This would be called if the Timer throws an unhandled exception
-        unhandledExceptionOccurred = true;
-        print('Unhandled exception caught in zone: $error');
-      });
-      
+      await runZonedGuarded(
+        () async {
+          try {
+            await muxer.selectOneOf(hangingStream, ['/test/protocol']);
+          } catch (e) {
+            exceptionCaught = true;
+            expect(e, isA<TimeoutException>());
+          }
+        },
+        (error, stack) {
+          // This would be called if the Timer throws an unhandled exception
+          unhandledExceptionOccurred = true;
+          print('Unhandled exception caught in zone: $error');
+        },
+      );
+
       // With the current implementation, we expect the exception to be caught
       // But in some cases, Timer exceptions might escape to the zone
       expect(exceptionCaught || unhandledExceptionOccurred, isTrue);
@@ -252,14 +262,14 @@ void main() {
         maxRetries: 0,
       );
       final muxer = MultistreamMuxer(config: config);
-      
+
       // Add a handler to the muxer
       muxer.addHandler('/test/protocol', (protocol, stream) async {
         // Handler won't be called due to timeout
       });
-      
+
       final hangingStream = HangingMockStream(shouldHangForever: true);
-      
+
       // Test server-side timeout during negotiate()
       expect(
         () async => await muxer.negotiate(hangingStream),
@@ -275,16 +285,16 @@ void main() {
       );
       final muxer = MultistreamMuxer(config: config);
       final hangingStream = HangingMockStream(shouldHangForever: true);
-      
+
       final stopwatch = Stopwatch()..start();
-      
+
       expect(
         () async => await muxer.selectOneOf(hangingStream, ['/test/protocol']),
         throwsA(isA<TimeoutException>()),
       );
-      
+
       stopwatch.stop();
-      
+
       // With 2 retries, we expect roughly: 2s + 2s + 2s = 6s total
       // Plus retry delays: 100ms + 200ms = 300ms
       // Total should be around 6.3 seconds (with some tolerance)
@@ -299,35 +309,38 @@ void main() {
       );
       final muxer = MultistreamMuxer(config: config);
       final hangingStream = HangingMockStream(shouldHangForever: true);
-      
+
       expect(hangingStream.isClosed, isFalse);
-      
+
       try {
         await muxer.selectOneOf(hangingStream, ['/test/protocol']);
       } catch (e) {
         expect(e, isA<TimeoutException>());
       }
-      
+
       // The stream should be reset/closed after timeout
       // Note: This depends on the implementation properly cleaning up
       expect(hangingStream.isClosed, isTrue);
     });
 
-    test('different timeout configurations produce expected behavior', () async {
-      // Test fast network config
-      final fastConfig = MultistreamConfig.fastNetwork();
-      expect(fastConfig.readTimeout, equals(const Duration(seconds: 10)));
-      expect(fastConfig.maxRetries, equals(2));
-      
-      // Test slow network config  
-      final slowConfig = MultistreamConfig.slowNetwork();
-      expect(slowConfig.readTimeout, equals(const Duration(seconds: 60)));
-      expect(slowConfig.maxRetries, equals(5));
-      
-      // Test fail-fast config
-      final failFastConfig = MultistreamConfig.failFast();
-      expect(failFastConfig.readTimeout, equals(const Duration(seconds: 5)));
-      expect(failFastConfig.maxRetries, equals(0));
-    });
+    test(
+      'different timeout configurations produce expected behavior',
+      () async {
+        // Test fast network config
+        final fastConfig = MultistreamConfig.fastNetwork();
+        expect(fastConfig.readTimeout, equals(const Duration(seconds: 10)));
+        expect(fastConfig.maxRetries, equals(2));
+
+        // Test slow network config
+        final slowConfig = MultistreamConfig.slowNetwork();
+        expect(slowConfig.readTimeout, equals(const Duration(seconds: 60)));
+        expect(slowConfig.maxRetries, equals(5));
+
+        // Test fail-fast config
+        final failFastConfig = MultistreamConfig.failFast();
+        expect(failFastConfig.readTimeout, equals(const Duration(seconds: 5)));
+        expect(failFastConfig.maxRetries, equals(0));
+      },
+    );
   });
 }

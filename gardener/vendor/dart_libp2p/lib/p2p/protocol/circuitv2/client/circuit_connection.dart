@@ -11,7 +11,8 @@ import 'package:dart_libp2p/core/network/transport_conn.dart';
 import 'package:dart_libp2p/core/network/context.dart';
 import 'package:dart_libp2p/core/crypto/keys.dart';
 import 'package:dart_libp2p/core/peer/peer_id.dart';
-import 'package:dart_libp2p/p2p/transport/connection_state.dart' as transport_state;
+import 'package:dart_libp2p/p2p/transport/connection_state.dart'
+    as transport_state;
 
 import '../../../../core/network/rcmgr.dart';
 
@@ -24,7 +25,8 @@ class CircuitConnection implements TransportConn {
   final ConnManager _manager;
   final String _id;
   bool _closed = false;
-  transport_state.ConnectionState _transportState = transport_state.ConnectionState.connecting;
+  transport_state.ConnectionState _transportState =
+      transport_state.ConnectionState.connecting;
   final List<P2PStream> _streams = [];
   Timer? _readTimeout;
   Timer? _writeTimeout;
@@ -37,28 +39,33 @@ class CircuitConnection implements TransportConn {
     required PeerId remotePeerId,
     required MultiAddr remoteAddr,
     required ConnManager manager,
-  }) : 
-    _stream = stream,
-    _localPeerId = localPeerId,
-    _remotePeerId = remotePeerId,
-    _remoteAddr = remoteAddr,
-    _manager = manager,
-    _id = 'circuit-${DateTime.now().millisecondsSinceEpoch}' {
-    
+  }) : _stream = stream,
+       _localPeerId = localPeerId,
+       _remotePeerId = remotePeerId,
+       _remoteAddr = remoteAddr,
+       _manager = manager,
+       _id = 'circuit-${DateTime.now().millisecondsSinceEpoch}' {
     // Register with the manager
     _manager.registerConnection(this);
 
     // Monitor stream for closure
-    _stream.incoming.read().then((data) {
-      // Handle incoming data
-      _manager.recordActivity(this);
-    }).catchError(_handleError);
+    _stream.incoming
+        .read()
+        .then((data) {
+          // Handle incoming data
+          _manager.recordActivity(this);
+        })
+        .catchError(_handleError);
   }
 
   void _handleError(dynamic error) {
     if (!_closed) {
       _closed = true;
-      _manager.updateState(this, transport_state.ConnectionState.error, error: error);
+      _manager.updateState(
+        this,
+        transport_state.ConnectionState.error,
+        error: error,
+      );
     }
   }
 
@@ -66,8 +73,13 @@ class CircuitConnection implements TransportConn {
     if (!_closed) {
       _closed = true;
       final currentState = _manager.getState(this);
-      if (currentState != null && currentState != transport_state.ConnectionState.error) {
-        _manager.updateState(this, transport_state.ConnectionState.closed, error: null);
+      if (currentState != null &&
+          currentState != transport_state.ConnectionState.error) {
+        _manager.updateState(
+          this,
+          transport_state.ConnectionState.closed,
+          error: null,
+        );
       }
     }
   }
@@ -130,8 +142,8 @@ class CircuitConnection implements TransportConn {
     if (_closed) return;
 
     final currentState = _manager.getState(this);
-    if (currentState == null || 
-        currentState == transport_state.ConnectionState.closed || 
+    if (currentState == null ||
+        currentState == transport_state.ConnectionState.closed ||
         currentState == transport_state.ConnectionState.error) {
       return;
     }
@@ -142,17 +154,29 @@ class CircuitConnection implements TransportConn {
 
     try {
       if (currentState != transport_state.ConnectionState.closing) {
-        _manager.updateState(this, transport_state.ConnectionState.closing, error: null);
+        _manager.updateState(
+          this,
+          transport_state.ConnectionState.closing,
+          error: null,
+        );
       }
 
       await _stream.close();
 
       if (_manager.getState(this) != null) {
-        _manager.updateState(this, transport_state.ConnectionState.closed, error: null);
+        _manager.updateState(
+          this,
+          transport_state.ConnectionState.closed,
+          error: null,
+        );
       }
     } catch (e) {
       if (_manager.getState(this) != null) {
-        _manager.updateState(this, transport_state.ConnectionState.error, error: e);
+        _manager.updateState(
+          this,
+          transport_state.ConnectionState.error,
+          error: e,
+        );
       }
       rethrow;
     }
@@ -217,7 +241,9 @@ class CircuitConnection implements TransportConn {
   }
 
   @override
-  Socket get socket => throw UnimplementedError('Circuit connections do not have a direct socket');
+  Socket get socket => throw UnimplementedError(
+    'Circuit connections do not have a direct socket',
+  );
 
   @override
   void notifyActivity() {
@@ -238,12 +264,14 @@ class _ConnStatsImpl implements ConnStats {
   _ConnStatsImpl({required this.stats, required this.numStreams});
 }
 
-class _ConnScopeImpl implements ConnScope { // ConnScope from rcmgr.dart
+class _ConnScopeImpl implements ConnScope {
+  // ConnScope from rcmgr.dart
   // transient and limited are not part of the current ConnScope interface.
   // Removing them to align. If they are needed, ConnScope in rcmgr.dart should be updated.
 
   @override
-  Future<ResourceScopeSpan> beginSpan() async { // ResourceScopeSpan from rcmgr.dart
+  Future<ResourceScopeSpan> beginSpan() async {
+    // ResourceScopeSpan from rcmgr.dart
     return _ResourceScopeSpanImpl();
   }
 
@@ -258,7 +286,8 @@ class _ConnScopeImpl implements ConnScope { // ConnScope from rcmgr.dart
   }
 
   @override
-  ScopeStat get stat => const ScopeStat( // Renamed scopeStat to stat. ScopeStat from rcmgr.dart
+  ScopeStat get stat => const ScopeStat(
+    // Renamed scopeStat to stat. ScopeStat from rcmgr.dart
     numStreamsInbound: 0,
     numStreamsOutbound: 0,
     numConnsInbound: 0,
@@ -267,8 +296,6 @@ class _ConnScopeImpl implements ConnScope { // ConnScope from rcmgr.dart
     memory: 0,
   );
 }
-
-
 
 class _ResourceScopeSpanImpl implements ResourceScopeSpan {
   @override
@@ -292,7 +319,8 @@ class _ResourceScopeSpanImpl implements ResourceScopeSpan {
   }
 
   @override
-  ScopeStat get stat => const ScopeStat( // Renamed scopeStat to stat. ScopeStat from rcmgr.dart
+  ScopeStat get stat => const ScopeStat(
+    // Renamed scopeStat to stat. ScopeStat from rcmgr.dart
     numStreamsInbound: 0,
     numStreamsOutbound: 0,
     numConnsInbound: 0,

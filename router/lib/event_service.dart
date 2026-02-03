@@ -1,16 +1,20 @@
 import 'dart:async';
 import 'dart:convert';
+import 'package:logging/logging.dart';
 import 'package:shelf/shelf.dart';
 import 'package:router/core/debug_config.dart';
 
 /// Service managing real-time events via Server-Sent Events (SSE).
 class EventService {
   final _controllers = <String, Set<StreamController<String>>>{};
+  final Logger _logger = Logger('EventService');
 
   /// Adds a subscriber to a specific room (gardenerId).
   Stream<String> subscribe(String gardenerId) {
     if (DebugConfig.pulseGated) {
-      print('EventService: New SSE subscription for gardenerId=$gardenerId');
+      _logger.fine(
+        'EventService: New SSE subscription for gardenerId=$gardenerId',
+      );
     }
     final controller = StreamController<String>();
     _controllers.putIfAbsent(gardenerId, () => {}).add(controller);
@@ -27,7 +31,9 @@ class EventService {
 
     controller.onCancel = () {
       if (DebugConfig.pulseGated) {
-        print('EventService: SSE subscription cancelled for $gardenerId');
+        _logger.fine(
+          'EventService: SSE subscription cancelled for $gardenerId',
+        );
       }
       pingTimer?.cancel();
       _controllers[gardenerId]?.remove(controller);
@@ -42,7 +48,7 @@ class EventService {
       'event: connected\ndata: {"t":${DateTime.now().millisecondsSinceEpoch}}\n\n',
     );
     if (DebugConfig.pulseGated) {
-      print('EventService: Sent initial connected event to $gardenerId');
+      _logger.fine('EventService: Sent initial connected event to $gardenerId');
     }
 
     return controller.stream;
@@ -59,14 +65,16 @@ class EventService {
       final payload = 'event: $event\ndata: ${jsonEncode(data)}\n\n';
       final count = _controllers[gardenerId]!.length;
       if (DebugConfig.pulseGated || event != 'heartbeat') {
-        print(
+        _logger.fine(
           'EventService: Broadcasting event "$event" to $count clients for $gardenerId',
         );
       }
       _controllers[gardenerId]?.forEach((c) => c.add(payload));
     } else {
       if (DebugConfig.pulseGated) {
-        print('EventService: Message dropped, no subscribers for $gardenerId');
+        _logger.fine(
+          'EventService: Message dropped, no subscribers for $gardenerId',
+        );
       }
     }
   }

@@ -12,8 +12,5 @@ class StreamMuxer {
   final Multiplexer Function(Conn secureConn, bool isClient) muxerFactory;
 
   /// Creates a new StreamMuxer
-  const StreamMuxer({
-    required this.id,
-    required this.muxerFactory,
-  });
+  const StreamMuxer({required this.id, required this.muxerFactory});
 }

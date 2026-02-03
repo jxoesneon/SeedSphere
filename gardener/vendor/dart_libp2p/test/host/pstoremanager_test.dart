@@ -42,14 +42,16 @@ void main() {
 
     test('grace period removes peer after timeout', () async {
       const gracePeriod = Duration(milliseconds: 250);
-      final peerId = PeerId.fromString('QmYyQSo1c1Ym7orWxLYvCrM2EmxFTANf8wXmmE7DWjhx5N');
+      final peerId = PeerId.fromString(
+        'QmYyQSo1c1Ym7orWxLYvCrM2EmxFTANf8wXmmE7DWjhx5N',
+      );
 
       // Setup manager with short grace period for testing
       final manager = PeerstoreManager(
-        pstore, 
-        eventBus, 
-        network, 
-        opts: [withGracePeriod(gracePeriod)]
+        pstore,
+        eventBus,
+        network,
+        opts: [withGracePeriod(gracePeriod)],
       );
 
       await manager.start();
@@ -62,10 +64,12 @@ void main() {
       });
 
       // Simulate peer disconnection
-      eventController.add(EvtPeerConnectednessChanged(
-        peer: peerId,
-        connectedness: Connectedness.notConnected,
-      ));
+      eventController.add(
+        EvtPeerConnectednessChanged(
+          peer: peerId,
+          connectedness: Connectedness.notConnected,
+        ),
+      );
 
       // Wait for grace period plus a little buffer
       await completer.future.timeout(gracePeriod * 3);
@@ -78,29 +82,35 @@ void main() {
 
     test('reconnecting peer is not removed', () async {
       const gracePeriod = Duration(milliseconds: 200);
-      final peerId = PeerId.fromString('QmYyQSo1c1Ym7orWxLYvCrM2EmxFTANf8wXmmE7DWjhx5N');
+      final peerId = PeerId.fromString(
+        'QmYyQSo1c1Ym7orWxLYvCrM2EmxFTANf8wXmmE7DWjhx5N',
+      );
 
       // Setup manager with short grace period for testing
       final manager = PeerstoreManager(
-        pstore, 
-        eventBus, 
-        network, 
-        opts: [withGracePeriod(gracePeriod)]
+        pstore,
+        eventBus,
+        network,
+        opts: [withGracePeriod(gracePeriod)],
       );
 
       await manager.start();
 
       // Simulate peer disconnection
-      eventController.add(EvtPeerConnectednessChanged(
-        peer: peerId,
-        connectedness: Connectedness.notConnected,
-      ));
+      eventController.add(
+        EvtPeerConnectednessChanged(
+          peer: peerId,
+          connectedness: Connectedness.notConnected,
+        ),
+      );
 
       // Simulate peer reconnection
-      eventController.add(EvtPeerConnectednessChanged(
-        peer: peerId,
-        connectedness: Connectedness.connected,
-      ));
+      eventController.add(
+        EvtPeerConnectednessChanged(
+          peer: peerId,
+          connectedness: Connectedness.connected,
+        ),
+      );
 
       // Wait for grace period plus a little buffer
       await Future.delayed(gracePeriod * 3 ~/ 2);
@@ -112,24 +122,28 @@ void main() {
     });
 
     test('close removes all disconnected peers', () async {
-      final peerId = PeerId.fromString('QmYyQSo1c1Ym7orWxLYvCrM2EmxFTANf8wXmmE7DWjhx5N');
+      final peerId = PeerId.fromString(
+        'QmYyQSo1c1Ym7orWxLYvCrM2EmxFTANf8wXmmE7DWjhx5N',
+      );
       const gracePeriod = Duration(hours: 1); // Long grace period
 
       // Setup manager with long grace period
       final manager = PeerstoreManager(
-        pstore, 
-        eventBus, 
-        network, 
-        opts: [withGracePeriod(gracePeriod)]
+        pstore,
+        eventBus,
+        network,
+        opts: [withGracePeriod(gracePeriod)],
       );
 
       await manager.start();
 
       // Simulate peer disconnection
-      eventController.add(EvtPeerConnectednessChanged(
-        peer: peerId,
-        connectedness: Connectedness.notConnected,
-      ));
+      eventController.add(
+        EvtPeerConnectednessChanged(
+          peer: peerId,
+          connectedness: Connectedness.notConnected,
+        ),
+      );
 
       // Wait to ensure the event is processed
       await Future.delayed(Duration(milliseconds: 100));

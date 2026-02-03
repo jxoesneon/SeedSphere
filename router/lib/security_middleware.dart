@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'package:crypto/crypto.dart';
+import 'package:logging/logging.dart';
 import 'package:shelf/shelf.dart';
 import 'package:router/core/debug_config.dart';
 
@@ -9,6 +10,7 @@ Middleware securityMiddleware(
   Future<String?> Function(String gardenerId, String seedlingId) getSecret,
 ) {
   final nonceStore = <String, DateTime>{};
+  final Logger _logger = Logger('SecurityMiddleware');
 
   return (Handler innerHandler) {
     return (Request request) async {
@@ -86,7 +88,7 @@ Middleware securityMiddleware(
         bodyHash,
       ].join('\n');
       if (DebugConfig.pulseGated) {
-        print('[SecMiddleware] Canonical:\n$canonical');
+        _logger.fine('[SecMiddleware] Canonical:\n$canonical');
       }
 
       // Convert to base64url format as used in legacy
@@ -101,7 +103,9 @@ Middleware securityMiddleware(
 
       if (sig != legacySig) {
         if (DebugConfig.pulseGated) {
-          print('[SecMiddleware] Mismatch! Expected: $legacySig, Got: $sig');
+          _logger.warning(
+            '[SecMiddleware] Mismatch! Expected: $legacySig, Got: $sig',
+          );
         }
         return Response(401, body: jsonEncode({'error': 'invalid_signature'}));
       }

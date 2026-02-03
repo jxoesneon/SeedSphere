@@ -1,3 +1,4 @@
+import 'package:logging/logging.dart';
 import 'package:mailer/mailer.dart';
 import 'package:mailer/smtp_server.dart';
 
@@ -13,6 +14,7 @@ typedef SmtpSender =
 class MailerService {
   final SmtpServer _smtpServer;
   final String _fromEmail;
+  final Logger _logger = Logger('MailerService');
   final String _fromName;
   final SmtpSender _sender;
 
@@ -76,7 +78,7 @@ class MailerService {
       await _sender(message, _smtpServer);
       return true;
     } catch (e) {
-      print('Failed to send email: $e');
+      _logger.warning('Failed to send email: $e');
       return false;
     }
   }

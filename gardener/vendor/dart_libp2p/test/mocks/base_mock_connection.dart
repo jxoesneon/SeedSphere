@@ -5,10 +5,12 @@ import 'package:dart_libp2p/core/multiaddr.dart';
 import 'package:dart_libp2p/core/network/common.dart';
 // Conn, ConnState, ConnStats, Stats are used from conn.dart
 // ConnScope will come from rcmgr.dart
-import 'package:dart_libp2p/core/network/conn.dart' show Conn, ConnState, ConnStats, Stats;
+import 'package:dart_libp2p/core/network/conn.dart'
+    show Conn, ConnState, ConnStats, Stats;
 import 'package:dart_libp2p/core/network/context.dart';
 import 'package:dart_libp2p/core/network/stream.dart'; // For P2PStream
-import 'package:dart_libp2p/core/network/rcmgr.dart' show ConnScope, ScopeStat, ResourceScopeSpan, ResourceScope;
+import 'package:dart_libp2p/core/network/rcmgr.dart'
+    show ConnScope, ScopeStat, ResourceScopeSpan, ResourceScope;
 import 'package:dart_libp2p/core/peer/peer_id.dart';
 import 'package:meta/meta.dart';
 
@@ -46,17 +48,21 @@ abstract class BaseMockConnection implements Conn {
 
   @override
   Future<P2PStream> newStream(Context context) async {
-    throw UnimplementedError('Stream multiplexing not implemented in mock connection');
+    throw UnimplementedError(
+      'Stream multiplexing not implemented in mock connection',
+    );
   }
 
   @override
   Future<List<P2PStream>> get streams async => [];
 
   @override
-  PeerId get localPeer => throw UnimplementedError('localPeer not implemented in mock connection');
+  PeerId get localPeer =>
+      throw UnimplementedError('localPeer not implemented in mock connection');
 
   @override
-  PeerId get remotePeer => throw UnimplementedError('remotePeer not implemented in mock connection');
+  PeerId get remotePeer =>
+      throw UnimplementedError('remotePeer not implemented in mock connection');
 
   @override
   Future<PublicKey?> get remotePublicKey async => null;
@@ -71,10 +77,7 @@ abstract class BaseMockConnection implements Conn {
 
   @override
   ConnStats get stat => _MockConnStats(
-    stats: Stats(
-      direction: Direction.outbound,
-      opened: DateTime.now(),
-    ),
+    stats: Stats(direction: Direction.outbound, opened: DateTime.now()),
     numStreams: 0,
   );
 
@@ -108,10 +111,7 @@ class _MockConnStats implements ConnStats {
   @override
   final int numStreams;
 
-  const _MockConnStats({
-    required this.stats,
-    required this.numStreams,
-  });
+  const _MockConnStats({required this.stats, required this.numStreams});
 }
 
 /// Mock implementation of ConnScope
@@ -132,9 +132,11 @@ class _MockConnScope implements ConnScope {
 }
 
 /// Mock implementation of ResourceScopeSpan
-class _MockResourceScopeSpan implements ResourceScopeSpan { // ResourceScopeSpan from rcmgr.dart
+class _MockResourceScopeSpan implements ResourceScopeSpan {
+  // ResourceScopeSpan from rcmgr.dart
   @override
-  Future<ResourceScopeSpan> beginSpan() async { // ResourceScopeSpan from rcmgr.dart
+  Future<ResourceScopeSpan> beginSpan() async {
+    // ResourceScopeSpan from rcmgr.dart
     return this;
   }
 

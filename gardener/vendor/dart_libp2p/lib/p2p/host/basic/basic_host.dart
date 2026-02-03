@@ -1,5 +1,6 @@
 import 'dart:async';
-import 'dart:io' show NetworkInterface, InternetAddressType; // Added for NetworkInterface
+import 'dart:io'
+    show NetworkInterface, InternetAddressType; // Added for NetworkInterface
 
 import 'package:dart_libp2p/core/peer/addr_info.dart';
 import 'package:dart_libp2p/core/connmgr/conn_manager.dart';
@@ -14,7 +15,8 @@ import 'package:dart_libp2p/core/peerstore.dart';
 import 'package:dart_libp2p/core/protocol/protocol.dart';
 import 'package:dart_libp2p/core/protocol/switch.dart';
 import 'package:dart_libp2p/core/record/envelope.dart'; // Added for Envelope
-import 'package:dart_libp2p/core/peer/record.dart' as peer_record; // Added for PeerRecord
+import 'package:dart_libp2p/core/peer/record.dart'
+    as peer_record; // Added for PeerRecord
 import 'package:dart_libp2p/core/certified_addr_book.dart'; // Added for CertifiedAddrBook
 import 'package:dart_libp2p/p2p/host/basic/natmgr.dart';
 import 'package:logging/logging.dart';
@@ -23,8 +25,8 @@ import 'package:synchronized/synchronized.dart';
 // Import AddrsFactory
 import 'package:dart_libp2p/p2p/protocol/multistream/multistream.dart';
 import 'package:dart_libp2p/p2p/protocol/identify/id_service.dart'; // Added import
-import 'package:dart_libp2p/p2p/protocol/identify/identify.dart';   // Added import
-import 'package:dart_libp2p/p2p/protocol/identify/options.dart';  // Added import
+import 'package:dart_libp2p/p2p/protocol/identify/identify.dart'; // Added import
+import 'package:dart_libp2p/p2p/protocol/identify/options.dart'; // Added import
 import 'package:dart_libp2p/core/network/conn.dart';
 import 'package:dart_libp2p/core/network/context.dart';
 import 'package:dart_libp2p/core/network/notifiee.dart';
@@ -37,7 +39,8 @@ import 'package:dart_libp2p/p2p/protocol/ping/ping.dart'; // Added for PingServi
 import 'package:dart_libp2p/p2p/host/relaysvc/relay_manager.dart'; // Added for RelayManager
 import 'package:dart_libp2p/p2p/host/autonat/autonat.dart'; // Added for AutoNAT
 import 'package:dart_libp2p/p2p/protocol/holepunch/holepunch_service.dart'; // Added for HolePunchService interface
-import 'package:dart_libp2p/p2p/protocol/holepunch/service.dart' as holepunch_impl; // Added for HolePunchServiceImpl and Options
+import 'package:dart_libp2p/p2p/protocol/holepunch/service.dart'
+    as holepunch_impl; // Added for HolePunchServiceImpl and Options
 import 'package:dart_libp2p/p2p/transport/basic_upgrader.dart'; // Added for BasicUpgrader
 
 final _log = Logger('basichost');
@@ -56,7 +59,8 @@ List<MultiAddr> defaultAddrsFactory(List<MultiAddr> addrs) {
     // Check for unspecified (0.0.0.0 or ::)
     final ip4Val = addr.valueForProtocol('ip4');
     final ip6Val = addr.valueForProtocol('ip6');
-    if ((ip4Val == '0.0.0.0' || ip4Val == '0.0.0.0.0.0') || (ip6Val == '::' || ip6Val == '0:0:0:0:0:0:0:0')) {
+    if ((ip4Val == '0.0.0.0' || ip4Val == '0.0.0.0.0.0') ||
+        (ip6Val == '::' || ip6Val == '0:0:0:0:0:0:0:0')) {
       return false;
     }
     // Potentially add more filters here, e.g., for link-local, private IPs if desired by default.
@@ -112,35 +116,34 @@ class BasicHost implements Host {
   BasicHost._({
     required Network network,
     required Config config, // Changed to accept Config
-  }) :
-    _config = config, // Initialize _config
-    _network = network,
-    // TODO: Select muxer from config.muxers if populated and compatible.
-    // For now, BasicHost directly uses MultistreamMuxer.
-    // If config provides a specific MultistreamMuxer instance, it could be used.
-    // This part needs further refinement on how Config.muxers (List<StreamMuxer>)
-    // maps to the single MultistreamMuxer instance.
-    // For simplicity, we'll assume a MultistreamMuxer might be passed via a new config field
-    // or BasicHost continues to default. Let's assume config might have a direct muxer field later.
-    // For now, keeping the direct instantiation or passed muxer logic.
-    // This will be simplified to use config.muxer if available, or default.
-    // Let's assume config.muxer is of type MultistreamMuxer? for now.
-    // For now, BasicHost will manage its own MultistreamMuxer instance.
-    // Config.muxers is for stream multiplexers (e.g., Yamux, Mplex), not the protocol muxer.
-    _mux = MultistreamMuxer(),
-    _negtimeout = config.negotiationTimeout ?? defaultNegotiationTimeout,
-    _addrsFactory = config.addrsFactory ?? defaultAddrsFactory,
-    _cmgr = config.connManager ?? NullConnMgr(),
-    _eventBus = config.eventBus ?? BasicBus(),
-    // Initialize _upgrader using the network's resourceManager
-    // This assumes _network is already initialized and has its resourceManager.
-    // Network (Swarm) is passed in, so its resourceManager should be accessible.
-    _upgrader = BasicUpgrader(resourceManager: network.resourceManager) {
-
+  }) : _config = config, // Initialize _config
+       _network = network,
+       // TODO: Select muxer from config.muxers if populated and compatible.
+       // For now, BasicHost directly uses MultistreamMuxer.
+       // If config provides a specific MultistreamMuxer instance, it could be used.
+       // This part needs further refinement on how Config.muxers (List<StreamMuxer>)
+       // maps to the single MultistreamMuxer instance.
+       // For simplicity, we'll assume a MultistreamMuxer might be passed via a new config field
+       // or BasicHost continues to default. Let's assume config might have a direct muxer field later.
+       // For now, keeping the direct instantiation or passed muxer logic.
+       // This will be simplified to use config.muxer if available, or default.
+       // Let's assume config.muxer is of type MultistreamMuxer? for now.
+       // For now, BasicHost will manage its own MultistreamMuxer instance.
+       // Config.muxers is for stream multiplexers (e.g., Yamux, Mplex), not the protocol muxer.
+       _mux = MultistreamMuxer(),
+       _negtimeout = config.negotiationTimeout ?? defaultNegotiationTimeout,
+       _addrsFactory = config.addrsFactory ?? defaultAddrsFactory,
+       _cmgr = config.connManager ?? NullConnMgr(),
+       _eventBus = config.eventBus ?? BasicBus(),
+       // Initialize _upgrader using the network's resourceManager
+       // This assumes _network is already initialized and has its resourceManager.
+       // Network (Swarm) is passed in, so its resourceManager should be accessible.
+       _upgrader = BasicUpgrader(resourceManager: network.resourceManager) {
     // Initialize IDService using options from Config
     final identifyOpts = IdentifyOptions(
       userAgent: config.identifyUserAgent, // Use config.identifyUserAgent
-      protocolVersion: config.identifyProtocolVersion, // Use config.identifyProtocolVersion
+      protocolVersion:
+          config.identifyProtocolVersion, // Use config.identifyProtocolVersion
       disableSignedPeerRecord: config.disableSignedPeerRecord ?? false,
       disableObservedAddrManager: config.disableObservedAddrManager ?? false,
       // metricsTracer: config.identifyMetricsTracer, // If added to Config
@@ -165,16 +168,23 @@ class BasicHost implements Host {
     });
 
     // Initialize NAT manager if provided by config.natManagerFactory
-    _natmgr = config.natManagerFactory != null ? config.natManagerFactory!(network) : null;
+    _natmgr = config.natManagerFactory != null
+        ? config.natManagerFactory!(network)
+        : null;
 
     // Set up stream handler
-    _network.setStreamHandler("/libp2p/host", (dynamic stream, PeerId remotePeer) async {
+    _network.setStreamHandler("/libp2p/host", (
+      dynamic stream,
+      PeerId remotePeer,
+    ) async {
       _newStreamHandler(stream as P2PStream);
     });
 
     // Set up network notifications for address changes
     _network.notify(_AddressChangeNotifiee(this));
-    _log.fine('[BasicHost CONSTRUCTOR] for host ${id.toString()} - Initial _network.listenAddresses: ${_network.listenAddresses}');
+    _log.fine(
+      '[BasicHost CONSTRUCTOR] for host ${id.toString()} - Initial _network.listenAddresses: ${_network.listenAddresses}',
+    );
   }
 
   /// Creates a new BasicHost with proper async initialization.
@@ -184,41 +194,57 @@ class BasicHost implements Host {
     required Config config,
   }) async {
     final host = BasicHost._(network: network, config: config);
-    
+
     // Update local IP addresses with proper async handling
     await host._updateLocalIpAddr();
-    
+
     return host;
   }
 
   /// Starts the host's background tasks.
   @override
   Future<void> start() async {
-    _log.fine('[BasicHost start] BEGIN. Host ID: ${id.toString()}, network.hashCode: ${_network.hashCode}, initial network.listenAddresses: ${_network.listenAddresses}');
-    _log.fine('[BasicHost start] Initial _config.listenAddrs: ${_config.listenAddrs}'); // Added log
+    _log.fine(
+      '[BasicHost start] BEGIN. Host ID: ${id.toString()}, network.hashCode: ${_network.hashCode}, initial network.listenAddresses: ${_network.listenAddresses}',
+    );
+    _log.fine(
+      '[BasicHost start] Initial _config.listenAddrs: ${_config.listenAddrs}',
+    ); // Added log
 
     // If this host is configured with listen addresses, start listening on them.
     // Assuming _config.listenAddrs is List<MultiAddr> and defaults to empty list if not set.
     if (_config.listenAddrs.isNotEmpty) {
-      _log.fine('[BasicHost start] Configured with listenAddrs: ${_config.listenAddrs}. Attempting to listen via _network.listen().');
-      _log.fine('[BasicHost start] INVOKING _network.listen() with: ${_config.listenAddrs}'); // Added log
+      _log.fine(
+        '[BasicHost start] Configured with listenAddrs: ${_config.listenAddrs}. Attempting to listen via _network.listen().',
+      );
+      _log.fine(
+        '[BasicHost start] INVOKING _network.listen() with: ${_config.listenAddrs}',
+      ); // Added log
       try {
         await _network.listen(_config.listenAddrs);
-        _log.fine('[BasicHost start] _network.listen() completed. Current network.listenAddresses: ${_network.listenAddresses}');
+        _log.fine(
+          '[BasicHost start] _network.listen() completed. Current network.listenAddresses: ${_network.listenAddresses}',
+        );
       } catch (e, s) {
         _log.severe('[BasicHost start] Error during _network.listen(): $e\n$s');
         // Rethrowing to indicate a fundamental setup issue.
         // Services depending on listen addresses might not function correctly.
-        rethrow; 
+        rethrow;
       }
     } else {
-      _log.fine('[BasicHost start] No listenAddrs configured in host config. Skipping explicit _network.listen() call from BasicHost.start().');
+      _log.fine(
+        '[BasicHost start] No listenAddrs configured in host config. Skipping explicit _network.listen() call from BasicHost.start().',
+      );
     }
 
     // Start IDService
-    _log.fine('[BasicHost start] Before _idService.start. Current network.listenAddresses: ${_network.listenAddresses}');
+    _log.fine(
+      '[BasicHost start] Before _idService.start. Current network.listenAddresses: ${_network.listenAddresses}',
+    );
     // await _idService.start();
-    _log.fine('[BasicHost start] After _idService.start. Current network.listenAddresses: ${_network.listenAddresses}');
+    _log.fine(
+      '[BasicHost start] After _idService.start. Current network.listenAddresses: ${_network.listenAddresses}',
+    );
 
     // Persist a signed peer record for self to the peerstore if enabled.
     // This ensures that when IdentifyService requests our own record, it's available.
@@ -230,13 +256,18 @@ class BasicHost implements Host {
         final privKey = await peerStore.keyBook.privKey(selfId);
 
         if (privKey == null) {
-          _log.fine('Unable to access host private key for selfId $selfId; cannot create self signed record.');
+          _log.fine(
+            'Unable to access host private key for selfId $selfId; cannot create self signed record.',
+          );
         } else {
-          final currentAddrs = addrs; // Uses the host's addrs getter, which should be up-to-date
+          final currentAddrs =
+              addrs; // Uses the host's addrs getter, which should be up-to-date
           if (currentAddrs.isEmpty) {
-            _log.fine('Host has no addresses at the moment of self-record creation; record will reflect this.');
+            _log.fine(
+              'Host has no addresses at the moment of self-record creation; record will reflect this.',
+            );
           }
-          
+
           try {
             // Create PeerRecord payload
             // Note: The actual structure of PeerRecord and how it's created from AddrInfo
@@ -244,22 +275,30 @@ class BasicHost implements Host {
             // The key is to get PeerId, sequence number, and addresses into a signable format.
             final recordPayload = peer_record.PeerRecord(
               peerId: selfId, // Corrected: expects PeerId object
-              seq: DateTime.now().millisecondsSinceEpoch, // Using timestamp for sequence number
-              addrs: currentAddrs, // Corrected: expects List<MultiAddr> and param name is 'addrs'
+              seq: DateTime.now()
+                  .millisecondsSinceEpoch, // Using timestamp for sequence number
+              addrs:
+                  currentAddrs, // Corrected: expects List<MultiAddr> and param name is 'addrs'
             );
-            
+
             // Create and sign the Envelope
             // Envelope.seal should handle marshalling the recordPayload and signing
             final envelope = await Envelope.seal(recordPayload, privKey);
 
             await cab.consumePeerRecord(envelope, AddressTTL.permanentAddrTTL);
-            _log.fine('Successfully created and persisted self signed peer record to peerstore.');
-                    } catch (e, s) {
-            _log.severe('Error creating or persisting self signed peer record: $e\n$s');
+            _log.fine(
+              'Successfully created and persisted self signed peer record to peerstore.',
+            );
+          } catch (e, s) {
+            _log.severe(
+              'Error creating or persisting self signed peer record: $e\n$s',
+            );
           }
         }
       } else {
-        _log.fine('Peerstore AddrBook is not a CertifiedAddrBook; cannot persist self signed record.');
+        _log.fine(
+          'Peerstore AddrBook is not a CertifiedAddrBook; cannot persist self signed record.',
+        );
       }
     }
 
@@ -267,41 +306,56 @@ class BasicHost implements Host {
 
     // Initialize RelayManager if enabled
     if (_config.enableRelay) {
-      _log.fine('[BasicHost start] Before RelayManager.create. network.hashCode: ${_network.hashCode}, network.listenAddresses: ${_network.listenAddresses}');
+      _log.fine(
+        '[BasicHost start] Before RelayManager.create. network.hashCode: ${_network.hashCode}, network.listenAddresses: ${_network.listenAddresses}',
+      );
       _relayManager = await RelayManager.create(this);
-      _log.fine('[BasicHost start] After RelayManager.create. network.hashCode: ${_network.hashCode}, network.listenAddresses: ${_network.listenAddresses}');
+      _log.fine(
+        '[BasicHost start] After RelayManager.create. network.hashCode: ${_network.hashCode}, network.listenAddresses: ${_network.listenAddresses}',
+      );
       // RelayManager starts its own background tasks on creation.
       _log.fine('RelayManager created and service monitoring started.');
     }
 
     // Initialize AutoNATService if enabled
     if (_config.enableAutoNAT) {
-      _log.fine('[BasicHost start] Before newAutoNAT. network.hashCode: ${_network.hashCode}, network.listenAddresses: ${_network.listenAddresses}');
+      _log.fine(
+        '[BasicHost start] Before newAutoNAT. network.hashCode: ${_network.hashCode}, network.listenAddresses: ${_network.listenAddresses}',
+      );
       // For now, using default options for AutoNAT.
       // More specific options can be plumbed through Config if needed.
       _autoNATService = await newAutoNAT(this, [
         // Example: autonat_options.withScheduleDelay(Duration(seconds: 15)),
         // autonat_options.withBootDelay(Duration(seconds: 5)),
       ]);
-      _log.fine('[BasicHost start] After newAutoNAT. network.hashCode: ${_network.hashCode}, network.listenAddresses: ${_network.listenAddresses}');
+      _log.fine(
+        '[BasicHost start] After newAutoNAT. network.hashCode: ${_network.hashCode}, network.listenAddresses: ${_network.listenAddresses}',
+      );
       _log.fine('AutoNAT service created and started.');
     }
 
     // Initialize HolePunchService if enabled
     if (_config.enableHolePunching) {
-      _log.fine('[BasicHost start] Before _holePunchService.start. network.hashCode: ${_network.hashCode}, network.listenAddresses: ${_network.listenAddresses}');
+      _log.fine(
+        '[BasicHost start] Before _holePunchService.start. network.hashCode: ${_network.hashCode}, network.listenAddresses: ${_network.listenAddresses}',
+      );
       _holePunchService = holepunch_impl.HolePunchServiceImpl(
         this,
         _idService, // Pass the existing IDService instance
         () => allAddrs, // Pass a function that returns current public addrs
-        options: const holepunch_impl.HolePunchOptions(), // Default options for now
+        options:
+            const holepunch_impl.HolePunchOptions(), // Default options for now
       );
       await _holePunchService!.start(); // Call start as per its interface
-      _log.fine('[BasicHost start] After _holePunchService.start. network.hashCode: ${_network.hashCode}, network.listenAddresses: ${_network.listenAddresses}');
+      _log.fine(
+        '[BasicHost start] After _holePunchService.start. network.hashCode: ${_network.hashCode}, network.listenAddresses: ${_network.listenAddresses}',
+      );
       _log.fine('HolePunch service started.');
     }
-    
-    _log.fine('[BasicHost start] Before calling _startBackground. network.hashCode: ${_network.hashCode}, network.listenAddresses: ${_network.listenAddresses}');
+
+    _log.fine(
+      '[BasicHost start] Before calling _startBackground. network.hashCode: ${_network.hashCode}, network.listenAddresses: ${_network.listenAddresses}',
+    );
     // Start other background tasks
     return await _startBackground();
   }
@@ -313,7 +367,10 @@ class BasicHost implements Host {
   }
 
   /// Emits an address change event when the host's addresses change.
-  void _emitAddressChangeEvent(List<MultiAddr> prev, List<MultiAddr> current) async {
+  void _emitAddressChangeEvent(
+    List<MultiAddr> prev,
+    List<MultiAddr> current,
+  ) async {
     if (prev.isEmpty && current.isEmpty) return;
 
     // Create maps for easier comparison
@@ -336,7 +393,9 @@ class BasicHost implements Host {
     // Check for added or maintained addresses
     for (final addr in currMap.values) {
       final addrStr = addr.toString();
-      final action = prevMap.containsKey(addrStr) ? AddrAction.maintained : AddrAction.added;
+      final action = prevMap.containsKey(addrStr)
+          ? AddrAction.maintained
+          : AddrAction.added;
 
       if (action == AddrAction.added) {
         addrsAdded = true;
@@ -348,7 +407,9 @@ class BasicHost implements Host {
 
     // Check for removed addresses
     for (final addr in prevMap.values) {
-      removedAddrs.add(UpdatedAddress(address: addr, action: AddrAction.removed));
+      removedAddrs.add(
+        UpdatedAddress(address: addr, action: AddrAction.removed),
+      );
     }
 
     // If no addresses were added or removed, don't emit an event
@@ -374,14 +435,14 @@ class BasicHost implements Host {
     var lastAddrs = <MultiAddr>[];
 
     // Set up a periodic timer to check for address changes
-    _addressMonitorTimer = Timer.periodic(Duration(seconds: 5), (_) { // Store the timer
+    _addressMonitorTimer = Timer.periodic(Duration(seconds: 5), (_) {
+      // Store the timer
       if (_closed) return;
 
       // Update local IP addresses if we have listen addresses
       if (_network.listenAddresses.isNotEmpty) {
         _updateLocalIpAddr();
       }
-
 
       // Get current addresses
       final curr = addrs;
@@ -443,68 +504,81 @@ class BasicHost implements Host {
 
         for (final interface in interfaces) {
           _log.finer('Processing interface: ${interface.name}');
-          
+
           for (final address in interface.addresses) {
             // Strip zone identifier / scope ID for IPv6 addresses
             final canonicalAddress = address.address.split('%')[0];
-            
+
             // Skip link-local addresses for IPv6 (fe80::/10)
-            if (address.type == InternetAddressType.IPv6 && 
+            if (address.type == InternetAddressType.IPv6 &&
                 canonicalAddress.toLowerCase().startsWith('fe80:')) {
               _log.finer('Skipping IPv6 link-local address: $canonicalAddress');
               continue;
             }
 
-            _log.finer('Discovered interface IP: $canonicalAddress on ${interface.name} (${address.type})');
-            
+            _log.finer(
+              'Discovered interface IP: $canonicalAddress on ${interface.name} (${address.type})',
+            );
+
             try {
               // Create basic IP multiaddr for this interface
-              final protocolName = address.type == InternetAddressType.IPv4 ? 'ip4' : 'ip6';
+              final protocolName = address.type == InternetAddressType.IPv4
+                  ? 'ip4'
+                  : 'ip6';
               final ma = MultiAddr('/$protocolName/$canonicalAddress');
-              
+
               newAllInterfaceAddrs.add(ma);
-              
+
               // Apply filtering: include all non-loopback, non-link-local addresses
               // This includes private ranges like 192.168.x.x, 10.x.x.x, 172.16-31.x.x
               newFilteredInterfaceAddrs.add(ma);
-              
+
               _log.finer('Added interface address: ${ma.toString()}');
             } catch (e) {
-              _log.severe('Could not create Multiaddr from IP $canonicalAddress: $e');
+              _log.severe(
+                'Could not create Multiaddr from IP $canonicalAddress: $e',
+              );
             }
           }
         }
 
-        _log.fine('Interface discovery completed. Found ${newAllInterfaceAddrs.length} addresses');
-        
+        _log.fine(
+          'Interface discovery completed. Found ${newAllInterfaceAddrs.length} addresses',
+        );
       } catch (e) {
         _log.severe('Failed to get network interfaces: $e');
-        
+
         // Fallback strategy: try to extract non-unspecified addresses from current listen addresses
         // This is a last resort if interface discovery completely fails
         final fallbackAddrs = _network.listenAddresses.where((m) {
           final ip4Val = m.valueForProtocol('ip4');
           final ip6Val = m.valueForProtocol('ip6');
           // Only include addresses that are not unspecified (0.0.0.0 or ::)
-          return !((ip4Val == '0.0.0.0' || ip4Val == '0.0.0.0.0.0') || 
-                   (ip6Val == '::' || ip6Val == '0:0:0:0:0:0:0:0'));
+          return !((ip4Val == '0.0.0.0' || ip4Val == '0.0.0.0.0.0') ||
+              (ip6Val == '::' || ip6Val == '0:0:0:0:0:0:0:0'));
         }).toList();
-        
+
         if (fallbackAddrs.isNotEmpty) {
-          _log.warning('Using listen addresses as fallback for interface discovery: $fallbackAddrs');
+          _log.warning(
+            'Using listen addresses as fallback for interface discovery: $fallbackAddrs',
+          );
           newAllInterfaceAddrs.addAll(fallbackAddrs);
           newFilteredInterfaceAddrs.addAll(fallbackAddrs);
         } else {
-          _log.warning('No fallback addresses available - interface discovery failed and no concrete listen addresses found');
+          _log.warning(
+            'No fallback addresses available - interface discovery failed and no concrete listen addresses found',
+          );
         }
       }
-      
+
       // Update the stored addresses if they have changed
-      if (!_areAddrsEqual(_filteredInterfaceAddrs, newFilteredInterfaceAddrs) || 
+      if (!_areAddrsEqual(_filteredInterfaceAddrs, newFilteredInterfaceAddrs) ||
           !_areAddrsEqual(_allInterfaceAddrs, newAllInterfaceAddrs)) {
         _filteredInterfaceAddrs = newFilteredInterfaceAddrs;
         _allInterfaceAddrs = newAllInterfaceAddrs;
-        _log.fine('Local interface addresses updated. Filtered: ${_filteredInterfaceAddrs.length}, All: ${_allInterfaceAddrs.length}');
+        _log.fine(
+          'Local interface addresses updated. Filtered: ${_filteredInterfaceAddrs.length}, All: ${_allInterfaceAddrs.length}',
+        );
         _log.finer('Filtered interface addresses: $_filteredInterfaceAddrs');
       }
     });
@@ -520,7 +594,9 @@ class BasicHost implements Host {
 
     try {
       // Negotiate protocol
-      final (protocol, handler) = await _mux.negotiate(stream); // Use MultistreamMuxer.negotiate
+      final (protocol, handler) = await _mux.negotiate(
+        stream,
+      ); // Use MultistreamMuxer.negotiate
 
       // Clear deadline after negotiation
       if (_negtimeout > Duration.zero) {
@@ -531,20 +607,26 @@ class BasicHost implements Host {
       await stream.setProtocol(protocol);
 
       final elapsed = DateTime.now().difference(startTime);
-      _log.fine('Negotiated protocol: $protocol (took ${elapsed.inMilliseconds}ms)');
+      _log.fine(
+        'Negotiated protocol: $protocol (took ${elapsed.inMilliseconds}ms)',
+      );
 
       // Handle the stream using the handler returned by negotiate
       handler(protocol, stream);
     } catch (e) {
       final elapsed = DateTime.now().difference(startTime);
-      _log.severe('Protocol negotiation failed for incoming stream: $e (took ${elapsed.inMilliseconds}ms)');
+      _log.severe(
+        'Protocol negotiation failed for incoming stream: $e (took ${elapsed.inMilliseconds}ms)',
+      );
       stream.reset();
     }
   }
 
   /// Signals that the host's addresses may have changed.
   void signalAddressChange() {
-    _log.fine('[BasicHost signalAddressChange] Called. _addrChangeChan.isClosed: ${_addrChangeChan.isClosed}, _closed: $_closed. Host: ${id.toString()}');
+    _log.fine(
+      '[BasicHost signalAddressChange] Called. _addrChangeChan.isClosed: ${_addrChangeChan.isClosed}, _closed: $_closed. Host: ${id.toString()}',
+    );
     if (!_addrChangeChan.isClosed) {
       _addrChangeChan.add(null);
     }
@@ -580,7 +662,9 @@ class BasicHost implements Host {
     for (final listenAddr in currentListenAddrs) {
       final listenIp4 = listenAddr.valueForProtocol('ip4');
       final listenIp6 = listenAddr.valueForProtocol('ip6');
-      final isUnspecified = (listenIp4 == '0.0.0.0' || listenIp4 == '0.0.0.0.0.0') || (listenIp6 == '::' || listenIp6 == '0:0:0:0:0:0:0:0');
+      final isUnspecified =
+          (listenIp4 == '0.0.0.0' || listenIp4 == '0.0.0.0.0.0') ||
+          (listenIp6 == '::' || listenIp6 == '0:0:0:0:0:0:0:0');
 
       if (isUnspecified) {
         // Resolve unspecified listen addresses (e.g., /ip4/0.0.0.0/udp/port/udx)
@@ -598,10 +682,13 @@ class BasicHost implements Host {
           }
         }
 
-        if (ipComponentIndex != -1 && ipComponentIndex < listenComponents.length - 1) {
+        if (ipComponentIndex != -1 &&
+            ipComponentIndex < listenComponents.length - 1) {
           // If an IP component was found and it's not the last component,
           // construct the suffix string from subsequent components.
-          final suffixComponents = listenComponents.sublist(ipComponentIndex + 1);
+          final suffixComponents = listenComponents.sublist(
+            ipComponentIndex + 1,
+          );
           final sb = StringBuffer();
           for (final (protocol, value) in suffixComponents) {
             sb.write('/${protocol.name}');
@@ -613,10 +700,11 @@ class BasicHost implements Host {
           }
           suffixString = sb.toString();
         } else if (ipComponentIndex == -1) {
-           _log.fine('Listen address $listenAddr does not start with ip4 or ip6, cannot resolve unspecified.');
+          _log.fine(
+            'Listen address $listenAddr does not start with ip4 or ip6, cannot resolve unspecified.',
+          );
         }
         // If ipComponentIndex is the last component, suffixString remains empty, which is correct.
-
 
         if (suffixString.isNotEmpty) {
           if (_filteredInterfaceAddrs.isNotEmpty) {
@@ -624,28 +712,39 @@ class BasicHost implements Host {
               // interfaceAddr is a bare IP MultiAddr, e.g., /ip4/192.168.10.118
               try {
                 // Combine the interface address string with the suffix string
-                final combinedAddrString = interfaceAddr.toString() + suffixString;
+                final combinedAddrString =
+                    interfaceAddr.toString() + suffixString;
                 final newAddr = MultiAddr(combinedAddrString);
                 resolvedAddrs.add(newAddr);
-                _log.finer('Resolved unspecified listen addr: $listenAddr with interface $interfaceAddr to ${newAddr.toString()}');
+                _log.finer(
+                  'Resolved unspecified listen addr: $listenAddr with interface $interfaceAddr to ${newAddr.toString()}',
+                );
               } catch (e) {
-                _log.severe('Failed to create resolved address by encapsulating $interfaceAddr with suffix $suffixString (from $listenAddr): $e');
+                _log.severe(
+                  'Failed to create resolved address by encapsulating $interfaceAddr with suffix $suffixString (from $listenAddr): $e',
+                );
               }
             }
           } else {
             // No interface addresses available - trigger interface discovery and warn
-            _log.warning('No interface addresses available to resolve unspecified listen address: $listenAddr. Triggering interface discovery.');
+            _log.warning(
+              'No interface addresses available to resolve unspecified listen address: $listenAddr. Triggering interface discovery.',
+            );
             _updateLocalIpAddr(); // Try to update interface addresses
-            
+
             // If still no interface addresses after update, this unspecified address cannot be resolved
             if (_filteredInterfaceAddrs.isEmpty) {
-              _log.warning('Interface discovery failed or returned no addresses. Unspecified listen address $listenAddr cannot be resolved to concrete addresses.');
+              _log.warning(
+                'Interface discovery failed or returned no addresses. Unspecified listen address $listenAddr cannot be resolved to concrete addresses.',
+              );
             }
           }
         } else if (isUnspecified) {
           // This case means it was an unspecified IP, but we couldn't get a suffix
           // (e.g., listenAddr was just /ip4/0.0.0.0).
-          _log.warning('Could not determine suffix for unspecified listen address: $listenAddr. It will not be resolved against interface IPs.');
+          _log.warning(
+            'Could not determine suffix for unspecified listen address: $listenAddr. It will not be resolved against interface IPs.',
+          );
           // We don't add the original unspecified listenAddr to resolvedAddrs here,
           // as it would be filtered out by defaultAddrsFactory anyway.
         }
@@ -654,7 +753,7 @@ class BasicHost implements Host {
         resolvedAddrs.add(listenAddr);
       }
     }
-    
+
     // If there were no listen addresses, but we have interface addresses,
     // this part might need refinement. Typically, host addresses are listen addresses.
     // If currentListenAddrs is empty, resolvedAddrs will be empty here.
@@ -675,7 +774,7 @@ class BasicHost implements Host {
     } else {
       natAppliedAddrs.addAll(resolvedAddrs);
     }
-    
+
     // If resolvedAddrs was empty and currentListenAddrs was not, but NAT manager didn't map anything,
     // natAppliedAddrs would still be based on resolvedAddrs (empty).
     // We should ensure that if resolvedAddrs is empty due to no interface IPs for 0.0.0.0,
@@ -686,12 +785,11 @@ class BasicHost implements Host {
     final finalAddrs = <MultiAddr>{};
     finalAddrs.addAll(natAppliedAddrs);
 
-
     // 3. Add observed addresses from identify service
     // These are addresses observed by other peers, potentially behind NAT.
     final observed = _idService.ownObservedAddrs();
     finalAddrs.addAll(observed);
-    
+
     // If after all this, finalAddrs is empty, but we had original listen addresses,
     // it implies they were all unspecified, no local IPs found, no NAT mapping, and no observed.
     // This scenario should result in an empty list.
@@ -699,10 +797,18 @@ class BasicHost implements Host {
     // Convert Set to List for the return type.
     // The _addrsFactory can then do further filtering/sorting.
     final result = finalAddrs.toList();
-    _log.fine('[BasicHost allAddrs] for host ${id.toString()} - resolvedAddrs: $resolvedAddrs');
-    _log.fine('[BasicHost allAddrs] for host ${id.toString()} - natAppliedAddrs: $natAppliedAddrs');
-    _log.fine('[BasicHost allAddrs] for host ${id.toString()} - finalAddrs (before toList): $finalAddrs');
-    _log.fine('[BasicHost allAddrs] for host ${id.toString()} - Returning: $result');
+    _log.fine(
+      '[BasicHost allAddrs] for host ${id.toString()} - resolvedAddrs: $resolvedAddrs',
+    );
+    _log.fine(
+      '[BasicHost allAddrs] for host ${id.toString()} - natAppliedAddrs: $natAppliedAddrs',
+    );
+    _log.fine(
+      '[BasicHost allAddrs] for host ${id.toString()} - finalAddrs (before toList): $finalAddrs',
+    );
+    _log.fine(
+      '[BasicHost allAddrs] for host ${id.toString()} - Returning: $result',
+    );
     return result;
   }
 
@@ -725,30 +831,29 @@ class BasicHost implements Host {
   Future<void> connect(AddrInfo pi, {Context? context}) async {
     final startTime = DateTime.now();
 
-    
     // Prevent self-dialing
     if (pi.id == id) {
-
       return;
     }
 
     // Phase 1: Address Filtering and Peerstore Update
 
     final filterStartTime = DateTime.now();
-    
+
     final filteredAddrs = _addrsFactory(pi.addrs);
 
-    
-    await peerStore.addrBook.addAddrs(pi.id, filteredAddrs, Duration(minutes: 5));
-    
-    final filterTime = DateTime.now().difference(filterStartTime);
+    await peerStore.addrBook.addAddrs(
+      pi.id,
+      filteredAddrs,
+      Duration(minutes: 5),
+    );
 
+    final filterTime = DateTime.now().difference(filterStartTime);
 
     // Phase 2: Connection Check
 
     final connectedness = _network.connectedness(pi.id);
 
-    
     if (connectedness == Connectedness.connected) {
       final totalTime = DateTime.now().difference(startTime);
 
@@ -759,22 +864,21 @@ class BasicHost implements Host {
 
     final ctx = context ?? Context();
 
-
     // Phase 4: Dial Peer
 
     final dialStartTime = DateTime.now();
-    
+
     try {
       await _dialPeer(pi.id, ctx);
-      
+
       final dialTime = DateTime.now().difference(dialStartTime);
       final totalTime = DateTime.now().difference(startTime);
-
-
     } catch (e, stackTrace) {
       final dialTime = DateTime.now().difference(dialStartTime);
       final totalTime = DateTime.now().difference(startTime);
-      _log.severe('❌ [CONNECT-ERROR] Connection failed after ${totalTime.inMilliseconds}ms (dial: ${dialTime.inMilliseconds}ms): $e\n$stackTrace');
+      _log.severe(
+        '❌ [CONNECT-ERROR] Connection failed after ${totalTime.inMilliseconds}ms (dial: ${dialTime.inMilliseconds}ms): $e\n$stackTrace',
+      );
       rethrow;
     }
   }
@@ -782,21 +886,21 @@ class BasicHost implements Host {
   Future<void> _dialPeer(PeerId p, Context context) async {
     final startTime = DateTime.now();
 
-
     try {
       // Phase 1: Network Dial
       final conn = await _network.dialPeer(context, p);
 
       // Phase 2: Identify Wait
       final identifyStartTime = DateTime.now();
-      
-      await _idService.identifyWait(conn);
-      
-      final identifyTime = DateTime.now().difference(identifyStartTime);
 
+      await _idService.identifyWait(conn);
+
+      final identifyTime = DateTime.now().difference(identifyStartTime);
     } catch (e, stackTrace) {
       final totalTime = DateTime.now().difference(startTime);
-      _log.severe('❌ [DIAL-PEER-ERROR] Failed to dial ${p.toString()} after ${totalTime.inMilliseconds}ms: $e\n$stackTrace');
+      _log.severe(
+        '❌ [DIAL-PEER-ERROR] Failed to dial ${p.toString()} after ${totalTime.inMilliseconds}ms: $e\n$stackTrace',
+      );
       throw Exception('Failed to dial: $e');
     }
   }
@@ -815,12 +919,18 @@ class BasicHost implements Host {
 
     // Emit protocol updated event
     if (_evtLocalProtocolsUpdated != null) {
-      _evtLocalProtocolsUpdated!.emit(EvtLocalProtocolsUpdated(added: [pid], removed: []));
+      _evtLocalProtocolsUpdated!.emit(
+        EvtLocalProtocolsUpdated(added: [pid], removed: []),
+      );
     }
   }
 
   @override
-  void setStreamHandlerMatch(ProtocolID pid, bool Function(ProtocolID) match, StreamHandler handler) {
+  void setStreamHandlerMatch(
+    ProtocolID pid,
+    bool Function(ProtocolID) match,
+    StreamHandler handler,
+  ) {
     // Convert StreamHandler to HandlerFunc
     // final handlerFunc = (ProtocolID protocol, P2PStream stream) {
     //   handler(stream);
@@ -836,7 +946,9 @@ class BasicHost implements Host {
 
     // Emit protocol updated event
     if (_evtLocalProtocolsUpdated != null) {
-      _evtLocalProtocolsUpdated!.emit(EvtLocalProtocolsUpdated(added: [pid], removed: []));
+      _evtLocalProtocolsUpdated!.emit(
+        EvtLocalProtocolsUpdated(added: [pid], removed: []),
+      );
     }
   }
 
@@ -846,128 +958,122 @@ class BasicHost implements Host {
 
     // Emit protocol updated event
     if (_evtLocalProtocolsUpdated != null) {
-      _evtLocalProtocolsUpdated!.emit(EvtLocalProtocolsUpdated(added: [], removed: [pid]));
+      _evtLocalProtocolsUpdated!.emit(
+        EvtLocalProtocolsUpdated(added: [], removed: [pid]),
+      );
     }
   }
 
   @override
-  Future<P2PStream> newStream(PeerId p, List<ProtocolID> pids, Context context) async {
+  Future<P2PStream> newStream(
+    PeerId p,
+    List<ProtocolID> pids,
+    Context context,
+  ) async {
     final startTime = DateTime.now();
 
-    
     // Set up a timeout context if needed
     final hasTimeout = _negtimeout > Duration.zero;
     final deadline = hasTimeout ? DateTime.now().add(_negtimeout) : null;
 
-
     // Phase 1: Connection
 
     final connectStartTime = DateTime.now();
-    
-    await connect(AddrInfo(p, []), context: context);
-    
-    final connectTime = DateTime.now().difference(connectStartTime);
 
+    await connect(AddrInfo(p, []), context: context);
+
+    final connectTime = DateTime.now().difference(connectStartTime);
 
     // Phase 2: Stream Creation
 
     final streamCreateStartTime = DateTime.now();
-    
+
     final stream = await _network.newStream(context, p);
-    
+
     final streamCreateTime = DateTime.now().difference(streamCreateStartTime);
 
-
     // DEBUG: Add protocol assignment tracking
-
 
     // Phase 3: Identify Wait
 
     final identifyStartTime = DateTime.now();
-    
-    await _idService.identifyWait(stream.conn);
-    
-    final identifyTime = DateTime.now().difference(identifyStartTime);
 
+    await _idService.identifyWait(stream.conn);
+
+    final identifyTime = DateTime.now().difference(identifyStartTime);
 
     // Phase 4: Protocol Negotiation
 
     final negotiationStartTime = DateTime.now();
-    
+
     try {
       if (hasTimeout && deadline != null) {
-
         stream.setDeadline(deadline);
       }
-
 
       // DEBUG: Add detailed protocol negotiation tracking
 
       final selectStartTime = DateTime.now();
-      
+
       final selectedProtocol = await _mux.selectOneOf(stream, pids);
-      
+
       final selectTime = DateTime.now().difference(selectStartTime);
 
-      
       // DEBUG: Add protocol selection result tracking
 
-
       if (hasTimeout) {
-
         stream.setDeadline(null); // Clear deadline after successful negotiation
       }
 
       if (selectedProtocol == null) {
         _log.severe('🤝 [NEWSTREAM-PHASE-4] No protocol selected from: $pids');
         stream.reset();
-        throw Exception('Failed to negotiate any of the requested protocols: $pids with peer $p');
+        throw Exception(
+          'Failed to negotiate any of the requested protocols: $pids with peer $p',
+        );
       }
 
       // Phase 5: Protocol Setup
 
       final setupStartTime = DateTime.now();
-      
+
       // DEBUG: Add protocol assignment tracking
 
       await stream.setProtocol(selectedProtocol);
-      
+
       // Ensure the stream's scope is also updated with the protocol.
       // This is crucial for services like Identify that attach to the scope.
 
       await stream.scope().setProtocol(selectedProtocol);
-      
+
       // Add the successfully negotiated protocol to the peerstore for the remote peer.
       // Note: The go-libp2p implementation adds this *after* the stream handler returns,
       // but it seems more robust to add it as soon as negotiation succeeds.
       // This ensures that even if the handler has issues, we've recorded the protocol.
       peerStore.protoBook.addProtocols(p, [selectedProtocol]);
-      
+
       final setupTime = DateTime.now().difference(setupStartTime);
       final negotiationTime = DateTime.now().difference(negotiationStartTime);
       final totalTime = DateTime.now().difference(startTime);
-      
 
-
-
-      
       // DEBUG: Add final protocol assignment confirmation
 
-      
       return stream;
-
     } catch (e, stackTrace) {
       final negotiationTime = DateTime.now().difference(negotiationStartTime);
       final totalTime = DateTime.now().difference(startTime);
-      _log.severe('❌ [NEWSTREAM-ERROR] Stream creation failed after ${totalTime.inMilliseconds}ms (negotiation: ${negotiationTime.inMilliseconds}ms): $e\n$stackTrace');
-      
+      _log.severe(
+        '❌ [NEWSTREAM-ERROR] Stream creation failed after ${totalTime.inMilliseconds}ms (negotiation: ${negotiationTime.inMilliseconds}ms): $e\n$stackTrace',
+      );
+
       try {
         stream.reset();
-
       } catch (resetError) {
-        _log.warning('⚠️ [NEWSTREAM-ERROR] Error during stream reset: $resetError');
+        _log.warning(
+          '⚠️ [NEWSTREAM-ERROR] Error during stream reset: $resetError',
+        );
       }
-      
+
       // No need to check for UnimplementedError specifically anymore
       throw Exception('Failed to negotiate protocol with $p for $pids: $e');
     }

@@ -26,12 +26,28 @@ void main() {
       final retrievedPeerInfo = await peerstore.getPeer(peerId);
 
       // Assertions
-      expect(retrievedPeerInfo, isNotNull, reason: 'PeerInfo should not be null after adding addresses.');
+      expect(
+        retrievedPeerInfo,
+        isNotNull,
+        reason: 'PeerInfo should not be null after adding addresses.',
+      );
       if (retrievedPeerInfo != null) {
-        expect(retrievedPeerInfo.addrs, isNotEmpty, reason: 'PeerInfo.addrs should not be empty.');
-        expect(retrievedPeerInfo.addrs.length, equals(multiaddrs.length), reason: 'PeerInfo.addrs length should match added addresses.');
+        expect(
+          retrievedPeerInfo.addrs,
+          isNotEmpty,
+          reason: 'PeerInfo.addrs should not be empty.',
+        );
+        expect(
+          retrievedPeerInfo.addrs.length,
+          equals(multiaddrs.length),
+          reason: 'PeerInfo.addrs length should match added addresses.',
+        );
         for (var addr in multiaddrs) {
-          expect(retrievedPeerInfo.addrs.contains(addr), isTrue, reason: 'PeerInfo.addrs should contain address $addr');
+          expect(
+            retrievedPeerInfo.addrs.contains(addr),
+            isTrue,
+            reason: 'PeerInfo.addrs should contain address $addr',
+          );
         }
       }
     });
@@ -41,12 +57,16 @@ void main() {
       final retrievedPeerInfo = await peerstore.getPeer(nonExistentPeerId);
       expect(retrievedPeerInfo, isNull);
     });
-    
+
     test('addOrUpdatePeer with protocols and metadata', () async {
       final protocols = ['/test/1.0.0', '/example/2.0'];
       final metadata = {'key1': 'value1', 'key2': 123};
 
-      peerstore.addOrUpdatePeer(peerId, protocols: protocols, metadata: metadata);
+      peerstore.addOrUpdatePeer(
+        peerId,
+        protocols: protocols,
+        metadata: metadata,
+      );
       final retrievedPeerInfo = await peerstore.getPeer(peerId);
 
       expect(retrievedPeerInfo, isNotNull);
@@ -58,12 +78,21 @@ void main() {
 
     test('addOrUpdatePeer updates existing peer data', () async {
       // Initial add
-      peerstore.addOrUpdatePeer(peerId, addrs: [multiaddrs[0]], protocols: ['/initial/1.0']);
-      
+      peerstore.addOrUpdatePeer(
+        peerId,
+        addrs: [multiaddrs[0]],
+        protocols: ['/initial/1.0'],
+      );
+
       // Update
       final updatedProtocols = ['/updated/1.0', '/another/2.0'];
       final updatedMetadata = {'newKey': 'newValue'};
-      peerstore.addOrUpdatePeer(peerId, addrs: [multiaddrs[1]], protocols: updatedProtocols, metadata: updatedMetadata);
+      peerstore.addOrUpdatePeer(
+        peerId,
+        addrs: [multiaddrs[1]],
+        protocols: updatedProtocols,
+        metadata: updatedMetadata,
+      );
 
       final retrievedPeerInfo = await peerstore.getPeer(peerId);
       expect(retrievedPeerInfo, isNotNull);
@@ -71,12 +100,23 @@ void main() {
         // Addresses should be merged by AddrBook (current MemoryPeerstore uses Duration.zero, so this might not reflect a merge yet)
         // For now, we expect at least the latest address to be there if TTLs were working as expected.
         // This part of the test will become more relevant after fixing TTL in addOrUpdatePeer.
-        expect(retrievedPeerInfo.addrs.contains(multiaddrs[1]), isTrue, reason: "Should contain the subsequently added address");
-        
-        expect(retrievedPeerInfo.protocols, equals(updatedProtocols.toSet()), reason: "Protocols should be overwritten by setProtocols");
-        expect(retrievedPeerInfo.metadata, equals(updatedMetadata), reason: "Metadata should be updated");
+        expect(
+          retrievedPeerInfo.addrs.contains(multiaddrs[1]),
+          isTrue,
+          reason: "Should contain the subsequently added address",
+        );
+
+        expect(
+          retrievedPeerInfo.protocols,
+          equals(updatedProtocols.toSet()),
+          reason: "Protocols should be overwritten by setProtocols",
+        );
+        expect(
+          retrievedPeerInfo.metadata,
+          equals(updatedMetadata),
+          reason: "Metadata should be updated",
+        );
       }
     });
-
   });
 }

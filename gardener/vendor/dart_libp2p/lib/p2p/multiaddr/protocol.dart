@@ -34,7 +34,9 @@ class Protocol {
       case 'ip6':
         return InternetAddress(value, type: InternetAddressType.IPv6);
       default:
-        throw ArgumentError('Protocol $name does not support conversion to InternetAddress');
+        throw ArgumentError(
+          'Protocol $name does not support conversion to InternetAddress',
+        );
     }
   }
 
@@ -44,66 +46,25 @@ class Protocol {
 
 /// Registry of supported multiaddr protocols
 class Protocols {
-  static const ip4 = Protocol(
-    name: 'ip4',
-    code: 0x04,
-    size: 32,
-  );
+  static const ip4 = Protocol(name: 'ip4', code: 0x04, size: 32);
 
-  static const tcp = Protocol(
-    name: 'tcp',
-    code: 0x06,
-    size: 16,
-  );
+  static const tcp = Protocol(name: 'tcp', code: 0x06, size: 16);
 
-  static const udp = Protocol(
-    name: 'udp',
-    code: 0x0111,
-    size: 16,
-  );
+  static const udp = Protocol(name: 'udp', code: 0x0111, size: 16);
 
-  static const ip6 = Protocol(
-    name: 'ip6',
-    code: 0x29,
-    size: 128,
-  );
+  static const ip6 = Protocol(name: 'ip6', code: 0x29, size: 128);
 
-  static const dns4 = Protocol(
-    name: 'dns4',
-    code: 0x36,
-    size: -1,
-  );
+  static const dns4 = Protocol(name: 'dns4', code: 0x36, size: -1);
 
-  static const dns6 = Protocol(
-    name: 'dns6',
-    code: 0x37,
-    size: -1,
-  );
+  static const dns6 = Protocol(name: 'dns6', code: 0x37, size: -1);
 
-  static const dnsaddr = Protocol(
-    name: 'dnsaddr',
-    code: 0x38,
-    size: -1,
-  );
+  static const dnsaddr = Protocol(name: 'dnsaddr', code: 0x38, size: -1);
 
-  static const p2p = Protocol(
-    name: 'p2p',
-    code: 0x01A5,
-    size: -1,
-  );
+  static const p2p = Protocol(name: 'p2p', code: 0x01A5, size: -1);
 
-  static const unix = Protocol(
-    name: 'unix',
-    code: 0x0190,
-    size: -1,
-    path: '/',
-  );
+  static const unix = Protocol(name: 'unix', code: 0x0190, size: -1, path: '/');
 
-  static const quicV1 = Protocol(
-    name: 'quic-v1',
-    code: 0x01CC,
-    size: 0,
-  );
+  static const quicV1 = Protocol(name: 'quic-v1', code: 0x01CC, size: 0);
 
   static const webtransport = Protocol(
     name: 'webtransport',
@@ -111,23 +72,11 @@ class Protocols {
     size: 0,
   );
 
-  static const certhash = Protocol(
-    name: 'certhash',
-    code: 0x01D2,
-    size: -1,
-  );
+  static const certhash = Protocol(name: 'certhash', code: 0x01D2, size: -1);
 
-  static const sni = Protocol(
-    name: 'sni',
-    code: 0x01D3,
-    size: -1,
-  );
+  static const sni = Protocol(name: 'sni', code: 0x01D3, size: -1);
 
-  static const circuit = Protocol(
-    name: 'p2p-circuit',
-    code: 0x0122,
-    size: 0,
-  );
+  static const circuit = Protocol(name: 'p2p-circuit', code: 0x0122, size: 0);
 
   static const udx = Protocol(
     name: 'udx',

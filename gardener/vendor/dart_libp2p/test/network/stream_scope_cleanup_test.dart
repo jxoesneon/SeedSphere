@@ -52,7 +52,8 @@ class MockConn implements Conn {
   Future<void> close() async {}
 
   @override
-  Future<P2PStream> newStream(dynamic context) async => throw UnimplementedError();
+  Future<P2PStream> newStream(dynamic context) async =>
+      throw UnimplementedError();
 
   @override
   Future<List<P2PStream>> get streams async => [];
@@ -186,7 +187,9 @@ class MockStreamManagementScope implements StreamManagementScope {
   void done() {
     _doneCallCount++;
     if (_isDone) {
-      print('WARN: BUG: done() called on already done scope (call count: $_doneCallCount)');
+      print(
+        'WARN: BUG: done() called on already done scope (call count: $_doneCallCount)',
+      );
       return;
     }
     _isDone = true;
@@ -308,12 +311,19 @@ void main() {
       await swarmStream.close(); // Third call should be safe
 
       // Assert
-      expect(mockScope.doneCallCount, equals(1), 
-        reason: 'done() should only be called once, even with multiple close() calls');
+      expect(
+        mockScope.doneCallCount,
+        equals(1),
+        reason:
+            'done() should only be called once, even with multiple close() calls',
+      );
       expect(mockScope.isDone, isTrue);
       expect(swarmStream.isClosed, isTrue);
-      expect(mockConn.removedStreams.length, equals(1), 
-        reason: 'removeStream should only be called once');
+      expect(
+        mockConn.removedStreams.length,
+        equals(1),
+        reason: 'removeStream should only be called once',
+      );
     });
 
     test('should prevent double scope cleanup on reset()', () async {
@@ -337,41 +347,59 @@ void main() {
       await swarmStream.reset(); // Third call should be safe
 
       // Assert
-      expect(mockScope.doneCallCount, equals(1), 
-        reason: 'done() should only be called once, even with multiple reset() calls');
-      expect(mockScope.isDone, isTrue);
-      expect(swarmStream.isClosed, isTrue);
-      expect(mockConn.removedStreams.length, equals(1), 
-        reason: 'removeStream should only be called once');
-    });
-
-    test('should prevent double scope cleanup when mixing close() and reset()', () async {
-      // Arrange
-      final mockScope = MockStreamManagementScope();
-      final mockUnderlyingStream = MockP2PStream('test-stream-3');
-      final mockConn = MockSwarmConn();
-
-      final swarmStream = SwarmStream(
-        id: 'test-stream-3',
-        conn: mockConn,
-        direction: Direction.outbound,
-        opened: DateTime.now(),
-        underlyingMuxedStream: mockUnderlyingStream,
-        managementScope: mockScope,
+      expect(
+        mockScope.doneCallCount,
+        equals(1),
+        reason:
+            'done() should only be called once, even with multiple reset() calls',
       );
-
-      // Act - call close() then reset()
-      await swarmStream.close();
-      await swarmStream.reset(); // Should be safe since stream is already closed
-
-      // Assert
-      expect(mockScope.doneCallCount, equals(1), 
-        reason: 'done() should only be called once, even when mixing close() and reset()');
       expect(mockScope.isDone, isTrue);
       expect(swarmStream.isClosed, isTrue);
-      expect(mockConn.removedStreams.length, equals(1), 
-        reason: 'removeStream should only be called once');
+      expect(
+        mockConn.removedStreams.length,
+        equals(1),
+        reason: 'removeStream should only be called once',
+      );
     });
+
+    test(
+      'should prevent double scope cleanup when mixing close() and reset()',
+      () async {
+        // Arrange
+        final mockScope = MockStreamManagementScope();
+        final mockUnderlyingStream = MockP2PStream('test-stream-3');
+        final mockConn = MockSwarmConn();
+
+        final swarmStream = SwarmStream(
+          id: 'test-stream-3',
+          conn: mockConn,
+          direction: Direction.outbound,
+          opened: DateTime.now(),
+          underlyingMuxedStream: mockUnderlyingStream,
+          managementScope: mockScope,
+        );
+
+        // Act - call close() then reset()
+        await swarmStream.close();
+        await swarmStream
+            .reset(); // Should be safe since stream is already closed
+
+        // Assert
+        expect(
+          mockScope.doneCallCount,
+          equals(1),
+          reason:
+              'done() should only be called once, even when mixing close() and reset()',
+        );
+        expect(mockScope.isDone, isTrue);
+        expect(swarmStream.isClosed, isTrue);
+        expect(
+          mockConn.removedStreams.length,
+          equals(1),
+          reason: 'removeStream should only be called once',
+        );
+      },
+    );
 
     test('should correctly report stream availability for reuse', () async {
       // Arrange
@@ -389,15 +417,22 @@ void main() {
       );
 
       // Assert initial state
-      expect(swarmStream.isAvailableForReuse, isFalse, 
-        reason: 'Active stream should not be available for reuse');
+      expect(
+        swarmStream.isAvailableForReuse,
+        isFalse,
+        reason: 'Active stream should not be available for reuse',
+      );
 
       // Act - close the stream
       await swarmStream.close();
 
       // Assert final state
-      expect(swarmStream.isAvailableForReuse, isTrue, 
-        reason: 'Closed stream with cleaned up scope should be available for reuse');
+      expect(
+        swarmStream.isAvailableForReuse,
+        isTrue,
+        reason:
+            'Closed stream with cleaned up scope should be available for reuse',
+      );
       expect(swarmStream.isClosed, isTrue);
       expect(mockScope.isDone, isTrue);
     });
@@ -421,8 +456,11 @@ void main() {
       final cleanupPerformed = swarmStream.cleanupScope();
 
       // Assert
-      expect(cleanupPerformed, isTrue, 
-        reason: 'First cleanup should return true');
+      expect(
+        cleanupPerformed,
+        isTrue,
+        reason: 'First cleanup should return true',
+      );
       expect(mockScope.isDone, isTrue);
       expect(mockScope.doneCallCount, equals(1));
 
@@ -430,10 +468,16 @@ void main() {
       final secondCleanupPerformed = swarmStream.cleanupScope();
 
       // Assert
-      expect(secondCleanupPerformed, isFalse, 
-        reason: 'Second cleanup should return false (already cleaned up)');
-      expect(mockScope.doneCallCount, equals(1), 
-        reason: 'done() should still only be called once');
+      expect(
+        secondCleanupPerformed,
+        isFalse,
+        reason: 'Second cleanup should return false (already cleaned up)',
+      );
+      expect(
+        mockScope.doneCallCount,
+        equals(1),
+        reason: 'done() should still only be called once',
+      );
     });
   });
 }

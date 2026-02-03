@@ -1,4 +1,3 @@
-
 import 'package:dart_libp2p/core/host/host.dart';
 import 'package:dart_libp2p/core/network/network.dart';
 import 'package:dart_libp2p/core/multiaddr.dart';
@@ -6,8 +5,8 @@ import 'package:dart_libp2p/core/multiaddr.dart';
 // Assuming AddrFunc is defined/imported from elsewhere (e.g. client.dart or a common types file)
 // MetricsTracer is now imported from ./metrics.dart
 import './metrics.dart' show MetricsTracer;
-import './client.dart' show AddrFunc; // Keep AddrFunc import if it's defined there and not moved
-
+import './client.dart'
+    show AddrFunc; // Keep AddrFunc import if it's defined there and not moved
 
 // Placeholder for DialPolicy, should be defined in its own file
 abstract class DialPolicy {
@@ -65,7 +64,9 @@ class AutoNATConfig {
 AutoNATOption enableService(Network dialer) {
   return AutoNATOption((AutoNATConfig c) {
     if (dialer == c.host.network || dialer.peerstore == c.host.peerStore) {
-      throw ArgumentError("Dialer should not be that of the host or share its peerstore");
+      throw ArgumentError(
+        "Dialer should not be that of the host or share its peerstore",
+      );
     }
     c.dialer = dialer;
   });
@@ -107,7 +108,9 @@ AutoNATOption withThrottling(int amount, Duration interval) {
   return AutoNATOption((AutoNATConfig c) {
     c.throttleGlobalMax = amount;
     c.throttleResetPeriod = interval;
-    c.throttleResetJitter = Duration(microseconds: interval.inMicroseconds ~/ 4);
+    c.throttleResetJitter = Duration(
+      microseconds: interval.inMicroseconds ~/ 4,
+    );
   });
 }
 

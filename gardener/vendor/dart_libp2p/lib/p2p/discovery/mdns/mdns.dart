@@ -50,13 +50,10 @@ class MdnsDiscovery implements Discovery {
   bool _isRunning = false;
 
   /// Creates a new MdnsDiscovery service
-  MdnsDiscovery(this._host, {
-    String? serviceName,
-    MdnsNotifee? notifee,
-  }) : 
-    _serviceName = serviceName ?? MdnsConstants.serviceName,
-    _peerName = _generateRandomString(32 + Random().nextInt(32)),
-    _notifee = notifee;
+  MdnsDiscovery(this._host, {String? serviceName, MdnsNotifee? notifee})
+    : _serviceName = serviceName ?? MdnsConstants.serviceName,
+      _peerName = _generateRandomString(32 + Random().nextInt(32)),
+      _notifee = notifee;
 
   /// Starts the mDNS discovery service
   Future<void> start() async {
@@ -93,7 +90,10 @@ class MdnsDiscovery implements Discovery {
   }
 
   @override
-  Future<Duration> advertise(String ns, [List<DiscoveryOption> options = const []]) async {
+  Future<Duration> advertise(
+    String ns, [
+    List<DiscoveryOption> options = const [],
+  ]) async {
     if (!_isRunning) {
       await start();
     }
@@ -103,7 +103,10 @@ class MdnsDiscovery implements Discovery {
   }
 
   @override
-  Future<Stream<AddrInfo>> findPeers(String ns, [List<DiscoveryOption> options = const []]) async {
+  Future<Stream<AddrInfo>> findPeers(
+    String ns, [
+    List<DiscoveryOption> options = const [],
+  ]) async {
     if (!_isRunning) {
       await start();
     }
@@ -163,22 +166,26 @@ class MdnsDiscovery implements Discovery {
     if (_client == null) return;
 
     // Listen for PTR records for our service
-    _subscription = _client!.lookup<PtrResourceRecord>(
-      ResourceRecordQuery.serverPointer('$_serviceName.${MdnsConstants.mdnsDomain}'),
-    ).listen((event) {
-      // When a PTR record is found, query for the corresponding SRV and TXT records
-      final String domainName = event.domainName;
+    _subscription = _client!
+        .lookup<PtrResourceRecord>(
+          ResourceRecordQuery.serverPointer(
+            '$_serviceName.${MdnsConstants.mdnsDomain}',
+          ),
+        )
+        .listen((event) {
+          // When a PTR record is found, query for the corresponding SRV and TXT records
+          final String domainName = event.domainName;
 
-      // Query for TXT records
-      _client!.lookup<TxtResourceRecord>(
-        ResourceRecordQuery.text(domainName),
-      ).listen(_processTxtRecord);
+          // Query for TXT records
+          _client!
+              .lookup<TxtResourceRecord>(ResourceRecordQuery.text(domainName))
+              .listen(_processTxtRecord);
 
-      // Query for SRV records (for completeness, though we don't use them directly)
-      _client!.lookup<SrvResourceRecord>(
-        ResourceRecordQuery.service(domainName),
-      );
-    });
+          // Query for SRV records (for completeness, though we don't use them directly)
+          _client!.lookup<SrvResourceRecord>(
+            ResourceRecordQuery.service(domainName),
+          );
+        });
   }
 
   // Process a TXT record to extract peer information
@@ -195,9 +202,13 @@ class MdnsDiscovery implements Discovery {
       // Find the start of the prefix
       final int startIndex = txtString.indexOf(MdnsConstants.dnsaddrPrefix);
       // Extract everything after the prefix
-      final String remaining = txtString.substring(startIndex + MdnsConstants.dnsaddrPrefix.length);
+      final String remaining = txtString.substring(
+        startIndex + MdnsConstants.dnsaddrPrefix.length,
+      );
       // Find the end of the address (if there are multiple entries)
-      final int endIndex = remaining.contains(' ') ? remaining.indexOf(' ') : remaining.length;
+      final int endIndex = remaining.contains(' ')
+          ? remaining.indexOf(' ')
+          : remaining.length;
       // Extract the address
       final String addrStr = remaining.substring(0, endIndex);
 
@@ -222,13 +233,15 @@ class MdnsDiscovery implements Discovery {
     }
   }
 
-
   /// Generates a random string of the specified length
   static String _generateRandomString(int length) {
     const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
     final random = Random();
     return String.fromCharCodes(
-      List.generate(length, (_) => chars.codeUnitAt(random.nextInt(chars.length)))
+      List.generate(
+        length,
+        (_) => chars.codeUnitAt(random.nextInt(chars.length)),
+      ),
     );
   }
 }

@@ -4,14 +4,18 @@ import 'dart:typed_data';
 
 import 'package:dart_libp2p/core/network/common.dart';
 import 'package:dart_libp2p/core/network/conn.dart';
-import 'package:dart_libp2p/core/network/mux.dart' show MuxedStream, ResetException; // Added ResetException
-import 'package:dart_libp2p/core/network/rcmgr.dart' show StreamManagementScope, StreamScope;
-import 'package:dart_libp2p/core/network/stream.dart' show P2PStream, StreamStats;
+import 'package:dart_libp2p/core/network/mux.dart'
+    show MuxedStream, ResetException; // Added ResetException
+import 'package:dart_libp2p/core/network/rcmgr.dart'
+    show StreamManagementScope, StreamScope;
+import 'package:dart_libp2p/core/network/stream.dart'
+    show P2PStream, StreamStats;
 import 'package:dart_libp2p/p2p/transport/tcp_connection.dart'; // Assuming TCPConnection will be the parent
 
 class P2PStreamAdapter implements P2PStream<Uint8List> {
   final MuxedStream _underlyingMuxedStream;
-  final TCPConnection _parentConnection; // Or a more generic Conn type if needed
+  final TCPConnection
+  _parentConnection; // Or a more generic Conn type if needed
   final StreamManagementScope _streamManagementScope;
   final Direction _direction; // Added direction
   String _protocolId;
@@ -28,7 +32,8 @@ class P2PStreamAdapter implements P2PStream<Uint8List> {
     this._streamManagementScope,
     this._direction, // Added direction
     this._protocolId,
-  ) : _id = Uuid().v4() { // Initialize unique ID
+  ) : _id = Uuid().v4() {
+    // Initialize unique ID
     _incomingDataController = StreamController<Uint8List>(
       onListen: _startListening,
       onCancel: _stopListening,
@@ -38,55 +43,57 @@ class P2PStreamAdapter implements P2PStream<Uint8List> {
   void _startListening() {
     // This is a simplified read loop. A more robust implementation
     // might handle backpressure and read chunking based on maxLength.
-    _muxedStreamSubscription = Stream.fromFuture(
-      Future(() async {
-        while (!_isClosed && !_incomingDataController.isClosed) {
-          try {
-            final data = await _underlyingMuxedStream.read(0); 
-            if (data.isNotEmpty) {
-              if (!_incomingDataController.isClosed) {
-                _incomingDataController.add(Uint8List.fromList(data));
+    _muxedStreamSubscription =
+        Stream.fromFuture(
+          Future(() async {
+            while (!_isClosed && !_incomingDataController.isClosed) {
+              try {
+                final data = await _underlyingMuxedStream.read(0);
+                if (data.isNotEmpty) {
+                  if (!_incomingDataController.isClosed) {
+                    _incomingDataController.add(Uint8List.fromList(data));
+                  }
+                } else {
+                  // Empty data might signify EOF from muxer for some implementations
+                  await _handleResetOrClose();
+                  break;
+                }
+              } on ResetException {
+                await _handleResetOrClose();
+                break;
+              } catch (e) {
+                if (!_isClosed && !_incomingDataController.isClosed) {
+                  _incomingDataController.addError(e);
+                }
+                await _handleResetOrClose();
+                break;
               }
-            } else {
-              // Empty data might signify EOF from muxer for some implementations
-              await _handleResetOrClose();
-              break;
             }
-          } on ResetException {
-            await _handleResetOrClose();
-            break;
-          } catch (e) {
+          }).catchError((e) {
+            // Catch errors from the Future itself
             if (!_isClosed && !_incomingDataController.isClosed) {
               _incomingDataController.addError(e);
             }
-            await _handleResetOrClose(); 
-            break;
-          }
-        }
-      }).catchError((e) { // Catch errors from the Future itself
-          if (!_isClosed && !_incomingDataController.isClosed) {
-            _incomingDataController.addError(e);
-          }
-          // Ensure cleanup even if the future fails before listen() is set up or during its execution
-          _handleResetOrClose().catchError((_) {}); // Fire and forget
-      }),
-    ).listen(
-      null, // Data is handled by the Future's loop
-      onError: (e) {
-        // This onError is for errors passed through _incomingDataController.addError()
-        // or errors from the stream generation logic itself if not caught by the Future's catchError.
-        // The primary error handling and stream closing should be within the Future.
-        // If an error reaches here, it implies the controller is still open.
-        if (!_incomingDataController.isClosed) {
-           _incomingDataController.addError(e);
-        }
-        _handleResetOrClose().catchError((_) {}); // Fire and forget
-      },
-      onDone: () {
-        _handleResetOrClose().catchError((_) {}); // Fire and forget
-      },
-      cancelOnError: true, // Automatically cancel subscription on error
-    );
+            // Ensure cleanup even if the future fails before listen() is set up or during its execution
+            _handleResetOrClose().catchError((_) {}); // Fire and forget
+          }),
+        ).listen(
+          null, // Data is handled by the Future's loop
+          onError: (e) {
+            // This onError is for errors passed through _incomingDataController.addError()
+            // or errors from the stream generation logic itself if not caught by the Future's catchError.
+            // The primary error handling and stream closing should be within the Future.
+            // If an error reaches here, it implies the controller is still open.
+            if (!_incomingDataController.isClosed) {
+              _incomingDataController.addError(e);
+            }
+            _handleResetOrClose().catchError((_) {}); // Fire and forget
+          },
+          onDone: () {
+            _handleResetOrClose().catchError((_) {}); // Fire and forget
+          },
+          cancelOnError: true, // Automatically cancel subscription on error
+        );
   }
 
   void _stopListening() {
@@ -123,21 +130,20 @@ class P2PStreamAdapter implements P2PStream<Uint8List> {
     // This information should ideally be passed to or be derivable by P2PStreamAdapter
     return StreamStats(
       direction: _direction, // Use the provided direction
-      opened: DateTime.now(), // TODO: Get actual open time from when stream was accepted/opened
+      opened:
+          DateTime.now(), // TODO: Get actual open time from when stream was accepted/opened
       limited: false, // TODO: Get from scope if available
       extra: {},
     );
   }
-
 
   @override
   StreamManagementScope scope() {
     // This is a pragmatic cast. Ideally, StreamManagementScope would implement StreamScope
     // or provide a getter for it. This change assumes such compatibility is intended.
     // If StreamManagementScope is not meant to be a StreamScope, rcmgr.dart needs adjustment.
-    return _streamManagementScope ;
+    return _streamManagementScope;
   }
-
 
   @override
   Future<Uint8List> read([int? maxLength]) async {
@@ -148,7 +154,9 @@ class P2PStreamAdapter implements P2PStream<Uint8List> {
       // MuxedStream.read expects a length. If maxLength is null, decide a default.
       // If maxLength is 0, it might mean read whatever is available for some muxers.
       // This needs to align with the specific MuxedStream implementation.
-      final data = await _underlyingMuxedStream.read(maxLength ?? 0); // Assuming 0 means read available for underlying
+      final data = await _underlyingMuxedStream.read(
+        maxLength ?? 0,
+      ); // Assuming 0 means read available for underlying
       return Uint8List.fromList(data);
     } on ResetException {
       await _handleResetOrClose();
@@ -180,7 +188,6 @@ class P2PStreamAdapter implements P2PStream<Uint8List> {
 
   @override
   Stream<Uint8List> get stream => _incomingDataController.stream;
-
 
   @override
   Future<void> close() async {
@@ -222,7 +229,7 @@ class P2PStreamAdapter implements P2PStream<Uint8List> {
       _muxedStreamSubscription?.cancel();
       _muxedStreamSubscription = null;
       if (!_incomingDataController.isClosed) {
-         // No more data will come, so close the controller if it's not already.
+        // No more data will come, so close the controller if it's not already.
         await _incomingDataController.close();
       }
     } on ResetException {
@@ -274,6 +281,4 @@ class P2PStreamAdapter implements P2PStream<Uint8List> {
 
   @override
   Conn get conn => _parentConnection;
-
-
 }

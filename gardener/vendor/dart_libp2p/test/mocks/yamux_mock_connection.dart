@@ -26,7 +26,8 @@ class YamuxMockConnection extends BaseMockConnection implements TransportConn {
   bool autoRespondToSyn;
   bool autoRespondToPing;
 
-  YamuxMockConnection(super.id, {
+  YamuxMockConnection(
+    super.id, {
     this.autoRespondToSyn = true,
     this.autoRespondToPing = true,
   });
@@ -39,16 +40,24 @@ class YamuxMockConnection extends BaseMockConnection implements TransportConn {
     bool autoRespondToSyn = true,
     bool autoRespondToPing = true,
   }) {
-    final conn1 = YamuxMockConnection(id1, 
-      autoRespondToSyn: autoRespondToSyn, 
-      autoRespondToPing: autoRespondToPing);
-    final conn2 = YamuxMockConnection(id2, 
-      autoRespondToSyn: autoRespondToSyn, 
-      autoRespondToPing: autoRespondToPing);
+    final conn1 = YamuxMockConnection(
+      id1,
+      autoRespondToSyn: autoRespondToSyn,
+      autoRespondToPing: autoRespondToPing,
+    );
+    final conn2 = YamuxMockConnection(
+      id2,
+      autoRespondToSyn: autoRespondToSyn,
+      autoRespondToPing: autoRespondToPing,
+    );
 
     if (enableFrameLogging) {
-      conn1.frameLogger = (id, frame) => print('$id sending frame: type=${frame.type}, flags=${frame.flags}, streamId=${frame.streamId}, length=${frame.length}');
-      conn2.frameLogger = (id, frame) => print('$id sending frame: type=${frame.type}, flags=${frame.flags}, streamId=${frame.streamId}, length=${frame.length}');
+      conn1.frameLogger = (id, frame) => print(
+        '$id sending frame: type=${frame.type}, flags=${frame.flags}, streamId=${frame.streamId}, length=${frame.length}',
+      );
+      conn2.frameLogger = (id, frame) => print(
+        '$id sending frame: type=${frame.type}, flags=${frame.flags}, streamId=${frame.streamId}, length=${frame.length}',
+      );
     }
 
     // Wire up bidirectional communication with auto-response
@@ -94,16 +103,21 @@ class YamuxMockConnection extends BaseMockConnection implements TransportConn {
         if (_buffer.length >= length) {
           final result = Uint8List.fromList(_buffer.take(length).toList());
           _buffer.removeRange(0, length);
-          print('$id returning ${result.length} bytes from buffer, ${_buffer.length} bytes remaining');
+          print(
+            '$id returning ${result.length} bytes from buffer, ${_buffer.length} bytes remaining',
+          );
           return result;
         }
 
         // Wait until we have enough data
         while (_buffer.length < length) {
-          print('$id buffer has ${_buffer.length} bytes, waiting for more data to reach $length bytes');
+          print(
+            '$id buffer has ${_buffer.length} bytes, waiting for more data to reach $length bytes',
+          );
           await _incomingData.stream.first.timeout(
-            Duration(seconds: 30),  // Long timeout for handshake
-            onTimeout: () => throw TimeoutException('Read timed out waiting for more data'),
+            Duration(seconds: 30), // Long timeout for handshake
+            onTimeout: () =>
+                throw TimeoutException('Read timed out waiting for more data'),
           );
           // No need to add data here as it's already in the buffer
         }
@@ -111,7 +125,9 @@ class YamuxMockConnection extends BaseMockConnection implements TransportConn {
         // Return exactly the requested number of bytes
         final result = Uint8List.fromList(_buffer.take(length).toList());
         _buffer.removeRange(0, length);
-        print('$id returning ${result.length} bytes, ${_buffer.length} bytes remaining');
+        print(
+          '$id returning ${result.length} bytes, ${_buffer.length} bytes remaining',
+        );
         return result;
       }
 
@@ -127,7 +143,8 @@ class YamuxMockConnection extends BaseMockConnection implements TransportConn {
       print('$id waiting for next data chunk');
       await _incomingData.stream.first.timeout(
         Duration(seconds: 30),
-        onTimeout: () => throw TimeoutException('Read timed out waiting for data'),
+        onTimeout: () =>
+            throw TimeoutException('Read timed out waiting for data'),
       );
 
       // Return all buffered data
@@ -155,8 +172,8 @@ class YamuxMockConnection extends BaseMockConnection implements TransportConn {
       }
     }
 
-    recordWrite(data);  // Record data for test verification
-    _outgoingData.add(data);  // Send data as-is
+    recordWrite(data); // Record data for test verification
+    _outgoingData.add(data); // Send data as-is
     print('$id wrote ${data.length} bytes');
   }
 
@@ -167,7 +184,8 @@ class YamuxMockConnection extends BaseMockConnection implements TransportConn {
   List<int> debugGetBufferContents() => List<int>.from(_buffer);
 
   @override
-  Socket get socket => throw UnimplementedError('Socket not available in mock connection');
+  Socket get socket =>
+      throw UnimplementedError('Socket not available in mock connection');
 
   @override
   void setReadTimeout(Duration timeout) {
@@ -188,10 +206,10 @@ class YamuxMockConnection extends BaseMockConnection implements TransportConn {
   void _processIncomingData(List<int> data, YamuxMockConnection peer) {
     _buffer.addAll(data);
     print('$id buffered data, total buffer size: ${_buffer.length}');
-    
+
     // Try to parse and auto-respond to frames
     _tryAutoRespond(data, peer);
-    
+
     // Notify waiters that data is available
     _incomingData.add([]);
   }
@@ -200,13 +218,12 @@ class YamuxMockConnection extends BaseMockConnection implements TransportConn {
   void _tryAutoRespond(List<int> data, YamuxMockConnection peer) {
     try {
       final frame = YamuxFrame.fromBytes(Uint8List.fromList(data));
-      
+
       // Auto-respond to SYN frames with SYN-ACK
-      if (autoRespondToSyn && 
-          frame.type == YamuxFrameType.newStream && 
-          (frame.flags & YamuxFlags.syn != 0) && 
+      if (autoRespondToSyn &&
+          frame.type == YamuxFrameType.newStream &&
+          (frame.flags & YamuxFlags.syn != 0) &&
           (frame.flags & YamuxFlags.ack == 0)) {
-        
         print('$id auto-responding to SYN frame for stream ${frame.streamId}');
         final synAckFrame = YamuxFrame(
           type: YamuxFrameType.newStream,
@@ -215,7 +232,7 @@ class YamuxMockConnection extends BaseMockConnection implements TransportConn {
           length: 0,
           data: Uint8List(0),
         );
-        
+
         // Send SYN-ACK response asynchronously to avoid blocking
         Future.microtask(() async {
           if (!peer.isClosed) {
@@ -224,17 +241,16 @@ class YamuxMockConnection extends BaseMockConnection implements TransportConn {
           }
         });
       }
-      
+
       // Auto-respond to PING frames with PONG
-      if (autoRespondToPing && 
-          frame.type == YamuxFrameType.ping && 
+      if (autoRespondToPing &&
+          frame.type == YamuxFrameType.ping &&
           (frame.flags & YamuxFlags.ack == 0)) {
-        
         // For PING frames, the opaque value is stored in the length field
         final opaqueValue = frame.length;
         print('$id auto-responding to PING frame with opaque $opaqueValue');
         final pongFrame = YamuxFrame.ping(true, opaqueValue);
-        
+
         // Send PONG response asynchronously
         Future.microtask(() async {
           if (!peer.isClosed) {
@@ -243,7 +259,6 @@ class YamuxMockConnection extends BaseMockConnection implements TransportConn {
           }
         });
       }
-      
     } catch (e) {
       // Not a valid frame or incomplete frame, ignore
       print('$id could not parse frame for auto-response: $e');

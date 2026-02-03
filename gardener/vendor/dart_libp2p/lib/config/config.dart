@@ -24,9 +24,12 @@ import 'package:dart_libp2p/p2p/host/peerstore/pstoremem/peerstore.dart'; // For
 import 'package:dart_libp2p/p2p/host/resource_manager/resource_manager_impl.dart';
 import 'package:dart_libp2p/p2p/host/resource_manager/limiter.dart'; // For FixedLimiter
 import 'package:dart_libp2p/p2p/transport/basic_upgrader.dart';
-import 'package:dart_libp2p/core/peer/peer_id.dart' as concrete_peer_id; // For concrete PeerId if needed
-import 'package:dart_libp2p/core/peerstore.dart' show Peerstore; // For type hinting
-import 'package:dart_libp2p/core/network/rcmgr.dart' show ResourceManager; // For type hinting
+import 'package:dart_libp2p/core/peer/peer_id.dart'
+    as concrete_peer_id; // For concrete PeerId if needed
+import 'package:dart_libp2p/core/peerstore.dart'
+    show Peerstore; // For type hinting
+import 'package:dart_libp2p/core/network/rcmgr.dart'
+    show ResourceManager; // For type hinting
 import 'package:dart_libp2p/core/record/record_registry.dart';
 import 'package:logging/logging.dart';
 
@@ -112,11 +115,16 @@ class Config {
     final network = await _createNetwork(peerId); // Creates Swarm
 
     // 3. Create a Host with the Network
-    final host = await _createHost(network, peerId); // Creates BasicHost, Swarm gets host set.
+    final host = await _createHost(
+      network,
+      peerId,
+    ); // Creates BasicHost, Swarm gets host set.
 
     // 4. Network listening will be initiated by host.start() if listenAddrs are configured.
     //    Removing direct network.listen() call here to avoid double listening.
-    _logger.info('[Config.newNode] for peer ${peerId.toString()}: Host created. Listening will be handled by host.start().');
+    _logger.info(
+      '[Config.newNode] for peer ${peerId.toString()}: Host created. Listening will be handled by host.start().',
+    );
 
     return host;
   }
@@ -140,16 +148,23 @@ class Config {
     // Add local peer's keys to the keyBook
     if (this.peerKey == null) {
       // This should ideally be caught by _validate() earlier, but as a safeguard:
-      throw StateError('Config.peerKey is null when trying to populate KeyBook in _createNetwork.');
+      throw StateError(
+        'Config.peerKey is null when trying to populate KeyBook in _createNetwork.',
+      );
     }
     // Ensure localPeerId matches the one derived from this.peerKey.public
     // (localPeerId is derived from this.peerKey.privateKey in _createPeerId, so they should match)
     peerstore.keyBook.addPrivKey(localPeerId, this.peerKey!.privateKey);
     peerstore.keyBook.addPubKey(localPeerId, this.peerKey!.publicKey);
-    
-    final Limiter limiter = FixedLimiter(); // Or use a Limiter from Config if added later
-    final ResourceManager resourceManager = ResourceManagerImpl(limiter: limiter);
-    final BasicUpgrader upgrader = BasicUpgrader(resourceManager: resourceManager);
+
+    final Limiter limiter =
+        FixedLimiter(); // Or use a Limiter from Config if added later
+    final ResourceManager resourceManager = ResourceManagerImpl(
+      limiter: limiter,
+    );
+    final BasicUpgrader upgrader = BasicUpgrader(
+      resourceManager: resourceManager,
+    );
 
     // Instantiate Swarm
     final Swarm swarm = Swarm(
@@ -171,17 +186,22 @@ class Config {
     // The peerId is implicitly available in the Config (this.peerKey)
     // or via network.localPeer() after network is fully initialized.
     // For BasicHost constructor, we only need the network and the config.
-    final BasicHost host = await BasicHost.create(network: network, config: this);
-    
+    final BasicHost host = await BasicHost.create(
+      network: network,
+      config: this,
+    );
+
     // Set the host on the swarm to resolve circular dependency
     if (network is Swarm) {
       network.setHost(host);
     } else {
       // This case should ideally not happen if _createNetwork always returns a Swarm
       // or a Network implementation that supports setHost or similar mechanism.
-      _logger.info('Warning: Network is not a Swarm instance, cannot set host on network.');
+      _logger.info(
+        'Warning: Network is not a Swarm instance, cannot set host on network.',
+      );
     }
-    
+
     return host;
   }
 
@@ -194,7 +214,9 @@ class Config {
     }
 
     if (insecure && securityProtocols.isNotEmpty) {
-      throw Exception('Cannot use security protocols with an insecure configuration');
+      throw Exception(
+        'Cannot use security protocols with an insecure configuration',
+      );
     }
 
     if (muxers.isEmpty) {
@@ -206,7 +228,9 @@ class Config {
     }
 
     if (!insecure && securityProtocols.isEmpty) {
-      throw Exception('No security protocols specified and insecure is not enabled');
+      throw Exception(
+        'No security protocols specified and insecure is not enabled',
+      );
     }
 
     // Add more validation as needed
@@ -226,7 +250,9 @@ extension ConfigOptions on Config {
   /// Configures libp2p to use the given security protocol.
   Future<void> withSecurity(SecurityProtocol securityProtocol) async {
     if (insecure) {
-      throw Exception('Cannot use security protocols with an insecure configuration');
+      throw Exception(
+        'Cannot use security protocols with an insecure configuration',
+      );
     }
     securityProtocols.add(securityProtocol);
   }
@@ -234,7 +260,9 @@ extension ConfigOptions on Config {
   /// Configures libp2p to use no security (insecure connections).
   Future<void> withNoSecurity() async {
     if (securityProtocols.isNotEmpty) {
-      throw Exception('Cannot use insecure connections with security protocols configured');
+      throw Exception(
+        'Cannot use insecure connections with security protocols configured',
+      );
     }
     insecure = true;
   }
@@ -260,7 +288,10 @@ extension ConfigOptions on Config {
   }
 
   /// Configures libp2p to use the given stream multiplexer.
-  Future<void> withMuxer(String id, Multiplexer Function(Conn secureConn, bool isClient) muxerFactory) async {
+  Future<void> withMuxer(
+    String id,
+    Multiplexer Function(Conn secureConn, bool isClient) muxerFactory,
+  ) async {
     muxers.add(StreamMuxer(id: id, muxerFactory: muxerFactory));
   }
 
@@ -361,7 +392,10 @@ class Libp2p {
   }
 
   /// Configures libp2p to use the given stream multiplexer.
-  static Option muxer(String id, Multiplexer Function(Conn secureConn, bool isClient) muxerFactory) {
+  static Option muxer(
+    String id,
+    Multiplexer Function(Conn secureConn, bool isClient) muxerFactory,
+  ) {
     return (config) => config.withMuxer(id, muxerFactory);
   }
 
@@ -428,7 +462,7 @@ class Libp2p {
   }
 
   /// Creates a new libp2p node with the given options.
-  /// 
+  ///
   /// This is a convenience method that creates a new Config, applies the options,
   /// and calls newNode() on the Config.
   static Future<Host> new_(List<Option> options) async {
@@ -441,7 +475,7 @@ class Libp2p {
     // Register core record types
     RecordRegistry.register<pb.PeerRecord>(
       String.fromCharCodes(PeerRecordEnvelopePayloadType),
-      pb.PeerRecord.fromBuffer
+      pb.PeerRecord.fromBuffer,
     );
 
     return await config.newNode();

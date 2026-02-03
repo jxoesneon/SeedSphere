@@ -53,10 +53,7 @@ void main() {
       );
 
       // Create host
-      host = await BasicHost.create(
-        network: swarm,
-        config: config,
-      );
+      host = await BasicHost.create(network: swarm, config: config);
 
       // Set the host reference in swarm
       swarm.setHost(host);
@@ -68,17 +65,19 @@ void main() {
 
     test('BasicHost.connect should prevent self-dialing', () async {
       // Create an AddrInfo with the host's own peer ID
-      final selfAddrInfo = AddrInfo(
-        localPeerId,
-        [MultiAddr('/ip4/127.0.0.1/tcp/8080')],
-      );
+      final selfAddrInfo = AddrInfo(localPeerId, [
+        MultiAddr('/ip4/127.0.0.1/tcp/8080'),
+      ]);
 
       // This should complete without throwing an exception
       // The self-dial prevention should silently return
       await host.connect(selfAddrInfo);
 
       // Verify that no connection was actually established
-      expect(host.network.connectedness(localPeerId), equals(Connectedness.notConnected));
+      expect(
+        host.network.connectedness(localPeerId),
+        equals(Connectedness.notConnected),
+      );
     });
 
     test('Swarm.dialPeer should prevent self-dialing', () async {
@@ -87,11 +86,13 @@ void main() {
       // This should throw an exception preventing self-dial
       expect(
         () async => await swarm.dialPeer(context, localPeerId),
-        throwsA(isA<Exception>().having(
-          (e) => e.toString(),
-          'message',
-          contains('Cannot dial self'),
-        )),
+        throwsA(
+          isA<Exception>().having(
+            (e) => e.toString(),
+            'message',
+            contains('Cannot dial self'),
+          ),
+        ),
       );
     });
 
@@ -104,16 +105,17 @@ void main() {
 
       try {
         // Attempt self-dial via BasicHost.connect
-        final selfAddrInfo = AddrInfo(
-          localPeerId,
-          [MultiAddr('/ip4/127.0.0.1/tcp/8080')],
-        );
+        final selfAddrInfo = AddrInfo(localPeerId, [
+          MultiAddr('/ip4/127.0.0.1/tcp/8080'),
+        ]);
 
         await host.connect(selfAddrInfo);
 
         // Check that the prevention message was logged
         expect(
-          logMessages.any((msg) => msg.contains('Preventing self-dial attempt')),
+          logMessages.any(
+            (msg) => msg.contains('Preventing self-dial attempt'),
+          ),
           isTrue,
           reason: 'Expected self-dial prevention log message',
         );
@@ -122,27 +124,30 @@ void main() {
       }
     });
 
-    test('Self-dial prevention should work with different address formats', () async {
-      // Test with various address formats that might be encountered
-      final testAddresses = [
-        '/ip4/0.0.0.0/udp/33220/udx',
-        '/ip4/127.0.0.1/tcp/8080',
-        '/ip6/::1/tcp/8080',
-        '/ip4/192.168.1.100/udp/4001/udx',
-      ];
+    test(
+      'Self-dial prevention should work with different address formats',
+      () async {
+        // Test with various address formats that might be encountered
+        final testAddresses = [
+          '/ip4/0.0.0.0/udp/33220/udx',
+          '/ip4/127.0.0.1/tcp/8080',
+          '/ip6/::1/tcp/8080',
+          '/ip4/192.168.1.100/udp/4001/udx',
+        ];
 
-      for (final addrStr in testAddresses) {
-        final selfAddrInfo = AddrInfo(
-          localPeerId,
-          [MultiAddr(addrStr)],
-        );
+        for (final addrStr in testAddresses) {
+          final selfAddrInfo = AddrInfo(localPeerId, [MultiAddr(addrStr)]);
 
-        // Should complete without error (self-dial prevention)
-        await host.connect(selfAddrInfo);
+          // Should complete without error (self-dial prevention)
+          await host.connect(selfAddrInfo);
 
-        // Verify no connection was established
-        expect(host.network.connectedness(localPeerId), equals(Connectedness.notConnected));
-      }
-    });
+          // Verify no connection was established
+          expect(
+            host.network.connectedness(localPeerId),
+            equals(Connectedness.notConnected),
+          );
+        }
+      },
+    );
   });
 }

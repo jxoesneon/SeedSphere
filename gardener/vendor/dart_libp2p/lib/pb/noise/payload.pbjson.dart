@@ -17,7 +17,13 @@ import 'dart:typed_data' as $typed_data;
 const NoiseExtensions$json = {
   '1': 'NoiseExtensions',
   '2': [
-    {'1': 'webtransport_certhashes', '3': 1, '4': 3, '5': 12, '10': 'webtransportCerthashes'},
+    {
+      '1': 'webtransport_certhashes',
+      '3': 1,
+      '4': 3,
+      '5': 12,
+      '10': 'webtransportCerthashes'
+    },
     {'1': 'stream_muxers', '3': 2, '4': 3, '5': 9, '10': 'streamMuxers'},
   ],
 };
@@ -34,7 +40,14 @@ const NoiseHandshakePayload$json = {
     {'1': 'identity_key', '3': 1, '4': 1, '5': 12, '10': 'identityKey'},
     {'1': 'identity_sig', '3': 2, '4': 1, '5': 12, '10': 'identitySig'},
     {'1': 'static_key', '3': 3, '4': 1, '5': 12, '10': 'staticKey'},
-    {'1': 'extensions', '3': 4, '4': 1, '5': 11, '6': '.noise.pb.NoiseExtensions', '10': 'extensions'},
+    {
+      '1': 'extensions',
+      '3': 4,
+      '4': 1,
+      '5': 11,
+      '6': '.noise.pb.NoiseExtensions',
+      '10': 'extensions'
+    },
   ],
 };
 
@@ -44,4 +57,3 @@ final $typed_data.Uint8List noiseHandshakePayloadDescriptor = $convert.base64Dec
     'tleRIhCgxpZGVudGl0eV9zaWcYAiABKAxSC2lkZW50aXR5U2lnEh0KCnN0YXRpY19rZXkYAyAB'
     'KAxSCXN0YXRpY0tleRI5CgpleHRlbnNpb25zGAQgASgLMhkubm9pc2UucGIuTm9pc2VFeHRlbn'
     'Npb25zUgpleHRlbnNpb25z');
-

@@ -3,7 +3,12 @@ import 'dart:typed_data';
 
 import 'package:dart_libp2p/core/network/common.dart';
 import 'package:dart_libp2p/core/network/conn.dart';
-import 'package:dart_libp2p/core/network/rcmgr.dart' show StreamScope, StreamManagementScope, ScopeStat, ResourceScopeSpan; // Import new types
+import 'package:dart_libp2p/core/network/rcmgr.dart'
+    show
+        StreamScope,
+        StreamManagementScope,
+        ScopeStat,
+        ResourceScopeSpan; // Import new types
 
 /// Represents a bidirectional channel between two agents in
 /// a libp2p network. "agent" is as granular as desired, potentially
@@ -63,7 +68,6 @@ abstract class P2PStream<T> {
   /// Returns true if the stream is closed
   bool get isClosed;
 }
-
 
 /// Stores metadata pertaining to a given Stream
 class StreamStats {

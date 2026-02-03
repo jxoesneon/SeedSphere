@@ -2,8 +2,6 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-
-
 import 'package:dart_libp2p/core/peer/peer_id.dart';
 
 /// Resources manages the resources for the relay service.

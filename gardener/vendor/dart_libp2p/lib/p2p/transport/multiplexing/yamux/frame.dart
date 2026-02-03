@@ -4,14 +4,19 @@ import 'dart:typed_data';
 enum YamuxFrameType {
   /// Used to send data
   dataFrame(0x0),
+
   /// Used to update window sizes
   windowUpdate(0x1),
+
   /// Used to create new streams
   newStream(0x2),
+
   /// Used to reset streams
   reset(0x3),
+
   /// Used for keepalive
   ping(0x4),
+
   /// Used to respond to pings
   goAway(0x5);
 
@@ -69,7 +74,7 @@ class YamuxFrame {
     }
 
     final header = ByteData.view(bytes.buffer, bytes.offsetInBytes, 12);
-    
+
     // Version must be 0
     final version = header.getUint8(0);
     if (version != YamuxFrame.version) {
@@ -78,16 +83,16 @@ class YamuxFrame {
 
     // Parse type
     final type = YamuxFrameType.fromValue(header.getUint8(1));
-    
+
     // Parse flags
     final flags = header.getUint16(2, Endian.big);
-    
+
     // Parse stream ID
     final streamId = header.getUint32(4, Endian.big);
-    
+
     // Parse length
     final length = header.getUint32(8, Endian.big);
-    
+
     // Get data
     final data = bytes.length > 12 ? bytes.sublist(12) : Uint8List(0);
     if (data.length != length) {
@@ -109,22 +114,22 @@ class YamuxFrame {
     // print('YamuxFrame.toBytes: Serializing Frame - Type: $type, StreamID: $streamId, Flags: $flags, Length: $length, Data (first 10 bytes): ${data.take(10).toList()}');
 
     final buffer = ByteData(12 + length);
-    
+
     // Write version
     buffer.setUint8(0, version);
-    
+
     // Write type
     buffer.setUint8(1, type.value);
-    
+
     // Write flags
     buffer.setUint16(2, flags, Endian.big);
-    
+
     // Write stream ID
     buffer.setUint32(4, streamId, Endian.big);
-    
+
     // Write length
     buffer.setUint32(8, length, Endian.big);
-    
+
     // Write data
     if (length > 0) {
       buffer.buffer.asUint8List().setRange(12, 12 + length, data);
@@ -137,7 +142,11 @@ class YamuxFrame {
   }
 
   /// Creates a DATA frame
-  static YamuxFrame createData(int streamId, Uint8List data, {bool fin = false}) {
+  static YamuxFrame createData(
+    int streamId,
+    Uint8List data, {
+    bool fin = false,
+  }) {
     return YamuxFrame(
       type: YamuxFrameType.dataFrame,
       flags: fin ? YamuxFlags.fin : 0,
@@ -191,7 +200,7 @@ class YamuxFrame {
     } else {
       data = Uint8List(0);
     }
-    
+
     return YamuxFrame(
       type: YamuxFrameType.ping,
       flags: ack ? YamuxFlags.ack : 0,

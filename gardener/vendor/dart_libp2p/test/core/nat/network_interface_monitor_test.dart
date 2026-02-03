@@ -37,7 +37,9 @@ void main() {
 
       // Create monitor with mock interface provider
       monitor = NetworkInterfaceMonitor(
-        checkInterval: Duration(milliseconds: 100), // Short interval for testing
+        checkInterval: Duration(
+          milliseconds: 100,
+        ), // Short interval for testing
         interfaceProvider: () async => mockInterfaces,
       );
     });
@@ -92,24 +94,27 @@ void main() {
       expect(callbackCalled, isTrue);
     });
 
-    test('should not notify callbacks when network interfaces do not change', () async {
-      // Initialize the monitor with initial interfaces
-      await monitor.initialize();
+    test(
+      'should not notify callbacks when network interfaces do not change',
+      () async {
+        // Initialize the monitor with initial interfaces
+        await monitor.initialize();
 
-      // Set up callback
-      var callbackCalled = false;
-      monitor.addChangeCallback(() {
-        callbackCalled = true;
-      });
+        // Set up callback
+        var callbackCalled = false;
+        monitor.addChangeCallback(() {
+          callbackCalled = true;
+        });
 
-      // Don't change the mock interfaces
+        // Don't change the mock interfaces
 
-      // Check for changes (with the same interfaces)
-      await monitor.checkForChanges();
+        // Check for changes (with the same interfaces)
+        await monitor.checkForChanges();
 
-      // Verify that callback was not called
-      expect(callbackCalled, isFalse);
-    });
+        // Verify that callback was not called
+        expect(callbackCalled, isFalse);
+      },
+    );
 
     test('should detect changes in network interface count', () async {
       // Initialize the monitor with initial interfaces

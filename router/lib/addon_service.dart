@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:shelf/shelf.dart';
 import 'package:shelf_router/shelf_router.dart';
 import 'package:http/http.dart' as http;
+import 'package:logging/logging.dart';
 
 import 'package:router/scraper_service.dart';
 import 'package:router/db_service.dart';
@@ -13,6 +14,7 @@ class AddonService {
   final ScraperService _scraper;
   final DbService _db;
   final http.Client _client;
+  final Logger _logger = Logger('AddonService');
 
   /// Creates a new AddonService.
   AddonService(this._scraper, this._db, [http.Client? client])
@@ -96,7 +98,7 @@ class AddonService {
           final metas = await _scraper.getDynamicCatalog(type, query, userId);
           return _jsonResponse({'metas': metas});
         } catch (e) {
-          print('Dynamic Catalog Error: $e');
+          _logger.warning('Dynamic Catalog Error: $e');
           return _jsonResponse({'metas': []});
         }
       }
@@ -121,7 +123,7 @@ class AddonService {
         return _jsonResponse(jsonDecode(resp.body));
       }
     } catch (e) {
-      print('Cinemeta Proxy Error: $e');
+      _logger.warning('Cinemeta Proxy Error: $e');
     }
     // Fallback if offline
     return _jsonResponse({'metas': []});
@@ -155,7 +157,7 @@ class AddonService {
     String type,
     String id,
   ) async {
-    print(
+    _logger.fine(
       '[AddonService] Handling Variant Stream Request: variant=$variant, type=$type, id=$id, uri=${req.requestedUri}',
     );
     // Pass variant as a setting to scraper
@@ -164,7 +166,7 @@ class AddonService {
       final streams = await _scraper.getStreams(type, id, settings);
       return _jsonResponse({'streams': streams});
     } catch (e) {
-      print('[AddonService] Variant Stream Error: $e');
+      _logger.warning('[AddonService] Variant Stream Error: $e');
       return _jsonResponse({
         'streams': [
           {'name': 'Error', 'title': '$e'},

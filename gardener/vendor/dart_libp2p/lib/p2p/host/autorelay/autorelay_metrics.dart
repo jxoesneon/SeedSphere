@@ -23,11 +23,11 @@ class ScheduledWorkTimes {
 
   // Factory for empty/default state, useful for initialization or reset in metrics
   factory ScheduledWorkTimes.initial() => ScheduledWorkTimes(
-        nextAllowedCallToPeerSource: DateTime.fromMillisecondsSinceEpoch(0),
-        nextRefresh: DateTime.fromMillisecondsSinceEpoch(0),
-        nextBackoff: DateTime.fromMillisecondsSinceEpoch(0),
-        nextOldCandidateCheck: DateTime.fromMillisecondsSinceEpoch(0),
-      );
+    nextAllowedCallToPeerSource: DateTime.fromMillisecondsSinceEpoch(0),
+    nextRefresh: DateTime.fromMillisecondsSinceEpoch(0),
+    nextBackoff: DateTime.fromMillisecondsSinceEpoch(0),
+    nextOldCandidateCheck: DateTime.fromMillisecondsSinceEpoch(0),
+  );
 }
 
 abstract class MetricsTracer {

@@ -1,4 +1,3 @@
-
 import 'package:dart_libp2p/p2p/protocol/autonatv2/server.dart';
 import 'package:dart_libp2p/core/protocol/autonatv2/autonatv2.dart';
 
@@ -6,31 +5,32 @@ import '../../../core/multiaddr.dart';
 import '../../../core/network/stream.dart';
 
 /// Function type for determining whether to request dial data
-typedef DataRequestPolicyFunc = bool Function(P2PStream stream, MultiAddr dialAddr);
+typedef DataRequestPolicyFunc =
+    bool Function(P2PStream stream, MultiAddr dialAddr);
 
 /// Settings for AutoNAT v2
 class AutoNATv2Settings {
   /// Whether to allow private addresses
   final bool allowPrivateAddrs;
-  
+
   /// Global rate limit (requests per minute)
   final int serverRPM;
-  
+
   /// Per-peer rate limit (requests per minute)
   final int serverPerPeerRPM;
-  
+
   /// Rate limit for dial data requests (requests per minute)
   final int serverDialDataRPM;
-  
+
   /// Policy for determining when to request dial data
   final DataRequestPolicyFunc dataRequestPolicy;
-  
+
   /// Function for getting the current time (for testing)
   final DateTime Function() now;
-  
+
   /// Wait time for dial-back to prevent amplification attacks
   final Duration amplificationAttackPreventionDialWait;
-  
+
   /// Metrics tracer
   final MetricsTracer? metricsTracer;
 
@@ -63,22 +63,25 @@ class AutoNATv2Settings {
       serverDialDataRPM: serverDialDataRPM ?? this.serverDialDataRPM,
       dataRequestPolicy: dataRequestPolicy ?? this.dataRequestPolicy,
       now: now ?? this.now,
-      amplificationAttackPreventionDialWait: amplificationAttackPreventionDialWait ?? this.amplificationAttackPreventionDialWait,
+      amplificationAttackPreventionDialWait:
+          amplificationAttackPreventionDialWait ??
+          this.amplificationAttackPreventionDialWait,
       metricsTracer: metricsTracer ?? this.metricsTracer,
     );
   }
 }
 
 /// Option for configuring AutoNAT v2
-typedef AutoNATv2Option = AutoNATv2Settings Function(AutoNATv2Settings settings);
+typedef AutoNATv2Option =
+    AutoNATv2Settings Function(AutoNATv2Settings settings);
 
 /// Create an option for setting the server rate limits
 AutoNATv2Option withServerRateLimit(int rpm, int perPeerRPM, int dialDataRPM) {
   return (settings) => settings.copyWith(
-        serverRPM: rpm,
-        serverPerPeerRPM: perPeerRPM,
-        serverDialDataRPM: dialDataRPM,
-      );
+    serverRPM: rpm,
+    serverPerPeerRPM: perPeerRPM,
+    serverDialDataRPM: dialDataRPM,
+  );
 }
 
 /// Create an option for setting the metrics tracer
@@ -98,12 +101,11 @@ AutoNATv2Option allowPrivateAddrs() {
 
 /// Create an option for setting the amplification attack prevention dial wait time
 AutoNATv2Option withAmplificationAttackPreventionDialWait(Duration duration) {
-  return (settings) => settings.copyWith(amplificationAttackPreventionDialWait: duration);
+  return (settings) =>
+      settings.copyWith(amplificationAttackPreventionDialWait: duration);
 }
 
 /// Default settings for AutoNAT v2
 AutoNATv2Settings defaultSettings() {
-  return AutoNATv2Settings(
-    dataRequestPolicy: amplificationAttackPrevention,
-  );
+  return AutoNATv2Settings(dataRequestPolicy: amplificationAttackPrevention);
 }

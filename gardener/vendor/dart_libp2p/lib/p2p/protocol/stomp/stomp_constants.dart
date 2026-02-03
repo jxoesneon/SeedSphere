@@ -46,12 +46,7 @@ class StompCommands {
 
   /// Returns true if the command is a server command
   static bool isServerCommand(String command) {
-    return [
-      connected,
-      message,
-      receipt,
-      error,
-    ].contains(command);
+    return [connected, message, receipt, error].contains(command);
   }
 }
 

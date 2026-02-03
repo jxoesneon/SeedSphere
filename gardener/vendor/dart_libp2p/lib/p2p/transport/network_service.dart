@@ -10,12 +10,12 @@ class NetworkService {
   // TCP Socket Implementation
   Socket? _tcpSocket;
   bool _isConnected = false;
-  
+
   Future<void> createTcpServer(String host, int port) async {
     try {
       final server = await ServerSocket.bind(host, port);
       print('TCP Server listening on ${server.address}:${server.port}');
-      
+
       server.listen((Socket client) {
         handleClient(client);
       });
@@ -28,8 +28,10 @@ class NetworkService {
     try {
       _tcpSocket = await Socket.connect(host, port);
       _isConnected = true;
-      print('Connected to server at ${_tcpSocket?.remoteAddress}:${_tcpSocket?.remotePort}');
-      
+      print(
+        'Connected to server at ${_tcpSocket?.remoteAddress}:${_tcpSocket?.remotePort}',
+      );
+
       _tcpSocket?.listen(
         (Uint8List data) {
           final message = String.fromCharCodes(data);
@@ -59,7 +61,7 @@ class NetworkService {
 
   void handleClient(Socket client) {
     print('Connection from ${client.remoteAddress}:${client.remotePort}');
-    
+
     client.listen(
       (Uint8List data) {
         final message = String.fromCharCodes(data);
@@ -85,14 +87,16 @@ class NetworkService {
     try {
       _udpSocket = await RawDatagramSocket.bind(host, port);
       print('UDP Socket bound to ${_udpSocket?.address}:${_udpSocket?.port}');
-      
+
       _udpSocket?.listen(
         (RawSocketEvent event) {
           if (event == RawSocketEvent.read) {
             final datagram = _udpSocket?.receive();
             if (datagram != null) {
               final message = String.fromCharCodes(datagram.data);
-              print('Received UDP message: $message from ${datagram.address}:${datagram.port}');
+              print(
+                'Received UDP message: $message from ${datagram.address}:${datagram.port}',
+              );
             }
           }
         },
@@ -124,14 +128,14 @@ class NetworkService {
 // // Usage example:
 // void main() async {
 //   final networkService = NetworkService();
-  
+
 //   // TCP Server example
 //   await networkService.createTcpServer('0.0.0.0', 8080);
-  
+
 //   // TCP Client example
 //   await networkService.connectToTcpServer('127.0.0.1', 8080);
 //   networkService.sendTcpMessage('Hello Server!');
-  
+
 //   // UDP example
 //   await networkService.createUdpSocket('0.0.0.0', 8081);
 //   networkService.sendUdpMessage(

@@ -32,7 +32,10 @@ class Relay {
 
   /// Starts the relay service.
   void start() {
-    _host.setStreamHandler(CircuitV2Protocol.protoIDv2Hop, (stream, remotePeer) => _handleStream(stream));
+    _host.setStreamHandler(
+      CircuitV2Protocol.protoIDv2Hop,
+      (stream, remotePeer) => _handleStream(stream),
+    );
     _startGarbageCollection();
   }
 
@@ -95,7 +98,9 @@ class Relay {
     }
 
     // Create a reservation
-    final expire = DateTime.now().add(Duration(seconds: _resources.reservationTtl));
+    final expire = DateTime.now().add(
+      Duration(seconds: _resources.reservationTtl),
+    );
     _reservations[peerInfo.peerId.toString()] = expire;
 
     // Create a reservation voucher
@@ -160,12 +165,16 @@ class Relay {
 
     try {
       // Open a stream to the destination peer
-      final dstStream = await _host.newStream(dstInfo.peerId, [CircuitV2Protocol.protoIDv2Stop], Context());
+      final dstStream = await _host.newStream(dstInfo.peerId, [
+        CircuitV2Protocol.protoIDv2Stop,
+      ], Context());
 
       // Create a stop message
       final stopMsg = StopMessage()
         ..type = StopMessage_Type.CONNECT
-        ..peer = peerInfoToPeerV2(PeerInfo(peerId: srcInfo.peerId, addrs: <MultiAddr>[].toSet()));
+        ..peer = peerInfoToPeerV2(
+          PeerInfo(peerId: srcInfo.peerId, addrs: <MultiAddr>[].toSet()),
+        );
 
       // Write the message
       await dstStream.write(stopMsg.writeToBuffer());

@@ -16,19 +16,26 @@ class ServiceScopeImpl extends ResourceScopeImpl implements ServiceScope {
   // We might need to add similar functionality here if services have per-peer limits within them.
 
   ServiceScopeImpl(Limit limit, this.name, {List<ResourceScopeImpl>? edges})
-      : super(limit, 'service:$name', edges: edges); // Scope name is prefixed
+    : super(limit, 'service:$name', edges: edges); // Scope name is prefixed
 
   // The `name` getter is fulfilled by the final field.
 
-  ResourceScopeImpl getPeerSubScope(PeerId peerId, Limiter limiter, ResourceScopeImpl systemScope) {
+  ResourceScopeImpl getPeerSubScope(
+    PeerId peerId,
+    Limiter limiter,
+    ResourceScopeImpl systemScope,
+  ) {
     return _peerSubScopes.putIfAbsent(peerId, () {
       final peerServiceLimit = limiter.getServicePeerLimits(this.name, peerId);
       final scopeName = 'service:${this.name}-peer:${peerId.toString()}';
-      
+
       final newPeerSubScope = ResourceScopeImpl(
         peerServiceLimit,
         scopeName,
-        edges: [this, systemScope], // Parent is this service scope and system scope
+        edges: [
+          this,
+          systemScope,
+        ], // Parent is this service scope and system scope
       );
       newPeerSubScope.incRef(); // This sub-scope is now in use
       return newPeerSubScope;
