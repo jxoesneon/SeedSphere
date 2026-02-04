@@ -409,7 +409,7 @@ class DbService {
   }
 
   /// Closes the database connection.
-  void close() => _db.close();
+  void close() => _db.dispose();
 
   /// Returns the number of active bindings for a Gardener.
   int countBindingsForGardener(String gardenerId) {
