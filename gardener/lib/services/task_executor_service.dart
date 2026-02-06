@@ -27,7 +27,7 @@ class TaskExecutorService {
   final ValueNotifier<int> activeTaskCount = ValueNotifier<int>(0);
 
   TaskExecutorService(this._p2p, this._cortex)
-    : _scraper = ScraperEngine.defaults();
+    : _scraper = ScraperEngine.defaults(p2p: _p2p);
 
   void start() {
     DebugLogger.info(

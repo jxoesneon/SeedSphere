@@ -22,14 +22,18 @@ class StremioServer {
   final StreamResolver _resolver;
   final ScraperEngine _scrapers;
   final StreamAggregator _aggregator;
+  final P2PManager _p2p;
   String? _gardenerId;
 
   StremioServer({
     StreamResolver? resolver,
     ScraperEngine? scrapers,
     StreamAggregator? aggregator,
-  }) : _resolver = resolver ?? StreamResolver(),
-       _scrapers = scrapers ?? ScraperEngine.defaults(),
+    P2PManager? p2p,
+  }) : _p2p = p2p ?? P2PManager.instance,
+       _resolver = resolver ?? StreamResolver(),
+       _scrapers =
+           scrapers ?? ScraperEngine.defaults(p2p: p2p ?? P2PManager.instance),
        _aggregator = aggregator ?? StreamAggregator();
 
   /// The port the server is listening on.
@@ -223,7 +227,7 @@ class StremioServer {
     final type = segments[1];
     final id = segments[2].replaceAll('.json', '');
 
-    P2PManager.instance.addLocalEvent({
+    _p2p.addLocalEvent({
       'type': 'stremio_event',
       'event': 'request',
       'mediaType': type,

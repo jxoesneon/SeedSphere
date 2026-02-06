@@ -35,7 +35,7 @@ void main() async {
     print('✅ P2P Manager Started. ID: ${p2p.gardenerId}');
 
     // 5. Start Stremio Addon Server
-    await StremioServer().start(gardenerId: p2p.gardenerId);
+    await StremioServer(p2p: p2p).start(gardenerId: p2p.gardenerId);
     print('🚀 Stremio Addon Server running on port 7001');
 
     print('\nPress Ctrl+C to terminate...');

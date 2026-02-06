@@ -133,7 +133,7 @@ class _BootstrapWrapperState extends ConsumerState<BootstrapWrapper> {
           'GARDENER_DEBUG: Starting Stremio Manifest Server (Port: ${NetworkConstants.stremioManifestPort})...',
         );
       }
-      unawaited(StremioServer().start(gardenerId: gardenerId));
+      unawaited(StremioServer(p2p: p2p).start(gardenerId: gardenerId));
       if (DebugConfig.bootstrapGated) {
         DebugLogger.info(
           'GARDENER_DEBUG: Bootstrap complete, setting _initialized = true',

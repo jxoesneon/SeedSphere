@@ -44,10 +44,8 @@ class _SwarmDashboardState extends ConsumerState<SwarmDashboard>
 
   // Heartbeat tracking for graph visualization
   final List<DateTime> _heartbeatTimestamps = [];
-  bool _showLogMode =
-      DebugConfig.uiDebugEnabled; // Toggle between graph and log view
-  bool _showEkgDebug =
-      DebugConfig.uiDebugEnabled; // Toggle for diagnostic EKG calibration mode
+  bool _showLogMode = false; // Always start with graph view for clean UI
+  bool _showEkgDebug = false;
 
   StreamSubscription? _sseSubscription;
   late final http.Client _client;
@@ -459,7 +457,7 @@ class _SwarmDashboardState extends ConsumerState<SwarmDashboard>
       if (imdbId != null) {
         _addLog('Executing resolution for $imdbId...');
         // 1. Scrape
-        final ScraperEngine engine = ScraperEngine.defaults();
+        final ScraperEngine engine = ScraperEngine.defaults(p2p: _p2pManager);
         final results = await engine.scrapeAll(imdbId);
 
         if (results.isNotEmpty) {
