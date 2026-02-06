@@ -409,7 +409,7 @@ class DbService {
   }
 
   /// Closes the database connection.
-  void close() => _db.dispose();
+  void close() => _db.close();
 
   /// Returns the number of active bindings for a Gardener.
   int countBindingsForGardener(String gardenerId) {
@@ -468,6 +468,16 @@ class DbService {
     );
     if (res.isEmpty) return null;
     return res.first['gardener_id'] as String;
+  }
+
+  /// Removes all associations for a given device ID.
+  void unlinkDevice(String id) {
+    _db.execute(
+      'DELETE FROM bindings WHERE seedling_id = ? OR gardener_id = ?',
+      [id, id],
+    );
+    _db.execute('DELETE FROM seedlings WHERE seedling_id = ?', [id]);
+    _db.execute('DELETE FROM gardeners WHERE gardener_id = ?', [id]);
   }
 
   /// Aggregates user activity from various tables (Account creation, Bindings).

@@ -44,8 +44,10 @@ class _SwarmDashboardState extends ConsumerState<SwarmDashboard>
 
   // Heartbeat tracking for graph visualization
   final List<DateTime> _heartbeatTimestamps = [];
-  bool _showLogMode = false; // Toggle between graph and log view
-  bool _showEkgDebug = false; // Toggle for diagnostic EKG calibration mode
+  bool _showLogMode =
+      DebugConfig.uiDebugEnabled; // Toggle between graph and log view
+  bool _showEkgDebug =
+      DebugConfig.uiDebugEnabled; // Toggle for diagnostic EKG calibration mode
 
   StreamSubscription? _sseSubscription;
   late final http.Client _client;
@@ -58,7 +60,7 @@ class _SwarmDashboardState extends ConsumerState<SwarmDashboard>
     if (DebugConfig.pulseGated) {
       DebugLogger.debug(
         'SWARM_DEBUG: SwarmDashboard initializing...',
-        category: 'PULSE',
+        category: 'SWARM',
       );
     }
     DebugLogger.info('Swarm: SwarmDashboard initializing...', category: 'UI');
@@ -315,7 +317,7 @@ class _SwarmDashboardState extends ConsumerState<SwarmDashboard>
       if (DebugConfig.pulseGated) {
         DebugLogger.info(
           'Swarm: [EKG] Heartbeat triggered animation',
-          category: 'PULSE',
+          category: 'SWARM',
         );
       }
       if (mounted) {
@@ -736,7 +738,7 @@ class _SwarmDashboardState extends ConsumerState<SwarmDashboard>
               );
             },
             child: Text(
-              'PULSE',
+              'SWARM',
               style: GoogleFonts.outfit(
                 color: _showEkgDebug ? const Color(0xFFFF00FF) : Colors.white24,
                 fontSize: 8,
@@ -875,7 +877,7 @@ class _SwarmDashboardState extends ConsumerState<SwarmDashboard>
   // Hook into heartbeat listener
   void _onHeartbeatReceived() {
     if (DebugConfig.pulseGated) {
-      DebugLogger.debug('Swarm: EKG Heartbeat Triggered', category: 'PULSE');
+      DebugLogger.debug('Swarm: EKG Heartbeat Triggered', category: 'SWARM');
     }
     // Trigger a beat if not already processing one (or overlap them)
     _isBeating = true;

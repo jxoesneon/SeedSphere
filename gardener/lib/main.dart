@@ -285,7 +285,7 @@ class GardenerApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'SeedSphere 2.0',
-      debugShowCheckedModeBanner: false,
+      debugShowCheckedModeBanner: DebugConfig.uiDebugEnabled,
 
       // Apply the custom dark theme with Outfit typography
       theme: AethericTheme.darkTheme.copyWith(

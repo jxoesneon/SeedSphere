@@ -30,6 +30,8 @@ import 'package:router/tracker_service.dart';
 import 'package:router/boost_service.dart';
 import 'package:router/prefetch_service.dart';
 import 'package:router/task_service.dart';
+import 'package:router/services/status_service.dart';
+import 'package:router/core/server_context.dart';
 
 import 'package:http/http.dart' as http; // Added import
 
@@ -66,22 +68,39 @@ final addonService = AddonService(scraperService, db);
 final authService = AuthService(db, mailerService, linkingService);
 final boostService = BoostService();
 final prefetchService = PrefetchService(scraperService);
+final statusService = StatusService(db, eventService);
 
-final taskService = TaskService(
+final task = TaskService(
   Platform.environment['JWT_SECRET'] ?? 'dev_secret_key',
 );
 
-/// User-specific manifest handler for legacy /u/{userId}/manifest.json route.
-Future<Response> _userManifestHandler(Request req, String userId) async {
-  // Generate a personalized manifest with configuration hints
-  final manifest = await addonService.generateManifest(userId);
-  return Response.ok(
-    jsonEncode(manifest),
-    headers: {
-      'Content-Type': 'application/json',
-      'Access-Control-Allow-Origin': '*',
-    },
-  );
+// Unified Context (Dependency Injection)
+final context = ServerContext(
+  db: db,
+  pairing: pairingService,
+  p2p: p2pNode,
+  events: eventService,
+  linking: linkingService,
+  health: healthService,
+  swarm: swarmService,
+  mailer: mailerService,
+  tracker: trackerService,
+  scraper: scraperService,
+  addon: addonService,
+  auth: authService,
+  boost: boostService,
+  prefetch: prefetchService,
+  task: task,
+  status: statusService,
+);
+
+/// Middleware to inject ServerContext into requests for dependency injection.
+Middleware contextMiddleware(ServerContext context) {
+  return (Handler innerHandler) {
+    return (Request request) {
+      return innerHandler(request.change(context: {'services': context}));
+    };
+  };
 }
 
 // Router definition (1:1 Parity)
@@ -113,14 +132,16 @@ final _router = Router()
     (Request req) =>
         _eventsHandler(req, req.url.queryParameters['gardenerId'] ?? 'unknown'),
   )
-  // Support legacy access or direct gardener event access
   ..get(
     '/api/rooms/<roomId>/events',
     (Request req, String roomId) =>
         _eventsHandler(req, req.url.queryParameters['gardenerId'] ?? roomId),
   )
-  ..get('/device/<id>', _deviceStatusHandler)
-  ..delete('/device/<id>', _deviceUnlinkHandler)
+  ..get('/api/devices/<id>/status', _deviceStatusHandler)
+  ..post('/api/devices/<id>/unlink', _deviceUnlinkHandler)
+  ..get('/device/<id>', _deviceStatusHandler) // Legacy
+  ..delete('/device/<id>', _deviceUnlinkHandler) // Legacy
+  ..get('/u/<userId>/configure', _userConfigureHandler)
   ..get('/api/heartbeat/<gardenerId>', _heartbeatHandler)
   ..post('/api/telemetry', _telemetryHandler)
   ..post('/api/register', _executorRegisterHandler)
@@ -141,6 +162,33 @@ final _router = Router()
   ..post('/api/task/result', _taskResultHandler)
   ..mount('/api/auth/', authService.router.call); // Mount Auth Service
 
+/// Helper to extract services from request context.
+ServerContext _services(Request request) =>
+    request.context['services'] as ServerContext;
+
+/// User-specific manifest handler for legacy /u/{userId}/manifest.json route.
+Future<Response> _userManifestHandler(Request req, String userId) async {
+  final services = _services(req);
+  final scheme = req.requestedUri.scheme;
+  final host = req.requestedUri.host;
+  final port = req.requestedUri.port;
+  final portString = (port == 80 || port == 443) ? '' : ':$port';
+  final baseUrl = '$scheme://$host$portString/u/$userId';
+
+  // Generate a personalized manifest with configuration hints
+  final manifest = await services.addon.generateManifest(
+    userId,
+    baseUrl: baseUrl,
+  );
+  return Response.ok(
+    jsonEncode(manifest),
+    headers: {
+      'Content-Type': 'application/json',
+      'Access-Control-Allow-Origin': '*',
+    },
+  );
+}
+
 // ... (Rest of file) ...
 
 /// User-specific stream handler for legacy /u/{userId}/stream/{type}/{id}.json route.
@@ -150,9 +198,10 @@ Future<Response> _userStreamHandler(
   String type,
   String id,
 ) async {
+  final services = _services(req);
   // Delegate to the addon service scraper for stream resolution
   try {
-    final streams = await scraperService.getStreams(
+    final streams = await services.scraper.getStreams(
       type,
       id,
       {},
@@ -185,7 +234,7 @@ Response _rootHandler(Request req) {
   return Response.ok(
     jsonEncode({
       'name': 'SeedSphere Router',
-      'version': '2.1.6',
+      'version': '2.1.8',
       'status': 'active',
       'mode': 'Federated Frontier (Parity)',
     }),
@@ -384,15 +433,12 @@ Response _healthHandler(Request req) {
   );
 }
 
-// PIN Pairing (Legacy)
-
 /// Initiates a legacy PIN-based pairing session.
-///
-/// Returns a [Response] containing the generated PIN code.
 Future<Response> _createPairingHandler(Request req) async {
+  final services = _services(req);
   final payload = await req.readAsString();
   final data = jsonDecode(payload);
-  final pin = await pairingService.createSession(
+  final pin = await services.pairing.createSession(
     data['seedlingId'] ?? 'unknown',
   );
   return Response.ok(jsonEncode({'ok': true, 'pair_code': pin}));
@@ -400,9 +446,10 @@ Future<Response> _createPairingHandler(Request req) async {
 
 /// Completes a pairing session using a PIN.
 Future<Response> _completePairingHandler(Request req) async {
+  final services = _services(req);
   final payload = await req.readAsString();
   final data = jsonDecode(payload);
-  final session = await pairingService.completePairing(
+  final session = await services.pairing.completePairing(
     data['pin'] ?? data['pair_code'],
     data['gardenerId'] ?? data['device_id'],
   );
@@ -414,21 +461,21 @@ Future<Response> _completePairingHandler(Request req) async {
 
 /// Checks the status of a pairing session.
 Response _statusPairingHandler(Request req) {
+  final services = _services(req);
   final pin =
       req.url.queryParameters['pin'] ?? req.url.queryParameters['pair_code'];
   if (pin == null) return Response.badRequest(body: 'missing_pin');
-  final session = pairingService.getSession(pin);
+  final session = services.pairing.getSession(pin);
   return Response.ok(
     jsonEncode({'ok': true, 'paired': session?.isComplete ?? false}),
   );
 }
 
-// Linking (HMAC Flow)
-
 /// Starts a 1:1 parity linking flow (HMAC-based).
 Future<Response> _linkStartHandler(Request req) async {
+  final services = _services(req);
   final data = jsonDecode(await req.readAsString());
-  final result = linkingService.startLinking(
+  final result = services.linking.startLinking(
     data['gardener_id'],
     platform: data['platform'],
   );
@@ -437,8 +484,9 @@ Future<Response> _linkStartHandler(Request req) async {
 
 /// Completes the linking process with a token verification.
 Future<Response> _linkCompleteHandler(Request req) async {
+  final services = _services(req);
   final data = jsonDecode(await req.readAsString());
-  final result = linkingService.completeLinking(
+  final result = services.linking.completeLinking(
     data['token'],
     data['seedling_id'],
   );
@@ -455,34 +503,32 @@ Response _linkStatusHandler(Request req) {
   return Response.ok(jsonEncode({'ok': true, 'linked': gId != null}));
 }
 
-// Events (SSE)
-
 /// Handles Server-Sent Events (SSE) subscriptions for real-time updates.
 Response _eventsHandler(Request req, String gardenerId) {
+  final services = _services(req);
   // Debug log for troubleshooting connectivity - gate behind verbose check if needed
   if (req.url.queryParameters.containsKey('debug')) {
     print('DEBUG: _eventsHandler CALLED for $gardenerId');
   }
 
-  final stream = eventService.subscribe(gardenerId);
-  return eventService.sseResponse(stream);
+  final stream = services.events.subscribe(gardenerId);
+  return services.events.sseResponse(stream);
 }
-
-// Device Management (Portal)
 
 /// Returns status and ownership info for a specific device.
 Future<Response> _deviceStatusHandler(Request req, String id) async {
-  final ownerId = db.getOwnerForDevice(id);
+  final services = _services(req);
+  final ownerId = services.db.getOwnerForDevice(id);
   final isLinked = ownerId != null;
 
   var neighbors = 0;
   var ownerDisplay = 'None';
 
   if (isLinked) {
-    final bindings = db.getBindings(ownerId);
+    final bindings = services.db.getBindings(ownerId);
     neighbors = bindings.length - 1; // Others in the swarm
 
-    final owner = db.getUser(ownerId);
+    final owner = services.db.getUser(ownerId);
     if (owner != null) {
       final email = owner['email'] as String?;
       if (email != null) {
@@ -502,41 +548,35 @@ Future<Response> _deviceStatusHandler(Request req, String id) async {
       'owner': ownerDisplay,
       'neighbors': neighbors,
     }),
-    headers: {'content-type': 'application/json'},
+    headers: {
+      'content-type': 'application/json',
+      'Access-Control-Allow-Origin': '*',
+    },
   );
 }
 
-/// Revokes a specific device binding.
+/// Handler for the Stremio-triggered configuration redirect.
+Response _userConfigureHandler(Request req, String userId) {
+  // Redirect to the actual configure.html with the userId passed as 'id'
+  return Response.found('/configure.html?id=$userId');
+}
+
+/// Unlinks a device from its owner (Portal debug/admin tool).
 Future<Response> _deviceUnlinkHandler(Request req, String id) async {
-  final userId = authService.getSessionId(req);
-  if (userId == null) {
-    return Response.forbidden(
-      jsonEncode({'ok': false, 'error': 'unauthorized'}),
-    );
-  }
-
-  // Check if device belongs to user
-  final ownerId = db.getOwnerForDevice(id);
-  if (ownerId != userId) {
-    return Response.forbidden(jsonEncode({'ok': false, 'error': 'forbidden'}));
-  }
-
-  // Delete the binding
-  db.deleteBinding(userId, id);
-
-  db.writeAudit('device_unlinked_portal', {'user_id': userId, 'device_id': id});
+  final services = _services(req);
+  // Check if device belongs to user (Portal bypasses auth for now in this admin route)
+  services.db.unlinkDevice(id);
+  services.db.writeAudit('device_unlink', {'device_id': id});
 
   return Response.ok(jsonEncode({'ok': true}));
 }
 
 // Heartbeat (Secured via JWT)
 
-/// Active gardeners mapped by user ID for job dispatch
-final Map<String, DateTime> _activeGardeners = {};
-
 /// Processes heartbeat signals from Gardeners to maintain active status.
 /// Validates JWT Bearer token if provided.
 Future<Response> _heartbeatHandler(Request req, String gardenerId) async {
+  final services = _services(req);
   if (DebugConfig.pulseGated) {
     print('ROUTER_DEBUG: Received heartbeat from $gardenerId');
   }
@@ -544,7 +584,7 @@ Future<Response> _heartbeatHandler(Request req, String gardenerId) async {
   final authHeader = req.headers['authorization'];
   if (authHeader != null && authHeader.startsWith('Bearer ')) {
     final token = authHeader.substring(7);
-    final claims = authService.verifyJwt(token);
+    final claims = services.auth.verifyJwt(token);
 
     if (claims == null) {
       return Response(
@@ -563,29 +603,16 @@ Future<Response> _heartbeatHandler(Request req, String gardenerId) async {
     }
   }
 
-  // Track active gardener
-  _activeGardeners[gardenerId] = DateTime.now();
+  services.status.recordHeartbeat(gardenerId);
 
-  // Clean up stale gardeners (inactive > 2 minutes)
-  final cutoff = DateTime.now().subtract(const Duration(minutes: 2));
-  _activeGardeners.removeWhere((_, lastSeen) => lastSeen.isBefore(cutoff));
-
-  db.touchGardener(gardenerId);
-  eventService.publish(gardenerId, 'heartbeat', {
-    't': DateTime.now().millisecondsSinceEpoch,
-    'active': _activeGardeners.length,
-  });
   return Response.ok(
-    jsonEncode({'ok': true, 'activeGardeners': _activeGardeners.length}),
+    jsonEncode({'ok': true, 'activeGardeners': services.status.activeCount}),
   );
 }
 
-// Telemetry Collector
-
 /// Collects telemetry data for analytics and debugging.
-///
-/// Verifies `x-telemetry-key` if configured.
 Future<Response> _telemetryHandler(Request req) async {
+  final services = _services(req);
   final payload = await req.readAsString();
   final data = jsonDecode(payload);
 
@@ -602,7 +629,10 @@ Future<Response> _telemetryHandler(Request req) async {
   }
 
   // Audit log parity
-  db.writeAudit('telemetry', {'ua': req.headers['user-agent'], 'body': data});
+  services.db.writeAudit('telemetry', {
+    'ua': req.headers['user-agent'],
+    'body': data,
+  });
 
   return Response.ok(
     jsonEncode({'ok': true}),
@@ -610,17 +640,19 @@ Future<Response> _telemetryHandler(Request req) async {
   );
 }
 
-// Greenhouse: Executor register
-
 /// Registers a new executor/agent and assigns a device ID.
 Future<Response> _executorRegisterHandler(Request req) async {
+  final services = _services(req);
   final agent = req.headers['user-agent'] ?? 'unknown';
   final deviceId = const Uuid().v4().substring(
     0,
     16,
   ); // Mirroring legacy nanoid(16) length
 
-  db.writeAudit('executor_reg', {'agent': agent, 'device_id': deviceId});
+  services.db.writeAudit('executor_reg', {
+    'agent': agent,
+    'device_id': deviceId,
+  });
 
   return Response.ok(
     jsonEncode({'ok': true, 'device_id': deviceId}),
@@ -631,9 +663,8 @@ Future<Response> _executorRegisterHandler(Request req) async {
 // Swarm Query: Coordinate discovery between Gardeners
 
 /// Queries the P2P swarm for metadata or peers.
-///
-/// Supports real-time scraping if [trackers] are provided.
 Future<Response> _swarmQueryHandler(Request req) async {
+  final services = _services(req);
   final id = req.url.queryParameters['id'];
   final type = req.url.queryParameters['type'];
   final trackers = req.url.queryParametersAll['tracker'] ?? [];
@@ -642,13 +673,13 @@ Future<Response> _swarmQueryHandler(Request req) async {
     return Response.badRequest(body: jsonEncode({'error': 'missing_params'}));
   }
 
-  db.writeAudit('swarm_query', {'id': id, 'type': type});
+  services.db.writeAudit('swarm_query', {'id': id, 'type': type});
 
   // 1:1 Parity: Real-time swarm scraping
   // If trackers are provided, we scrape them directly to get seeds/leechers.
   Map<String, dynamic>? results;
   if (trackers.isNotEmpty) {
-    results = await swarmService.scrapeSwarm(id, trackers);
+    results = await services.swarm.scrapeSwarm(id, trackers);
   }
 
   return Response.ok(
@@ -665,17 +696,22 @@ Future<Response> _swarmQueryHandler(Request req) async {
 
 /// Returns information about the P2P node (PeerID and addresses).
 Response _p2pInfoHandler(Request req) {
+  final services = _services(req);
   return Response.ok(
-    jsonEncode({'peerId': p2pNode.peerId, 'addresses': p2pNode.addresses}),
+    jsonEncode({
+      'peerId': services.p2p.peerId,
+      'addresses': services.p2p.addresses,
+    }),
     headers: {'content-type': 'application/json'},
   );
 }
 
 /// Checks the health of a specific P2P URL or the node itself.
 Future<Response> _p2pHealthHandler(Request req) async {
+  final services = _services(req);
   final url = req.url.queryParameters['url'];
   if (url != null) {
-    final ok = await healthService.checkHealthy(url, aggressive: true);
+    final ok = await services.health.checkHealthy(url, aggressive: true);
     return Response.ok(jsonEncode({'url': url, 'healthy': ok}));
   }
   return Response.ok(jsonEncode({'status': 'active', 'engine': 'Dart/AOT'}));
@@ -683,24 +719,27 @@ Future<Response> _p2pHealthHandler(Request req) async {
 
 /// Returns the calculated "Best" trackers based on community reputation.
 Response _trackerBestHandler(Request req) {
-  final best = trackerService.getBestTrackers();
+  final services = _services(req);
+  final best = services.tracker.getBestTrackers();
   return Response.ok(jsonEncode({'trackers': best}));
 }
 
 /// Returns the full list of trackers for Gardeners to verify.
 Response _trackerSyncHandler(Request req) {
-  final list = trackerService.getSyncList();
+  final services = _services(req);
+  final list = services.tracker.getSyncList();
   return Response.ok(jsonEncode({'trackers': list}));
 }
 
 /// Accepts batch votes from Gardeners.
 Future<Response> _trackerVoteHandler(Request req) async {
+  final services = _services(req);
   try {
     final payload = await req.readAsString();
     final data = jsonDecode(payload);
     final votes = (data['votes'] as List?)?.cast<Map<String, dynamic>>() ?? [];
 
-    trackerService.submitVotes(votes);
+    services.tracker.submitVotes(votes);
     return Response.ok(jsonEncode({'ok': true}));
   } catch (e) {
     return Response.badRequest(body: jsonEncode({'error': 'invalid_payload'}));
@@ -711,6 +750,7 @@ Future<Response> _trackerVoteHandler(Request req) async {
 
 /// Creates a self-binding for debug purposes.
 Future<Response> _debugLinkSelfHandler(Request req) async {
+  final services = _services(req);
   try {
     final payload = await req.readAsString();
     final data = jsonDecode(payload);
@@ -722,7 +762,7 @@ Future<Response> _debugLinkSelfHandler(Request req) async {
       );
     }
 
-    final secret = linkingService.bindDirectly(gardenerId, 'self');
+    final secret = services.linking.bindDirectly(gardenerId, 'self');
     if (secret == null) {
       return Response.internalServerError(
         body: jsonEncode({'error': 'binding_failed_limit_reached'}),
@@ -736,10 +776,8 @@ Future<Response> _debugLinkSelfHandler(Request req) async {
 }
 
 /// HTTP fallback for stream resolution when P2P mesh is unavailable.
-///
-/// Accepts `id` (IMDB ID) and optional `type` query parameters.
-/// Returns scraped stream metadata for the requested content.
 Future<Response> _streamResolveHandler(Request req) async {
+  final services = _services(req);
   final imdbId = req.url.queryParameters['id'];
   final type = req.url.queryParameters['type'] ?? 'movie';
 
@@ -752,7 +790,7 @@ Future<Response> _streamResolveHandler(Request req) async {
 
   try {
     print('[HTTP-FALLBACK] Resolving streams for $imdbId (type: $type)');
-    final streams = await scraperService.getStreams(type, imdbId, {});
+    final streams = await services.scraper.getStreams(type, imdbId, {});
 
     return Response.ok(
       jsonEncode({
@@ -774,12 +812,13 @@ Future<Response> _streamResolveHandler(Request req) async {
 
 /// Optimizes a list of trackers by filtering bad ones and injecting best ones.
 Future<Response> _trackerOptimizeHandler(Request req) async {
+  final services = _services(req);
   try {
     final payload = await req.readAsString();
     final data = jsonDecode(payload);
     final incoming = (data['trackers'] as List?)?.cast<String>() ?? [];
 
-    final result = await trackerService.optimize(incoming);
+    final result = await services.tracker.optimize(incoming);
     return Response.ok(jsonEncode(result));
   } catch (e) {
     return Response.badRequest(body: jsonEncode({'error': 'invalid_payload'}));
@@ -788,47 +827,52 @@ Future<Response> _trackerOptimizeHandler(Request req) async {
 
 /// Returns recent boost activity.
 Response _boostRecentHandler(Request req) {
+  final services = _services(req);
   return Response.ok(
-    jsonEncode({'ok': true, 'items': boostService.getRecent()}),
+    jsonEncode({'ok': true, 'items': services.boost.getRecent()}),
   );
 }
 
 /// SSE stream for boost events.
 Response _boostEventsHandler(Request req) {
+  final services = _services(req);
   Stream<String> stream() async* {
     yield ': connected\n\n';
-    await for (final e in boostService.stream) {
+    await for (final e in services.boost.stream) {
       yield 'event: boost\ndata: ${jsonEncode(e.toJson())}\n\n';
     }
   }
 
-  return eventService.sseResponse(stream());
+  return services.events.sseResponse(stream());
 }
 
 /// Diagnoses upstream provider health.
 Future<Response> _providersDetectHandler(Request req) async {
-  final results = await scraperService.probeProviders();
+  final services = _services(req);
+  final results = await services.scraper.probeProviders();
   return Response.ok(jsonEncode({'ok': true, 'providers': results}));
 }
 
 /// SSE stream for tracker sweeping.
 Response _trackerSweepHandler(Request req) {
+  final services = _services(req);
   final source =
       req.url.queryParameters['source'] ??
       'https://raw.githubusercontent.com/ngosang/trackerslist/master/trackers_all_ip.txt';
 
   Stream<String> stream() async* {
     yield ': start\n\n';
-    await for (final e in trackerService.sweep(source)) {
+    await for (final e in services.tracker.sweep(source)) {
       yield 'event: sweep\ndata: ${jsonEncode(e)}\n\n';
     }
   }
 
-  return eventService.sseResponse(stream());
+  return services.events.sseResponse(stream());
 }
 
 /// Issues a task to a Gardener (Mock/Echo for now).
 Future<Response> _taskRequestHandler(Request req) async {
+  final services = _services(req);
   try {
     final body = jsonDecode(await req.readAsString());
     final roomId = body['room_id'];
@@ -842,14 +886,14 @@ Future<Response> _taskRequestHandler(Request req) async {
     }
 
     // Embed room_id in task payload so we can route the result event later
-    final token = taskService.requestTask(type, {
+    final token = services.task.requestTask(type, {
       'ts': DateTime.now().toIso8601String(),
       'room_id': roomId,
       'params': params,
     });
 
     // Notify the room that a task has been issued
-    eventService.publish(roomId, 'task', {
+    services.events.publish(roomId, 'task', {
       'type': type,
       'params': params,
       't': DateTime.now().millisecondsSinceEpoch,
@@ -863,12 +907,13 @@ Future<Response> _taskRequestHandler(Request req) async {
 
 /// Receives a task result.
 Future<Response> _taskResultHandler(Request req) async {
+  final services = _services(req);
   try {
     final body = jsonDecode(await req.readAsString());
     final token = body['token'];
     final result = body['result'];
 
-    final payload = taskService.verifyResult(token);
+    final payload = services.task.verifyResult(token);
     if (payload == null) {
       return Response(401, body: jsonEncode({'error': 'invalid_token'}));
     }
@@ -879,7 +924,7 @@ Future<Response> _taskResultHandler(Request req) async {
     final taskId = payload['task_id'];
 
     if (roomId != null) {
-      eventService.publish(roomId, 'result', {
+      services.events.publish(roomId, 'result', {
         'task_id': taskId,
         'ok': true, // Assuming success if we got here
         'result': result, // Raw result
@@ -977,8 +1022,12 @@ void main(List<String> args) async {
   });
 
   try {
-    print('DEBUG: Starting P2PNode...');
-    await p2pNode.start();
+    if (DebugConfig.disableP2P) {
+      print('SeedSphere Router: P2P Node disabled via DebugConfig.');
+    } else {
+      print('DEBUG: Starting P2PNode...');
+      await p2pNode.start();
+    }
   } catch (e) {
     print(
       'SeedSphere Router: P2P Node failed to start (libsodium missing?): $e',
@@ -1011,6 +1060,7 @@ void main(List<String> args) async {
 
   final handler = const Pipeline()
       .addMiddleware(selectiveLogRequests())
+      .addMiddleware(contextMiddleware(context))
       .addMiddleware(corsHeaders())
       .addMiddleware(securityHardeningMiddleware())
       .addMiddleware(rateLimitMiddleware()) // Global rate limiting

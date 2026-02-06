@@ -187,7 +187,7 @@ void main() {
     expect(find.byType(SwarmHealthHero), findsOneWidget);
     expect(find.text('POPULAR STREAMS'), findsOneWidget);
     expect(find.text('MY STREAMS'), findsOneWidget);
-    expect(find.text('PULSE'), findsOneWidget); // Bottom ticker
+    expect(find.text('SWARM'), findsOneWidget); // Bottom ticker
   });
 
   testWidgets('SwarmDashboard updates peer count', (tester) async {
@@ -250,7 +250,7 @@ void main() {
       // Looking for UserProfileDialog trigger.
 
       // Tap "Logs" toggle (if exists) or verify Pulse
-      await tester.tap(find.text('PULSE'));
+      await tester.tap(find.text('SWARM'));
       await tester.pump();
       // Verify state change if possible (e.g. icon color change)
 

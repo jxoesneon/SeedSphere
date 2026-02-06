@@ -332,17 +332,38 @@ class _DebugLogsScreenState extends ConsumerState<DebugLogsScreen> {
   }
 
   Widget _buildCategoryFilter() {
-    final categories = ['NET', 'DHT', 'PERF', 'AUTH', 'UI'];
-    return Container(
-      height: 50,
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: ListView(
-        scrollDirection: Axis.horizontal,
-        children: [
-          _filterChip(null, 'ALL'),
-          ...categories.map((c) => _filterChip(c, c)),
-        ],
-      ),
+    return ValueListenableBuilder<List<LogEntry>>(
+      valueListenable: DebugLogger.logsNotifier,
+      builder: (context, logs, _) {
+        final foundCategories = logs
+            .where((e) => e.category != null)
+            .map((e) => e.category!)
+            .toSet()
+            .toList();
+
+        // Common sense sorting & prioritization
+        final priority = ['NET', 'SWARM', 'AUTH', 'UI', 'TASK'];
+        foundCategories.sort((a, b) {
+          final aIdx = priority.indexOf(a);
+          final bIdx = priority.indexOf(b);
+          if (aIdx != -1 && bIdx != -1) return aIdx.compareTo(bIdx);
+          if (aIdx != -1) return -1;
+          if (bIdx != -1) return 1;
+          return a.compareTo(b);
+        });
+
+        return Container(
+          height: 50,
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: ListView(
+            scrollDirection: Axis.horizontal,
+            children: [
+              _filterChip(null, 'ALL'),
+              ...foundCategories.map((c) => _filterChip(c, c)),
+            ],
+          ),
+        );
+      },
     );
   }
 

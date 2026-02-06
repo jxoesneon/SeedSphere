@@ -5,6 +5,11 @@ compatibility_date = "2024-01-01"
 [vars]
 ROUTER_URL = "https://seedsphere.fly.dev"
 
+[[kv_namespaces]]
+binding = "KV_CACHE"
+id = "seedsphere_cache_kv" # Placeholder ID for local/dev
+preview_id = "seedsphere_cache_kv_preview"
+
 # Standard Stremio Addon Routes
 # /manifest.json
 # /stream/:type/:id.json

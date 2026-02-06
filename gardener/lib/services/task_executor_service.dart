@@ -89,6 +89,12 @@ class TaskExecutorService {
         category: 'TASK',
       );
       await _executeCatalogPrompt(event);
+    } else if (event['type'] == 'log') {
+      // Just passthrough logs from Router
+      DebugLogger.debug(
+        'TaskExecutor: Router Log: ${event['message']}',
+        category: 'TASK',
+      );
     } else {
       DebugLogger.warn(
         'TaskExecutor: Unknown event structure: ${event.keys}',

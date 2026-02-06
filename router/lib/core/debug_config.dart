@@ -9,6 +9,9 @@ class DebugConfig {
   /// Global toggle for background service and bootstrap tracing.
   static const bool p2pGated = true;
 
+  /// Temporary bypass for P2P initialization (fixes Windows libsodium hangs).
+  static const bool disableP2P = true;
+
   /// Helper to check if a category should be logged.
   static bool shouldLog(String category) {
     if (category == 'EKG' || category == 'PULSE' || category == 'HEARTBEAT') {

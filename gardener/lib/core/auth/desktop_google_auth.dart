@@ -20,7 +20,9 @@ class DesktopGoogleAuth {
 
   // Development Credentials (IDs are public, Secrets are not)
   static const String _devClientId =
-      '550711161426-itlnqncb9a4abdddbk1jc1tiuol91c0p.apps.googleusercontent.com';
+      '550711161426-cc2iqb8h08thae6hqfshhfv2i22bgl1c.apps.googleusercontent.com';
+
+  static const String _devClientSecret = '';
 
   /// Returns the Client ID to use.
   /// Priority:
@@ -42,7 +44,8 @@ class DesktopGoogleAuth {
   /// Priority:
   /// 1. --dart-define=GOOGLE_CLIENT_SECRET=... (Compile Time)
   /// 2. GOOGLE_CLIENT_SECRET (Runtime Env)
-  /// 3. Empty (Must be provided for security)
+  /// 3. Debug Mode -> Dev Secret
+  /// 4. Release Mode -> Empty
   static String get _clientSecret {
     const envSecret = String.fromEnvironment('GOOGLE_CLIENT_SECRET');
     if (envSecret.isNotEmpty) return envSecret;
@@ -52,7 +55,7 @@ class DesktopGoogleAuth {
       return platformSecret;
     }
 
-    return '';
+    return kDebugMode ? _devClientSecret : '';
   }
 
   static const List<String> _scopes = ['email', 'profile', 'openid'];
