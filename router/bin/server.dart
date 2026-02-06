@@ -36,63 +36,25 @@ import 'package:router/core/server_context.dart';
 import 'package:http/http.dart' as http; // Added import
 
 // Services
-final db = DbService()..init('data');
-final pairingService = PairingService();
-final p2pNode = P2PNode();
-final eventService = EventService();
-final linkingService = LinkingService(db);
-final healthService = HealthService();
-final swarmService = SwarmService();
-final mailerService =
-    (Platform.environment['BREVO_API_KEY'] != null &&
-        Platform.environment['SMTP_FROM'] != null)
-    ? MailerService.brevo(
-        apiKey: Platform.environment['BREVO_API_KEY']!,
-        fromEmail: Platform.environment['SMTP_FROM']!,
-      )
-    : MailerService.custom(
-        host: Platform.environment['SMTP_HOST'] ?? 'smtp-relay.brevo.com',
-        port: int.parse(Platform.environment['SMTP_PORT'] ?? '587'),
-        username: Platform.environment['SMTP_USER'] ?? '',
-        password: Platform.environment['SMTP_PASS'] ?? '',
-        fromEmail:
-            Platform.environment['SMTP_FROM'] ?? 'noreply@seedsphere.app',
-      );
-final trackerService = TrackerService(db, healthService)..init();
-final scraperService = DistributedScraperService(
-  trackerService,
-  db: db,
-  events: eventService,
-);
-final addonService = AddonService(scraperService, db);
-final authService = AuthService(db, mailerService, linkingService);
-final boostService = BoostService();
-final prefetchService = PrefetchService(scraperService);
-final statusService = StatusService(db, eventService);
-
-final task = TaskService(
-  Platform.environment['JWT_SECRET'] ?? 'dev_secret_key',
-);
+late final DbService db;
+late final PairingService pairingService;
+late final P2PNode p2pNode;
+late final EventService eventService;
+late final LinkingService linkingService;
+late final HealthService healthService;
+late final SwarmService swarmService;
+late final MailerService mailerService;
+late final TrackerService trackerService;
+late final DistributedScraperService scraperService;
+late final AddonService addonService;
+late final AuthService authService;
+late final BoostService boostService;
+late final PrefetchService prefetchService;
+late final StatusService statusService;
+late final TaskService task;
 
 // Unified Context (Dependency Injection)
-final context = ServerContext(
-  db: db,
-  pairing: pairingService,
-  p2p: p2pNode,
-  events: eventService,
-  linking: linkingService,
-  health: healthService,
-  swarm: swarmService,
-  mailer: mailerService,
-  tracker: trackerService,
-  scraper: scraperService,
-  addon: addonService,
-  auth: authService,
-  boost: boostService,
-  prefetch: prefetchService,
-  task: task,
-  status: statusService,
-);
+late final ServerContext context;
 
 /// Middleware to inject ServerContext into requests for dependency injection.
 Middleware contextMiddleware(ServerContext context) {
@@ -1020,6 +982,76 @@ void main(List<String> args) async {
     if (record.error != null) print(record.error);
     if (record.stackTrace != null) print(record.stackTrace);
   });
+
+  // 1. Initialize DB
+  print('DEBUG: Initializing Database...');
+  db = DbService();
+  try {
+    db.init('data');
+    print('DEBUG: Database Initialized.');
+  } catch (e, stack) {
+    print('FATAL: Database failed to initialize: $e');
+    print(stack);
+    exit(1);
+  }
+
+  // 2. Initialize Services
+  pairingService = PairingService();
+  p2pNode = P2PNode();
+  eventService = EventService();
+  linkingService = LinkingService(db);
+  healthService = HealthService();
+  swarmService = SwarmService();
+
+  mailerService =
+      (Platform.environment['BREVO_API_KEY'] != null &&
+          Platform.environment['SMTP_FROM'] != null)
+      ? MailerService.brevo(
+          apiKey: Platform.environment['BREVO_API_KEY']!,
+          fromEmail: Platform.environment['SMTP_FROM']!,
+        )
+      : MailerService.custom(
+          host: Platform.environment['SMTP_HOST'] ?? 'smtp-relay.brevo.com',
+          port: int.parse(Platform.environment['SMTP_PORT'] ?? '587'),
+          username: Platform.environment['SMTP_USER'] ?? '',
+          password: Platform.environment['SMTP_PASS'] ?? '',
+          fromEmail:
+              Platform.environment['SMTP_FROM'] ?? 'noreply@seedsphere.app',
+        );
+
+  trackerService = TrackerService(db, healthService)..init();
+  scraperService = DistributedScraperService(
+    trackerService,
+    db: db,
+    events: eventService,
+  );
+  addonService = AddonService(scraperService, db);
+  authService = AuthService(db, mailerService, linkingService);
+  boostService = BoostService();
+  prefetchService = PrefetchService(scraperService);
+  statusService = StatusService(db, eventService);
+
+  task = TaskService(Platform.environment['JWT_SECRET'] ?? 'dev_secret_key');
+
+  // 3. Initialize Context
+  context = ServerContext(
+    db: db,
+    pairing: pairingService,
+    p2p: p2pNode,
+    events: eventService,
+    linking: linkingService,
+    health: healthService,
+    swarm: swarmService,
+    mailer: mailerService,
+    tracker: trackerService,
+    scraper: scraperService,
+    addon: addonService,
+    auth: authService,
+    boost: boostService,
+    prefetch: prefetchService,
+    task: task,
+    status: statusService,
+  );
 
   try {
     if (DebugConfig.disableP2P) {
