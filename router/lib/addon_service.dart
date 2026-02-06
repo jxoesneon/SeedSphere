@@ -48,18 +48,22 @@ class AddonService {
   }
 
   /// Generates the manifest map for a user (Public API).
-  Future<Map<String, dynamic>> generateManifest(String userId) async {
+  Future<Map<String, dynamic>> generateManifest(
+    String userId, {
+    String? baseUrl,
+  }) async {
     final manifest = Map<String, dynamic>.from(_baseManifest);
     manifest['name'] = "SeedSphere (Private)";
-    manifest['configurationURL'] =
-        "https://seedsphere.app/configure.html"; // Default fallback
+    manifest['configurationURL'] = baseUrl != null
+        ? '$baseUrl/configure'
+        : "/u/$userId/configure";
     return manifest;
   }
 
   // Define the base manifest structure
   Map<String, dynamic> get _baseManifest => {
     "id": "community.seedsphere",
-    "version": "2.1.5",
+    "version": "2.1.9",
     "name": "SeedSphere",
     "description":
         "The Last Media Addon You'll Ever Need. Powered by a community swarm.",

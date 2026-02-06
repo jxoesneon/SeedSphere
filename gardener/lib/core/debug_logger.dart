@@ -145,12 +145,21 @@ class DebugLogger {
   }) {
     final now = DateTime.now();
 
+    // Normalization Map (Common Sense Grouping)
+    final normalizedCategory = switch (category?.toUpperCase()) {
+      'TRACE' || 'BOOTSTRAP' => 'NET',
+      'PULSE' || 'DHT' || 'P2P' => 'SWARM',
+      'AI' || 'SCRAPE' || 'ORCHESTRATOR' => 'TASK',
+      final String c => c,
+      null => null,
+    };
+
     // Create entry
     final entry = LogEntry(
       timestamp: now,
       message: message,
       level: level,
-      category: category,
+      category: normalizedCategory,
       error: error,
       stackTrace: stackTrace,
     );

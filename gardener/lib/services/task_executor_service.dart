@@ -27,7 +27,7 @@ class TaskExecutorService {
   final ValueNotifier<int> activeTaskCount = ValueNotifier<int>(0);
 
   TaskExecutorService(this._p2p, this._cortex)
-    : _scraper = ScraperEngine.defaults();
+    : _scraper = ScraperEngine.defaults(p2p: _p2p);
 
   void start() {
     DebugLogger.info(
@@ -89,6 +89,12 @@ class TaskExecutorService {
         category: 'TASK',
       );
       await _executeCatalogPrompt(event);
+    } else if (event['type'] == 'log') {
+      // Just passthrough logs from Router
+      DebugLogger.debug(
+        'TaskExecutor: Router Log: ${event['message']}',
+        category: 'TASK',
+      );
     } else {
       DebugLogger.warn(
         'TaskExecutor: Unknown event structure: ${event.keys}',

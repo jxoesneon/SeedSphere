@@ -61,13 +61,18 @@ class ScraperEngine {
   /// The list of scrapers managed by this engine.
   final List<BaseScraper> scrapers;
   final ConfigManager _config;
+  final P2PManager _p2p;
 
   /// Creates a [ScraperEngine] with the provided [scrapers].
-  ScraperEngine({required this.scrapers, ConfigManager? config})
-    : _config = config ?? ConfigManager();
+  ScraperEngine({
+    required this.scrapers,
+    ConfigManager? config,
+    P2PManager? p2p,
+  }) : _config = config ?? ConfigManager(),
+       _p2p = p2p ?? P2PManager.instance;
 
   /// Creates a [ScraperEngine] configured with all supported providers.
-  factory ScraperEngine.defaults() {
+  factory ScraperEngine.defaults({P2PManager? p2p}) {
     return ScraperEngine(
       scrapers: [
         TorrentioScraper(),
@@ -86,6 +91,7 @@ class ScraperEngine {
         TorznabScraper(),
       ],
       config: ConfigManager(),
+      p2p: p2p,
     );
   }
 
@@ -146,7 +152,7 @@ class ScraperEngine {
     // 2. Scraping Phase
     final fetchTimeout = Duration(milliseconds: _config.providerFetchTimeoutMs);
     final List<Future<List<Map<String, dynamic>>>> futures = targets.map((s) {
-      P2PManager.instance.addLocalEvent({
+      _p2p.addLocalEvent({
         'type': 'scraper_event',
         'event': 'start',
         'scraper': s.name,
@@ -157,7 +163,7 @@ class ScraperEngine {
           .scrape(imdbId)
           .timeout(fetchTimeout)
           .then((res) {
-            P2PManager.instance.addLocalEvent({
+            _p2p.addLocalEvent({
               'type': 'scraper_event',
               'event': 'done',
               'scraper': s.name,
@@ -168,7 +174,7 @@ class ScraperEngine {
           })
           .catchError((e) {
             DebugLogger.warn('Timeout/Error fetching from ${s.name}');
-            P2PManager.instance.addLocalEvent({
+            _p2p.addLocalEvent({
               'type': 'scraper_event',
               'event': 'error',
               'scraper': s.name,
