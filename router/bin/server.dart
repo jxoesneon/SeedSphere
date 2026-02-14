@@ -1019,7 +1019,8 @@ void main(List<String> args) async {
               Platform.environment['SMTP_FROM'] ?? 'noreply@seedsphere.app',
         );
 
-  trackerService = TrackerService(db, healthService)..init();
+  trackerService = TrackerService(db, healthService);
+  unawaited(trackerService.init());
   scraperService = DistributedScraperService(
     trackerService,
     db: db,
