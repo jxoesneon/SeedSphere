@@ -7,7 +7,7 @@ ROUTER_URL = "https://seedsphere.fly.dev"
 
 [[kv_namespaces]]
 binding = "KV_CACHE"
-id = "seedsphere_cache_kv" # Placeholder ID for local/dev
+id = "57ad11f948c445b5a198bd4f888c64f6"
 preview_id = "seedsphere_cache_kv_preview"
 
 # Standard Stremio Addon Routes
