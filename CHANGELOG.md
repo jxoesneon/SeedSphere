@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.2.0] - 2026-02-17 (Unified Patch Release)
+
+### Router & Portal
+
+- **API Alignment**: Synced portal dashboard with server by moving `/releases` to `/api/releases`.
+- **Version Sync**: Aligned all components (Router, Portal, Bridge) to version `2.2.0`.
+- **Infrastructure**: Fixed Cloudflare KV configurations and linting issues across the backend.
+
 ## [1.9.68] - 2026-01-08 (System Maintenance)
 
 ### Portal & UX

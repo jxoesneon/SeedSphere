@@ -81,7 +81,8 @@ final _router = Router()
   )
   ..get('/api/status', _rootHandler) // Moved to free up root for portal
   ..get('/dl/<file>', _handleDownload)
-  ..get('/releases', _handleReleases)
+  ..get('/api/releases', _handleReleases) // Aligned with portal expectations
+  ..get('/releases', _handleReleases) // Backward compatibility alias
   ..get('/health', _healthHandler)
   ..post('/pairing/create', _createPairingHandler)
   ..post('/pairing/complete', _completePairingHandler)
@@ -196,7 +197,7 @@ Response _rootHandler(Request req) {
   return Response.ok(
     jsonEncode({
       'name': 'SeedSphere Router',
-      'version': '2.1.8',
+      'version': '2.2.0',
       'status': 'active',
       'mode': 'Federated Frontier (Parity)',
     }),
