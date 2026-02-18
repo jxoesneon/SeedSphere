@@ -152,7 +152,7 @@ jobs:
         run: |
           mkdir -p dist
           # Create DEB
-          fpm -s dir -t deb -n gardener -v 1.9.3 -a x86_64 \
+          fpm -s dir -t deb -n gardener -v 2.2.0 -a x86_64 \
             --description "SeedSphere Gardener Client" \
             --maintainer "SeedSphere <dev@seedsphere.app>" \
             --prefix /opt/gardener \
@@ -160,7 +160,7 @@ jobs:
           mv gardener_*.deb dist/gardener-linux-x64.deb
 
           # Create RPM
-          fpm -s dir -t rpm -n gardener -v 1.9.3 -a x86_64 \
+          fpm -s dir -t rpm -n gardener -v 2.2.0 -a x86_64 \
             --description "SeedSphere Gardener Client" \
             --maintainer "SeedSphere <dev@seedsphere.app>" \
             --prefix /opt/gardener \
@@ -216,7 +216,7 @@ jobs:
             mkdir -p dist
 
             # Create DEB (ARM64)
-            fpm -s dir -t deb -n gardener -v 1.9.3 -a aarch64 \
+            fpm -s dir -t deb -n gardener -v 2.2.0 -a aarch64 \
               --description "SeedSphere Gardener Client" \
               --maintainer "SeedSphere <dev@seedsphere.app>" \
               --prefix /opt/gardener \
@@ -224,7 +224,7 @@ jobs:
             mv gardener_*.deb dist/gardener-linux-arm64.deb
 
             # Create RPM (ARM64)
-            fpm -s dir -t rpm -n gardener -v 1.9.3 -a aarch64 \
+            fpm -s dir -t rpm -n gardener -v 2.2.0 -a aarch64 \
               --description "SeedSphere Gardener Client" \
               --maintainer "SeedSphere <dev@seedsphere.app>" \
               --prefix /opt/gardener \
