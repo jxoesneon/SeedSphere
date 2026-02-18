@@ -59,7 +59,7 @@ jobs:
         run: flutter build appbundle --release
 
       - name: Upload APK
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: gardener-android-apk
           path: gardener/build/app/outputs/flutter-apk/app-release.apk
@@ -112,7 +112,7 @@ jobs:
         run: iscc windows/installer.iss
 
       - name: Upload Windows Installer
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: gardener-windows-setup
           path: gardener/build/windows/installer/gardener-setup.exe
@@ -168,7 +168,7 @@ jobs:
           mv gardener-*.rpm dist/gardener-linux-x64.rpm
 
       - name: Upload Linux Build (x64)
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: gardener-linux-x64-all
           path: |
@@ -232,7 +232,7 @@ jobs:
             mv gardener-*.rpm dist/gardener-linux-arm64.rpm
 
       - name: Upload Linux Build (ARM64)
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: gardener-linux-arm64
           path: |
@@ -279,7 +279,7 @@ jobs:
             "build/macos/Build/Products/Release/gardener.app"
 
       - name: Upload macOS Build
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: gardener-macos-universal
           path: |
