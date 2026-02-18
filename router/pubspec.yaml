@@ -1,4 +1,4 @@
-﻿name: router
+name: router
 description: A server app using the shelf package and Docker.
 version: 2.2.0
 publish_to: none
@@ -16,7 +16,7 @@ dependencies:
   dart_ipfs: ^1.9.4
   uuid: ^4.5.2
   crypto: ^3.0.7
-  sqlite3: ^3.0.0
+  sqlite3: ^3.1.6
   path: ^1.8.3
 
   http: ^1.6.0
