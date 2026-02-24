@@ -1,4 +1,4 @@
-﻿name: router
+name: router
 description: A server app using the shelf package and Docker.
 version: 2.2.0
 publish_to: none
@@ -21,7 +21,7 @@ dependencies:
 
   http: ^1.6.0
   mailer: ^6.0.0
-  googleapis_auth: ^2.0.0
+  googleapis_auth: ^2.1.0
   dart_jsonwebtoken: ^3.3.1
   pointycastle: ^4.0.0
   shelf_static: ^1.1.3
