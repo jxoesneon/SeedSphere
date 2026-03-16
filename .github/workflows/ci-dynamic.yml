@@ -55,10 +55,25 @@ jobs:
           cache: "npm"
           cache-dependency-path: ${{ matrix.project }}/package-lock.json
 
-      - name: Run Tests
+      - name: Run Tests (Flutter)
+        if: matrix.project == 'gardener'
         env:
           GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET_DESKTOP }}
         run: |
           cd ${{ matrix.project }}
-          flutter pub get || dart pub get
+          flutter pub get
+          ${{ matrix.cmd }}
+
+      - name: Run Tests (Dart)
+        if: matrix.project == 'router'
+        run: |
+          cd ${{ matrix.project }}
+          dart pub get
+          ${{ matrix.cmd }}
+
+      - name: Run Tests (Node)
+        if: matrix.project != 'gardener' && matrix.project != 'router'
+        run: |
+          cd ${{ matrix.project }}
+          npm ci
           ${{ matrix.cmd }}
