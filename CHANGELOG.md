@@ -2,9 +2,21 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.3.0] - 2026-03-16 (Zero-Vulnerability Milestone)
+
+### Security & Dependencies (v2.3.0)
+
+- **Zero-Vulnerability Milestone**: Eliminated all 11 remaining security alerts reported by GitHub.
+- **Root Infrastructure**: Updated `firebase-tools` to v15+ to resolve high-severity vulnerabilities in `tar` and `path-to-regexp`.
+- **Legacy Components**:
+  - Patched `csurf` dependency `cookie` to v0.7.2 to resolve session security alerts.
+  - Bumped `legacy/` internal version to v1.1.0.
+- **Edge Bridge**: Updated `wrangler` (v4.74.0) and `vitest` (v4.1.0) and applied an override for `undici` (v7.24.4) to fix high-severity DoS vulnerabilities.
+- **Dart Ecosystem**: Consolidated and updated the backlog of Dependabot updates across `gardener` and `router`, including `flutter_riverpod`, `sqlite3`, and `uuid`, to ensured long-term stability and modern performance.
+
 ## [2.2.2] - 2026-03-16 (Security Hardening Release)
 
-### Security & Hardening
+### Security & Hardening (v2.2.2)
 
 - **Middleware Hardening**: Integrated `express-rate-limit` and `csurf` into the legacy server for global protection against brute-force and CSRF attacks.
 - **Vulnerability Mitigation**:
