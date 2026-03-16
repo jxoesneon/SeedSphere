@@ -8,7 +8,7 @@ const boosts = require('../boosts.cjs')
 
 async function startServer() {
   const { createServer } = await import('../../index.js')
-  const server = await createServer({ port: 0, disableVite: true, disablePrefetch: true })
+  const server = await createServer({ port: 0, disableVite: true, disablePrefetch: true, disableRateLimit: true })
   const addr = server.address()
   const baseURL = `http://127.0.0.1:${addr.port}`
   return { server, baseURL }

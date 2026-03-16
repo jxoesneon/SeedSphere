@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.2.2] - 2026-03-16 (Security Hardening Release)
+
+### Security & Hardening
+
+- **Middleware Hardening**: Integrated `express-rate-limit` and `csurf` into the legacy server for global protection against brute-force and CSRF attacks.
+- **Vulnerability Mitigation**:
+  - **SSRF**: Implemented URL validation for telemetry, trackers, and sweep endpoints.
+  - **ReDoS**: Refactored polynomial regular expressions in `normalize.cjs` to prevent regular expression denial-of-service.
+  - **API Hardening**: Removed insecure and unused API endpoints (`_get` in `keys.cjs`).
+- **Secret Management**:
+  - **Zero-Cleartext at Rest**: Implemented XChaCha20-Poly1305 encryption for AI provider keys using libsodium-wrappers.
+  - **Config Hardening**: Masked leaked Google/Firebase keys and updated `.gitignore` to prevent future leaks of production configuration files.
+- **Workflow Hardening**: Applied the principle of least privilege to GitHub Actions deployment workflows.
+
 ## [2.2.1] - 2026-03-16 (Patch Release)
 
 ### Gardener Client

@@ -10,6 +10,9 @@ on:
       - ".github/workflows/deploy-server.yml"
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   # PRE-FLIGHT VERIFICATION GATE
   verify:

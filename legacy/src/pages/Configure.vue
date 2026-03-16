@@ -391,7 +391,7 @@
                       <input type="checkbox" class="toggle toggle-success" :checked="credentialedEnabled.Torznab" @change="setCredentialedEnabled('Torznab', $event.target.checked)" aria-label="Enable Torznab locally" />
                     </div>
                   </div>
-                  <p class="text-xs opacity-70">Credentials are stored only in your browser (localStorage). They are not sent to the server and are excluded from share links.</p>
+                  <p class="text-xs opacity-70">Credentials are stored only in your browser (localStorage). They are not sent to the server and are excluded from share links. <b>Note: localStorage is not encrypted; use with caution on shared devices.</b></p>
                   <div v-if="credentialedEnabled.Torznab" class="space-y-2">
                     <div class="flex justify-between items-center">
                       <div class="badge badge-info">Endpoints</div>

@@ -99,3 +99,7 @@ gardener/.metadata
 *.deb
 *.rpm
 *.msix
+
+# Sensitive Google Configs
+gardener/android/app/google-services.json
+gardener/ios/Runner/GoogleService-Info.plist

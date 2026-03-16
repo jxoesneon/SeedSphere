@@ -60,19 +60,5 @@ router.delete('/:provider', (req, res) => {
   } catch (e) { return res.status(500).json({ ok: false, error: e.message }) }
 })
 
-// Internal helper endpoint (optional): decrypt by provider for current user
-// NOTE: Do not expose in production unless protected; intended for backend-only consumption in future wiring.
-router.post('/_get', (req, res) => {
-  try {
-    const uid = requireUser(req, res)
-    if (!uid) return
-    const provider = String(req.body?.provider || '').toLowerCase().trim()
-    if (!provider) return res.status(400).json({ ok: false, error: 'missing_provider' })
-    const row = getAiKey(uid, provider)
-    if (!row) return res.json({ ok: true, secret: null })
-    const plaintext = decryptSecret(row.enc_key, row.nonce)
-    return res.json({ ok: true, secret: JSON.parse(plaintext) })
-  } catch (e) { return res.status(500).json({ ok: false, error: e.message }) }
-})
-
+// --- Internal helper endpoint removed for security (not used by frontend) ---
 module.exports = router

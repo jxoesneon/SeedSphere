@@ -32,8 +32,19 @@ function findVariantForUrl(url) {
   return null
 }
 
+function isValidUrl(s) {
+  try {
+    const u = new URL(s)
+    if (!/^https?:$/i.test(u.protocol)) return false
+    const h = u.hostname.toLowerCase()
+    if (h === 'localhost' || h === '127.0.0.1' || h === '::1' || h === '0.0.0.0') return false
+    return true
+  } catch (_) { return false }
+}
+
 async function fetchTrackers(url) {
   const now = Date.now()
+  if (!isValidUrl(url)) return []
   const entry = trackersCacheByUrl.get(url)
   if (entry && now - entry.ts < (entry.ttl || CACHE_MS)) return entry.list
   if (inFlightByUrl.has(url)) return inFlightByUrl.get(url)

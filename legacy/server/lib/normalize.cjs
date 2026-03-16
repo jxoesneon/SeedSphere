@@ -26,7 +26,7 @@ function toTitleNatural(title) {
   // Remove [Remastered ...] brackets anywhere
   t = t.replace(/\[\s*Remaster(?:ed)?[^\]]*\]/ig, '').trim()
   // Remove trailing edition segments introduced by — or - or : (Director's Cut, Extended, etc.)
-  t = t.replace(/[\s]*[\u2014\-:][\s]*(Director(?:’|')s Cut|Extended(?: Edition)?|Ultimate(?: Edition)?|Theatrical(?: Cut)?|Unrated|IMAX|Special(?: Edition)?)(?:.*)?$/i, '').trim()
+  t = t.replace(/(\s*[\u2014\-:]\s*)(Director(?:’|')s Cut|Extended(?: Edition)?|Ultimate(?: Edition)?|Theatrical(?: Cut)?|Unrated|IMAX|Special(?: Edition)?).*$/i, '').trim()
   // Remove trailing quality/resolution tokens
   t = t.replace(/\b(2160p|1080p|720p|480p|4k)\b\s*$/i, '').trim()
   // Collapse spaces
