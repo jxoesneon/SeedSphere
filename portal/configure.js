@@ -20,6 +20,7 @@ const dom = {
     ownerEmail: document.getElementById('owner-email'),
     btnLogin: document.getElementById('btn-login'),
     btnLink: document.getElementById('btn-link'),
+    btnInstall: document.getElementById('btn-install'),
     btnUnlink: document.getElementById('btn-unlink'),
     error: document.getElementById('error-msg')
 };
@@ -85,6 +86,7 @@ function render() {
     // Actions
     dom.btnLogin.classList.add('hidden');
     dom.btnLink.classList.add('hidden');
+    dom.btnInstall.classList.add('hidden');
     dom.btnUnlink.classList.add('hidden');
 
     if (!state.user) {
@@ -92,6 +94,7 @@ function render() {
     } else if (!state.isLinked) {
         dom.btnLink.classList.remove('hidden');
     } else {
+        dom.btnInstall.classList.remove('hidden');
         dom.btnUnlink.classList.remove('hidden');
     }
 
@@ -136,6 +139,11 @@ dom.btnLink.onclick = async () => {
     } finally {
         hideLoading();
     }
+};
+
+dom.btnInstall.onclick = () => {
+    const url = `stremio://${window.location.host}/u/${state.deviceId}/manifest.json`;
+    window.location.href = url;
 };
 
 dom.btnUnlink.onclick = async () => {
