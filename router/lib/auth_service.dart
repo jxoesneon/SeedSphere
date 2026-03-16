@@ -367,7 +367,7 @@ class AuthService {
     }
 
     // Inject Gardener Count
-    final gardenerCount = _db.countBindingsForSeedling(userId);
+    final gardenerCount = _db.countBindingsForGardener(userId);
 
     return Response.ok(
       jsonEncode({

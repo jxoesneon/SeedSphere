@@ -44,10 +44,10 @@ async function loadUserData() {
       document.getElementById("login-overlay").style.display = "none";
       document.getElementById("main-dashboard").style.filter = "none";
       updateUI(data.user);
-      updateUI(data.user);
+      renderAddonSection(data.user, data.gardener_count || 0);
       fetchStats();
-      fetchActivity(); // New: Load real activity
-      fetchDevices(); // New: Load real linked devices
+      fetchActivity();
+      fetchDevices();
 
       // Load Linking Token & Settings
       try {
@@ -84,6 +84,7 @@ async function loadUserData() {
 
       currentUser = null;
       updateUI(null);
+      renderAddonSection(null, 0);
     }
   } catch (e) {
     console.error("Auth check failed:", e);
@@ -407,41 +408,68 @@ function setupInteractions() {
       }
     });
   });
-  // Install Addon (Stremio)
-  const installBtn = document.querySelector(".btn-install-addon");
-  if (installBtn) {
-    installBtn.addEventListener("click", () => {
-      try {
-        if (currentUser) {
-          const userId = currentUser.id.split(":").pop() || currentUser.id;
+  // Install Addon (Stremio) - Gate-First Flow (Option A)
+  function renderAddonSection(user, gardenerCount) {
+    const unlinkedState = document.getElementById('addon-unlinked-state');
+    const linkedState = document.getElementById('addon-linked-state');
 
-          // Determine Host: Use API_BASE host if set, otherwise current window host
-          let host;
-          if (API_BASE) {
-            try {
-              host = new URL(API_BASE).host;
-            } catch (e) {
-              host = window.location.host;
-            }
-          } else {
-            host = window.location.host;
-          }
+    if (!unlinkedState || !linkedState) return;
 
-          // Format: stremio://<host>/u/<userId>/manifest.json
-          // Ensure we don't duplicate protocol if host has it (mostly host shouldn't)
-          const manifestUrl = `stremio://${host}/u/${userId}/manifest.json`;
+    // Resolve the user ID for Stremio manifest URL
+    const userId = user ? (user.id.split(':').pop() || user.id) : null;
+    let host;
+    if (API_BASE) {
+      try { host = new URL(API_BASE).host; } catch (e) { host = window.location.host; }
+    } else {
+      host = window.location.host;
+    }
+    const configureUrl = `/configure.html?id=${userId}`;
 
-          window.location.href = manifestUrl;
-        } else {
-          showToast("Please sign in to install addons.", "info");
-        }
-      } catch (e) {
-        console.error("Install failed", e);
-        showToast("Failed to initiate install.", "error");
+    if (!user) {
+      // Neither state shown if not logged in — handled by login overlay
+      unlinkedState.style.display = 'none';
+      linkedState.style.display = 'none';
+      return;
+    }
+
+    if (!gardenerCount || gardenerCount === 0) {
+      // STATE A: No devices linked — show configure-first gate
+      unlinkedState.style.display = 'block';
+      linkedState.style.display = 'none';
+
+      const configureBtn = document.getElementById('btn-configure-addon');
+      if (configureBtn) {
+        configureBtn.onclick = () => {
+          window.open(configureUrl, '_blank');
+        };
       }
-    });
+    } else {
+      // STATE B: Devices already linked — unlock install + configure
+      unlinkedState.style.display = 'none';
+      linkedState.style.display = 'flex';
+
+      const installBtn = document.querySelector('.btn-install-addon');
+      if (installBtn) {
+        installBtn.onclick = () => {
+          try {
+            const manifestUrl = `stremio://${host}/u/${userId}/manifest.json`;
+            window.location.href = manifestUrl;
+          } catch (e) {
+            console.error('Install failed', e);
+            showToast('Failed to initiate install.', 'error');
+          }
+        };
+      }
+
+      const openConfigureBtn = document.getElementById('btn-open-configure');
+      if (openConfigureBtn) {
+        openConfigureBtn.onclick = () => {
+          window.open(configureUrl, '_blank');
+        };
+      }
+    }
   }
-}
+
 // --- Profile Management ---
 
 async function loadProfile() {

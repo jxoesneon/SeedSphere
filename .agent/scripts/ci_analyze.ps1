@@ -50,6 +50,15 @@ if (Test-Match $Diff "^router/") {
     }
 }
 
+# Analyze Legacy
+if (Test-Match $Diff "^legacy/") {
+    $Matrix.include += @{
+        project = "legacy"
+        os = "ubuntu-latest"
+        cmd = "npm test"
+    }
+}
+
 # Always include functional tests if anything changed? 
 # For now, strictly modular.
 

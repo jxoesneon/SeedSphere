@@ -698,24 +698,83 @@
 }
 
 /* Responsive */
+@media (max-width: 1200px) {
+    .dashboard-main {
+        padding: 40px 30px;
+    }
+}
+
 @media (max-width: 1024px) {
     .sidebar {
-        width: 200px;
+        width: 80px;
+        padding: 16px 8px;
+    }
+
+    .nav-label, .profile-info, .user-badge span {
+        display: none;
+    }
+
+    .nav-item {
+        justify-content: center;
+        padding: 12px;
     }
 
     .dashboard-main {
-        margin-left: 200px;
+        margin-left: 80px;
     }
 }
 
 @media (max-width: 768px) {
+    .dashboard-container {
+        flex-direction: column;
+        padding-top: 80px;
+    }
+
     .sidebar {
-        display: none;
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        height: auto;
+        padding: 8px;
+        border-right: none;
+        border-top: 0.5px solid var(--glass-border);
+        z-index: 100;
+        background: rgba(2, 6, 23, 0.95);
+        backdrop-filter: blur(20px);
+    }
+
+    .sidebar-nav {
+        flex-direction: row;
+        justify-content: space-around;
+        gap: 0;
+    }
+
+    .nav-item {
+        flex-direction: column;
+        gap: 4px;
+        font-size: 10px;
+        padding: 8px;
+    }
+
+    .nav-icon {
+        font-size: 24px;
     }
 
     .dashboard-main {
         margin-left: 0;
-        padding: 24px;
+        margin-bottom: 80px; /* Space for bottom nav */
+        padding: 24px 16px;
+    }
+
+    .dashboard-title {
+        font-size: 32px;
+        text-align: center;
+    }
+
+    .profile-header {
+        flex-direction: column;
+        text-align: center;
     }
 
     .profile-stats {
@@ -725,6 +784,24 @@
     .action-grid {
         grid-template-columns: 1fr;
     }
+
+    .stat-card {
+        padding: 16px;
+    }
+
+    .stat-value {
+        font-size: 24px;
+    }
+}
+
+/* Fix for horizontal scroll and general layout */
+* {
+    max-width: 100%;
+    box-sizing: border-box;
+}
+
+body {
+    overflow-x: hidden;
 }
 /* Toast Container - Floating Top Right */
 .toast-container {

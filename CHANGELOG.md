@@ -2,6 +2,27 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.2.1] - 2026-03-16 (Patch Release)
+
+### Gardener Client
+
+- **Crash Fix**: Resolved `FileSystemException` ("The handle is invalid") in Windows release mode by removing illegal `stderr` and `print` calls from worker isolates.
+- **Diagnostics**: Hardened P2P resolution task to fail gracefully in restricted environments.
+
+### Router & Portal
+
+- **Stremio Addon**: Added a standalone "Install to Stremio" button to the configuration portal for easier setup.
+- **Backend Logic**: Fixed `gardener_count` calculation in `AuthService` to correctly reflect owned devices and enable the dashboard's install section.
+- **Consistency**: Optimized portal API calls to align with the new `/api/link/complete` routing.
+
+## [2.2.0] - 2026-02-17 (Unified Patch Release)
+
+### Router & Portal
+
+- **API Alignment**: Synced portal dashboard with server by moving `/releases` to `/api/releases`.
+- **Version Sync**: Aligned all components (Router, Portal, Bridge) to version `2.2.0`.
+- **Infrastructure**: Fixed Cloudflare KV configurations and linting issues across the backend.
+
 ## [1.9.68] - 2026-01-08 (System Maintenance)
 
 ### Portal & UX

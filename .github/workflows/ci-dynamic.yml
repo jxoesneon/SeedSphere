@@ -47,6 +47,14 @@ jobs:
         if: matrix.project == 'router'
         uses: dart-lang/setup-dart@v1
 
+      - name: Setup Node
+        if: matrix.project != 'gardener' && matrix.project != 'router'
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "npm"
+          cache-dependency-path: ${{ matrix.project }}/package-lock.json
+
       - name: Run Tests
         env:
           GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET_DESKTOP }}

@@ -40,7 +40,7 @@ jobs:
         working-directory: gardener
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-java@v3
+      - uses: actions/setup-java@v5
         with:
           distribution: "zulu"
           java-version: "17"
@@ -59,7 +59,7 @@ jobs:
         run: flutter build appbundle --release
 
       - name: Upload APK
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: gardener-android-apk
           path: gardener/build/app/outputs/flutter-apk/app-release.apk
@@ -112,7 +112,7 @@ jobs:
         run: iscc windows/installer.iss
 
       - name: Upload Windows Installer
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: gardener-windows-setup
           path: gardener/build/windows/installer/gardener-setup.exe
@@ -152,7 +152,7 @@ jobs:
         run: |
           mkdir -p dist
           # Create DEB
-          fpm -s dir -t deb -n gardener -v 1.9.3 -a x86_64 \
+          fpm -s dir -t deb -n gardener -v 2.2.1 -a x86_64 \
             --description "SeedSphere Gardener Client" \
             --maintainer "SeedSphere <dev@seedsphere.app>" \
             --prefix /opt/gardener \
@@ -160,7 +160,7 @@ jobs:
           mv gardener_*.deb dist/gardener-linux-x64.deb
 
           # Create RPM
-          fpm -s dir -t rpm -n gardener -v 1.9.3 -a x86_64 \
+          fpm -s dir -t rpm -n gardener -v 2.2.1 -a x86_64 \
             --description "SeedSphere Gardener Client" \
             --maintainer "SeedSphere <dev@seedsphere.app>" \
             --prefix /opt/gardener \
@@ -168,7 +168,7 @@ jobs:
           mv gardener-*.rpm dist/gardener-linux-x64.rpm
 
       - name: Upload Linux Build (x64)
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: gardener-linux-x64-all
           path: |
@@ -186,7 +186,7 @@ jobs:
       - uses: docker/setup-qemu-action@v3
 
       - name: Build inside ARM64 Container
-        uses: uraimo/run-on-arch-action@v2
+        uses: uraimo/run-on-arch-action@v3
         with:
           arch: aarch64
           distro: ubuntu22.04
@@ -195,7 +195,7 @@ jobs:
           install: |
             # Install build dependencies
             apt-get update
-            apt-get install -y curl git unzip xz-utils zip libglu1-mesa clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev ruby ruby-dev build-essential rpm libsecret-1-dev libjsoncpp-dev libnm-dev libsqlite3-dev
+            apt-get install -y curl git unzip xz-utils zip libglu1-mesa clang lld cmake ninja-build pkg-config libgtk-3-dev liblzma-dev ruby ruby-dev build-essential rpm libsecret-1-dev libjsoncpp-dev libnm-dev libsqlite3-dev
 
             # Install Flutter manually in ARM container
             git clone https://github.com/flutter/flutter.git -b stable --depth 1 /opt/flutter
@@ -216,7 +216,7 @@ jobs:
             mkdir -p dist
 
             # Create DEB (ARM64)
-            fpm -s dir -t deb -n gardener -v 1.9.3 -a aarch64 \
+            fpm -s dir -t deb -n gardener -v 2.2.1 -a aarch64 \
               --description "SeedSphere Gardener Client" \
               --maintainer "SeedSphere <dev@seedsphere.app>" \
               --prefix /opt/gardener \
@@ -224,7 +224,7 @@ jobs:
             mv gardener_*.deb dist/gardener-linux-arm64.deb
 
             # Create RPM (ARM64)
-            fpm -s dir -t rpm -n gardener -v 1.9.3 -a aarch64 \
+            fpm -s dir -t rpm -n gardener -v 2.2.1 -a aarch64 \
               --description "SeedSphere Gardener Client" \
               --maintainer "SeedSphere <dev@seedsphere.app>" \
               --prefix /opt/gardener \
@@ -232,7 +232,7 @@ jobs:
             mv gardener-*.rpm dist/gardener-linux-arm64.rpm
 
       - name: Upload Linux Build (ARM64)
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: gardener-linux-arm64
           path: |
@@ -279,7 +279,7 @@ jobs:
             "build/macos/Build/Products/Release/gardener.app"
 
       - name: Upload macOS Build
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: gardener-macos-universal
           path: |
@@ -297,7 +297,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Download all artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           path: ./artifacts
 

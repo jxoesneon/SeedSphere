@@ -81,14 +81,19 @@ final _router = Router()
   )
   ..get('/api/status', _rootHandler) // Moved to free up root for portal
   ..get('/dl/<file>', _handleDownload)
-  ..get('/releases', _handleReleases)
+  ..get(
+    '/downloads/<file>',
+    _handleDownload,
+  ) // Alias for better dashboard compatibility
+  ..get('/api/releases', _handleReleases) // Aligned with portal expectations
+  ..get('/releases', _handleReleases) // Backward compatibility alias
   ..get('/health', _healthHandler)
   ..post('/pairing/create', _createPairingHandler)
   ..post('/pairing/complete', _completePairingHandler)
   ..get('/pairing/status', _statusPairingHandler)
-  ..post('/link/start', _linkStartHandler)
-  ..post('/link/complete', _linkCompleteHandler)
-  ..get('/link/status', _linkStatusHandler)
+  ..post('/api/link/start', _linkStartHandler)
+  ..post('/api/link/complete', _linkCompleteHandler)
+  ..get('/api/link/status', _linkStatusHandler)
   ..get(
     '/api/events',
     (Request req) =>
@@ -196,7 +201,7 @@ Response _rootHandler(Request req) {
   return Response.ok(
     jsonEncode({
       'name': 'SeedSphere Router',
-      'version': '2.1.8',
+      'version': '2.2.0',
       'status': 'active',
       'mode': 'Federated Frontier (Parity)',
     }),
@@ -1019,7 +1024,8 @@ void main(List<String> args) async {
               Platform.environment['SMTP_FROM'] ?? 'noreply@seedsphere.app',
         );
 
-  trackerService = TrackerService(db, healthService)..init();
+  trackerService = TrackerService(db, healthService);
+  unawaited(trackerService.init());
   scraperService = DistributedScraperService(
     trackerService,
     db: db,

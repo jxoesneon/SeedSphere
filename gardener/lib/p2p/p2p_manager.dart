@@ -329,15 +329,9 @@ class P2PManager {
 
   Future<void> _runGlobalResolutionTask() async {
     if (toIsolatePort == null) {
-      stderr.writeln(
-        'DEBUG: [GlobalResolution] Skipped - toIsolatePort is NULL',
-      );
       return;
     }
 
-    stderr.writeln(
-      'DEBUG: [GlobalResolution] Spawning Isolate for Global Resolution...',
-    );
     DebugLogger.info(
       'P2P: [TASK] Spawning Isolate for Global Resolution...',
       category: 'SWARM',
@@ -355,7 +349,6 @@ class P2PManager {
         category: 'SWARM',
       );
     } catch (e) {
-      stderr.writeln('DEBUG: [GlobalResolution] FAILED: $e');
       DebugLogger.error('P2P: [TASK] Global Resolution isolate failed: $e');
     }
   }
@@ -368,9 +361,6 @@ class P2PManager {
     String endpoint,
   ) async {
     try {
-      stderr.writeln(
-        'DEBUG: [GlobalResolutionWorker] Fetching from $endpoint',
-      ); // debug
       final uri = Uri.parse(endpoint);
       final resp = await http.get(uri);
 
@@ -378,37 +368,22 @@ class P2PManager {
         final data = jsonDecode(resp.body);
         final metas = (data['metas'] as List).take(10).toList();
 
-        stderr.writeln(
-          'DEBUG: [GlobalResolutionWorker] Found ${metas.length} items. Sending commands...',
-        );
-
         for (var m in metas) {
           try {
             final id = m['imdbId'] ?? m['id'];
             // Send Search Command directly to P2P Isolate from this ephemeral isolate
             if (id != null) {
-              stderr.writeln(
-                'DEBUG: [GlobalResolutionWorker] Sending SEARCH for $id',
-              );
               p2pPort.send(
                 P2PCommand(type: P2PCommandType.search, imdbId: id).toJson(),
               );
             }
           } catch (e) {
-            stderr.writeln(
-              'DEBUG: [GlobalResolutionWorker] Error processing item: $e',
-            );
+            // Silently fail per-item errors in worker
           }
         }
-      } else {
-        stderr.writeln(
-          'DEBUG: [GlobalResolutionWorker] HTTP Error: ${resp.statusCode}',
-        );
       }
     } catch (e) {
-      stderr.writeln('DEBUG: [GlobalResolutionWorker] CRITICAL ERROR: $e');
-      // Isolate crash or network fail - silent fail or minimal print
-      // (Main isolate catches the Isolate error if Isolate.run fails)
+      // Isolate crash or network fail - handled by caller
     }
   }
 
