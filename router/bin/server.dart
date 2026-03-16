@@ -81,15 +81,19 @@ final _router = Router()
   )
   ..get('/api/status', _rootHandler) // Moved to free up root for portal
   ..get('/dl/<file>', _handleDownload)
+  ..get(
+    '/downloads/<file>',
+    _handleDownload,
+  ) // Alias for better dashboard compatibility
   ..get('/api/releases', _handleReleases) // Aligned with portal expectations
   ..get('/releases', _handleReleases) // Backward compatibility alias
   ..get('/health', _healthHandler)
   ..post('/pairing/create', _createPairingHandler)
   ..post('/pairing/complete', _completePairingHandler)
   ..get('/pairing/status', _statusPairingHandler)
-  ..post('/link/start', _linkStartHandler)
-  ..post('/link/complete', _linkCompleteHandler)
-  ..get('/link/status', _linkStatusHandler)
+  ..post('/api/link/start', _linkStartHandler)
+  ..post('/api/link/complete', _linkCompleteHandler)
+  ..get('/api/link/status', _linkStatusHandler)
   ..get(
     '/api/events',
     (Request req) =>

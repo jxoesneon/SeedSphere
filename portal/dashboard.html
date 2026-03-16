@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
@@ -282,33 +282,38 @@
           </div>
 
           <div class="settings-card glass">
-            <h3>Linking Token & Stremio Addon</h3>
+            <h3>Linking Token &amp; Stremio Addon</h3>
             <div class="token-display">
               <code id="linking-token">Loading...</code>
               <button class="btn-copy">Copy</button>
             </div>
-            <div style="margin-top: 1rem">
-              <button
-                class="btn-install-addon"
-                style="
-                  width: 100%;
-                  padding: 0.75rem;
-                  background: var(--aether-blue);
-                  border: none;
-                  border-radius: 8px;
-                  color: white;
-                  cursor: pointer;
-                  font-weight: 600;
-                "
-              >
-                🧩 Install to Stremio
+
+            <!-- STATE A: No devices linked - guide user to configure first -->
+            <div id="addon-unlinked-state" style="margin-top: 1.25rem; display: none;">
+              <div style="background: rgba(56,189,248,0.05); border: 1px solid rgba(56,189,248,0.2); border-radius: 12px; padding: 1.25rem; text-align: center; margin-bottom: 1rem;">
+                <div style="font-size: 1.75rem; margin-bottom: 0.5rem;">&#x1F517;</div>
+                <div style="font-weight: 600; margin-bottom: 0.35rem;">Link a Device First</div>
+                <div style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 1rem;">
+                  Open the configuration page to link your Gardener to this account before installing the addon.
+                </div>
+                <button id="btn-configure-addon" style="width: 100%; padding: 0.75rem; background: var(--aether-blue); border: none; border-radius: 8px; color: white; cursor: pointer; font-weight: 600; font-size: 0.95rem;">
+                  &#x2699;&#xFE0F; Configure &amp; Link Device
+                </button>
+              </div>
+            </div>
+
+            <!-- STATE B: Devices linked - show full addon controls -->
+            <div id="addon-linked-state" style="margin-top: 1.25rem; display: none; flex-direction: column; gap: 0.75rem;">
+              <button class="btn-install-addon" style="width: 100%; padding: 0.75rem; background: var(--aether-blue); border: none; border-radius: 8px; color: white; cursor: pointer; font-weight: 600;">
+                &#x1F9E9; Install to Stremio
+              </button>
+              <button id="btn-open-configure" style="width: 100%; padding: 0.75rem; background: transparent; border: 1px solid rgba(56,189,248,0.4); border-radius: 8px; color: var(--aether-blue); cursor: pointer; font-weight: 600;">
+                &#x2699;&#xFE0F; Configure Addon
               </button>
             </div>
-            <p class="help-text">
-              Use this token to link devices or install the private addon.
-            </p>
-          </div>
 
+            <p class="help-text">Use this token to link devices or install the private addon.</p>
+          </div>
           <div class="settings-card glass danger-zone">
             <h3>Danger Zone</h3>
             <button class="btn-danger">Unlink All Devices</button>
