@@ -1,4 +1,4 @@
-﻿name: router
+name: router
 description: A server app using the shelf package and Docker.
 version: 2.2.1
 publish_to: none
