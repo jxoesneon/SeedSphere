@@ -14,11 +14,11 @@
     "hono": "^4.12.8"
   },
   "devDependencies": {
-    "@cloudflare/vitest-pool-workers": "^0.12.10",
+    "@cloudflare/vitest-pool-workers": "^0.8.71",
     "@cloudflare/workers-types": "^4.20251231.0",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3",
     "vitest": "^3.2.0",
-    "wrangler": "^4.63.0"
+    "wrangler": "^4.35.0"
   }
 }

@@ -20,7 +20,7 @@ dependencies:
   path: ^1.8.3
 
   http: ^1.6.0
-  mailer: ^6.0.0
+  mailer: ^7.1.0
   googleapis_auth: ^2.2.0
   dart_jsonwebtoken: ^3.3.1
   pointycastle: ^4.0.0
