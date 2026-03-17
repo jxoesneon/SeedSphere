@@ -18,7 +18,8 @@ function normalizeCodec(s) {
 
 function parseSize(str) {
   try {
-    const m = String(str || '').match(/(\d+(?:\.\d+)?)\s*(TB|TiB|GB|GiB|MB|MiB|KB|KiB)\b/i)
+    // Bounded digit quantifier prevents polynomial backtracking (fixes CodeQL js/polynomial-redos)
+    const m = String(str || '').match(/(\d{1,15}(?:\.\d{1,6})?)\s*(TB|TiB|GB|GiB|MB|MiB|KB|KiB)\b/i)
     if (!m) return { sizeStr: null, sizeBytes: null }
     const num = parseFloat(m[1])
     const unit = m[2].toUpperCase()

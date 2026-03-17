@@ -1,7 +1,7 @@
 {
   "name": "seedsphere-refactor",
   "private": true,
-  "version": "1.1.0",
+  "version": "2.3.1",
   "type": "module",
   "description": "SeedSphere — Gardener PWA, Greenhouse backend, and Seedling addon.",
   "repository": {

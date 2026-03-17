@@ -1654,7 +1654,7 @@ watch(aiProvider, (p) => {
 // LS_AI_LOCAL declared above; avoid redeclaration
 onMounted(() => {
   try {
-    const saved = JSON.parse(localStorage.getItem(LS_AI_LOCAL) || '{}')
+    const saved = JSON.parse(sessionStorage.getItem(LS_AI_LOCAL) || '{}')
     if (saved && typeof saved === 'object') {
       if (typeof saved.aiApiKey === 'string') aiApiKey.value = saved.aiApiKey
       if (typeof saved.aiBaseUrl === 'string') aiBaseUrl.value = saved.aiBaseUrl
@@ -1665,7 +1665,7 @@ onMounted(() => {
 
 watch([aiApiKey, aiBaseUrl, aiAzureApiVersion], () => {
   try {
-    localStorage.setItem(LS_AI_LOCAL, JSON.stringify({
+    sessionStorage.setItem(LS_AI_LOCAL, JSON.stringify({
       aiApiKey: aiApiKey.value,
       aiBaseUrl: aiBaseUrl.value,
       aiAzureApiVersion: aiAzureApiVersion.value,

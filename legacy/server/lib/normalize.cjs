@@ -57,7 +57,8 @@ function mapEdition(title) {
 
 function extractRemaster(title) {
   const s = String(title || '')
-  const br = s.match(/\[\s*Remaster(?:ed)?\s*([^\]]*)\]/i)
+  // Bounded quantifier prevents polynomial backtracking (fixes CodeQL js/polynomial-redos)
+  const br = s.match(/\[Remaster(?:ed)?[ \t]{0,20}([^\]]{0,128})\]/i)
   if (br) {
     const note = (br[1] || '').trim()
     return { flag: true, note: note || undefined }

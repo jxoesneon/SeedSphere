@@ -119,7 +119,8 @@ router.post('/logout', (req, res) => {
 router.post('/magic/start', async (req, res) => {
   try {
     const email = String(req.body?.email || '').trim().toLowerCase()
-    if (!email || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return res.status(400).json({ ok: false, error: 'invalid_email' })
+    // Safe email validation: bounded groups prevent catastrophic backtracking (fixes CodeQL js/polynomial-redos)
+    if (!email || email.length > 254 || !/^[^\s@]{1,64}@[^\s@]{1,253}\.[^\s@]{1,63}$/.test(email)) return res.status(400).json({ ok: false, error: 'invalid_email' })
     const secret = process.env.AUTH_JWT_SECRET || ''
     if (!secret) return res.status(500).json({ ok: false, error: 'server_not_configured' })
     const jti = uuidv4()
