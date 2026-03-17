@@ -89,6 +89,8 @@ function render() {
     dom.btnInstall.classList.add('hidden');
     dom.btnUnlink.classList.add('hidden');
 
+    console.log("Rendering - Auth:", !!state.user, "Linked:", state.isLinked);
+
     if (!state.user) {
         dom.btnLogin.classList.remove('hidden');
     } else if (!state.isLinked) {
@@ -98,9 +100,12 @@ function render() {
         dom.btnUnlink.classList.remove('hidden');
     }
 
-    // Auto-focus for TV
-    const visibleBtn = [dom.btnLogin, dom.btnLink, dom.btnUnlink].find(b => !b.classList.contains('hidden'));
-    if (visibleBtn) visibleBtn.focus();
+    // Auto-focus for TV (Prioritize Link/Install)
+    const visibleBtn = [dom.btnLink, dom.btnInstall, dom.btnLogin, dom.btnUnlink].find(b => !b.classList.contains('hidden'));
+    if (visibleBtn) {
+        console.log("Focusing:", visibleBtn.id);
+        visibleBtn.focus();
+    }
 }
 
 /** Actions */
