@@ -416,7 +416,9 @@ function setupInteractions() {
       }
     });
   });
-  // Install Addon (Stremio) - Gate-First Flow (Option A)
+}
+
+// Install Addon (Stremio) - Gate-First Flow (Option A)
   function renderAddonSection(user, gardenerCount) {
     const unlinkedState = document.getElementById('addon-unlinked-state');
     const linkedState = document.getElementById('addon-linked-state');
