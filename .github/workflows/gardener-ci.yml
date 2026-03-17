@@ -49,6 +49,10 @@ jobs:
           channel: stable
           cache: true
 
+      - name: Inject Secrets
+        run: |
+          sed -i 's/REPLACE_ME_RESTRICTED_API_KEY/${{ secrets.FIREBASE_API_KEY_ANDROID }}/g' android/app/google-services.json
+
       - name: Get Dependencies
         run: flutter pub get
 
@@ -78,6 +82,10 @@ jobs:
         with:
           channel: stable
           cache: true
+
+      - name: Inject Secrets
+        run: |
+          sed -i '' 's/REPLACE_ME_RESTRICTED_API_KEY/${{ secrets.FIREBASE_API_KEY_IOS }}/g' ios/Runner/GoogleService-Info.plist
 
       - name: Get Dependencies
         run: flutter pub get
@@ -152,7 +160,7 @@ jobs:
         run: |
           mkdir -p dist
           # Create DEB
-          fpm -s dir -t deb -n gardener -v 2.3.2 -a x86_64 \
+          fpm -s dir -t deb -n gardener -v 2.3.3 -a x86_64 \
             --description "SeedSphere Gardener Client" \
             --maintainer "SeedSphere <dev@seedsphere.app>" \
             --prefix /opt/gardener \
@@ -160,7 +168,7 @@ jobs:
           mv gardener_*.deb dist/gardener-linux-x64.deb
 
           # Create RPM
-          fpm -s dir -t rpm -n gardener -v 2.3.2 -a x86_64 \
+          fpm -s dir -t rpm -n gardener -v 2.3.3 -a x86_64 \
             --description "SeedSphere Gardener Client" \
             --maintainer "SeedSphere <dev@seedsphere.app>" \
             --prefix /opt/gardener \
@@ -216,7 +224,7 @@ jobs:
             mkdir -p dist
 
             # Create DEB (ARM64)
-            fpm -s dir -t deb -n gardener -v 2.3.2 -a aarch64 \
+            fpm -s dir -t deb -n gardener -v 2.3.3 -a aarch64 \
               --description "SeedSphere Gardener Client" \
               --maintainer "SeedSphere <dev@seedsphere.app>" \
               --prefix /opt/gardener \
@@ -224,7 +232,7 @@ jobs:
             mv gardener_*.deb dist/gardener-linux-arm64.deb
 
             # Create RPM (ARM64)
-            fpm -s dir -t rpm -n gardener -v 2.3.2 -a aarch64 \
+            fpm -s dir -t rpm -n gardener -v 2.3.3 -a aarch64 \
               --description "SeedSphere Gardener Client" \
               --maintainer "SeedSphere <dev@seedsphere.app>" \
               --prefix /opt/gardener \
