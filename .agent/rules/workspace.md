@@ -1,19 +1,21 @@
-﻿
 
 # Project Governance Rules (SeedSphere)
 
 ## 1. Release Management
+
 - **Workflows**: Strictly follow .agent/workflows/release-workflow.md for all releases.
 - **Automation**: ALWAYS use .agent/scripts/release.ps1 for version bumps. This ensures `pubspec.yaml` and `package.json` files stay in sync.
 - **Versioning**: Synchronization is mandatory. `router`, `gardener`, and `portal` must strictly share the same version number (SemVer).
 
 ## 2. Cross-Platform Compatibility
+
 - **Mobile First**: `gardener` is a Flutter app. Verify changes on Android and iOS (simulator/device) where possible.
 - **Desktop Parity**: Ensure `router` runs seamlessly on Windows, Linux, and macOS.
 - **Path Handling**: Use `path` package or `Platform.pathSeparator`. NEVER manually concatenate file URIs.
 - **Binaries**: Explicitly handle `.exe` extensions on Windows (e.g. for `libsodium` loading).
 
 ## 3. Automation & Documentation
+
 - **Workflow-First**: Complex manual processes must be documented in .agent/workflows/.
 - **Scripts**: Reusable maintenance scripts belong in .agent/scripts/ (PowerShell preferred for cross-platform ease).
 - **CI/CD Standards**:
@@ -29,10 +31,12 @@
   - **Verification**: Run `.agent/scripts/test_suite.ps1` to prevent CI failures.
 
 ## 4. Development Standards
+
 - **Testing**: `dart test` (Router) and `flutter test` (Gardener) are the golden standards.
 - **Analysis**: Code must pass `dart analyze` with zero errors.
 
 ## 5. Architectural Integrity
+
 - **Router (Backend)**:
   - **Pattern**: Service-Controller-Model.
   - **Dependency Injection**: Pass services via constructor. Avoid global singletons where possible (except `db`, `env`).
@@ -43,14 +47,21 @@
 - **Parity**: Maintain functional parity with Legacy Node.js implementation until full migration is confirmed.
 
 ## 6. AI Collaboration Guidelines
+
 - **Context Awareness**: Before editing, always check `parity_report.md` to ensure feature completeness.
 - **Logging**: Use `print` for debug, but prefer structured logging for production features.
 - **Testing**: When editing `P2PNode`, usually mock the swarm interactions. Real-world testing is done via `debug_stack.ps1`.
 
 ## 7. Agent Operational Protocol
+
 - **Tool Calling**:
   - **Argument Order**: Strictly adhere to the parameter order defined in the tool definition/schema.
   - **Conciseness**: Keep logs brief.
 - **File Editing**:
   - **Read-First**: Always call view_file immediately before replace_file_content.
 
+## 8. Security Standards
+
+- **Regex Integrity**: ALWAYS use bounded quantifiers (e.g., `{1,128}`) for regular expressions that process user-controlled strings to prevent ReDoS.
+- **Secret Hygiene**: Sensitive API keys and tokens must NEVER be stored in `localStorage`. Use `sessionStorage` for temporary tab-scoped state or encrypted-at-rest backend storage (libsodium).
+- **Zero Vulnerability**: Maintain a zero High/Critical vulnerability state. All `npm audit` results must be documented; legitimate nested low-severity alerts must be mitigated with top-level `overrides`.
