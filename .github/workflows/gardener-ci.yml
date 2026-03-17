@@ -183,7 +183,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-qemu-action@v4
 
       - name: Build inside ARM64 Container
         uses: uraimo/run-on-arch-action@v3
