@@ -1,6 +1,6 @@
 {
   "name": "seedsphere-bridge",
-  "version": "2.3.1",
+  "version": "2.3.2",
   "description": "SeedSphere Federated P2P Discovery Bridge",
   "main": "src/index.ts",
   "scripts": {
