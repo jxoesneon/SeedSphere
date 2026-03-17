@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
@@ -9,7 +9,7 @@
     />
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self' https://accounts.google.com; img-src 'self' data: https:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com;"
+      content="default-src 'self' https://accounts.google.com https://api.qrserver.com; img-src 'self' data: https:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; script-src 'self' 'unsafe-inline' https://accounts.google.com;"
     />
     <title>SeedSphere Dashboard</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -79,11 +79,7 @@
     </div>
 
     <!-- Dashboard Container -->
-    <div
-      class="dashboard-container"
-      id="main-dashboard"
-      style="filter: blur(5px)"
-    >
+    <div class="dashboard-container" id="main-dashboard">
       <!-- Sidebar -->
       <aside class="sidebar">
         <nav class="sidebar-nav">

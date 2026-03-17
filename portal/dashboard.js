@@ -1,17 +1,25 @@
 // Dashboard JavaScript
 
 document.addEventListener("DOMContentLoaded", () => {
-  // Load user data
-  loadUserData();
+    console.log("Dashboard Initializing...");
+    try {
+        // Load user data
+        loadUserData();
 
-  // Setup navigation
-  setupDashboardNav();
+        // Setup navigation
+        setupDashboardNav();
 
-  // Setup interactions
-  setupInteractions();
+        // Setup interactions
+        setupInteractions();
 
-  // Load Releases
-  loadReleases();
+        // Load Releases
+        loadReleases();
+    } catch (e) {
+        console.error("Dashboard Init Error:", e);
+        // Ensure blur is removed even on error
+        const dash = document.getElementById("main-dashboard");
+        if (dash) dash.style.filter = "none";
+    }
 });
 
 // Dynamic API Base URL

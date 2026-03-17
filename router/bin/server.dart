@@ -937,7 +937,7 @@ Middleware securityHardeningMiddleware() {
           'X-Frame-Options': 'DENY',
           'Referrer-Policy': 'no-referrer',
           'Content-Security-Policy':
-              "default-src 'self' 'unsafe-inline' https: http:; script-src 'self' 'unsafe-inline'; object-src 'none';",
+              "default-src 'self' 'unsafe-inline' https: http:; script-src 'self' 'unsafe-inline' https: http:; img-src 'self' data: https: http:; font-src 'self' https: http:; object-src 'none';",
           ...response.headers, // Keep existing headers
         },
       );
