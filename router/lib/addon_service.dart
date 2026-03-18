@@ -231,7 +231,8 @@ class AddonService {
     manifest['name'] = "SeedSphere (Private)";
     manifest['description'] = "Your private swarm gateway.";
     manifest['catalogs'] = catalogs;
-    manifest['configurationURL'] = '$scheme://$host$portString/configure.html';
+    manifest['configurationURL'] =
+        '$scheme://$host$portString/u/$userId/configure';
 
     return _jsonResponse(manifest);
   }

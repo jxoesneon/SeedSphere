@@ -289,12 +289,21 @@ class AuthService {
       );
       final url = '${_baseUrl(req)}/api/auth/magic/callback?token=$token';
 
-      final sent = await _mailer.sendEmail(
-        to: email,
-        subject: 'Sign in to SeedSphere',
-        body: 'Click here to sign in: $url', // Simplified for now
-        isHtml: false,
-      );
+      final isDevBypass = email.endsWith('@seedsphere.dev');
+      var sent = false;
+
+      if (isDevBypass) {
+        _instanceLogger.info('BYPASS: Magic Link for $email: $url');
+        print('BYPASS: Magic Link for $email: $url');
+        sent = true;
+      } else {
+        sent = await _mailer.sendEmail(
+          to: email,
+          subject: 'Sign in to SeedSphere',
+          body: 'Click here to sign in: $url', // Simplified for now
+          isHtml: false,
+        );
+      }
 
       if (!sent) {
         return Response.internalServerError(

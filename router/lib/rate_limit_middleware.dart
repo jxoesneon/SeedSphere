@@ -57,7 +57,10 @@ Middleware rateLimitMiddleware() {
       int windowMs = 60000;
       String type = 'default';
 
-      if (path.contains('heartbeat')) {
+      if (path.contains('auth/session')) {
+        limit = 300;
+        type = 'session';
+      } else if (path.contains('heartbeat')) {
         limit = 300;
         type = 'hb';
       } else if (path.contains('link/start')) {

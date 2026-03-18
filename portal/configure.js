@@ -35,7 +35,7 @@ async function init() {
         return;
     }
 
-    dom.deviceIdBox.textContent = `HEX ID: ${state.deviceId}`;
+    dom.deviceIdBox.textContent = `ID (Device or User): ${state.deviceId}`;
     
     await Promise.all([
         updateStatus(),

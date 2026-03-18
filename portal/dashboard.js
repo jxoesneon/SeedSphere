@@ -436,9 +436,18 @@ function setupInteractions() {
     const configureUrl = `/configure.html?id=${userId}`;
 
     if (!user) {
-      // Neither state shown if not logged in — handled by login overlay
-      unlinkedState.style.display = 'none';
+      // Show unlinked state for guests but with login prompt
+      unlinkedState.style.display = 'block';
       linkedState.style.display = 'none';
+      
+      const configBtn = document.getElementById('btn-configure-addon');
+      if (configBtn) {
+        configBtn.innerHTML = '&#x1F512; Login to Setup Addon';
+        configBtn.onclick = () => {
+          document.querySelector('.nav-item[href="#profile"]')?.click();
+          // Scroll to login form if possible or just show profile
+        };
+      }
       return;
     }
 
