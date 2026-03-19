@@ -24,7 +24,7 @@ class DebugConfig {
   static const bool forceExpertMode = kDebugMode;
 
   /// Toggle for persistent file logging.
-  static const bool fileLoggingEnabled = false;
+  static const bool fileLoggingEnabled = true;
 
   /// Helper to check if a prefix should be logged.
   static bool shouldLog(String category) {

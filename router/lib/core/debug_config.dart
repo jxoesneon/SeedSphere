@@ -4,13 +4,13 @@
 class DebugConfig {
   /// Master toggle for all verbose "EKG", "Pulse", and "Heartbeat" logging.
   /// Set to false to silence high-frequency logs.
-  static const bool pulseGated = false;
+  static const bool pulseGated = true;
 
   /// Global toggle for background service and bootstrap tracing.
   static const bool p2pGated = true;
 
   /// Temporary bypass for P2P initialization (fixes Windows libsodium hangs).
-  static const bool disableP2P = true;
+  static const bool disableP2P = false;
 
   /// Helper to check if a category should be logged.
   static bool shouldLog(String category) {

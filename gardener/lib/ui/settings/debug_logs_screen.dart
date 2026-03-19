@@ -77,6 +77,12 @@ class _DebugLogsScreenState extends ConsumerState<DebugLogsScreen> {
       final time = DateFormat('HH:mm:ss.SSS').format(e.timestamp);
       final cat = e.category != null ? '[${e.category}] ' : '';
       report.writeln('[$time] $cat${e.levelLabel}: ${e.message}');
+      if (e.error != null) {
+        report.writeln('  ERROR: ${e.error}');
+      }
+      if (e.stackTrace != null) {
+        report.writeln('  STACK: ${e.stackTrace}');
+      }
     }
 
     await Clipboard.setData(ClipboardData(text: report.toString()));

@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.3.11] - 2026-03-19
+
+- **Fixed:** Resolved persistent "Connecting..." hang in Gardener by enabling TCP bridge and UDP quic listeners.
+- **Fixed:** Corrected bootstrap multiaddr formatting to include required PeerID.
+- **Fixed:** Ensured `peerCount` is reported as `int` to the main thread for correct UI state transitions.
+- **Improved:** Enhanced P2P diagnostic logging to capture dial successes/failures in `gardener_debug.log`.
+- **Fixed:** Normalized Windows path separators in `dart_ipfs` for cross-platform consistency.
+
 ## [2.1.5] - 2026-01-13
 
 - **Fixed:** Adjusted `TitleVerifier` fuzzy threshold to 0.85 to handle floating point precision issues while staying strict enough to reject sequels.

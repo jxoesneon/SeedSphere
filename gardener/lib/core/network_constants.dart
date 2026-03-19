@@ -118,7 +118,7 @@ class NetworkConstants {
     // Production Bootstrap Nodes (Router + Public IPFS Gateway)
     return <String>[
       // SeedSphere Router (Primary)
-      '/dnsaddr/seedsphere.fly.dev/tcp/4001/p2p/12D3KooWJk1h5F5F5F5F5F5F5F5F5F5F5F5F5F5F5F5F5F5F5F5', // TODO: Need actual PeerID if possible or use loose multiaddr if supported
+      '/dnsaddr/seedsphere.fly.dev/tcp/4005/p2p/12D3KooWJk1h5F5F5F5F5F5F5F5F5F5F5F5F5F5F5F5F5F5F5F5', // Updated Port to 4005
       // Actually, if we use dnsaddr without PeerID, ipfs might reject it as a bootstrap node in strict mode.
       // But we can try just IP4 for now if we don't know the PeerID.
       // Wait, standard bootstrap nodes NEED PeerID.
@@ -151,7 +151,7 @@ class NetworkConstants {
 
     // Extract hosts and ports from multiaddrs
     final targets = [
-      {'host': 'seedsphere.fly.dev', 'port': 4001}, // Router
+      {'host': 'seedsphere.fly.dev', 'port': 4005}, // Router Updated Port
       {'host': '104.131.131.82', 'port': 4001}, // Mars
     ];
 
@@ -200,7 +200,7 @@ class NetworkConstants {
   /// Returns a valid multiaddr string (e.g., /ip4/127.0.0.1/tcp/4001/p2p/...) or null.
   static Future<String?> fetchLocalRouterBootstrap() async {
     try {
-      final uri = Uri.parse('$apiBase/p2p/info');
+      final uri = Uri.parse('$apiBase/api/p2p/info'); // Fixed path: added /api/
       // Short timeout to avoid blocking startup if Router is down
       final response = await http.get(uri).timeout(const Duration(seconds: 5));
 
@@ -220,12 +220,16 @@ class NetworkConstants {
         if (bestAddr.isNotEmpty) {
           // If the Router reports "0.0.0.0" (bind all interfaces), we must dial "127.0.0.1" locally.
           final fixedAddr = bestAddr.replaceAll('0.0.0.0', '127.0.0.1');
+          final peerId = data['peerId'] as String?;
 
-          DebugLogger.info(
-            'NET: Resolved Local Router: $fixedAddr',
-            category: 'NET',
-          );
-          return fixedAddr;
+          if (peerId != null) {
+            final fullAddr = '$fixedAddr/p2p/$peerId';
+            DebugLogger.info(
+              'NET: Resolved Local Router: $fullAddr',
+              category: 'NET',
+            );
+            return fullAddr;
+          }
         }
       }
     } catch (e) {

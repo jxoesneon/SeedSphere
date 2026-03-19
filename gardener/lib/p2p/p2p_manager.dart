@@ -884,6 +884,8 @@ class P2PManager {
             bootstrapPeers: [], // Start empty for instant boot
             enableNatTraversal: false, // Disabled for stability
           ),
+          libp2pListenAddress:
+              '/ip4/0.0.0.0/tcp/0', // REQUIRED for bridge transport dial-out
           enableLibp2pBridge: (initMessage is P2PInitData)
               ? initMessage.enableLibp2pBridge
               : false,
@@ -891,7 +893,13 @@ class P2PManager {
       );
       fromMainPort.send('P2P: IPFS Node created. Starting service...');
 
-      await node.start();
+      await node.start().timeout(
+        const Duration(seconds: 45),
+        onTimeout: () {
+          fromMainPort.send('[ERROR] P2P: IPFS Node start timed out (45s)');
+          throw TimeoutException('IPFS Node failed to start within 45s');
+        },
+      );
       fromMainPort.send('P2P: IPFS Node service started.');
       // Update metadata immediately to show we are online
       fromMainPort.send({'msg': 'Identity: ${node.peerId}', 'cat': 'NET'});
@@ -933,11 +941,20 @@ class P2PManager {
           node
               .connectToPeer(peer)
               .then((_) {
-                stderr.writeln('DEBUG: Connected to bootstrap peer: $peer');
+                fromMainPort.send({
+                  'msg': 'P2P: Successfully connected to bootstrap peer: $peer',
+                  'cat': 'NET',
+                  'level': 'INFO',
+                });
+                // Also send peer count update immediately
+                node.connectedPeers.then((p) => fromMainPort.send(p.length));
               })
               .catchError((e) {
-                // meaningful debug log, but don't spam main UI
-                stderr.writeln('DEBUG: Failed to connect to $peer: $e');
+                fromMainPort.send({
+                  'msg': 'P2P: Failed to connect to $peer | Error: $e',
+                  'cat': 'NET',
+                  'level': 'WARN',
+                });
               }),
         );
       }
@@ -974,6 +991,11 @@ class P2PManager {
 
           final peers = await node.connectedPeers;
           final currentCount = peers.length;
+
+          // CRITICAL FIX: Send raw int so main thread ValueNotifier updates
+          if (currentCount != lastPeerCount) {
+            fromMainPort.send(currentCount);
+          }
 
           if (currentCount > lastPeerCount) {
             fromMainPort.send({
