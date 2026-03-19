@@ -54,6 +54,10 @@ class AddonService {
   }) async {
     final manifest = Map<String, dynamic>.from(_baseManifest);
     manifest['name'] = "SeedSphere (Private)";
+    manifest['behaviorHints'] = {
+      ..._baseManifest['behaviorHints'],
+      'configurationRequired': false,
+    };
     manifest['configurationURL'] = baseUrl != null
         ? '$baseUrl/configure'
         : "/u/$userId/configure";
@@ -141,6 +145,10 @@ class AddonService {
     final portString = (port == 80 || port == 443) ? '' : ':$port';
 
     final manifest = Map<String, dynamic>.from(_baseManifest);
+    manifest['behaviorHints'] = {
+      ..._baseManifest['behaviorHints'],
+      'configurationRequired': false,
+    };
     manifest['configurationURL'] = '$scheme://$host$portString/configure.html';
     manifest['id'] = 'community.seedsphere.$variant';
     manifest['name'] = 'SeedSphere ($variant)';
@@ -231,6 +239,10 @@ class AddonService {
     manifest['name'] = "SeedSphere (Private)";
     manifest['description'] = "Your private swarm gateway.";
     manifest['catalogs'] = catalogs;
+    manifest['behaviorHints'] = {
+      ..._baseManifest['behaviorHints'],
+      'configurationRequired': false,
+    };
     manifest['configurationURL'] =
         '$scheme://$host$portString/u/$userId/configure';
 

@@ -141,7 +141,7 @@ class AuthService {
       final validAudiences = [
         _googleClientId, // Web (Primary)
         Platform.environment['GOOGLE_CLIENT_ID_DESKTOP'] ??
-            '550711161426-bvvv578gtt7cst7lsar3c28r3uh6n706.apps.googleusercontent.com',
+            '550711161426-lk1vk3hf44amas66mk22dvv1235673uk.apps.googleusercontent.com',
         Platform.environment['GOOGLE_CLIENT_ID_ANDROID'] ??
             '550711161426-2se9i9p6p7o3pk1els6b60mooait9b0f.apps.googleusercontent.com',
         Platform.environment['GOOGLE_CLIENT_ID_IOS'] ??

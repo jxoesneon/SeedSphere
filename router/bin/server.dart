@@ -259,11 +259,15 @@ Future<Response> _handleDownload(Request req, String file) async {
       'github.com',
       '/jxoesneon/SeedSphere/releases/latest/download/$file',
     );
-    return Response.found(fallback);
+    return Response.found(
+      fallback,
+      headers: {'Content-Disposition': 'attachment; filename="$file"'},
+    );
   }
 
   final assets = (release['assets'] as List).cast<Map<String, dynamic>>();
   String? targetUrl;
+  String? targetFilename = file; // Default to requested file name
 
   // 1. Check for Aliases
   if (file == 'android') {
@@ -277,7 +281,10 @@ Future<Response> _handleDownload(Request req, String file) async {
         orElse: () => {},
       ),
     );
-    if (asset.isNotEmpty) targetUrl = asset['browser_download_url'];
+    if (asset.isNotEmpty) {
+      targetUrl = asset['browser_download_url'];
+      targetFilename = asset['name'];
+    }
   } else if (file == 'windows') {
     final asset = assets.firstWhere(
       (a) =>
@@ -288,7 +295,10 @@ Future<Response> _handleDownload(Request req, String file) async {
         orElse: () => {},
       ),
     );
-    if (asset.isNotEmpty) targetUrl = asset['browser_download_url'];
+    if (asset.isNotEmpty) {
+      targetUrl = asset['browser_download_url'];
+      targetFilename = asset['name'];
+    }
   } else if (file == 'macos') {
     final asset = assets.firstWhere(
       (a) =>
@@ -299,7 +309,10 @@ Future<Response> _handleDownload(Request req, String file) async {
         orElse: () => {},
       ),
     );
-    if (asset.isNotEmpty) targetUrl = asset['browser_download_url'];
+    if (asset.isNotEmpty) {
+      targetUrl = asset['browser_download_url'];
+      targetFilename = asset['name'];
+    }
   } else if (file == 'linux') {
     // Prefer .deb, then .rpm, then .zip
     final asset = assets.firstWhere(
@@ -318,16 +331,27 @@ Future<Response> _handleDownload(Request req, String file) async {
         ),
       ),
     );
-    if (asset.isNotEmpty) targetUrl = asset['browser_download_url'];
+    if (asset.isNotEmpty) {
+      targetUrl = asset['browser_download_url'];
+      targetFilename = asset['name'];
+    }
   }
   // 2. Check for Exact Filename Match
   else {
     final asset = assets.firstWhere((a) => a['name'] == file, orElse: () => {});
-    if (asset.isNotEmpty) targetUrl = asset['browser_download_url'];
+    if (asset.isNotEmpty) {
+      targetUrl = asset['browser_download_url'];
+      targetFilename = asset['name'];
+    }
   }
 
   if (targetUrl != null) {
-    return Response.found(targetUrl);
+    return Response.found(
+      targetUrl,
+      headers: {
+        'Content-Disposition': 'attachment; filename="$targetFilename"',
+      },
+    );
   }
 
   // 3. Fallback: Blind Redirect (e.g. if file is not found in assets list but might exist)
@@ -335,7 +359,10 @@ Future<Response> _handleDownload(Request req, String file) async {
     'github.com',
     '/jxoesneon/SeedSphere/releases/latest/download/$file',
   );
-  return Response.found(redirect);
+  return Response.found(
+    redirect,
+    headers: {'Content-Disposition': 'attachment; filename="$file"'},
+  );
 }
 
 /// Dynamic Releases Proxy

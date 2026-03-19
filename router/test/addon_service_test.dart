@@ -125,6 +125,23 @@ void main() {
       final body = jsonDecode(await resp.readAsString());
       expect(body['streams'][0]['name'], 'Mock Stream');
     });
+
+    test('User-Specific Manifest has configurationRequired: false', () async {
+      when(mockDb.getUser('user123')).thenReturn({
+        'id': 'user123',
+        'settings': {'hide_movies': false},
+      });
+
+      final req = Request(
+        'GET',
+        Uri.parse('http://localhost/u/user123/manifest.json'),
+      );
+      final resp = await service.router(req);
+      expect(resp.statusCode, 200);
+      final body = jsonDecode(await resp.readAsString());
+      expect(body['name'], contains('(Private)'));
+      expect(body['behaviorHints']['configurationRequired'], false);
+    });
   });
 }
 
