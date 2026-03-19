@@ -999,9 +999,14 @@ function renderHero(release, hero, grid) {
   // Detect User OS
   const userOS = detectOS();
   const osBadge = document.getElementById("os-detected");
+
+  // Check if this release is currently building (no assets yet)
+  const isBuilding = !release.assets || release.assets.length === 0;
+
   if (userOS !== "unknown") {
-    document.getElementById("user-os").textContent = formatOSName(userOS);
+    document.getElementById("user-os").textContent = formatOSName(userOS) + (isBuilding ? " (Building v2.3.11...)" : "");
     osBadge.style.display = "block";
+    if (isBuilding) osBadge.style.background = "rgba(234, 179, 8, 0.1)"; // Yellowish
   }
 
   // Clear grid
@@ -1103,8 +1108,8 @@ function renderHero(release, hero, grid) {
             </div>
              ${
                isRecommended
-                 ? '<div style="margin-top: 0.5rem; font-size: 0.7rem; color: #4ade80; text-transform: uppercase; letter-spacing: 1px;">Recommended</div>'
-                 : ""
+                 ? `<div style="margin-top: 0.5rem; font-size: 0.7rem; color: #4ade80; text-transform: uppercase; letter-spacing: 1px;">Recommended ${isBuilding ? "• Building..." : ""}</div>`
+                 : isBuilding ? '<div style="margin-top: 0.5rem; font-size: 0.7rem; color: #eab308; text-transform: uppercase; letter-spacing: 1px;">⚙️ Building...</div>' : ""
              }
         `;
 
