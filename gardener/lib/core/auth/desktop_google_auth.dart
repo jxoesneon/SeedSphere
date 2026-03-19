@@ -27,15 +27,11 @@ class DesktopGoogleAuth {
   /// Returns the Client ID to use.
   /// Priority:
   /// 1. --dart-define=GOOGLE_CLIENT_ID=... (Compile Time)
-  /// 2. GOOGLE_CLIENT_ID (Runtime Env)
-  /// 3. Debug Mode -> Dev ID
-  /// 4. Release Mode -> Prod ID
+  /// 2. Debug Mode -> Dev ID
+  /// 3. Release Mode -> Prod ID
   static String get _clientId {
     const envId = String.fromEnvironment('GOOGLE_CLIENT_ID');
     if (envId.isNotEmpty) return envId;
-
-    final platformId = Platform.environment['GOOGLE_CLIENT_ID'];
-    if (platformId != null && platformId.isNotEmpty) return platformId;
 
     return kDebugMode ? _devClientId : _prodClientId;
   }
@@ -43,17 +39,11 @@ class DesktopGoogleAuth {
   /// Returns the Client Secret to use.
   /// Priority:
   /// 1. --dart-define=GOOGLE_CLIENT_SECRET=... (Compile Time)
-  /// 2. GOOGLE_CLIENT_SECRET (Runtime Env)
-  /// 3. Debug Mode -> Dev Secret
-  /// 4. Release Mode -> Empty
+  /// 2. Debug Mode -> Dev Secret
+  /// 3. Release Mode -> Empty
   static String get _clientSecret {
     const envSecret = String.fromEnvironment('GOOGLE_CLIENT_SECRET');
     if (envSecret.isNotEmpty) return envSecret;
-
-    final platformSecret = Platform.environment['GOOGLE_CLIENT_SECRET'];
-    if (platformSecret != null && platformSecret.isNotEmpty) {
-      return platformSecret;
-    }
 
     return kDebugMode ? _devClientSecret : '';
   }
