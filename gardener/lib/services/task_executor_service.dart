@@ -95,6 +95,9 @@ class TaskExecutorService {
         'TaskExecutor: Router Log: ${event['message']}',
         category: 'TASK',
       );
+    } else if (event.containsKey('t') && event.length == 1) {
+      // Ignore heartbeat pulses from Router to reduce noise
+      return;
     } else {
       DebugLogger.warn(
         'TaskExecutor: Unknown event structure: ${event.keys}',

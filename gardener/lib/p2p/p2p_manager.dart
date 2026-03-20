@@ -145,19 +145,12 @@ class P2PManager {
     final dynamicPeer = await NetworkConstants.fetchLocalRouterBootstrap();
     final isolateBootstrapPeers = <String>[];
     if (dynamicPeer != null) {
-      stderr.writeln('DEBUG: Dynamic Router Found: $dynamicPeer');
-      if (!isolateBootstrapPeers.contains(dynamicPeer)) {
-        isolateBootstrapPeers.add(dynamicPeer);
-      }
       if (DebugConfig.p2pGated) {
         DebugLogger.info(
           'P2P: Forensics: Dynamic Router Found -> $dynamicPeer',
         );
       }
     } else {
-      stderr.writeln(
-        'DEBUG: Dynamic Router Discovery FAILED (is server running?)',
-      );
       if (DebugConfig.p2pGated) {
         DebugLogger.warn(
           'P2P: Forensics: Local Router Discovery Failed (Degraded Mode)',
@@ -926,9 +919,6 @@ class P2PManager {
       // --------------------
 
       // ASYNC DIAL: Connect to bootstrap peers without blocking the main event loop
-      stderr.writeln(
-        'DEBUG: P2P Async Dialing ${finalBootstrapPeers.length} Peers...',
-      );
       fromMainPort.send({
         'msg':
             'P2P: Starting background bootstrap to ${finalBootstrapPeers.length} peers...',
