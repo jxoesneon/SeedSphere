@@ -185,7 +185,6 @@ class P2PManager {
         _startStatusPolling();
       } else if (message is int) {
         if (message > peerCount.value) {
-          stderr.writeln('DEBUG: P2P PEER ADDED! Count: $message');
           DebugLogger.info(
             'P2P: Forensics: Peer count increased: ${peerCount.value} -> $message',
             category: 'NET',
