@@ -26,7 +26,7 @@ dependencies:
   flutter:
     sdk: flutter
 
-  cupertino_icons: ^1.0.8
+  cupertino_icons: ^1.0.9
   dart_ipfs: ^1.9.4
   p2plib: ^2.3.1
   flutter_background_service: ^5.1.0
