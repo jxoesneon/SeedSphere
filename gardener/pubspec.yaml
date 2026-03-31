@@ -46,7 +46,7 @@ dependencies:
   qr_flutter: ^4.1.0
   fl_chart: ^1.1.1
   url_launcher: ^6.3.0
-  shared_preferences: ^2.3.5
+  shared_preferences: ^2.5.5
   google_sign_in: 7.2.0
   intl: ^0.20.2
   path_provider: ^2.1.5
