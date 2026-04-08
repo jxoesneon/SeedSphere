@@ -269,10 +269,10 @@ packages:
     dependency: "direct main"
     description:
       name: dart_jsonwebtoken
-      sha256: c6ecb3bb991c459b91c5adf9e871113dcb32bbe8fe7ca2c92723f88ffc1e0b7a
+      sha256: cb79ed79baa02b4f59a597bf365873cbd83f9bb15273d63f7803802d21717c7d
       url: "https://pub.dev"
     source: hosted
-    version: "3.3.2"
+    version: "3.4.0"
   dart_lz4:
     dependency: transitive
     description:
@@ -329,14 +329,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "4.2.0"
-  ed25519_edwards:
-    dependency: transitive
-    description:
-      name: ed25519_edwards
-      sha256: "6ce0112d131327ec6d42beede1e5dfd526069b18ad45dcf654f15074ad9276cd"
-      url: "https://pub.dev"
-    source: hosted
-    version: "0.3.1"
   equatable:
     dependency: transitive
     description:
