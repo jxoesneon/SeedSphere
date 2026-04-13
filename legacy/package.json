@@ -57,16 +57,7 @@
     "express-handlebars": "5.3.1",
     "brace-expansion": "2.0.2",
     "cookie": "0.7.2",
-    "stremio-addon-sdk": {
-      "router": {
-        "path-to-regexp": "0.1.12"
-      },
-      "inquirer": {
-        "external-editor": {
-          "tmp": "0.2.4"
-        },
-        "tmp": "0.2.4"
-      }
+    "path-to-regexp@<0.1.13": "0.1.13",
+    "tmp@<0.2.4": "0.2.4"
     }
-  }
 }
