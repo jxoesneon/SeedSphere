@@ -34,9 +34,9 @@
     "jsonwebtoken": "^9.0.3",
     "libsodium-wrappers": "^0.7.15",
     "nanoid": "^5.1.5",
-    "nodemailer": "^7.0.12",
+    "nodemailer": "^8.0.5",
     "openid-client": "^6.7.1",
-    "stremio-addon-sdk": "^1.6.10",
+    "stremio-addon-sdk": "^0.7.1",
     "uuid": "^13.0.0",
     "vue": "^3.4.38",
     "vue-router": "^4.5.1"
