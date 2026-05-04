@@ -100,13 +100,16 @@ class _ExpandableSectionState extends State<ExpandableSection> {
                           children: [
                             Row(
                               children: [
-                                Text(
-                                  widget.title.toUpperCase(),
-                                  style: GoogleFonts.outfit(
-                                    color: AethericTheme.aetherBlue,
-                                    fontWeight: FontWeight.bold,
-                                    letterSpacing: 1.3,
-                                    fontSize: 12,
+                                Flexible(
+                                  child: Text(
+                                    widget.title.toUpperCase(),
+                                    style: AethericTheme.outfit(
+                                      color: AethericTheme.aetherBlue,
+                                      fontWeight: FontWeight.bold,
+                                      letterSpacing: 1.3,
+                                      fontSize: 12,
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
                                   ),
                                 ),
                                 if (widget.badge != null) ...[

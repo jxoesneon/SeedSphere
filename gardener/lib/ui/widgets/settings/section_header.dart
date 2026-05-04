@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:gardener/ui/theme/aetheric_theme.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 /// Standardized section header for all settings pages.
 ///
@@ -29,13 +28,16 @@ class SectionHeader extends StatelessWidget {
           Icon(icon, size: 14, color: AethericTheme.aetherBlue),
           const SizedBox(width: 8),
         ],
-        Text(
-          title.toUpperCase(),
-          style: GoogleFonts.outfit(
-            color: AethericTheme.aetherBlue,
-            fontWeight: FontWeight.bold,
-            letterSpacing: 1.5,
-            fontSize: 12,
+        Flexible(
+          child: Text(
+            title.toUpperCase(),
+            style: AethericTheme.outfit(
+              color: AethericTheme.aetherBlue,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 1.5,
+              fontSize: 12,
+            ),
+            overflow: TextOverflow.ellipsis,
           ),
         ),
       ],

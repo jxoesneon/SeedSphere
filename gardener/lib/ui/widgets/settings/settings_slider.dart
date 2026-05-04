@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:gardener/ui/theme/aetheric_theme.dart';
 import 'package:gardener/ui/widgets/aetheric_glass.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 /// Standardized slider with labels for numeric settings.
 ///
@@ -72,21 +71,25 @@ class SettingsSlider extends StatelessWidget {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: discreteLabels!.entries.map((entry) {
                         final isActive = (value - entry.key).abs() < 0.01;
-                        return Text(
-                          entry.value,
-                          style: GoogleFonts.outfit(
-                            color: isActive ? Colors.white : Colors.white38,
-                            fontSize: 12,
-                            fontWeight: isActive
-                                ? FontWeight.bold
-                                : FontWeight.normal,
+                        return Flexible(
+                          child: Text(
+                            entry.value,
+                            style: AethericTheme.outfit(
+                              color: isActive ? Colors.white : Colors.white38,
+                              fontSize: 12,
+                              fontWeight: isActive
+                                  ? FontWeight.bold
+                                  : FontWeight.normal,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                            textAlign: TextAlign.center,
                           ),
                         );
                       }).toList(),
                     )
                   : Text(
                       '$label: $_formattedValue',
-                      style: GoogleFonts.outfit(
+                      style: AethericTheme.outfit(
                         color: Colors.white70,
                         fontSize: 12,
                       ),

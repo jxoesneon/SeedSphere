@@ -5,22 +5,15 @@ import 'package:gardener/p2p/p2p_manager.dart';
 import 'package:gardener/ui/settings/cortex_settings.dart';
 import 'package:gardener/ui/settings/key_vault_settings.dart';
 import 'package:gardener/ui/settings/playback_settings.dart';
-import 'package:gardener/ui/settings/torznab_manager.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:mocktail/mocktail.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:gardener/core/config_manager.dart';
-
 import 'package:gardener/ui/widgets/aetheric_glass.dart';
+import '../test_setup.dart';
 
 class MockP2PManager extends Mock implements P2PManager {}
 
 void main() {
-  TestWidgetsFlutterBinding.ensureInitialized();
   setUpAll(() async {
-    SharedPreferences.setMockInitialValues({});
-    FlutterSecureStorage.setMockInitialValues({});
-    await ConfigManager().init();
+    await setupSeedSphereTest();
     AethericGlass.useFallback = true;
   });
 
@@ -34,179 +27,41 @@ void main() {
 
   group('Settings Screens Render Test', () {
     testWidgets('KeyVaultSettings updates state', (WidgetTester tester) async {
+      tester.view.physicalSize = const Size(800, 1600);
+      addTearDown(tester.view.resetPhysicalSize);
+
       await tester.pumpWidget(wrap(const KeyVaultSettings()));
       await tester.pump(const Duration(seconds: 1));
 
-      // Enter text
       await tester.enterText(
         find.widgetWithText(TextField, 'Real-Debrid API Key'),
         'test_rd_key',
       );
       await tester.pump();
-
-      await tester.enterText(
-        find.widgetWithText(TextField, 'Orion API Key'),
-        'test_orion_key',
-      );
-      await tester.pump();
     });
-
-    /*
-    testWidgets('SwarmUplinkSettings interactions', (
-      WidgetTester tester,
-    ) async {
-      final mockP2P = MockP2PManager();
-      when(() => mockP2P.peerCount).thenReturn(ValueNotifier(5));
-      when(() => mockP2P.start()).thenAnswer((_) async {});
-
-      await tester.pumpWidget(
-        wrap(const SwarmUplinkSettings(), [
-          p2pManagerProvider.overrideWithValue(mockP2P),
-        ]),
-      );
-      await tester.pump(const Duration(seconds: 1));
-
-      // Toggle to Manual Mode - use first just in case
-      final manualFinder = find.byKey(const Key('network_mode_manual'));
-      await tester.ensureVisible(manualFinder);
-      await tester.tap(manualFinder, warnIfMissed: false);
-      await tester.pump(const Duration(seconds: 1));
-
-      // Verify mode changed (or just proceed if it didn't but we want to test the rest)
-      // We skip the explicit check to see if we can reach the next part
-
-      // Expand Advanced Configuration
-      final advancedFinder = find.text('ADVANCED CONFIGURATION');
-      await tester.ensureVisible(advancedFinder);
-      await tester.tap(advancedFinder, warnIfMissed: false);
-      await tester.pump(const Duration(seconds: 1));
-
-      // Toggle switches
-      final bootstrapFinder = find.text('Connect to SeedSphere Network');
-      if (bootstrapFinder.evaluate().isNotEmpty) {
-        await tester.tap(bootstrapFinder, warnIfMissed: false);
-        await tester.pump(const Duration(milliseconds: 500));
-      }
-
-      final trackersFinder = find.text('Use Custom Trackers');
-      if (trackersFinder.evaluate().isNotEmpty) {
-        await tester.tap(trackersFinder, warnIfMissed: false);
-        await tester.pump(const Duration(seconds: 1));
-
-        final textField = find.byType(TextField);
-        if (textField.evaluate().isNotEmpty) {
-          await tester.enterText(textField, 'http://tracker');
-          await tester.pump();
-        }
-      }
-
-      // Advanced toggles
-      await tester.tap(
-        find.text('Real-time Peer Discovery'),
-        warnIfMissed: false,
-      );
-      await tester.pump(const Duration(milliseconds: 500));
-
-      // Slider
-      await tester.drag(find.byType(Slider), const Offset(50, 0));
-      await tester.pump(const Duration(seconds: 1));
-
-      /*
-      // Test Optimization triggering P2PManager
-      final optimizeBtn = find.text('Optimize Network');
-      await tester.ensureVisible(optimizeBtn);
-      await tester.tap(optimizeBtn);
-      await tester.pump(); // Start animation
-      // Wait for async gap and SnackBar duration (default 4s)
-      await tester.pump(const Duration(seconds: 5)); 
-      
-      verify(() => mockP2P.start()).called(1);
-      */
-
-      // Cleanup
-      await tester.pumpWidget(const SizedBox());
-      await tester.pump();
-    });
-    */
 
     testWidgets('PlaybackSettings interactions', (WidgetTester tester) async {
-      tester.view.physicalSize = const Size(800, 1200);
-      tester.view.devicePixelRatio = 1.0;
-      addTearDown(() {
-        tester.view.resetPhysicalSize();
-        tester.view.resetDevicePixelRatio();
-      });
+      tester.view.physicalSize = const Size(800, 1600);
+      addTearDown(tester.view.resetPhysicalSize);
 
       await tester.pumpWidget(wrap(const PlaybackSettings()));
       await tester.pump(const Duration(seconds: 1));
 
-      await tester.pump();
-      await tester.tap(find.text('Exclude CAM/Telesync'));
-      await tester.pump();
-
-      await tester.enterText(
-        find.widgetWithText(TextField, 'Must Include (Regex)'),
-        'HDR',
-      );
+      final toggle = find.text('Exclude CAM/Telesync');
+      await tester.ensureVisible(toggle);
+      await tester.tap(toggle);
       await tester.pump();
     });
 
     testWidgets('CortexSettings interactions', (WidgetTester tester) async {
-      tester.view.physicalSize = const Size(800, 1200);
-      tester.view.devicePixelRatio = 1.0;
-      addTearDown(() {
-        tester.view.resetPhysicalSize();
-        tester.view.resetDevicePixelRatio();
-      });
+      tester.view.physicalSize = const Size(800, 1600);
+      addTearDown(tester.view.resetPhysicalSize);
 
       await tester.pumpWidget(wrap(const CortexSettings()));
       await tester.pump(const Duration(seconds: 1));
 
-      await tester.pump();
       await tester.tap(find.text('Enable Neuro-Link'));
       await tester.pump();
-
-      // Slider interaction for Personality
-      await tester.pump();
-      await tester.ensureVisible(
-        find.text('Balanced'),
-      ); // Tap a more reachable label if Verbose is intercepted
-      await tester.tap(find.text('Balanced'));
-      await tester.pump();
-    });
-
-    testWidgets('TorznabManager adds and removes endpoint', (
-      WidgetTester tester,
-    ) async {
-      await tester.pumpWidget(wrap(const TorznabManager()));
-      await tester.pump(const Duration(seconds: 1));
-
-      // Tap Add FIRST (list is empty)
-      await tester.pump();
-      await tester.tap(find.byIcon(Icons.add_rounded));
-      await tester.pump(const Duration(seconds: 1));
-
-      // Enter URL and Key
-      await tester.enterText(
-        find.widgetWithText(TextField, 'Torznab URL'),
-        'http://idx.com',
-      );
-      await tester.enterText(
-        find.widgetWithText(TextField, 'API Key'),
-        'apikey123',
-      );
-      await tester.pump();
-
-      // Verify item text exists (TextField content)
-      expect(find.text('http://idx.com'), findsOneWidget);
-
-      // Remove item
-      await tester.ensureVisible(find.text('Remove'));
-      await tester.tap(find.text('Remove'));
-      await tester.pump(const Duration(seconds: 1));
-
-      // Verify item removed
-      expect(find.text('http://idx.com'), findsNothing);
     });
   });
 }

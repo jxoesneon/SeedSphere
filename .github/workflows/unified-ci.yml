@@ -1,0 +1,146 @@
+name: SeedSphere Unified CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  analyze-changes:
+    name: Analyze Changes
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Generate Matrix
+        id: set-matrix
+        shell: pwsh
+        run: |
+          $BaseRef = "${{ github.base_ref }}"
+          if ([string]::IsNullOrEmpty($BaseRef)) { $BaseRef = "HEAD~1" }
+          $Matrix = ./.agent/scripts/ci_analyze.ps1 -BaseRef $BaseRef
+          Write-Output "matrix=$Matrix" >> $env:GITHUB_OUTPUT
+
+  ci:
+    needs: analyze-changes
+    if: ${{ fromJson(needs.analyze-changes.outputs.matrix).include[0] != null }}
+    name: ${{ matrix.project }} CI
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJson(needs.analyze-changes.outputs.matrix) }}
+    steps:
+      - uses: actions/checkout@v4
+
+      # --- PROJECT: GARDENER ---
+      - name: Setup Flutter
+        if: matrix.project == 'gardener'
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Install Gardener Linux Deps
+        if: matrix.project == 'gardener' && runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev libstdc++-12-dev libsecret-1-dev libsqlite3-dev libjsoncpp-dev libnm-dev
+
+      - name: Gardener Dependencies
+        if: matrix.project == 'gardener'
+        run: |
+          cd gardener
+          flutter pub get
+
+      - name: Gardener Analyze
+        if: matrix.project == 'gardener'
+        run: |
+          cd gardener
+          flutter analyze --no-fatal-infos
+
+      - name: Gardener Test
+        if: matrix.project == 'gardener'
+        env:
+          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET_DESKTOP }}
+        run: |
+          cd gardener
+          flutter test --dart-define=GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET_DESKTOP }}
+
+      # --- PROJECT: ROUTER ---
+      - name: Setup Dart
+        if: matrix.project == 'router'
+        uses: dart-lang/setup-dart@v1
+
+      - name: Install Router Linux Deps
+        if: matrix.project == 'router' && runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libsqlite3-dev
+
+      - name: Router Dependencies
+        if: matrix.project == 'router'
+        run: |
+          cd router
+          dart pub get
+
+      - name: Router Format Check
+        if: matrix.project == 'router'
+        run: |
+          cd router
+          dart format --output=none --set-exit-if-changed .
+
+      - name: Router Analyze
+        if: matrix.project == 'router'
+        run: |
+          cd router
+          dart analyze --fatal-infos
+
+      - name: Router Test
+        if: matrix.project == 'router'
+        run: |
+          cd router
+          dart test
+
+      # --- PROJECT: BRIDGE ---
+      - name: Setup Node (Bridge)
+        if: matrix.project == 'bridge'
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: "npm"
+          cache-dependency-path: bridge/package-lock.json
+
+      - name: Bridge CI
+        if: matrix.project == 'bridge'
+        run: |
+          cd bridge
+          npm ci
+          npm run build
+
+      # --- PROJECT: LEGACY ---
+      - name: Setup Node (Legacy)
+        if: matrix.project == 'legacy'
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: "npm"
+          cache-dependency-path: legacy/package-lock.json
+
+      - name: Legacy CI
+        if: matrix.project == 'legacy'
+        run: |
+          cd legacy
+          npm ci
+          npm test

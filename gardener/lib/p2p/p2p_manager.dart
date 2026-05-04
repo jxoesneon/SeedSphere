@@ -18,6 +18,7 @@ import 'package:gardener/core/debug_logger.dart';
 import 'package:gardener/p2p/p2p_protocol.dart';
 import 'package:ed25519_edwards/ed25519_edwards.dart' as ed;
 import 'package:gardener/core/config_manager.dart';
+import 'package:gardener/core/crypto_utils.dart';
 
 /// Provider for the [P2PManager] instance.
 ///
@@ -1142,7 +1143,7 @@ class P2PManager {
               'imdbId': command.imdbId,
               'data': command.data,
             };
-            final baseJson = jsonEncode(baseMap);
+            final baseJson = canonicalJsonEncode(baseMap);
             final sig = base64Encode(ed.sign(priv, utf8.encode(baseJson)));
 
             final finalCmd = P2PCommand(

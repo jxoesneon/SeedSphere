@@ -24,7 +24,7 @@ void main() {
   void commitFile() {
     if (currentFile.isNotEmpty && fileTotal > 0) {
       fileStats[currentFile] = fileCovered / fileTotal;
-      if (currentFile.contains('lib/ui/')) {
+      if (currentFile.contains('lib/ui/') || currentFile.contains('lib\\ui\\')) {
         uiTotal += fileTotal;
         uiCovered += fileCovered;
       }
@@ -63,9 +63,10 @@ void main() {
   );
 
   stdout.writeln('\nBottom 10 UI Files by Coverage:');
-  final uiSorted =
-      fileStats.entries.where((e) => e.key.contains('lib/ui/')).toList()
-        ..sort((a, b) => a.value.compareTo(b.value));
+  final uiSorted = fileStats.entries
+      .where((e) => e.key.contains('lib/ui/') || e.key.contains('lib\\ui\\'))
+      .toList()
+    ..sort((a, b) => a.value.compareTo(b.value));
 
   for (var i = 0; i < 10 && i < uiSorted.length; i++) {
     final entry = uiSorted[i];

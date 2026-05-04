@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { toTitleNatural, parseReleaseInfo } from '../src/index';
+import { toTitleNatural, parseReleaseInfo } from '../src/normalizer';
 
 describe('Bridge Utilities', () => {
     it('toTitleNatural should clean titles correctly', () => {

@@ -44,7 +44,7 @@ class AuthService {
       'AUTH_JWT_SECRET not set. Using random secret for this session.',
     );
     final random = Random.secure();
-    final values = List<int>.generate(32, (i) => random.nextInt(255));
+    final values = List<int>.generate(32, (i) => random.nextInt(256));
     return base64UrlEncode(values);
   }
 
@@ -168,7 +168,7 @@ class AuthService {
 
       // Generate Secure Random Session ID
       final random = Random.secure();
-      final values = List<int>.generate(32, (i) => random.nextInt(255));
+      final values = List<int>.generate(32, (i) => random.nextInt(256));
       final sid = base64UrlEncode(values);
 
       // Store in DB (30 days TTL)
@@ -528,7 +528,7 @@ class AuthService {
   Response _issueSession(Request req, String userId, {String? redirect}) {
     // Generate Secure Random Session ID
     final random = Random.secure();
-    final values = List<int>.generate(32, (i) => random.nextInt(255));
+    final values = List<int>.generate(32, (i) => random.nextInt(256));
     final sid = base64UrlEncode(values);
 
     // Store in DB (3 hours TTL)

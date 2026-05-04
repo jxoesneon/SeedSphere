@@ -3,12 +3,13 @@
 // Do not manually edit this file.
 
 // ignore_for_file: no_leading_underscores_for_library_prefixes
-import 'dart:async' as _i5;
+import 'dart:async' as _i6;
 
 import 'package:mockito/mockito.dart' as _i1;
-import 'package:mockito/src/dummies.dart' as _i3;
-import 'package:router/db_service.dart' as _i2;
-import 'package:router/health_service.dart' as _i4;
+import 'package:mockito/src/dummies.dart' as _i4;
+import 'package:router/db_service.dart' as _i3;
+import 'package:router/health_service.dart' as _i5;
+import 'package:sqlite3/sqlite3.dart' as _i2;
 
 // ignore_for_file: type=lint
 // ignore_for_file: avoid_redundant_argument_values
@@ -25,10 +26,27 @@ import 'package:router/health_service.dart' as _i4;
 // ignore_for_file: subtype_of_sealed_class
 // ignore_for_file: invalid_use_of_internal_member
 
+class _FakeDatabase_0 extends _i1.SmartFake implements _i2.Database {
+  _FakeDatabase_0(Object parent, Invocation parentInvocation)
+    : super(parent, parentInvocation);
+}
+
 /// A class which mocks [DbService].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockDbService extends _i1.Mock implements _i2.DbService {
+class MockDbService extends _i1.Mock implements _i3.DbService {
+  @override
+  _i2.Database get db =>
+      (super.noSuchMethod(
+            Invocation.getter(#db),
+            returnValue: _FakeDatabase_0(this, Invocation.getter(#db)),
+            returnValueForMissingStub: _FakeDatabase_0(
+              this,
+              Invocation.getter(#db),
+            ),
+          )
+          as _i2.Database);
+
   @override
   void init(String? baseDir) => super.noSuchMethod(
     Invocation.method(#init, [baseDir]),
@@ -245,6 +263,12 @@ class MockDbService extends _i1.Mock implements _i2.DbService {
           as String?);
 
   @override
+  void unlinkDevice(String? id) => super.noSuchMethod(
+    Invocation.method(#unlinkDevice, [id]),
+    returnValueForMissingStub: null,
+  );
+
+  @override
   List<Map<String, dynamic>> getUserActivity(String? userId) =>
       (super.noSuchMethod(
             Invocation.method(#getUserActivity, [userId]),
@@ -322,11 +346,11 @@ class MockDbService extends _i1.Mock implements _i2.DbService {
   T transaction<T>(T Function()? action) =>
       (super.noSuchMethod(
             Invocation.method(#transaction, [action]),
-            returnValue: _i3.dummyValue<T>(
+            returnValue: _i4.dummyValue<T>(
               this,
               Invocation.method(#transaction, [action]),
             ),
-            returnValueForMissingStub: _i3.dummyValue<T>(
+            returnValueForMissingStub: _i4.dummyValue<T>(
               this,
               Invocation.method(#transaction, [action]),
             ),
@@ -337,22 +361,22 @@ class MockDbService extends _i1.Mock implements _i2.DbService {
 /// A class which mocks [HealthService].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockHealthService extends _i1.Mock implements _i4.HealthService {
+class MockHealthService extends _i1.Mock implements _i5.HealthService {
   @override
-  _i5.Future<bool> checkHealthy(String? urlStr, {bool? aggressive = false}) =>
+  _i6.Future<bool> checkHealthy(String? urlStr, {bool? aggressive = false}) =>
       (super.noSuchMethod(
             Invocation.method(
               #checkHealthy,
               [urlStr],
               {#aggressive: aggressive},
             ),
-            returnValue: _i5.Future<bool>.value(false),
-            returnValueForMissingStub: _i5.Future<bool>.value(false),
+            returnValue: _i6.Future<bool>.value(false),
+            returnValueForMissingStub: _i6.Future<bool>.value(false),
           )
-          as _i5.Future<bool>);
+          as _i6.Future<bool>);
 
   @override
-  _i5.Future<bool> checkUdpTracker(
+  _i6.Future<bool> checkUdpTracker(
     String? trackerUrl, {
     Duration? timeout = const Duration(seconds: 5),
   }) =>
@@ -362,8 +386,8 @@ class MockHealthService extends _i1.Mock implements _i4.HealthService {
               [trackerUrl],
               {#timeout: timeout},
             ),
-            returnValue: _i5.Future<bool>.value(false),
-            returnValueForMissingStub: _i5.Future<bool>.value(false),
+            returnValue: _i6.Future<bool>.value(false),
+            returnValueForMissingStub: _i6.Future<bool>.value(false),
           )
-          as _i5.Future<bool>);
+          as _i6.Future<bool>);
 }

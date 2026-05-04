@@ -2,63 +2,64 @@ import 'dart:convert';
 import 'dart:typed_data';
 import 'dart:math';
 import 'package:logging/logging.dart';
-import 'package:pointycastle/export.dart';
+import 'package:cryptography/cryptography.dart';
 
-/// Utility class for cryptographic operations (AES-GCM encryption/decryption).
+/// Utility class for cryptographic operations (XChaCha20-Poly1305 encryption/decryption).
+/// Aligned with SECURITY.md SEC-008.
 class CryptoHelper {
-  static final _secureRandom = _getSecureRandom();
-  static const int _saltLength = 16; // 128-bit salt
-  static const int _ivLength = 12; // 96-bit IV
-  static const int _iterations =
-      600000; // OWASP recommendation for PBKDF2-HMAC-SHA256
-  static const int _keyLength = 32; // 256-bit key
+  static const int _saltLength = 16;
+  static const int _iterations = 600000;
+  static const int _keyLength = 32;
   static final Logger _logger = Logger('CryptoHelper');
+  static final _algorithm = Xchacha20.poly1305Aead();
 
-  static SecureRandom _getSecureRandom() {
-    final secureRandom = FortunaRandom();
-    final seedSource = Random.secure();
-    final seeds = <int>[];
-    for (int i = 0; i < 32; i++) {
-      seeds.add(seedSource.nextInt(255));
-    }
-    secureRandom.seed(KeyParameter(Uint8List.fromList(seeds)));
-    return secureRandom;
+  static Random _getSecureRandom() {
+    return Random.secure();
   }
 
   static Uint8List _generateBytes(int length) {
-    return _secureRandom.nextBytes(length);
+    final random = _getSecureRandom();
+    return Uint8List.fromList(
+      List<int>.generate(length, (i) => random.nextInt(256)),
+    );
   }
 
-  /// Encrypts [plaintext] using AES-GCM with the provided [secretKey].
+  /// Encrypts [plaintext] using XChaCha20-Poly1305 with the provided [secretKey].
   ///
-  /// Returns a base64 encoded string containing: `Salt (16) + IV (12) + CipherText + AuthTag`.
+  /// Returns a base64 encoded string containing: `Salt (16) + Nonce (24) + CipherText + MAC (16)`.
   /// Uses PBKDF2-HMAC-SHA256 for key derivation.
-  static String encrypt(String plaintext, String secretKey) {
+  static Future<String> encrypt(String plaintext, String secretKey) async {
     if (plaintext.isEmpty) return '';
     try {
       final salt = _generateBytes(_saltLength);
-      final keyBytes = _deriveKey(secretKey, salt);
-      final iv = _generateBytes(_ivLength);
+      final derivedKeyBytes = await _deriveKey(secretKey, salt);
 
-      final cipher = GCMBlockCipher(AESEngine())
-        ..init(
-          true, // encrypt
-          AEADParameters(
-            KeyParameter(keyBytes),
-            128, // mac size (bits)
-            iv,
-            Uint8List(0), // associated data
-          ),
-        );
+      final secretKeyObj = await _algorithm.newSecretKeyFromBytes(
+        derivedKeyBytes,
+      );
+      final nonce = _algorithm.newNonce();
 
-      final input = utf8.encode(plaintext);
-      final output = cipher.process(Uint8List.fromList(input));
+      final secretBox = await _algorithm.encrypt(
+        utf8.encode(plaintext),
+        secretKey: secretKeyObj,
+        nonce: nonce,
+      );
 
-      // Combine Salt + IV + Output
-      final combined = Uint8List(_saltLength + _ivLength + output.length);
-      combined.setAll(0, salt);
-      combined.setAll(_saltLength, iv);
-      combined.setAll(_saltLength + _ivLength, output);
+      final combined = Uint8List(
+        _saltLength +
+            secretBox.nonce.length +
+            secretBox.cipherText.length +
+            secretBox.mac.bytes.length,
+      );
+
+      int offset = 0;
+      combined.setAll(offset, salt);
+      offset += salt.length;
+      combined.setAll(offset, secretBox.nonce);
+      offset += secretBox.nonce.length;
+      combined.setAll(offset, secretBox.cipherText);
+      offset += secretBox.cipherText.length;
+      combined.setAll(offset, secretBox.mac.bytes);
 
       return base64Encode(combined);
     } catch (e) {
@@ -67,60 +68,59 @@ class CryptoHelper {
     }
   }
 
-  /// Decrypts a base64 encoded [ciphertext] using AES-GCM and [secretKey].
+  /// Decrypts a base64 encoded [ciphertext] using XChaCha20-Poly1305 and [secretKey].
   ///
-  /// Expects the format: `Salt (16) + IV (12) + CipherText + AuthTag`.
-  /// Throws an [Exception] if decryption fails or data is corrupt.
-  static String decrypt(String ciphertext, String secretKey) {
+  /// Expects the format: `Salt (16) + Nonce (24) + CipherText + MAC (16)`.
+  static Future<String> decrypt(String ciphertext, String secretKey) async {
     if (ciphertext.isEmpty) return '';
     try {
       final combined = base64Decode(ciphertext);
+      const nonceLength = 24;
+      const macLength = 16;
 
-      // Validation
-      if (combined.length < _saltLength + _ivLength) {
+      if (combined.length < _saltLength + nonceLength + macLength) {
         throw Exception('Invalid ciphertext length');
       }
 
-      // Extract parts
-      final salt = combined.sublist(0, _saltLength);
-      final iv = combined.sublist(_saltLength, _saltLength + _ivLength);
-      final cipherBytes = combined.sublist(_saltLength + _ivLength);
+      int offset = 0;
+      final salt = combined.sublist(offset, offset + _saltLength);
+      offset += _saltLength;
+      final nonce = combined.sublist(offset, offset + nonceLength);
+      offset += nonceLength;
+      final cipherText = combined.sublist(offset, combined.length - macLength);
+      final macBytes = combined.sublist(combined.length - macLength);
 
-      final keyBytes = _deriveKey(secretKey, salt);
+      final derivedKeyBytes = await _deriveKey(secretKey, salt);
+      final secretKeyObj = await _algorithm.newSecretKeyFromBytes(
+        derivedKeyBytes,
+      );
 
-      final cipher = GCMBlockCipher(AESEngine())
-        ..init(
-          false, // decrypt
-          AEADParameters(
-            KeyParameter(keyBytes),
-            128, // mac size
-            iv,
-            Uint8List(0),
-          ),
-        );
+      final secretBox = SecretBox(cipherText, nonce: nonce, mac: Mac(macBytes));
 
-      final output = cipher.process(cipherBytes);
-      return utf8.decode(output);
+      final clearText = await _algorithm.decrypt(
+        secretBox,
+        secretKey: secretKeyObj,
+      );
+
+      return utf8.decode(clearText);
     } catch (e) {
-      // Fallback for old "Fixed Salt" format?
-      // The old format was base64(IV + Cipher). IV=12 bytes.
-      // New format base64(Salt + IV + Cipher). Salt=16.
-      // If we fail, we could TRY to decrypt with old logic IF we wanted backward compat.
-      // But user said "proceed with all" implies fix. Breaking change IS the fix usually.
-      // I will assume breaking change is acceptable or I'd need to try-catch-fallback.
-      // Let's stick to secure only.
       _logger.warning('Decryption error: $e');
       throw Exception('Decryption failed (Invalid Key or Corrupt Data)');
     }
   }
 
-  static Uint8List _deriveKey(String password, Uint8List salt) {
-    if (password.isEmpty) throw ArgumentError('Password cannot be empty');
-
-    final pbkdf2 = KeyDerivator('SHA-256/HMAC/PBKDF2');
-    final params = Pbkdf2Parameters(salt, _iterations, _keyLength);
-
-    pbkdf2.init(params);
-    return pbkdf2.process(Uint8List.fromList(utf8.encode(password)));
+  static Future<Uint8List> _deriveKey(String password, Uint8List salt) async {
+    final pbkdf2 = Pbkdf2(
+      macAlgorithm: Hmac.sha256(),
+      iterations: _iterations,
+      bits: _keyLength * 8,
+    );
+    final secretKey = SecretKey(utf8.encode(password));
+    final derivedKey = await pbkdf2.deriveKey(
+      secretKey: secretKey,
+      nonce: salt,
+    );
+    final bytes = await derivedKey.extractBytes();
+    return Uint8List.fromList(bytes);
   }
 }

@@ -66,6 +66,11 @@ class HealthService {
     try {
       final res = await _client.head(uri).timeout(const Duration(seconds: 3));
       if (res.statusCode >= 200 && res.statusCode < 400) return true;
+    } catch (_) {
+      // Ignore HEAD failure and try GET
+    }
+
+    try {
       final res2 = await _client.get(uri).timeout(const Duration(seconds: 3));
       return res2.statusCode >= 200 && res2.statusCode < 400;
     } catch (_) {

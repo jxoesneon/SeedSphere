@@ -1,16 +1,24 @@
 import 'package:flutter/material.dart';
 
 /// The core design system and theme definition for SeedSphere.
-///
-/// Implements the "Aetheric" design language, characterized by deep space
-/// colors (Deep Void), vibrant cyan accents (Aether Blue), and pervasive
-/// glassmorphism (Crystalline).
-///
-/// **Design Principles:**
-/// - **Depth**: Use of gradients and layers to simulate a cosmic environment.
-/// - **Clarity**: High-contrast typography using the 'Outfit' typeface.
-/// - **Tactility**: Subtle borders and glass effects for interactive elements.
 class AethericTheme {
+  /// Safe typography helper.
+  static TextStyle outfit({
+    TextStyle? textStyle,
+    Color? color,
+    double? fontSize,
+    FontWeight? fontWeight,
+    double? letterSpacing,
+  }) {
+    // Return standard TextStyle to avoid any dependency on external font loaders.
+    return (textStyle ?? const TextStyle()).copyWith(
+      color: color,
+      fontSize: fontSize,
+      fontWeight: fontWeight,
+      letterSpacing: letterSpacing,
+    );
+  }
+
   // --- Brand Colors ---
 
   /// The primary background color (extremely dark blue/slate).
@@ -61,13 +69,12 @@ class AethericTheme {
       ),
 
       // Custom typography using 'Outfit' (must be included in pubspec)
-      textTheme: const TextTheme(
-        headlineMedium: TextStyle(
-          fontFamily: 'Outfit',
+      textTheme: TextTheme(
+        headlineMedium: outfit(
           fontWeight: FontWeight.w600,
           color: Colors.white,
         ),
-        bodyLarge: TextStyle(fontFamily: 'Outfit', color: Colors.white70),
+        bodyLarge: outfit(color: Colors.white70),
       ),
 
       // Integrated glassmorphic button styles

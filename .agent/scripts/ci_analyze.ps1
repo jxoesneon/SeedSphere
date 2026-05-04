@@ -50,6 +50,15 @@ if (Test-Match $Diff "^router/") {
     }
 }
 
+# Analyze Bridge
+if (Test-Match $Diff "^bridge/") {
+    $Matrix.include += @{
+        project = "bridge"
+        os = "ubuntu-latest"
+        cmd = "npm run build"
+    }
+}
+
 # Analyze Legacy
 if (Test-Match $Diff "^legacy/") {
     $Matrix.include += @{
