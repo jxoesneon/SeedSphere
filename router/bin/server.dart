@@ -32,6 +32,8 @@ import 'package:router/prefetch_service.dart';
 import 'package:router/task_service.dart';
 import 'package:router/services/status_service.dart';
 import 'package:router/core/server_context.dart';
+import 'package:router/controllers/device_controller.dart';
+import 'package:router/controllers/telemetry_controller.dart';
 
 import 'package:http/http.dart' as http; // Added import
 
@@ -52,6 +54,10 @@ late final BoostService boostService;
 late final PrefetchService prefetchService;
 late final StatusService statusService;
 late final TaskService task;
+
+// Controllers
+late final DeviceController deviceController;
+late final TelemetryController telemetryController;
 
 // Unified Context (Dependency Injection)
 late final ServerContext context;
@@ -104,13 +110,13 @@ final _router = Router()
     (Request req, String roomId) =>
         _eventsHandler(req, req.url.queryParameters['gardenerId'] ?? roomId),
   )
-  ..get('/api/devices/<id>/status', _deviceStatusHandler)
-  ..post('/api/devices/<id>/unlink', _deviceUnlinkHandler)
-  ..get('/device/<id>', _deviceStatusHandler) // Legacy
-  ..delete('/device/<id>', _deviceUnlinkHandler) // Legacy
+  ..get('/api/devices/<id>/status', (Request req, String id) => deviceController.status(req, id))
+  ..post('/api/devices/<id>/unlink', (Request req, String id) => deviceController.unlink(req, id, context))
+  ..get('/device/<id>', (Request req, String id) => deviceController.status(req, id)) // Legacy
+  ..delete('/device/<id>', (Request req, String id) => deviceController.unlink(req, id, context)) // Legacy
   ..get('/u/<userId>/configure', _userConfigureHandler)
   ..get('/api/heartbeat/<gardenerId>', _heartbeatHandler)
-  ..post('/api/telemetry', _telemetryHandler)
+  ..post('/api/telemetry', (Request req) => telemetryController.handle(req))
   ..post('/api/register', _executorRegisterHandler)
   ..get('/api/swarm', _swarmQueryHandler)
   ..get('/api/p2p/info', _p2pInfoHandler)
@@ -555,12 +561,32 @@ Response _userConfigureHandler(Request req, String userId) {
   return Response.found('/configure.html?id=$userId');
 }
 
-/// Unlinks a device from its owner (Portal debug/admin tool).
+/// Unlinks a device from its owner. Requires valid JWT and ownership verification.
 Future<Response> _deviceUnlinkHandler(Request req, String id) async {
   final services = _services(req);
-  // Check if device belongs to user (Portal bypasses auth for now in this admin route)
+  
+  // 1. JWT Authentication
+  final authHeader = req.headers['authorization'];
+  if (authHeader == null || !authHeader.startsWith('Bearer ')) {
+    return Response(401, body: jsonEncode({'ok': false, 'error': 'unauthorized'}));
+  }
+  
+  final token = authHeader.substring(7);
+  final claims = services.auth.verifyJwt(token);
+  if (claims == null) {
+    return Response(401, body: jsonEncode({'ok': false, 'error': 'invalid_token'}));
+  }
+  
+  // 2. Ownership Verification
+  final ownerId = services.db.getOwnerForDevice(id);
+  final tokenUserId = claims['sub'] as String?;
+  
+  if (ownerId == null || tokenUserId == null || ownerId != tokenUserId) {
+    return Response(403, body: jsonEncode({'ok': false, 'error': 'forbidden'}));
+  }
+
   services.db.unlinkDevice(id);
-  services.db.writeAudit('device_unlink', {'device_id': id});
+  services.db.writeAudit('device_unlink', {'device_id': id, 'owner_id': ownerId});
 
   return Response.ok(jsonEncode({'ok': true}));
 }
@@ -610,12 +636,17 @@ Future<Response> _telemetryHandler(Request req) async {
   final payload = await req.readAsString();
   final data = jsonDecode(payload);
 
-  // Mirroring legacy: x-telemetry-key verification
-  final sharedKey = Platform.environment['TELEMETRY_KEY'] ?? '';
+  // Fail-closed telemetry: Require authentication if key is configured.
+  // If TELEMETRY_KEY is not set (null) or empty, disable telemetry entirely.
+  final sharedKey = Platform.environment['TELEMETRY_KEY'];
+  if (sharedKey == null || sharedKey.isEmpty) {
+     return Response(403, body: jsonEncode({'ok': false, 'error': 'telemetry_disabled'}));
+  }
+
   final provided =
       req.headers['x-telemetry-key'] ?? req.url.queryParameters['key'] ?? '';
 
-  if (sharedKey.isNotEmpty && provided != sharedKey) {
+  if (provided != sharedKey) {
     return Response(
       401,
       body: jsonEncode({'ok': false, 'error': 'unauthorized'}),
@@ -1026,6 +1057,10 @@ void main(List<String> args) async {
     print(stack);
     exit(1);
   }
+
+  // Initialize Controllers (Constructor Injection)
+  deviceController = DeviceController(db);
+  telemetryController = TelemetryController(db);
 
   // 2. Initialize Services
   pairingService = PairingService();

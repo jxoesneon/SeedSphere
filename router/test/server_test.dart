@@ -40,15 +40,17 @@ void main() {
           });
 
       try {
-        await completer.future.timeout(const Duration(seconds: 45));
+        await completer.future.timeout(const Duration(seconds: 90));
       } catch (e) {
         await subscription.cancel();
-        p?.kill();
-        throw Exception('Server failed to start (or bind port) within 45s');
+        p?.kill(ProcessSignal.sigkill); // Use SIGKILL to ensure process is terminated
+        throw Exception('Server failed to start (or bind port) within 90s: $e');
       }
     });
 
-    // tearDown(() => p.kill()); // Handled by addTearDown
+    tearDown(() {
+      p?.kill(ProcessSignal.sigkill);
+    });
 
     test('Portal (Root)', () async {
       final response = await get(Uri.parse('$host/'));

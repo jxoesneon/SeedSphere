@@ -9,6 +9,8 @@ environment:
   sdk: ^3.10.4
 
 dependencies:
+  seedsphere_core:
+    path: ../seedsphere_core
   shelf: ^1.4.2
   shelf_router: ^1.1.2
   logging: ^1.2.0

@@ -3,12 +3,21 @@ param(
     [string]$HeadRef = "HEAD"
 )
 
+# Enforce bounded regex for input validation (Security Mandate)
+# Prevents leading hyphens and limits length to 127 chars
+$RefRegex = '^[A-Za-z0-9_./][A-Za-z0-9_./-]{0,127}$'
+
+if (-not ($BaseRef -match $RefRegex) -or -not ($HeadRef -match $RefRegex)) {
+    Write-Error "Invalid Git Reference: Potential Injection Attempt Detected."
+    exit 1
+}
+
 # Function to check if path matches pattern
 function Test-Match {
     param($Files, $Pattern)
     return ($Files | Where-Object { $_ -match $Pattern }).Count -gt 0
 }
-
+...
 try {
     # Try exact match first
     Write-Host "Verifying BaseRef: $BaseRef"

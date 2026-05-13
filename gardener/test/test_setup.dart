@@ -12,10 +12,10 @@ Future<void> setupSeedSphereTest() async {
   
   // 1. Disable Google Fonts in tests and provide fallbacks
   GoogleFonts.config.allowRuntimeFetching = false;
-  
+
   // Register a dummy license to suppress warnings
   LicenseRegistry.addLicense(() async* {
-    yield const LicenseEntryWithLineBreaks(<String>['Outfit'], 'Dummy license');
+    yield const LicenseEntryWithLineBreaks(<String>['Outfit', 'FiraCode'], 'Dummy license');
   });
 
   // 2. Mock path_provider
@@ -34,5 +34,7 @@ Future<void> setupSeedSphereTest() async {
   FlutterSecureStorage.setMockInitialValues({});
 
   // 4. Initialize Config
+  print('Initializing ConfigManager...');
   await ConfigManager().init();
+  print('ConfigManager initialized.');
 }

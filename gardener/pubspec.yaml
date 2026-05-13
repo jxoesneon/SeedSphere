@@ -79,7 +79,13 @@ flutter:
 
   assets:
     - assets/fonts/Outfit-Regular.ttf
+    - assets/fonts/Outfit-Medium.ttf
+    - assets/fonts/Outfit-SemiBold.ttf
     - assets/fonts/Outfit-Bold.ttf
+    - assets/fonts/Outfit-ExtraBold.ttf
+    - assets/fonts/FiraCode-Regular.ttf
+    - assets/fonts/FiraCode-SemiBold.ttf
+    - assets/fonts/FiraCode-Bold.ttf
 
   shaders:
     - assets/shaders/aetheric_glass.frag
