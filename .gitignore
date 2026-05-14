@@ -70,6 +70,9 @@ bridge/dist/
 !.agent/rules/
 !.agent/scripts/
 
+# Ciel Orchestration
+.ciel/
+
 # Root Node Garbage
 package.json
 package-lock.json
@@ -103,3 +106,7 @@ gardener/.metadata
 # Sensitive Google Configs
 gardener/android/app/google-services.json
 gardener/ios/Runner/GoogleService-Info.plist
+
+# Ciel Orchestration
+.ciel/
+.mempalace/
