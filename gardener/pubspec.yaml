@@ -90,3 +90,6 @@ flutter:
   shaders:
     - assets/shaders/aetheric_glass.frag
 
+dependency_overrides:
+  jose: ^0.3.5+2
+

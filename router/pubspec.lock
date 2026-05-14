@@ -530,7 +530,7 @@ packages:
     source: hosted
     version: "0.5.6"
   jose:
-    dependency: transitive
+    dependency: "direct overridden"
     description:
       name: jose
       sha256: a0a339d0a0652dc1bd89f8b92d38479e07e16db83858fb55fa57212479f323f7
