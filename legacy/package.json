@@ -32,7 +32,7 @@
     "express": "^5.2.1",
     "express-rate-limit": "^8.3.1",
     "jsonwebtoken": "^9.0.3",
-    "libsodium-wrappers": "^0.7.15",
+    "libsodium-wrappers": "^0.8.4",
     "nanoid": "^5.1.5",
     "nodemailer": "^8.0.5",
     "openid-client": "^6.7.1",
