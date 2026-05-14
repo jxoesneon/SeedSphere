@@ -5,7 +5,8 @@ param(
 
 # Enforce bounded regex for input validation (Security Mandate)
 # Prevents leading hyphens and limits length to 127 chars
-$RefRegex = '^[A-Za-z0-9_./][A-Za-z0-9_./-]{0,127}$'
+# Allows alpha, numeric, _, ., /, -, ~, ^ (valid git refs)
+$RefRegex = '^[A-Za-z0-9_./^][A-Za-z0-9_./~^-]{0,127}$'
 
 if (-not ($BaseRef -match $RefRegex) -or -not ($HeadRef -match $RefRegex)) {
     Write-Error "Invalid Git Reference: Potential Injection Attempt Detected."
