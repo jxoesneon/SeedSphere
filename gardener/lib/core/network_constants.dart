@@ -115,19 +115,10 @@ class NetworkConstants {
   }
 
   static List<String> get p2pBootstrapPeers {
-    // Production Bootstrap Nodes (Router + Public IPFS Gateway)
+    // Production Bootstrap Nodes - Self-hosted only (private swarm)
     return <String>[
-      // SeedSphere Router (Primary)
-      '/dnsaddr/seedsphere.fly.dev/tcp/4005/p2p/12D3KooWJk1h5F5F5F5F5F5F5F5F5F5F5F5F5F5F5F5F5F5F5F5', // Updated Port to 4005
-      // Actually, if we use dnsaddr without PeerID, ipfs might reject it as a bootstrap node in strict mode.
-      // But we can try just IP4 for now if we don't know the PeerID.
-      // Wait, standard bootstrap nodes NEED PeerID.
-      // I'll use the IPFS public ones which I know.
-      // And I will keep Mars since it seems alive.
-      '/ip4/104.131.131.82/tcp/4001/p2p/QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ', // Mars
-      '/dnsaddr/bootstrap.libp2p.io/p2p/QmNnooDu7bfjPFoTZYxMNLWUQJyrVwtbZg5gBMjTezGAJN',
-      '/dnsaddr/bootstrap.libp2p.io/p2p/QmbLHAnMoJPWSCR5Zhtx6BHJX9CkJg6M6VMcMG_Qx25iv',
-      '/dnsaddr/bootstrap.libp2p.io/p2p/QmcZf59bWwK5XFi76CZX8cbJ4BhTzzA3gU1ZjYZcYW3dwt',
+      // SeedSphere Router (Primary) - Self-hosted bootstrap
+      '/dnsaddr/seedsphere.fly.dev/tcp/4005/p2p/12D3KooWAbQP1fxpNKVfTDvZRrufPVJLtyK7Lu6VKfD47xNpuVrR',
     ];
   }
 
