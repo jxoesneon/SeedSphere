@@ -26,12 +26,12 @@ dependencies:
   flutter:
     sdk: flutter
 
-  cupertino_icons: ^1.0.8
+  cupertino_icons: ^1.0.9
   dart_ipfs: ^1.9.4
   p2plib: ^2.3.1
   flutter_background_service: ^5.1.0
   workmanager: ^0.9.0+3
-  flutter_secure_storage: ^10.0.0
+  flutter_secure_storage: ^10.2.0
   hive: ^2.2.3
   hive_flutter: ^1.1.0
   crypto: ^3.0.7
@@ -46,7 +46,7 @@ dependencies:
   qr_flutter: ^4.1.0
   fl_chart: ^1.1.1
   url_launcher: ^6.3.0
-  shared_preferences: ^2.3.5
+  shared_preferences: ^2.5.5
   google_sign_in: 7.2.0
   intl: ^0.20.2
   path_provider: ^2.1.5
@@ -68,8 +68,8 @@ dev_dependencies:
   flutter_lints: ^6.0.0
   mocktail: ^1.0.4
   flutter_background_service_android: ^6.3.1
-  build_runner: ^2.10.4
-  mockito: ^5.6.1
+  build_runner: ^2.13.1
+  mockito: ^5.6.4
   test: ^1.30.0
   plugin_platform_interface: ^2.1.8
   url_launcher_platform_interface: ^2.3.2
