@@ -10,6 +10,13 @@ COPY seedsphere_core/ ./seedsphere_core/
 # Copy router source and resolve dependencies.
 WORKDIR /workspace/router
 COPY router/pubspec.* ./
+
+# Install build dependencies for sodium native assets.
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    libsodium-dev \
+    && rm -rf /var/lib/apt/lists/*
+
 RUN dart pub get
 
 # Copy remaining router source and AOT compile.
