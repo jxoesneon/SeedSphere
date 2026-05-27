@@ -85,6 +85,11 @@ final _router = Router()
     (Request req, String type, String id) =>
         _userStreamHandler(req, 'public', type, id),
   )
+  ..get(
+    '/catalog/<type>/<id>.json',
+    (Request req, String type, String id) =>
+        addonService.handleCatalog(req, type, id),
+  ) // Public catalog (proxies Cinemeta)
   ..get('/api/status', _rootHandler) // Moved to free up root for portal
   ..get('/dl/<file>', _handleDownload)
   ..get(
