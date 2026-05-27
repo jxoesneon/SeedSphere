@@ -59,6 +59,11 @@ class EventService {
     return _controllers.containsKey(clientId);
   }
 
+  /// Returns a list of all currently connected client IDs.
+  List<String> getConnectedClients() {
+    return _controllers.keys.toList();
+  }
+
   /// Publishes an event to all subscribers in a room.
   void publish(String gardenerId, String event, Map<String, dynamic> data) {
     if (_controllers.containsKey(gardenerId)) {
