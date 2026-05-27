@@ -3,7 +3,6 @@ import 'package:mockito/mockito.dart';
 import 'package:mockito/annotations.dart';
 import 'package:http/http.dart' as http;
 import 'package:router/health_service.dart';
-import 'dart:io';
 
 @GenerateNiceMocks([MockSpec<http.Client>()])
 import 'health_service_coverage_test.mocks.dart';
@@ -38,7 +37,7 @@ void main() {
       // Since it's a real IP, it might timeout or fail.
       final ok = await healthService.checkUdpTracker(
         'udp://1.2.3.4:5678',
-        timeout: Duration(milliseconds: 100),
+        timeout: const Duration(milliseconds: 100),
       );
       expect(ok, isFalse);
     });

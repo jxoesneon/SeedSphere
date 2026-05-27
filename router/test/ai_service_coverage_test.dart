@@ -39,7 +39,7 @@ void main() {
         ),
       );
 
-      final req = AiDescriptionRequest(
+      const req = AiDescriptionRequest(
         title: 'Inception',
         provider: AiProvider.deepseek,
         model: 'deepseek-chat',
@@ -51,7 +51,7 @@ void main() {
     });
 
     test('enhanceDescription openai failure (missing key)', () async {
-      final req = AiDescriptionRequest(
+      const req = AiDescriptionRequest(
         title: 'Inception',
         provider: AiProvider.openai,
         model: 'gpt-4',

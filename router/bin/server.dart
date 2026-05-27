@@ -527,45 +527,6 @@ Response _eventsHandler(Request req, String gardenerId) {
   return services.events.sseResponse(stream);
 }
 
-/// Returns status and ownership info for a specific device.
-Future<Response> _deviceStatusHandler(Request req, String id) async {
-  final services = _services(req);
-  final ownerId = services.db.getOwnerForDevice(id);
-  final isLinked = ownerId != null;
-
-  var neighbors = 0;
-  var ownerDisplay = 'None';
-
-  if (isLinked) {
-    final bindings = services.db.getBindings(ownerId);
-    neighbors = bindings.length - 1; // Others in the swarm
-
-    final owner = services.db.getUser(ownerId);
-    if (owner != null) {
-      final email = owner['email'] as String?;
-      if (email != null) {
-        final parts = email.split('@');
-        ownerDisplay = '${parts[0].substring(0, 1)}***@${parts[1]}';
-      } else {
-        ownerDisplay = 'User: ${ownerId.substring(0, 8)}...';
-      }
-    }
-  }
-
-  return Response.ok(
-    jsonEncode({
-      'ok': true,
-      'id': id,
-      'linked': isLinked,
-      'owner': ownerDisplay,
-      'neighbors': neighbors,
-    }),
-    headers: {
-      'content-type': 'application/json',
-      'Access-Control-Allow-Origin': '*',
-    },
-  );
-}
 
 /// Handler for the Stremio-triggered configuration redirect.
 Response _userConfigureHandler(Request req, String userId) {
@@ -573,44 +534,6 @@ Response _userConfigureHandler(Request req, String userId) {
   return Response.found('/configure.html?id=$userId');
 }
 
-/// Unlinks a device from its owner. Requires valid JWT and ownership verification.
-Future<Response> _deviceUnlinkHandler(Request req, String id) async {
-  final services = _services(req);
-
-  // 1. JWT Authentication
-  final authHeader = req.headers['authorization'];
-  if (authHeader == null || !authHeader.startsWith('Bearer ')) {
-    return Response(
-      401,
-      body: jsonEncode({'ok': false, 'error': 'unauthorized'}),
-    );
-  }
-
-  final token = authHeader.substring(7);
-  final claims = services.auth.verifyJwt(token);
-  if (claims == null) {
-    return Response(
-      401,
-      body: jsonEncode({'ok': false, 'error': 'invalid_token'}),
-    );
-  }
-
-  // 2. Ownership Verification
-  final ownerId = services.db.getOwnerForDevice(id);
-  final tokenUserId = claims['sub'] as String?;
-
-  if (ownerId == null || tokenUserId == null || ownerId != tokenUserId) {
-    return Response(403, body: jsonEncode({'ok': false, 'error': 'forbidden'}));
-  }
-
-  services.db.unlinkDevice(id);
-  services.db.writeAudit('device_unlink', {
-    'device_id': id,
-    'owner_id': ownerId,
-  });
-
-  return Response.ok(jsonEncode({'ok': true}));
-}
 
 // Heartbeat (Secured via JWT)
 
@@ -651,43 +574,6 @@ Future<Response> _heartbeatHandler(Request req, String gardenerId) async {
   );
 }
 
-/// Collects telemetry data for analytics and debugging.
-Future<Response> _telemetryHandler(Request req) async {
-  final services = _services(req);
-  final payload = await req.readAsString();
-  final data = jsonDecode(payload);
-
-  // Fail-closed telemetry: Require authentication if key is configured.
-  // If TELEMETRY_KEY is not set (null) or empty, disable telemetry entirely.
-  final sharedKey = Platform.environment['TELEMETRY_KEY'];
-  if (sharedKey == null || sharedKey.isEmpty) {
-    return Response(
-      403,
-      body: jsonEncode({'ok': false, 'error': 'telemetry_disabled'}),
-    );
-  }
-
-  final provided =
-      req.headers['x-telemetry-key'] ?? req.url.queryParameters['key'] ?? '';
-
-  if (provided != sharedKey) {
-    return Response(
-      401,
-      body: jsonEncode({'ok': false, 'error': 'unauthorized'}),
-    );
-  }
-
-  // Audit log parity
-  services.db.writeAudit('telemetry', {
-    'ua': req.headers['user-agent'],
-    'body': data,
-  });
-
-  return Response.ok(
-    jsonEncode({'ok': true}),
-    headers: {'content-type': 'application/json', 'Cache-Control': 'no-store'},
-  );
-}
 
 /// Registers a new executor/agent and assigns a device ID.
 Future<Response> _executorRegisterHandler(Request req) async {

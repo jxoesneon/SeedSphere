@@ -3,11 +3,15 @@ import 'dart:io';
 import 'package:shelf/shelf.dart';
 import 'package:router/db_service.dart';
 
+/// Controller for processing and logging incoming telemetry data.
 class TelemetryController {
+  /// The database service used to write audit logs.
   final DbService db;
 
+  /// Creates a new instance of [TelemetryController].
   TelemetryController(this.db);
 
+  /// Handles incoming telemetry requests and verifies security keys.
   Future<Response> handle(Request req) async {
     final payload = await req.readAsString();
     final data = jsonDecode(payload);

@@ -4,7 +4,6 @@ import 'package:mockito/annotations.dart';
 import 'package:http/http.dart' as http;
 import 'package:shelf/shelf.dart';
 import 'dart:convert';
-import 'dart:io';
 import 'package:router/auth_service.dart';
 import 'package:router/db_service.dart';
 import 'package:router/mailer_service.dart';

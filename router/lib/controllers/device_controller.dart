@@ -3,11 +3,15 @@ import 'package:shelf/shelf.dart';
 import 'package:router/core/server_context.dart';
 import 'package:router/db_service.dart';
 
+/// Controller for managing device-specific states and link statuses.
 class DeviceController {
+  /// The database service used to query device/owner data.
   final DbService db;
 
+  /// Creates a new instance of [DeviceController].
   DeviceController(this.db);
 
+  /// Retrieves the link status and swarm neighbors for a specific device.
   Future<Response> status(Request req, String id) async {
     final ownerId = db.getOwnerForDevice(id);
     final isLinked = ownerId != null;
@@ -46,6 +50,7 @@ class DeviceController {
     );
   }
 
+  /// Unlinks a device from its owner, requiring JWT authentication and verification.
   Future<Response> unlink(
     Request req,
     String id,
