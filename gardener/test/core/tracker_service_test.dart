@@ -1,7 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:gardener/core/tracker_service.dart';
-import 'package:gardener/core/network_constants.dart';
 import 'package:gardener/core/config_manager.dart';
+import 'package:seedsphere_core/seedsphere_core.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
@@ -28,7 +27,7 @@ void main() {
         // For a unit test without mocks, we expect it to try fetch and fail or succeed.
         // Given we are in CI/Test env with no internet? It might fail.
 
-        final trackers = await service.getTrackers();
+        final trackers = await service.getTrackers(ConfigManager());
 
         expect(trackers, isNotEmpty);
         expect(

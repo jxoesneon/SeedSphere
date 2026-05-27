@@ -1,5 +1,5 @@
 import 'package:test/test.dart';
-import 'package:router/core/rate_limiter.dart';
+import 'package:seedsphere_core/seedsphere_core.dart';
 
 void main() {
   test('RateLimiter wait returns immediately when under limit', () async {

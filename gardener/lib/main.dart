@@ -13,7 +13,7 @@ import 'package:gardener/core/config_manager.dart';
 import 'package:gardener/p2p/p2p_manager.dart';
 import 'package:gardener/services/task_executor_service.dart';
 
-import 'package:gardener/core/network_constants.dart';
+import 'package:seedsphere_core/seedsphere_core.dart';
 import 'package:gardener/core/debug_config.dart';
 import 'package:gardener/ui/screens/home_screen.dart';
 

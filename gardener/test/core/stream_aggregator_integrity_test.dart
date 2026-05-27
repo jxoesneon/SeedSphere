@@ -1,7 +1,7 @@
 import 'package:test/test.dart';
 import 'package:gardener/core/stream_aggregator.dart';
+import 'package:seedsphere_core/seedsphere_core.dart';
 import 'package:gardener/core/config_manager.dart';
-import 'package:gardener/core/tracker_service.dart';
 import 'package:gardener/core/cortex_service.dart';
 import 'package:mocktail/mocktail.dart';
 
@@ -48,7 +48,7 @@ void main() {
       () => mockConfig.getAllDebridApiKey(),
     ).thenAnswer((_) async => 'ad_token');
 
-    when(() => mockTrackerService.getTrackers()).thenAnswer((_) async => []);
+    when(() => mockTrackerService.getTrackers(any())).thenAnswer((_) async => []);
 
     aggregator = StreamAggregator(
       config: mockConfig,

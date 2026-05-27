@@ -9,7 +9,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 import 'package:uuid/uuid.dart';
 import 'package:gardener/core/security_manager.dart';
-import 'package:gardener/core/network_constants.dart';
+import 'package:seedsphere_core/seedsphere_core.dart';
 import 'package:gardener/core/activity_manager.dart';
 import 'package:gardener/core/debug_config.dart';
 import 'package:shared_preferences/shared_preferences.dart';

@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:gardener/core/network_constants.dart';
+import 'package:seedsphere_core/seedsphere_core.dart';
 import 'package:gardener/ui/theme/aetheric_theme.dart';
 import 'package:gardener/ui/widgets/settings/settings.dart';
 import 'package:google_fonts/google_fonts.dart';

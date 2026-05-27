@@ -1,6 +1,6 @@
 {
   "name": "seedsphere-bridge",
-  "version": "2.3.4",
+  "version": "2.3.22",
   "description": "SeedSphere Federated P2P Discovery Bridge",
   "main": "src/index.ts",
   "scripts": {
@@ -11,19 +11,19 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "hono": "^4.12.18"
+    "hono": "^4.12.23"
   },
   "devDependencies": {
     "@cloudflare/vitest-pool-workers": "^0.16.4",
     "@cloudflare/workers-types": "^4.20260511.1",
     "@vitest/coverage-v8": "^4.1.0",
-    "tsx": "^4.21.0",
+    "tsx": "^4.22.3",
     "typescript": "^6.0.3",
     "vitest": "^4.1.6",
     "wrangler": "^4.90.1"
   },
   "overrides": {
-    "undici": "7.24.4",
-    "postcss": "^8.5.14"
+    "undici": "7.25.1",
+    "postcss": "^8.5.15"
   }
 }

@@ -1,8 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
-import 'package:gardener/scrapers/tracker_scraper.dart';
+import 'package:seedsphere_core/seedsphere_core.dart';
 import 'package:gardener/core/config_manager.dart';
-import 'package:gardener/core/tracker_service.dart';
 
 class MockConfigManager extends Mock implements ConfigManager {}
 
@@ -21,7 +20,7 @@ void main() {
       when(() => mockConfig.enableTrackerScraping).thenReturn(true);
       when(() => mockConfig.trackerScrapeTimeoutMs).thenReturn(1000);
       when(
-        () => mockTracker.getTrackers(),
+        () => mockTracker.getTrackers(any()),
       ).thenAnswer((_) async => ['udp://tracker1:1337', 'udp://tracker2:6969']);
 
       scraper = TrackerScraper(config: mockConfig, trackerService: mockTracker);

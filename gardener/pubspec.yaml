@@ -17,7 +17,7 @@ publish_to: "none"
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-version: 2.3.21
+version: 2.3.22
 
 environment:
   sdk: ^3.10.0
@@ -26,9 +26,17 @@ dependencies:
   flutter:
     sdk: flutter
 
+  seedsphere_core:
+    path: ../seedsphere_core
   cupertino_icons: ^1.0.9
-  dart_ipfs: ^1.9.4
-  p2plib: ^2.3.1
+  dart_ipfs:
+    git:
+      url: https://github.com/jxoesneon/IPFS.git
+      ref: master
+  p2plib:
+    git:
+      url: https://github.com/jxoesneon/p2plib-dart.git
+      ref: main
   flutter_background_service: ^5.1.0
   workmanager: ^0.9.0+3
   flutter_secure_storage: ^10.2.0
@@ -92,4 +100,6 @@ flutter:
 
 dependency_overrides:
   jose: ^0.3.5+2
+  xml: ^7.0.1
+  dart_udx: ^2.0.3
 

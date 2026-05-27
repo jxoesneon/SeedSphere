@@ -2,9 +2,8 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:gardener/core/debug_logger.dart';
-import 'package:gardener/core/network_constants.dart';
+import 'package:seedsphere_core/seedsphere_core.dart';
 import 'package:gardener/p2p/p2p_manager.dart';
-import 'package:gardener/scrapers/scraper_engine.dart';
 import 'package:gardener/core/cortex_service.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -27,7 +26,7 @@ class TaskExecutorService {
   final ValueNotifier<int> activeTaskCount = ValueNotifier<int>(0);
 
   TaskExecutorService(this._p2p, this._cortex)
-    : _scraper = ScraperEngine.defaults(p2p: _p2p);
+    : _scraper = ScraperEngine.defaults();
 
   void start() {
     DebugLogger.info(

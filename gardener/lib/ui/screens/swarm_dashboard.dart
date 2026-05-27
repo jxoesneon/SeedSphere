@@ -11,14 +11,13 @@ import 'package:gardener/ui/theme/aetheric_theme.dart';
 import 'package:gardener/ui/screens/expert_screen.dart';
 import 'package:gardener/ui/widgets/swarm_health_hero.dart';
 import 'package:gardener/ui/widgets/signal_card.dart';
-import 'package:gardener/core/network_constants.dart';
+import 'package:seedsphere_core/seedsphere_core.dart';
 import 'package:gardener/p2p/p2p_manager.dart';
 import 'package:gardener/core/debug_config.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gardener/core/stream_history_manager.dart';
 import 'package:gardener/core/activity_manager.dart';
-import 'package:gardener/scrapers/scraper_engine.dart';
 import 'package:gardener/core/security_manager.dart';
 import 'package:gardener/core/debug_logger.dart';
 import 'package:uuid/uuid.dart';
@@ -457,7 +456,7 @@ class _SwarmDashboardState extends ConsumerState<SwarmDashboard>
       if (imdbId != null) {
         _addLog('Executing resolution for $imdbId...');
         // 1. Scrape
-        final ScraperEngine engine = ScraperEngine.defaults(p2p: _p2pManager);
+        final ScraperEngine engine = ScraperEngine.defaults();
         final results = await engine.scrapeAll(imdbId);
 
         if (results.isNotEmpty) {

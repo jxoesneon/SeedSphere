@@ -3,14 +3,13 @@ import 'package:gardener/p2p/p2p_manager.dart';
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
-import 'package:gardener/core/network_constants.dart';
+import 'package:seedsphere_core/seedsphere_core.dart';
 import 'package:gardener/core/parse_utils.dart';
 import 'package:http/http.dart' as http; // Use http for proxy
 import 'package:gardener/core/debug_logger.dart';
 import 'package:gardener/core/stream_history_manager.dart';
 import 'package:gardener/core/stream_resolver.dart';
 import 'package:gardener/core/activity_manager.dart';
-import 'package:gardener/scrapers/scraper_engine.dart';
 import 'package:gardener/core/stream_aggregator.dart';
 
 /// A local HTTP server that acts as a Stremio Addon.
@@ -33,7 +32,7 @@ class StremioServer {
   }) : _p2p = p2p ?? P2PManager.instance,
        _resolver = resolver ?? StreamResolver(),
        _scrapers =
-           scrapers ?? ScraperEngine.defaults(p2p: p2p ?? P2PManager.instance),
+           scrapers ?? ScraperEngine.defaults(),
        _aggregator = aggregator ?? StreamAggregator();
 
   /// The port the server is listening on.

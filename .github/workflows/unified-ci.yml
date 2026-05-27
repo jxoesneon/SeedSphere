@@ -23,7 +23,7 @@ jobs:
     outputs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
@@ -45,7 +45,7 @@ jobs:
       fail-fast: false
       matrix: ${{ fromJson(needs.analyze-changes.outputs.matrix) }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       # --- PROJECT: GARDENER ---
       - name: Setup Flutter
@@ -119,7 +119,7 @@ jobs:
       # --- PROJECT: BRIDGE ---
       - name: Setup Node (Bridge)
         if: matrix.project == 'bridge'
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: 24
           cache: "npm"
@@ -135,7 +135,7 @@ jobs:
       # --- PROJECT: LEGACY ---
       - name: Setup Node (Legacy)
         if: matrix.project == 'legacy'
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: 24
           cache: "npm"

@@ -1,7 +1,7 @@
 {
   "name": "seedsphere-refactor",
   "private": true,
-  "version": "2.3.4",
+  "version": "2.3.22",
   "type": "module",
   "description": "SeedSphere — Gardener PWA, Greenhouse backend, and Seedling addon.",
   "repository": {
@@ -14,7 +14,7 @@
   },
   "license": "MIT",
   "engines": {
-    "node": ">=22"
+    "node": ">=24"
   },
   "scripts": {
     "dev": "cross-env NODE_ENV=development node server/index.js",
@@ -24,36 +24,36 @@
     "parity": "node scripts/parity-check.js"
   },
   "dependencies": {
-    "axios": "^1.15.1",
+    "axios": "^1.16.1",
     "bencode": "^4.0.0",
-    "better-sqlite3": "^12.2.0",
+    "better-sqlite3": "^12.9.0",
     "cookie-parser": "^1.4.7",
     "csurf": "^1.11.0",
     "express": "^5.2.1",
-    "express-rate-limit": "^8.5.1",
+    "express-rate-limit": "^8.5.2",
     "jsonwebtoken": "^9.0.3",
     "libsodium-wrappers": "^0.8.4",
-    "nanoid": "^5.1.5",
+    "nanoid": "^5.1.7",
     "nodemailer": "^8.0.5",
-    "openid-client": "^6.7.1",
+    "openid-client": "^6.8.3",
     "stremio-addon-sdk": "^1.6.10",
     "uuid": "^14.0.0",
-    "vue": "^3.5.34",
-    "vue-router": "^4.5.1"
+    "vue": "^3.5.35",
+    "vue-router": "^4.6.4"
   },
   "devDependencies": {
-    "@tailwindcss/postcss": "^4.1.12",
-    "@vitejs/plugin-vue": "^6.0.0",
+    "@tailwindcss/postcss": "^4.2.2",
+    "@vitejs/plugin-vue": "^6.0.6",
     "autoprefixer": "^10.5.0",
     "cross-env": "^10.1.0",
-    "daisyui": "^5.0.0",
-    "dotenv": "^17.2.2",
-    "postcss": "^8.5.10",
+    "daisyui": "^5.5.19",
+    "dotenv": "^17.4.2",
+    "postcss": "^8.5.15",
     "tailwindcss": "^4.3.0",
-    "vite": "^7.3.0"
+    "vite": "^7.3.2"
   },
 "overrides": {
-    "cross-spawn": "7.0.5",
+    "cross-spawn": "7.0.6",
     "express-handlebars": "5.3.1",
     "brace-expansion": "2.0.2",
     "cookie": "0.7.2",
@@ -61,6 +61,6 @@
     "tmp": "0.2.6",
     "ip-address": "10.1.1",
     "jose": ">=6.2.3",
-    "qs": "6.15.2"
+    "qs": "6.16.2"
   }
 }

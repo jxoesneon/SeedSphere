@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'package:router/scrapers/scraper_engine.dart';
-import 'package:router/core/title_verifier.dart';
+import 'scraper_engine.dart';
+import 'core/title_verifier.dart';
 
 /// Scraper implementation for the Pirate Bay provider (Classic).
 class PirateBayScraper extends BaseScraper {

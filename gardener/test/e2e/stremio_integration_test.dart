@@ -1,12 +1,12 @@
 import 'dart:convert';
 
+import 'package:seedsphere_core/seedsphere_core.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:gardener/core/stremio_server.dart';
 import 'package:gardener/core/stream_resolver.dart';
 import 'package:gardener/core/stream_aggregator.dart';
 import 'package:gardener/core/config_manager.dart';
-import 'package:gardener/scrapers/scraper_engine.dart';
 import 'package:gardener/core/activity_manager.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:shared_preferences/shared_preferences.dart';

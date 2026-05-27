@@ -1,8 +1,8 @@
 import 'package:gardener/core/magnet_utils.dart';
-import 'package:gardener/core/tracker_service.dart';
+import 'package:seedsphere_core/seedsphere_core.dart';
 
 import 'package:gardener/core/parse_utils.dart';
-import 'package:gardener/core/metadata_normalizer.dart';
+
 import 'package:gardener/core/config_manager.dart';
 import 'package:gardener/core/cortex_service.dart';
 
@@ -58,7 +58,7 @@ class StreamAggregator {
     }
 
     // 1. Fetch global best trackers once
-    var globalTrackers = await _trackerService.getTrackers();
+    var globalTrackers = await _trackerService.getTrackers(_config);
 
     // Limits
     final maxTrackers = _config.maxTrackers;
@@ -181,17 +181,7 @@ class StreamAggregator {
 
       // 6. Content Integrity Filter (Series & Movie)
       if (requestedTitle != null && requestedTitle.isNotEmpty) {
-        final naturalRequested = MetadataNormalizer.toTitleNatural(
-          requestedTitle,
-        ).toLowerCase();
-        final naturalStream = MetadataNormalizer.toTitleNatural(
-          title,
-        ).toLowerCase();
-
-        // Basic similarity: natural title should contain natural requested title
-        // or vice versa (for cases where requested title is just a part of the stream title)
-        if (!naturalStream.contains(naturalRequested) &&
-            !naturalRequested.contains(naturalStream)) {
+        if (!TitleVerifier.verify(requestedTitle, title)) {
           // Strict mismatch
           continue;
         }

@@ -5,7 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:gardener/ui/theme/aetheric_theme.dart';
 import 'package:gardener/ui/screens/home_screen.dart';
 import 'package:gardener/ui/widgets/aetheric_glass.dart';
-import 'package:gardener/core/network_constants.dart';
+import 'package:seedsphere_core/seedsphere_core.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 /// A premium glassmorphic dialog for user profile management.

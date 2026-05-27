@@ -1,6 +1,6 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'package:router/scrapers/scraper_engine.dart';
+import 'package:seedsphere_core/seedsphere_core.dart';
 
 /// Scraper implementation for AniDex (Anime focused).
 class AnidexScraper extends BaseScraper {

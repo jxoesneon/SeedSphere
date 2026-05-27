@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'dart:isolate';
+import 'package:seedsphere_core/seedsphere_core.dart';
 import 'package:gardener/ui/theme/aetheric_theme.dart';
-import 'package:gardener/core/metadata_normalizer.dart';
 import 'package:gardener/p2p/p2p_protocol.dart';
 import 'package:gardener/p2p/p2p_manager.dart';
 import 'package:gardener/core/local_kms.dart';
@@ -29,38 +29,32 @@ void main() {
 
     test('MetadataNormalizer resolution logic', () {
       expect(
-        MetadataNormalizer.normalize({'title': 'Movie 4K'})['quality'],
-        '2160p',
+        MetadataNormalizer.normalize({'title': 'Movie 4K'}, "Test").resolution,
+        '4K',
       );
       expect(
-        MetadataNormalizer.normalize({'title': 'Movie UHD'})['quality'],
-        '2160p',
+        MetadataNormalizer.normalize({'title': 'Movie UHD'}, "Test").resolution,
+        '4K',
       );
       expect(
-        MetadataNormalizer.normalize({'title': 'Movie 1080p'})['quality'],
+        MetadataNormalizer.normalize({'title': 'Movie 1080p'}, "Test").resolution,
         '1080p',
       );
       expect(
-        MetadataNormalizer.normalize({'title': 'Movie 720p'})['quality'],
+        MetadataNormalizer.normalize({'title': 'Movie 720p'}, "Test").resolution,
         '720p',
       );
-      // 'Movie Cam' might map to null quality if 'Cam' isn't in canonical list,
-      // but 'SD' was expected. Let's check mapQuality behavior:
-      // '480' -> '480p'. 'Cam' isn't mapped in simple regex.
-      // Legacy 'MetadataNormalizer' behavior with 'Cam' usually implies excluded or custom.
-      // We will expect null for now or check if Cam is handled.
-      // mapQuality only checks 4k, 1080, 720, 480.
+
       expect(
-        MetadataNormalizer.normalize({'title': 'Movie Cam'})['quality'],
-        isNull,
+        MetadataNormalizer.normalize({'title': 'Movie Cam'}, "Test").resolution,
+        'SD',
       );
 
       // Test nulls
-      final norm = MetadataNormalizer.normalize({});
-      expect(norm['title_natural'], ''); // Empty string for unknown
-      expect(norm['infohash'], null); // Normalized assigns null if invalid
-      // expect(norm['fileIdx'], null); // Not in output map
-      expect(norm['quality'], null);
+      final norm = MetadataNormalizer.normalize({}, "Test");
+      expect(norm.title, 'Unknown Stream');
+      expect(norm.infoHash, '');
+      expect(norm.resolution, 'SD');
     });
 
     test('P2PCommand Serialization', () {
@@ -95,7 +89,7 @@ void main() {
       manager.toIsolatePort = rp.sendPort;
 
       manager.search('tt1');
-      final msg = await rp.first;
+      final msg = await rp.first as Map<String, dynamic>;
       expect(msg['type'], 0); // Search
       rp.close();
     });

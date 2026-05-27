@@ -1,20 +1,24 @@
 import 'package:http/http.dart' as http;
 import 'package:xml/xml.dart';
-import 'package:gardener/scrapers/scraper_engine.dart';
-import 'package:gardener/core/config_manager.dart';
-import 'package:gardener/core/debug_logger.dart';
+import 'scraper_engine.dart';
+import 'core/app_config.dart';
 
+/// Scraper for Torznab-compatible indexers (Jackett, Prowlarr).
 class TorznabScraper extends BaseScraper {
   final http.Client _client;
-  final ConfigManager _config;
+  final AppConfig _config;
 
-  TorznabScraper({http.Client? client, ConfigManager? config})
+  /// Creates a new TorznabScraper.
+  TorznabScraper({http.Client? client, required AppConfig config})
     : _client = client ?? http.Client(),
-      _config = config ?? ConfigManager(),
-      super(name: 'Torznab', baseUrl: ''); // baseUrl is dynamic from config
+      _config = config,
+      super(name: 'Torznab', baseUrl: '');
 
   @override
-  Future<List<Map<String, dynamic>>> scrape(String imdbId) async {
+  Future<List<Map<String, dynamic>>> scrape(
+    String imdbId, {
+    Function(String)? onLog,
+  }) async {
     final baseUrl = _config.torznabUrl;
     final apiKey = await _config.getTorznabKey();
 
@@ -22,14 +26,11 @@ class TorznabScraper extends BaseScraper {
       return [];
     }
 
-    // Determine type (tt... for movie/series)
-    // Most indexers support t=movie with imdbid
     final url = '$baseUrl?t=movie&imdbid=$imdbId&apikey=$apiKey';
 
     try {
       final response = await _client.get(Uri.parse(url));
       if (response.statusCode != 200) {
-        DebugLogger.warn('Torznab: Failed with status ${response.statusCode}');
         return [];
       }
 
@@ -41,7 +42,6 @@ class TorznabScraper extends BaseScraper {
         final title = item.findElements('title').firstOrNull?.innerText ?? '';
         final link = item.findElements('link').firstOrNull?.innerText ?? '';
 
-        // Extract torznab attributes
         int seeders = 0;
         int size = 0;
         String? infoHash;
@@ -55,7 +55,6 @@ class TorznabScraper extends BaseScraper {
           if (name == 'infohash') infoHash = value;
         }
 
-        // If no infohash, try to extract from magnet link
         if (infoHash == null && link.startsWith('magnet:')) {
           final hashMatch = RegExp(r'btih:([a-zA-Z0-9]+)').firstMatch(link);
           if (hashMatch != null) {
@@ -77,12 +76,8 @@ class TorznabScraper extends BaseScraper {
       }
 
       return results;
-    } catch (e) {
-      DebugLogger.error('Torznab: Error scraping', error: e);
+    } catch (_) {
       return [];
     }
   }
-
-  @override
-  bool isEnabled(ConfigManager config) => config.enableTorznab;
 }

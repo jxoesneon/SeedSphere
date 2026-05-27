@@ -1,10 +1,10 @@
 name: seedsphere_core
 description: Core scraper engines and normalization logic shared across the SeedSphere ecosystem.
-version: 2.3.13
+version: 2.3.22
 environment:
   sdk: ^3.10.0
 
 dependencies:
-  xml: ^6.6.1
+  xml: ^7.0.1
   http: ^1.6.0
   meta: ^1.11.0

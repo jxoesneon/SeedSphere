@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gardener/core/stream_aggregator.dart';
+import 'package:seedsphere_core/seedsphere_core.dart';
 import 'package:gardener/core/config_manager.dart';
-import 'package:gardener/core/tracker_service.dart';
 import 'package:gardener/core/cortex_service.dart';
 import 'package:mocktail/mocktail.dart';
 
@@ -46,7 +46,7 @@ void main() {
       when(() => mockConfig.maxResultsPerProvider).thenReturn(15);
 
       // TrackerService mock - return test trackers
-      when(() => mockTrackerService.getTrackers()).thenAnswer(
+      when(() => mockTrackerService.getTrackers(any())).thenAnswer(
         (_) async => [
           'udp://tracker.opentrackr.org:1337/announce',
           'udp://tracker.openbittorrent.com:6969/announce',

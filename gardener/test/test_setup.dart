@@ -34,7 +34,9 @@ Future<void> setupSeedSphereTest() async {
   FlutterSecureStorage.setMockInitialValues({});
 
   // 4. Initialize Config
+  // ignore: avoid_print
   print('Initializing ConfigManager...');
   await ConfigManager().init();
+  // ignore: avoid_print
   print('ConfigManager initialized.');
 }

@@ -3,7 +3,7 @@ import 'dart:ui';
 import 'package:flutter_background_service/flutter_background_service.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:http/http.dart' as http;
-import 'package:gardener/core/network_constants.dart';
+import 'package:seedsphere_core/seedsphere_core.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:flutter/foundation.dart';

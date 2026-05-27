@@ -1,6 +1,6 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'package:router/scrapers/scraper_engine.dart';
+import 'scraper_engine.dart';
 
 /// Scraper implementation for MagnetDL.
 class MagnetDLScraper extends BaseScraper {

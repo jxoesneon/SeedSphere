@@ -1,95 +1,68 @@
 import 'dart:async';
-import 'package:gardener/core/config_manager.dart';
-import 'package:gardener/core/debug_logger.dart';
-import 'package:gardener/core/tracker_service.dart';
-import 'package:gardener/core/udp_tracker_client.dart';
 
-/// Refreshes seeder and leecher counts for discovered streams using direct UDP scraping.
+import 'core/tracker_service.dart';
+import 'core/udp_tracker_client.dart';
+import 'core/app_config.dart';
+
+/// Scraper that uses UDP trackers to find seeder/leecher counts for magnets.
 class TrackerScraper {
-  final ConfigManager _config;
+  final AppConfig _config;
   final TrackerService _trackerService;
 
-  TrackerScraper({ConfigManager? config, TrackerService? trackerService})
-    : _config = config ?? ConfigManager(),
-      _trackerService = trackerService ?? TrackerService();
+  /// Creates a new TrackerScraper.
+  TrackerScraper({
+    required AppConfig config,
+    TrackerService? trackerService,
+  }) : _config = config,
+       _trackerService = trackerService ?? TrackerService();
 
-  /// Refreshes the seeder counts in the provided [streams] list.
-  ///
-  /// Group results by infoHash and queries multiple trackers in parallel.
-  /// Updates the 'seeders' field in each stream map if a more accurate count is found.
+  /// Refreshes seeder/leecher counts for a list of streams using UDP trackers.
   Future<void> refreshSeederCounts(List<Map<String, dynamic>> streams) async {
     if (!_config.enableTrackerScraping || streams.isEmpty) return;
 
-    final infoHashes = streams
-        .map((s) => s['infoHash'] as String?)
-        .where((h) => h != null && h.length == 40)
-        .cast<String>()
-        .toSet()
-        .toList();
+    final trackers = await _trackerService.getTrackers(_config);
+    if (trackers.isEmpty) return;
 
-    if (infoHashes.isEmpty) return;
+    final List<Future<void>> futures = [];
 
-    DebugLogger.info(
-      'TrackerScraper: Refreshing counts for ${infoHashes.length} hashes...',
-    );
+    // Only process a limited number of streams to avoid spamming trackers
+    final targets = streams.length > 20 ? streams.take(20) : streams;
 
-    // Get active trackers (limit to top 10 for performance)
-    final allTrackers = await _trackerService.getTrackers();
-    final targets = allTrackers
-        .where((t) => t.startsWith('udp://'))
-        .take(10)
-        .toList();
+    for (var stream in targets) {
+      final infoHash = stream['infoHash'] as String?;
+      if (infoHash == null || infoHash.isEmpty) continue;
 
-    if (targets.isEmpty) {
-      DebugLogger.warn(
-        'TrackerScraper: No UDP trackers available for scraping.',
-      );
-      return;
+      futures.add(_scrapeInfoHash(infoHash, trackers).then((counts) {
+        if (counts != null) {
+          stream['seeders'] = counts.seeders;
+          stream['peers'] = counts.leechers;
+        }
+      }));
     }
 
-    final timeout = Duration(milliseconds: _config.trackerScrapeTimeoutMs);
-    final resultsByHash = <String, List<int>>{};
+    await Future.wait(futures).timeout(const Duration(seconds: 15), onTimeout: () => []);
+  }
 
-    // Query trackers in parallel
-    final scraperFutures = targets.map((trackerUrl) async {
+  Future<({int seeders, int leechers})?> _scrapeInfoHash(
+    String infoHash,
+    List<String> trackers,
+  ) async {
+    final client = UdpTrackerClient();
+    
+    // Attempt top 3 trackers
+    final topTrackers = trackers.take(3);
+    
+    for (var trackerUrl in topTrackers) {
       try {
-        final uri = Uri.parse(trackerUrl);
-        final client = UdpTrackerClient(
-          host: uri.host,
-          port: uri.port,
-          timeout: timeout,
-        );
-
-        final scrapeData = await client.scrape(infoHashes);
-        for (final entry in scrapeData.entries) {
-          resultsByHash
-              .putIfAbsent(entry.key, () => [])
-              .add(entry.value['seeders'] ?? 0);
+        final result = await client.scrape(trackerUrl, [infoHash]);
+        if (result.isNotEmpty && result.containsKey(infoHash)) {
+          return result[infoHash];
         }
-      } catch (e) {
-        // Individual tracker failure is expected
-      }
-    });
-
-    await Future.wait(scraperFutures);
-
-    // Update original stream maps with max seeder count found (Consensus)
-    int updatedCount = 0;
-    for (var stream in streams) {
-      final hash = stream['infoHash'] as String?;
-      if (hash != null && resultsByHash.containsKey(hash)) {
-        final counts = resultsByHash[hash]!;
-        if (counts.isNotEmpty) {
-          final maxSeeders = counts.reduce((a, b) => a > b ? a : b);
-          // Only update if we found a higher count or if the original was 0
-          if (maxSeeders > (stream['seeders'] as int? ?? 0)) {
-            stream['seeders'] = maxSeeders;
-            updatedCount++;
-          }
-        }
+      } catch (_) {
+        // Continue to next tracker
       }
     }
-
-    DebugLogger.info('TrackerScraper: Refreshed $updatedCount streams.');
+    
+    return null;
   }
 }

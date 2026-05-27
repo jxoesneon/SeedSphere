@@ -1,9 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
+import 'package:seedsphere_core/seedsphere_core.dart';
 import 'package:gardener/core/stremio_server.dart';
 import 'package:gardener/core/config_manager.dart';
 import 'package:gardener/core/stream_resolver.dart';
-import 'package:gardener/scrapers/scraper_engine.dart';
 
 class MockConfigManager extends Mock implements ConfigManager {}
 

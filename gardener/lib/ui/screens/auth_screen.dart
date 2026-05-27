@@ -10,7 +10,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:gardener/ui/theme/aetheric_theme.dart';
 import 'package:gardener/ui/widgets/aetheric_glass.dart';
 import 'package:gardener/core/haptic_manager.dart';
-import 'package:gardener/core/network_constants.dart';
+import 'package:seedsphere_core/seedsphere_core.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gardener/p2p/p2p_manager.dart';
 import 'package:gardener/core/security_manager.dart';

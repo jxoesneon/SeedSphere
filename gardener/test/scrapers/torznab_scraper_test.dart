@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
+import 'package:seedsphere_core/seedsphere_core.dart';
 import 'package:http/http.dart' as http;
-import 'package:gardener/scrapers/torznab_scraper.dart';
 import 'package:gardener/core/config_manager.dart';
 
 class MockHttpClient extends Mock implements http.Client {}
@@ -65,19 +65,11 @@ void main() {
 
     test('scrape handles HTTP failure', () async {
       when(
-        () => mockClient.get(any()),
+        () => mockClient.get(any(), headers: any(named: 'headers')),
       ).thenAnswer((_) async => http.Response('Error', 500));
 
       final results = await scraper.scrape('tt1234567');
       expect(results, isEmpty);
-    });
-
-    test('isEnabled checks config', () {
-      when(() => mockConfig.enableTorznab).thenReturn(true);
-      expect(scraper.isEnabled(mockConfig), isTrue);
-
-      when(() => mockConfig.enableTorznab).thenReturn(false);
-      expect(scraper.isEnabled(mockConfig), isFalse);
     });
   });
 }

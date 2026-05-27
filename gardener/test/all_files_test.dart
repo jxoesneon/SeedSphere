@@ -1,5 +1,6 @@
 // ignore_for_file: unused_import
 import 'package:flutter_test/flutter_test.dart';
+import 'package:seedsphere_core/seedsphere_core.dart';
 import 'package:flutter/physics.dart';
 
 // Core
@@ -8,7 +9,6 @@ import 'package:gardener/core/haptic_manager.dart';
 import 'package:gardener/core/identity_manager.dart';
 import 'package:gardener/core/local_kms.dart';
 import 'package:gardener/core/keys_helper.dart' as keys_helper;
-import 'package:gardener/core/metadata_normalizer.dart';
 import 'package:gardener/core/pairing_manager.dart';
 import 'package:gardener/core/reputation_manager.dart';
 import 'package:gardener/core/security_manager.dart';
@@ -19,9 +19,6 @@ import 'package:gardener/p2p/p2p_manager.dart';
 import 'package:gardener/p2p/p2p_protocol.dart';
 
 // Scrapers
-import 'package:gardener/scrapers/scraper_engine.dart';
-import 'package:gardener/scrapers/torrentio_scraper.dart';
-import 'package:gardener/scrapers/yts_scraper.dart';
 
 // UI - Screens & Settings
 import 'package:gardener/ui/screens/swarm_dashboard.dart';

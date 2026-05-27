@@ -9,7 +9,7 @@ import 'package:gardener/ui/widgets/aetheric_glass.dart';
 import 'package:gardener/core/haptic_manager.dart';
 import 'package:gardener/ui/screens/swarm_dashboard.dart';
 import 'package:gardener/ui/screens/auth_screen.dart';
-import 'package:gardener/core/network_constants.dart';
+import 'package:seedsphere_core/seedsphere_core.dart';
 import 'package:gardener/ui/widgets/qr_install_dialog.dart';
 
 /// Returns true if running on a mobile platform (Android or iOS).

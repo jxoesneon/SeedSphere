@@ -1,6 +1,5 @@
 import 'package:logging/logging.dart';
-import 'package:router/core/metadata_normalizer.dart';
-import 'package:router/scrapers/scraper_engine.dart';
+import 'package:seedsphere_core/seedsphere_core.dart' hide TrackerService;
 import 'package:http/http.dart' as http;
 
 import 'package:router/tracker_service.dart';

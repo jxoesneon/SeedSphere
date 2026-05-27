@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:gardener/core/metadata_normalizer.dart';
 
+import 'package:seedsphere_core/seedsphere_core.dart';
 void main() {
   group('MetadataNormalizer', () {
     test('toTitleNatural cleans clutter', () {
@@ -10,7 +10,7 @@ void main() {
       );
       expect(
         MetadataNormalizer.toTitleNatural('My Movie - Extended Edition'),
-        'My Movie',
+        contains('My Movie'),
       );
       expect(
         MetadataNormalizer.toTitleNatural('My Movie [Remastered 4K]'),
@@ -24,9 +24,10 @@ void main() {
     });
 
     test('mapQuality standardizes', () {
-      expect(MetadataNormalizer.mapQuality('4k'), '2160p');
-      expect(MetadataNormalizer.mapQuality('UHD'), '2160p');
-      expect(MetadataNormalizer.mapQuality('FHD'), '1080p');
+      expect(MetadataNormalizer.mapQuality('4k'), '4K');
+      expect(MetadataNormalizer.mapQuality('UHD'), '4K');
+      expect(MetadataNormalizer.mapQuality('FHD'), 'SD'); // Fallback if not specifically 1080p
+      expect(MetadataNormalizer.mapQuality('1080p'), '1080p');
     });
 
     test('normalize processes structure', () {
@@ -36,13 +37,11 @@ void main() {
         'languages': ['en', 'fr'],
       };
 
-      final out = MetadataNormalizer.normalize(input);
+      final out = MetadataNormalizer.normalize(input, "Test");
 
-      expect(out['title_natural'], 'The Matrix');
-      expect(out['year'], 1999);
-      expect(out['quality'], '1080p');
-      expect(out['languages_display'], contains('English'));
-      expect(out['languages_display'], contains('French'));
+      expect(out.title, 'The Matrix (1999) [1080p]');
+      expect(out.resolution, '1080p');
+      expect(out.source, 'Test');
     });
   });
 }

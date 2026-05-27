@@ -4,7 +4,7 @@ import 'package:gardener/p2p/p2p_manager.dart';
 import 'package:gardener/p2p/p2p_protocol.dart';
 import 'package:gardener/core/local_kms.dart';
 import 'package:gardener/core/security_manager.dart';
-import 'package:gardener/core/network_constants.dart';
+import 'package:seedsphere_core/seedsphere_core.dart';
 import 'package:http/http.dart' as http;
 
 /// Manages device pairing and server-side linking for authenticated communication.

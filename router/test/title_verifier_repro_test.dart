@@ -1,5 +1,5 @@
 import 'package:test/test.dart';
-import 'package:router/core/title_verifier.dart';
+import 'package:seedsphere_core/seedsphere_core.dart';
 
 void main() {
   group('TitleVerifier Reproduction', () {

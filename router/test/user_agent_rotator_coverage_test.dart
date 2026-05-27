@@ -1,5 +1,5 @@
 import 'package:test/test.dart';
-import 'package:router/core/user_agent_rotator.dart';
+import 'package:seedsphere_core/seedsphere_core.dart';
 
 void main() {
   test('UserAgentRotator returns strings', () {

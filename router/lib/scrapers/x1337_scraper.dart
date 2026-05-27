@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'package:router/scrapers/scraper_engine.dart';
-import 'package:router/core/title_verifier.dart';
+import 'package:seedsphere_core/seedsphere_core.dart';
 
 /// Scraper implementation for the 1337x provider (General).
 class X1337Scraper extends BaseScraper {

@@ -1,12 +1,11 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
+import 'package:seedsphere_core/seedsphere_core.dart';
 import 'package:gardener/core/stremio_server.dart';
 import 'package:gardener/core/stream_aggregator.dart';
 import 'package:gardener/core/config_manager.dart';
 import 'package:gardener/core/stream_resolver.dart';
 import 'package:gardener/core/cortex_service.dart';
-import 'package:gardener/core/tracker_service.dart';
-import 'package:gardener/scrapers/scraper_engine.dart';
 
 class MockConfigManager extends Mock implements ConfigManager {}
 
@@ -53,7 +52,7 @@ void main() {
     when(() => mockConfig.trackerScrapeTimeoutMs).thenReturn(1000);
     when(() => mockConfig.maxResultsPerProvider).thenReturn(15);
 
-    when(() => mockTracker.getTrackers()).thenAnswer((_) async => []);
+    when(() => mockTracker.getTrackers(any())).thenAnswer((_) async => []);
 
     aggregator = StreamAggregator(
       trackerService: mockTracker,

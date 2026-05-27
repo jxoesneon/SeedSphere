@@ -1,10 +1,11 @@
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:seedsphere_core/seedsphere_core.dart';
 
 /// Manages and persists application-wide configurations.
 ///
 /// Handles both secure items (API keys) and general preferences (filters, sorting).
-class ConfigManager {
+class ConfigManager implements AppConfig {
   static final ConfigManager _instance = ConfigManager._internal();
   factory ConfigManager() => _instance;
   ConfigManager._internal();
@@ -48,6 +49,7 @@ class ConfigManager {
   int get maxTrackers => _prefs.getInt('pb_max_trackers') ?? 0;
   set maxTrackers(int val) => _prefs.setInt('pb_max_trackers', val);
 
+  @override
   bool get probeTrackers => _prefs.getBool('pb_probe_trackers') ?? false;
   set probeTrackers(bool val) => _prefs.setBool('pb_probe_trackers', val);
 
@@ -57,9 +59,11 @@ class ConfigManager {
   bool get normalizeHttps => _prefs.getBool('pb_normalize_https') ?? false;
   set normalizeHttps(bool val) => _prefs.setBool('pb_normalize_https', val);
 
+  @override
   String get trackerVariant => _prefs.getString('pb_tracker_variant') ?? 'all';
   set trackerVariant(String val) => _prefs.setString('pb_tracker_variant', val);
 
+  @override
   String get customTrackersUrl =>
       _prefs.getString('pb_custom_trackers_url') ?? '';
   set customTrackersUrl(String val) =>
@@ -154,22 +158,27 @@ class ConfigManager {
 
   // --- Optimization Settings ---
 
+  @override
   String get validationMode =>
       _prefs.getString('opt_validation_mode') ?? 'basic';
   set validationMode(String val) =>
       _prefs.setString('opt_validation_mode', val);
 
+  @override
   bool get probeProviders => _prefs.getBool('opt_probe_providers') ?? false;
   set probeProviders(bool val) => _prefs.setBool('opt_probe_providers', val);
 
+  @override
   int get probeTimeoutMs => _prefs.getInt('opt_probe_timeout_ms') ?? 500;
   set probeTimeoutMs(int val) => _prefs.setInt('opt_probe_timeout_ms', val);
 
+  @override
   int get providerFetchTimeoutMs =>
       _prefs.getInt('opt_prov_fetch_timeout_ms') ?? 5000;
   set providerFetchTimeoutMs(int val) =>
       _prefs.setInt('opt_prov_fetch_timeout_ms', val);
 
+  @override
   int get maxResultsPerProvider => _prefs.getInt('opt_max_results_prov') ?? 15;
   set maxResultsPerProvider(int val) =>
       _prefs.setInt('opt_max_results_prov', val);
@@ -199,6 +208,7 @@ class ConfigManager {
   int get swarmTimeoutMs => _prefs.getInt('opt_swarm_timeout_ms') ?? 800;
   set swarmTimeoutMs(int val) => _prefs.setInt('opt_swarm_timeout_ms', val);
 
+  @override
   bool get enableTrackerScraping =>
       _prefs.getBool('opt_enable_tracker_scrape') ?? true;
   set enableTrackerScraping(bool val) =>
@@ -211,12 +221,15 @@ class ConfigManager {
 
   // --- Torznab Settings ---
 
+  @override
   bool get enableTorznab => _prefs.getBool('prov_torznab') ?? false;
   set enableTorznab(bool val) => _prefs.setBool('prov_torznab', val);
 
+  @override
   String get torznabUrl => _prefs.getString('torznab_url') ?? '';
   set torznabUrl(String val) => _prefs.setString('torznab_url', val);
 
+  @override
   Future<String?> getTorznabKey() =>
       _secureStorage.read(key: 'torznab_api_key');
   Future<void> setTorznabKey(String val) =>

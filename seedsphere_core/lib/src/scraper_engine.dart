@@ -1,27 +1,24 @@
 import 'dart:async';
-import 'package:router/core/metadata_normalizer.dart';
-import 'package:router/core/user_agent_rotator.dart'; // Import Rotator
-import 'package:router/core/rate_limiter.dart'; // Import RateLimiter
-import 'package:router/scrapers/eztv_scraper.dart';
-import 'package:router/scrapers/nyaa_scraper.dart';
-import 'package:router/scrapers/x1337_scraper.dart';
-import 'package:router/scrapers/piratebay_scraper.dart';
-import 'package:router/scrapers/torrentgalaxy_scraper.dart';
-import 'package:router/scrapers/torlock_scraper.dart';
-import 'package:router/scrapers/magnetdl_scraper.dart';
-import 'package:router/scrapers/anidex_scraper.dart';
-import 'package:router/scrapers/tokyotosho_scraper.dart';
-import 'package:router/scrapers/zooqle_scraper.dart';
-import 'package:router/scrapers/rutor_scraper.dart';
-import 'package:router/scrapers/torrentio_scraper.dart';
-import 'package:router/scrapers/yts_scraper.dart';
+
+import 'core/user_agent_rotator.dart';
+import 'core/rate_limiter.dart';
+import 'eztv_scraper.dart';
+import 'nyaa_scraper.dart';
+import 'x1337_scraper.dart';
+import 'piratebay_scraper.dart';
+import 'torrentgalaxy_scraper.dart';
+import 'torlock_scraper.dart';
+import 'magnetdl_scraper.dart';
+import 'anidex_scraper.dart';
+import 'tokyotosho_scraper.dart';
+import 'zooqle_scraper.dart';
+import 'rutor_scraper.dart';
+import 'torrentio_scraper.dart';
+import 'yts_scraper.dart';
 
 /// Base class for all torrent and stream metadata scrapers.
-///
-/// Each scraper implementation must extend this class and provide
-/// a [scrape] method that fetches stream data for a given IMDB ID.
 abstract class BaseScraper {
-  /// The user-friendly name of the scraper (e.g., "YTS", "Torrentio").
+  /// The user-friendly name of the scraper.
   final String name;
 
   /// The base URL of the scraper's API service.
@@ -34,8 +31,6 @@ abstract class BaseScraper {
   late String _userAgent;
 
   /// Creates a [BaseScraper] instance.
-  ///
-  /// [requestsPerMinute] defaults to 30.
   BaseScraper({
     required this.name,
     required this.baseUrl,
@@ -54,9 +49,6 @@ abstract class BaseScraper {
   String get userAgent => _userAgent;
 
   /// Fetches stream metadata for the specified [imdbId].
-  ///
-  /// Should return a list of raw metadata maps, which will later be
-  /// normalized by the [MetadataNormalizer].
   Future<List<Map<String, dynamic>>> scrape(
     String imdbId, {
     Function(String)? onLog,
@@ -66,10 +58,7 @@ abstract class BaseScraper {
   Future<void> waitForRateLimit() => _rateLimiter.wait();
 }
 
-// ... (RateLimiter remains unchanged) ...
-
 /// Aggregation engine for running multiple scrapers in parallel.
-// ... (docs) ...
 class ScraperEngine {
   /// The list of scrapers managed by this engine.
   final List<BaseScraper> scrapers;
@@ -99,12 +88,6 @@ class ScraperEngine {
   }
 
   /// Executes all configured scrapers for the given [imdbId] in parallel.
-  ///
-  /// Aggregates results from all scrapers into a single flat list.
-  /// If an individual scraper fails, its error is caught and it contributes
-  /// an empty list to the final result, allowing other scrapers to still succeed.
-  ///
-  /// Returns a combined list of raw metadata maps from all responsive scrapers.
   Future<List<Map<String, dynamic>>> scrapeAll(
     String imdbId, {
     Function(String)? onLog,
@@ -115,13 +98,10 @@ class ScraperEngine {
               .scrape(
                 imdbId,
                 onLog: (msg) {
-                  // Prefix log with scraper name for clarity
                   if (onLog != null) onLog('[${s.name}] $msg');
                 },
               )
               .catchError((e) {
-                // Log error and return empty list for this scraper to prevent
-                // a single failing scraper from breaking the entire request.
                 if (onLog != null) onLog('[${s.name}] Error: $e');
                 return <Map<String, dynamic>>[];
               }),

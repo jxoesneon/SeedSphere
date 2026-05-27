@@ -1,8 +1,7 @@
 import 'dart:io';
 import 'dart:typed_data';
-
+import 'package:seedsphere_core/seedsphere_core.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:gardener/core/udp_tracker_client.dart';
 
 void main() {
   late FakeUdpTracker fakeTracker;
@@ -19,33 +18,30 @@ void main() {
   test('UdpTrackerClient successfully scrapes specific hash', () async {
     // InfoHash for test (20 bytes hex)
     final infoHash = '1234567890123456789012345678901234567890';
+    final trackerUrl = 'udp://127.0.0.1:${fakeTracker.port}';
 
     final client = UdpTrackerClient(
-      host: '127.0.0.1',
-      port: fakeTracker.port,
       timeout: const Duration(seconds: 5),
     );
 
-    final result = await client.scrape([infoHash]);
+    final result = await client.scrape(trackerUrl, [infoHash]);
 
     expect(result, isNotEmpty);
     expect(result.containsKey(infoHash), isTrue);
-    expect(result[infoHash]!['seeders'], 10);
-    expect(result[infoHash]!['leechers'], 5);
-    expect(result[infoHash]!['completed'], 2);
+    expect(result[infoHash]!.seeders, 10);
+    expect(result[infoHash]!.leechers, 5);
   });
 
   test(
     'UdpTrackerClient handles connection timeout/error gracefully',
     () async {
       // Using a port that is closed (hopefully)
+      final trackerUrl = 'udp://127.0.0.1:54321';
       final client = UdpTrackerClient(
-        host: '127.0.0.1',
-        port: 54321,
         timeout: const Duration(milliseconds: 200),
       );
 
-      final result = await client.scrape([
+      final result = await client.scrape(trackerUrl, [
         '1234567890123456789012345678901234567890',
       ]);
       expect(result, isEmpty);
@@ -95,22 +91,6 @@ class FakeUdpTracker {
       );
     } else if (action == 2) {
       // Scrape Action -> Send Scrape Response
-      // Request format:
-      // Offset  Size    Name
-      // 0       8       connection_id
-      // 8       4       action (2)
-      // 12      4       transaction_id
-      // 16 + 20*n  20   info_hash
-
-      // Response format:
-      // Offset  Size    Name
-      // 0       4       action (2)
-      // 4       4       transaction_id
-      // 8 + 12*n  4     seeders
-      // 12 + 12*n 4     completed
-      // 16 + 12*n 4     leechers
-
-      // Calculate N based on packet size
       final n = (datagram.data.length - 16) ~/ 20;
 
       final responseSize = 8 + (n * 12);

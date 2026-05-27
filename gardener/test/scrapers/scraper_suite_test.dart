@@ -1,25 +1,12 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
+import 'package:seedsphere_core/seedsphere_core.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:gardener/core/config_manager.dart';
 
-import 'package:gardener/scrapers/anidex_scraper.dart';
-import 'package:gardener/scrapers/eztv_scraper.dart';
-import 'package:gardener/scrapers/magnetdl_scraper.dart';
-import 'package:gardener/scrapers/nyaa_scraper.dart';
-import 'package:gardener/scrapers/piratebay_scraper.dart';
-import 'package:gardener/scrapers/rutor_scraper.dart';
-import 'package:gardener/scrapers/tokyotosho_scraper.dart';
-import 'package:gardener/scrapers/torlock_scraper.dart';
-import 'package:gardener/scrapers/torrentgalaxy_scraper.dart';
-import 'package:gardener/scrapers/torrentio_scraper.dart';
-import 'package:gardener/scrapers/torznab_scraper.dart';
-import 'package:gardener/scrapers/x1337_scraper.dart';
-import 'package:gardener/scrapers/yts_scraper.dart';
-import 'package:gardener/scrapers/zooqle_scraper.dart';
 
 class MockHttpClient extends Mock implements http.Client {}
 
@@ -71,17 +58,10 @@ void main() {
     test(
       'All scrapers handle successful empty/generic response without verify crash',
       () async {
-        // Generic HTML response
-        const htmlBody = '<html><body><div id="results"></div></body></html>';
-        // Generic JSON response
         final jsonBody = jsonEncode({'data': {}, 'torrents': []});
+        final htmlBody = '<html><body></body></html>';
 
-        when(() => mockClient.get(any())).thenAnswer((invocation) async {
-          // Simple heuristic: return JSON for API-like, HTML for others.
-          // Or just return HTML by default, most flexible.
-          // YTS and Torrentio might fail JSON parse if HTML returned.
-          return http.Response(htmlBody, 200);
-        });
+        final config = ConfigManager();
 
         final scrapers = [
           AnidexScraper(client: mockClient),
@@ -94,7 +74,7 @@ void main() {
           TorlockScraper(client: mockClient),
           TorrentGalaxyScraper(client: mockClient),
           TorrentioScraper(client: mockClient),
-          TorznabScraper(client: mockClient),
+          TorznabScraper(client: mockClient, config: config),
           X1337Scraper(client: mockClient),
           YTSScraper(client: mockClient),
           ZooqleScraper(client: mockClient),
@@ -102,30 +82,23 @@ void main() {
 
         for (final scraper in scrapers) {
           try {
-            // For JSON scrapers, we might need a separate mock setup or just catch the parser error
-            // if we want to count coverage of the 'try' block.
             if (scraper is YTSScraper || scraper is TorrentioScraper) {
-              when(
-                () => mockClient.get(any()),
-              ).thenAnswer((_) async => http.Response(jsonBody, 200));
+              when(() => mockClient.get(any(), headers: any(named: 'headers'))).thenAnswer((_) async => http.Response(jsonBody, 200));
             } else {
-              when(
-                () => mockClient.get(any()),
-              ).thenAnswer((_) async => http.Response(htmlBody, 200));
+              when(() => mockClient.get(any(), headers: any(named: 'headers'))).thenAnswer((_) async => http.Response(htmlBody, 200));
             }
-
             await scraper.scrape('test');
-          } catch (e) {
-            // Ignore parse errors, we just want to hit the code paths (request, fallback)
-          }
+          } catch (_) {}
         }
       },
     );
 
     test('All scrapers handle HTTP errors', () async {
       when(
-        () => mockClient.get(any()),
+        () => mockClient.get(any(), headers: any(named: 'headers')),
       ).thenAnswer((_) async => http.Response('Error', 500));
+
+      final config = ConfigManager();
 
       final scrapers = [
         AnidexScraper(client: mockClient),
@@ -138,7 +111,7 @@ void main() {
         TorlockScraper(client: mockClient),
         TorrentGalaxyScraper(client: mockClient),
         TorrentioScraper(client: mockClient),
-        TorznabScraper(client: mockClient),
+        TorznabScraper(client: mockClient, config: config),
         X1337Scraper(client: mockClient),
         YTSScraper(client: mockClient),
         ZooqleScraper(client: mockClient),
@@ -146,11 +119,7 @@ void main() {
 
       for (final scraper in scrapers) {
         final results = await scraper.scrape('test');
-        expect(
-          results,
-          isEmpty,
-          reason: '${scraper.runtimeType} should return empty on error',
-        );
+        expect(results, isEmpty);
       }
     });
   });
