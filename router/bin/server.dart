@@ -136,6 +136,7 @@ final _router = Router()
   ..post('/api/telemetry', (Request req) => telemetryController.handle(req))
   ..post('/api/register', _executorRegisterHandler)
   ..get('/api/swarm', _swarmQueryHandler)
+  ..get('/api/debug/swarm', _debugSwarmHandler)
   ..get('/api/p2p/info', _p2pInfoHandler)
   ..get('/api/p2p/health', _p2pHealthHandler)
   ..get('/api/tracker/best', _trackerBestHandler)
@@ -598,6 +599,16 @@ Future<Response> _executorRegisterHandler(Request req) async {
 }
 
 // Swarm Query: Coordinate discovery between Gardeners
+
+/// Debug handler to list all connected SSE clients.
+Response _debugSwarmHandler(Request req) {
+  final services = _services(req);
+  final clients = services.events.getConnectedClients();
+  return Response.ok(
+    jsonEncode({'connected_clients': clients, 'count': clients.length}),
+    headers: {'Content-Type': 'application/json'},
+  );
+}
 
 /// Queries the P2P swarm for metadata or peers.
 Future<Response> _swarmQueryHandler(Request req) async {
