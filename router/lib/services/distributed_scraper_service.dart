@@ -50,7 +50,18 @@ class DistributedScraperService extends ScraperService {
     }
 
     // Find active gardeners for this user
-    final bindings = _db.getBindings(userId);
+    List<Map<String, dynamic>> bindings = [];
+    if (userId == 'public') {
+      // For public requests, use any available gardener in the swarm.
+      final allClients = _events.getConnectedClients();
+      print('[DistributedScraper] Public request. Connected clients: $allClients');
+      if (allClients.isNotEmpty) {
+        bindings = allClients.map((id) => {'device_id': id}).toList();
+      }
+    } else {
+      bindings = _db.getBindings(userId);
+    }
+
     print(
       '[DistributedScraper] Found ${bindings.length} device bindings for $userId',
     );
