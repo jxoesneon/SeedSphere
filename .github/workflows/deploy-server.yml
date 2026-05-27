@@ -7,6 +7,7 @@ on:
       - "router/**"
       - "bridge/**"
       - "portal/**"
+      - "seedsphere_core/**"
       - ".github/workflows/deploy-server.yml"
   workflow_dispatch:
 
@@ -58,8 +59,9 @@ jobs:
         run: cp -r portal router/portal
 
       - name: Deploy to Fly.io
-        run: flyctl deploy --remote-only
-        working-directory: router
+        # Run from repo root so Docker build context includes seedsphere_core/ and router/.
+        # fly.toml at router/fly.toml points dockerfile to router/Dockerfile.
+        run: flyctl deploy --remote-only --config router/fly.toml
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
 

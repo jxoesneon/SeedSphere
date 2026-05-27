@@ -1,0 +1,25 @@
+# Root-level .dockerignore for Docker builds run from the repo root.
+# This applies when flyctl deploys from the repo root with --config router/fly.toml.
+
+# Exclude heavy directories not needed for the router build
+gardener/
+legacy/
+bridge/
+docs/
+models/
+portal/
+
+# Exclude Git metadata and dev tooling
+.git/
+.github/
+.idea/
+.dart_tool/
+.gitignore
+*.md
+*.log
+
+# Exclude build artifacts and temp files
+router/build/
+router/.dart_tool/
+router/.packages
+seedsphere_core/.dart_tool/

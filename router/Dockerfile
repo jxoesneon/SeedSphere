@@ -1,20 +1,25 @@
 # Use latest stable channel SDK.
+# Build context: repo root (so seedsphere_core/ and router/ are both available).
 FROM dart:stable AS build
 
-# Resolve app dependencies.
-WORKDIR /app
-COPY pubspec.* ./
+# Copy the seedsphere_core path dependency first.
+# pubspec.yaml references it as: path: ../seedsphere_core
+WORKDIR /workspace
+COPY seedsphere_core/ ./seedsphere_core/
+
+# Copy router source and resolve dependencies.
+WORKDIR /workspace/router
+COPY router/pubspec.* ./
 RUN dart pub get
 
-# Copy app source code (except anything in .dockerignore) and AOT compile app.
-COPY . .
-# RUN dart run build_runner build --delete-conflicting-outputs
+# Copy remaining router source and AOT compile.
+COPY router/ .
 RUN dart build cli -t bin/server.dart -o build
 
-# Build minimal serving image from AOT-compiled `/server`
+# Build minimal serving image from AOT-compiled binary.
 FROM debian:stable-slim
 
-# Install system dependencies
+# Install runtime dependencies.
 RUN apt-get update && apt-get install -y \
     libsodium-dev \
     libsqlite3-dev \
@@ -22,11 +27,11 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
-COPY --from=build /app/build/bundle /app/bundle
-COPY --from=build /app/portal /app/portal
+COPY --from=build /workspace/router/build/bundle /app/bundle
+COPY --from=build /workspace/router/portal /app/portal
 RUN chmod +x /app/bundle/bin/server
 
-# Start server.
+# Expose HTTP and P2P ports.
 EXPOSE 8080
 EXPOSE 4001
 EXPOSE 4001/udp

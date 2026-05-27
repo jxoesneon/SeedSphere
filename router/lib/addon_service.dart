@@ -42,7 +42,7 @@ class AddonService {
     app.get('/u/<userId>/manifest.json', _handleUserManifest);
 
     // Catalog Handler (Public)
-    app.get('/catalog/<type>/<id>.json', _handleCatalog);
+    app.get('/catalog/<type>/<id>.json', handleCatalog);
 
     return app;
   }
@@ -93,7 +93,7 @@ class AddonService {
   }
 
   /// Handler for catalog requests (Popular content).
-  Future<Response> _handleCatalog(Request req, String type, String id) async {
+  Future<Response> handleCatalog(Request req, String type, String id) async {
     // Check for Dynamic Catalog
     if (id.startsWith('dynamic:')) {
       final parts = id.split(':');
