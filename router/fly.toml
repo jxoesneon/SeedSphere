@@ -4,7 +4,7 @@ app = "seedsphere"
 primary_region = "iad"
 
 [build]
-  dockerfile = "router/Dockerfile"
+  dockerfile = "Dockerfile"
 
 [env]
   PORT = "8080"
