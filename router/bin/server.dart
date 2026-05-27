@@ -527,13 +527,11 @@ Response _eventsHandler(Request req, String gardenerId) {
   return services.events.sseResponse(stream);
 }
 
-
 /// Handler for the Stremio-triggered configuration redirect.
 Response _userConfigureHandler(Request req, String userId) {
   // Redirect to the actual configure.html with the userId passed as 'id'
   return Response.found('/configure.html?id=$userId');
 }
-
 
 // Heartbeat (Secured via JWT)
 
@@ -573,7 +571,6 @@ Future<Response> _heartbeatHandler(Request req, String gardenerId) async {
     jsonEncode({'ok': true, 'activeGardeners': services.status.activeCount}),
   );
 }
-
 
 /// Registers a new executor/agent and assigns a device ID.
 Future<Response> _executorRegisterHandler(Request req) async {
