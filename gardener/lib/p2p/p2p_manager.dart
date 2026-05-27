@@ -117,6 +117,7 @@ class P2PManager {
     } else {
       _gardenerId = savedId;
     }
+    DebugLogger.info('P2P: Loaded Gardener ID: $_gardenerId');
 
     // Load Security Keys
     final keyPair = await _security.getKeyPair();
