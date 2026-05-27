@@ -34,6 +34,7 @@
 
 - **Testing**: `dart test` (Router) and `flutter test` (Gardener) are the golden standards.
 - **Analysis**: Code must pass `dart analyze` with zero errors.
+- **Formatting**: All files must pass relevant style checks (e.g., `dart format --set-exit-if-changed .`, `prettier`, `eslint`) before committing or pushing. Preemptively format code changes using language-specific standard tools.
 
 ## 5. Architectural Integrity
 
