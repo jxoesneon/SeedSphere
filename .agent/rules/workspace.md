@@ -34,6 +34,7 @@
 
 - **Testing**: `dart test` (Router) and `flutter test` (Gardener) are the golden standards.
 - **Analysis**: Code must pass `dart analyze` with zero errors.
+- **Formatting**: All files must pass relevant style checks (e.g., `dart format --set-exit-if-changed .`, `prettier`, `eslint`) before committing or pushing. Preemptively format code changes using language-specific standard tools.
 
 ## 5. Architectural Integrity
 
@@ -59,6 +60,7 @@
   - **Conciseness**: Keep logs brief.
 - **File Editing**:
   - **Read-First**: Always call view_file immediately before replace_file_content.
+- **Vulnerability Scanning**: Preemptively run and resolve vulnerability scans (e.g., `npm audit`) immediately whenever package files are modified, upgraded, or resolved, to prevent introducing or neglecting security issues.
 
 ## 8. Security Standards
 

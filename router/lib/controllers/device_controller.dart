@@ -3,11 +3,15 @@ import 'package:shelf/shelf.dart';
 import 'package:router/core/server_context.dart';
 import 'package:router/db_service.dart';
 
+/// Controller for managing device-specific states and link statuses.
 class DeviceController {
+  /// The database service used to query device/owner data.
   final DbService db;
 
+  /// Creates a new instance of [DeviceController].
   DeviceController(this.db);
 
+  /// Retrieves the link status and swarm neighbors for a specific device.
   Future<Response> status(Request req, String id) async {
     final ownerId = db.getOwnerForDevice(id);
     final isLinked = ownerId != null;
@@ -46,23 +50,37 @@ class DeviceController {
     );
   }
 
-  Future<Response> unlink(Request req, String id, ServerContext services) async {
+  /// Unlinks a device from its owner, requiring JWT authentication and verification.
+  Future<Response> unlink(
+    Request req,
+    String id,
+    ServerContext services,
+  ) async {
     final authHeader = req.headers['authorization'];
     if (authHeader == null || !authHeader.startsWith('Bearer ')) {
-      return Response(401, body: jsonEncode({'ok': false, 'error': 'unauthorized'}));
+      return Response(
+        401,
+        body: jsonEncode({'ok': false, 'error': 'unauthorized'}),
+      );
     }
-    
+
     final token = authHeader.substring(7);
     final claims = services.auth.verifyJwt(token);
     if (claims == null) {
-      return Response(401, body: jsonEncode({'ok': false, 'error': 'invalid_token'}));
+      return Response(
+        401,
+        body: jsonEncode({'ok': false, 'error': 'invalid_token'}),
+      );
     }
-    
+
     final ownerId = db.getOwnerForDevice(id);
     final tokenUserId = claims['sub'] as String?;
-    
+
     if (ownerId == null || tokenUserId == null || ownerId != tokenUserId) {
-      return Response(403, body: jsonEncode({'ok': false, 'error': 'forbidden'}));
+      return Response(
+        403,
+        body: jsonEncode({'ok': false, 'error': 'forbidden'}),
+      );
     }
 
     db.unlinkDevice(id);

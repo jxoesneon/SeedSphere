@@ -9,7 +9,7 @@ import 'package:router/tracker_service.dart';
 @GenerateNiceMocks([
   MockSpec<DbService>(),
   MockSpec<EventService>(),
-  MockSpec<TrackerService>()
+  MockSpec<TrackerService>(),
 ])
 import 'scraper_service_coverage_test.mocks.dart';
 
@@ -27,10 +27,10 @@ void main() {
 
     test('getStreams triggers log events if userId provided', () async {
       when(mockTrackers.optimize(any)).thenAnswer((_) async => {'added': []});
-      
+
       // We need to mock ScraperEngine or just let it run if it's default
       // default ScraperEngine.defaults() might make real network calls, but we check if it handles it.
-      
+
       await scraperService.getStreams('movie', 'tt123', {}, userId: 'u1');
       // It should call eventService.publish for logging
       verify(mockEvents.publish(any, any, any)).called(greaterThanOrEqualTo(1));

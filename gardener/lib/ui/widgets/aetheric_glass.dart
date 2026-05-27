@@ -76,7 +76,10 @@ class _AethericGlassState extends State<AethericGlass> {
           filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
           child: Padding(
             padding: const EdgeInsets.all(16),
-            child: widget.child,
+            child: Material(
+              type: MaterialType.transparency,
+              child: widget.child,
+            ),
           ),
         ),
       );
@@ -101,7 +104,10 @@ class _AethericGlassState extends State<AethericGlass> {
               ],
             ),
             padding: const EdgeInsets.all(16),
-            child: widget.child,
+            child: Material(
+              type: MaterialType.transparency,
+              child: widget.child,
+            ),
           ),
         );
       },

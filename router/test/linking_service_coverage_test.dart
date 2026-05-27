@@ -31,7 +31,7 @@ void main() {
         final callback = inv.positionalArguments[0] as Function();
         return callback();
       });
-      
+
       final res = linkingService.completeLinking('t1', 's1');
       expect(res?['ok'], isTrue);
       verify(mockDb.deleteLinkToken('t1')).called(1);

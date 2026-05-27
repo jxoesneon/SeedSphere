@@ -43,7 +43,9 @@ void main() {
         await completer.future.timeout(const Duration(seconds: 90));
       } catch (e) {
         await subscription.cancel();
-        p?.kill(ProcessSignal.sigkill); // Use SIGKILL to ensure process is terminated
+        p?.kill(
+          ProcessSignal.sigkill,
+        ); // Use SIGKILL to ensure process is terminated
         throw Exception('Server failed to start (or bind port) within 90s: $e');
       }
     });
