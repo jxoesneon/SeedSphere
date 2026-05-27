@@ -115,11 +115,10 @@ class NetworkConstants {
   }
 
   static List<String> get p2pBootstrapPeers {
-    // Production Bootstrap Nodes - Self-hosted only (private swarm)
-    return <String>[
-      // SeedSphere Router (Primary) - Self-hosted bootstrap
-      '/dnsaddr/seedsphere.fly.dev/tcp/4005/p2p/12D3KooWAbQP1fxpNKVfTDvZRrufPVJLtyK7Lu6VKfD47xNpuVrR',
-    ];
+    // Production Bootstrap Nodes
+    // Kept empty by default; the primary router peer is resolved dynamically
+    // via fetchLocalRouterBootstrap() to handle ephemeral Fly.io peer IDs.
+    return <String>[];
   }
 
   /// Curated list of high-performance public trackers.

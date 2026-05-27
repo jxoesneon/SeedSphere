@@ -146,6 +146,7 @@ class P2PManager {
     final dynamicPeer = await NetworkConstants.fetchLocalRouterBootstrap();
     final isolateBootstrapPeers = <String>[];
     if (dynamicPeer != null) {
+      isolateBootstrapPeers.add(dynamicPeer);
       if (DebugConfig.p2pGated) {
         DebugLogger.info(
           'P2P: Forensics: Dynamic Router Found -> $dynamicPeer',
