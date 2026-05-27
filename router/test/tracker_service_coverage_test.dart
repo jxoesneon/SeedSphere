@@ -39,9 +39,9 @@ void main() {
         final callback = inv.positionalArguments[0] as Function();
         return callback();
       });
-      
+
       trackerService.submitVotes([
-        {'url': 't1', 'up': true, 'latency': 100}
+        {'url': 't1', 'up': true, 'latency': 100},
       ]);
       verify(mockDb.submitTrackerVote('t1', true, 100)).called(1);
     });

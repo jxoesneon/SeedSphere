@@ -20,24 +20,31 @@ void main() {
     });
 
     test('enhanceDescription deepseek success', () async {
-      when(mockClient.post(
-        any, 
-        headers: anyNamed('headers'), 
-        body: anyNamed('body')
-      )).thenAnswer((_) async => http.Response(jsonEncode({
-            'choices': [{
-              'message': {
-                'content': 'Enhanced Description'
-              }
-            }]
-          }), 200));
-      
+      when(
+        mockClient.post(
+          any,
+          headers: anyNamed('headers'),
+          body: anyNamed('body'),
+        ),
+      ).thenAnswer(
+        (_) async => http.Response(
+          jsonEncode({
+            'choices': [
+              {
+                'message': {'content': 'Enhanced Description'},
+              },
+            ],
+          }),
+          200,
+        ),
+      );
+
       final req = AiDescriptionRequest(
         title: 'Inception',
         provider: AiProvider.deepseek,
-        model: 'deepseek-chat'
+        model: 'deepseek-chat',
       );
-      
+
       final res = await aiService.enhanceDescription(req);
       expect(res.success, isTrue);
       expect(res.enhancedDescription, 'Enhanced Description');
@@ -47,9 +54,9 @@ void main() {
       final req = AiDescriptionRequest(
         title: 'Inception',
         provider: AiProvider.openai,
-        model: 'gpt-4'
+        model: 'gpt-4',
       );
-      
+
       final res = await aiService.enhanceDescription(req);
       expect(res.success, isFalse);
       expect(res.error, contains('No response from AI provider'));

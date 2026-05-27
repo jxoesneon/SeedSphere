@@ -32,9 +32,9 @@ void main() {
       mockLinking = MockLinkingService();
       mockClient = MockClient();
       authService = AuthService(
-        mockDb, 
-        mockMailer, 
-        mockLinking, 
+        mockDb,
+        mockMailer,
+        mockLinking,
         client: mockClient,
         googleClientId: 'web-id',
         googleClientSecret: 'secret',
@@ -42,8 +42,11 @@ void main() {
     });
 
     test('logout clears session', () async {
-      final req = Request('POST', Uri.parse('http://localhost/logout'),
-        headers: {'cookie': 'seedsphere_session=sid1'});
+      final req = Request(
+        'POST',
+        Uri.parse('http://localhost/logout'),
+        headers: {'cookie': 'seedsphere_session=sid1'},
+      );
       final res = await authService.router(req);
       expect(res.statusCode, 200);
       expect(res.headers['set-cookie'], contains('Max-Age=0'));
@@ -52,10 +55,16 @@ void main() {
 
     test('get sessions list', () async {
       when(mockDb.getSession('sid1')).thenReturn({'user_id': 'u1'});
-      when(mockDb.getSessions('u1')).thenReturn([{'sid': 'sid1'}, {'sid': 'sid2'}]);
-      
-      final req = Request('GET', Uri.parse('http://localhost/sessions'),
-        headers: {'cookie': 'seedsphere_session=sid1'});
+      when(mockDb.getSessions('u1')).thenReturn([
+        {'sid': 'sid1'},
+        {'sid': 'sid2'},
+      ]);
+
+      final req = Request(
+        'GET',
+        Uri.parse('http://localhost/sessions'),
+        headers: {'cookie': 'seedsphere_session=sid1'},
+      );
       final res = await authService.router(req);
       final body = jsonDecode(await res.readAsString());
       expect(body['sessions'], hasLength(2));
@@ -63,25 +72,33 @@ void main() {
     });
 
     test('google verify auto-link', () async {
-      final payload = base64UrlEncode(utf8.encode(jsonEncode({
-        'sub': '123',
-        'email': 'user@gmail.com',
-        'aud': 'web-id',
-      })));
+      final payload = base64UrlEncode(
+        utf8.encode(
+          jsonEncode({
+            'sub': '123',
+            'email': 'user@gmail.com',
+            'aud': 'web-id',
+          }),
+        ),
+      );
       final idToken = 'header.$payload.signature';
-      
-      when(mockLinking.bindDirectly('g1', 'mobile-app')).thenReturn('secret123');
 
-      final req = Request('POST', Uri.parse('http://localhost/google/verify'), 
-        body: jsonEncode({
-          'idToken': idToken,
-          'gardenerId': 'g1'
-        }));
+      when(
+        mockLinking.bindDirectly('g1', 'mobile-app'),
+      ).thenReturn('secret123');
+
+      final req = Request(
+        'POST',
+        Uri.parse('http://localhost/google/verify'),
+        body: jsonEncode({'idToken': idToken, 'gardenerId': 'g1'}),
+      );
       final res = await authService.router(req);
       expect(res.statusCode, 200);
       final body = jsonDecode(await res.readAsString());
       expect(body['secret'], 'secret123');
-      verify(mockDb.upsertGardener('g1', platform: anyNamed('platform'))).called(1);
+      verify(
+        mockDb.upsertGardener('g1', platform: anyNamed('platform')),
+      ).called(1);
     });
   });
 }

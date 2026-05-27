@@ -14,6 +14,9 @@ void main() {
     await limiter.wait();
     final sw = Stopwatch()..start();
     await limiter.wait();
-    expect(sw.elapsedMilliseconds, greaterThanOrEqualTo(1000)); // It waits 1000ms by default in the loop
+    expect(
+      sw.elapsedMilliseconds,
+      greaterThanOrEqualTo(1000),
+    ); // It waits 1000ms by default in the loop
   });
 }

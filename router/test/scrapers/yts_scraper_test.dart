@@ -27,15 +27,22 @@ void main() {
             {
               'title': 'Inception',
               'torrents': [
-                {'hash': 'abc', 'quality': '1080p', 'type': 'bluray', 'seeds': 100, 'size': '2GB'}
-              ]
-            }
-          ]
-        }
+                {
+                  'hash': 'abc',
+                  'quality': '1080p',
+                  'type': 'bluray',
+                  'seeds': 100,
+                  'size': '2GB',
+                },
+              ],
+            },
+          ],
+        },
       };
 
-      when(mockClient.get(any, headers: anyNamed('headers')))
-          .thenAnswer((_) async => http.Response(jsonEncode(mockJson), 200));
+      when(
+        mockClient.get(any, headers: anyNamed('headers')),
+      ).thenAnswer((_) async => http.Response(jsonEncode(mockJson), 200));
 
       final results = await scraper.scrape('tt1375666');
       expect(results, hasLength(1));
@@ -46,11 +53,12 @@ void main() {
     test('scrape handles no movies found', () async {
       final mockJson = {
         'status': 'ok',
-        'data': {'movie_count': 0}
+        'data': {'movie_count': 0},
       };
 
-      when(mockClient.get(any, headers: anyNamed('headers')))
-          .thenAnswer((_) async => http.Response(jsonEncode(mockJson), 200));
+      when(
+        mockClient.get(any, headers: anyNamed('headers')),
+      ).thenAnswer((_) async => http.Response(jsonEncode(mockJson), 200));
 
       final results = await scraper.scrape('tt0000000');
       expect(results, isEmpty);

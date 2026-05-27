@@ -46,23 +46,36 @@ class DeviceController {
     );
   }
 
-  Future<Response> unlink(Request req, String id, ServerContext services) async {
+  Future<Response> unlink(
+    Request req,
+    String id,
+    ServerContext services,
+  ) async {
     final authHeader = req.headers['authorization'];
     if (authHeader == null || !authHeader.startsWith('Bearer ')) {
-      return Response(401, body: jsonEncode({'ok': false, 'error': 'unauthorized'}));
+      return Response(
+        401,
+        body: jsonEncode({'ok': false, 'error': 'unauthorized'}),
+      );
     }
-    
+
     final token = authHeader.substring(7);
     final claims = services.auth.verifyJwt(token);
     if (claims == null) {
-      return Response(401, body: jsonEncode({'ok': false, 'error': 'invalid_token'}));
+      return Response(
+        401,
+        body: jsonEncode({'ok': false, 'error': 'invalid_token'}),
+      );
     }
-    
+
     final ownerId = db.getOwnerForDevice(id);
     final tokenUserId = claims['sub'] as String?;
-    
+
     if (ownerId == null || tokenUserId == null || ownerId != tokenUserId) {
-      return Response(403, body: jsonEncode({'ok': false, 'error': 'forbidden'}));
+      return Response(
+        403,
+        body: jsonEncode({'ok': false, 'error': 'forbidden'}),
+      );
     }
 
     db.unlinkDevice(id);

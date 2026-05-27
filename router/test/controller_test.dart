@@ -24,6 +24,7 @@ import 'package:router/services/status_service.dart';
 
 // Mock Services
 class MockDbService extends Mock implements DbService {}
+
 class MockAuthService extends Mock implements AuthService {}
 
 // Stubbed ServerContext
@@ -49,18 +50,31 @@ class StubServerContext extends ServerContext {
 }
 
 class MockPairingService extends Mock implements PairingService {}
+
 class MockP2PNode extends Mock implements P2PNode {}
+
 class MockEventService extends Mock implements EventService {}
+
 class MockLinkingService extends Mock implements LinkingService {}
+
 class MockHealthService extends Mock implements HealthService {}
+
 class MockSwarmService extends Mock implements SwarmService {}
+
 class MockMailerService extends Mock implements MailerService {}
+
 class MockTrackerService extends Mock implements TrackerService {}
+
 class MockScraperService extends Mock implements DistributedScraperService {}
+
 class MockAddonService extends Mock implements AddonService {}
+
 class MockBoostService extends Mock implements BoostService {}
+
 class MockPrefetchService extends Mock implements PrefetchService {}
+
 class MockTaskService extends Mock implements TaskService {}
+
 class MockStatusService extends Mock implements StatusService {}
 
 void main() {
@@ -73,7 +87,7 @@ void main() {
     setUp(() {
       mockDb = MockDbService();
       mockAuth = MockAuthService();
-      
+
       context = StubServerContext(
         db: mockDb,
         auth: mockAuth,
@@ -92,13 +106,13 @@ void main() {
         task: MockTaskService(),
         status: MockStatusService(),
       );
-      
+
       controller = DeviceController(mockDb);
     });
 
     test('unlink returns 401 if no auth header', () async {
       final req = Request('POST', Uri.parse('http://localhost/unlink/123'));
-      final response = await controller.unlink(req, '123', context); 
+      final response = await controller.unlink(req, '123', context);
       expect(response.statusCode, 401);
     });
   });

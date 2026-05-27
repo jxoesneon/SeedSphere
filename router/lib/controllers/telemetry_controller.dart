@@ -15,7 +15,10 @@ class TelemetryController {
     // Fail-closed telemetry: Require authentication if key is configured.
     final sharedKey = Platform.environment['TELEMETRY_KEY'];
     if (sharedKey == null || sharedKey.isEmpty) {
-       return Response(403, body: jsonEncode({'ok': false, 'error': 'telemetry_disabled'}));
+      return Response(
+        403,
+        body: jsonEncode({'ok': false, 'error': 'telemetry_disabled'}),
+      );
     }
 
     final provided =
@@ -28,14 +31,14 @@ class TelemetryController {
       );
     }
 
-    db.writeAudit('telemetry', {
-      'ua': req.headers['user-agent'],
-      'body': data,
-    });
+    db.writeAudit('telemetry', {'ua': req.headers['user-agent'], 'body': data});
 
     return Response.ok(
       jsonEncode({'ok': true}),
-      headers: {'content-type': 'application/json', 'Cache-Control': 'no-store'},
+      headers: {
+        'content-type': 'application/json',
+        'Cache-Control': 'no-store',
+      },
     );
   }
 }

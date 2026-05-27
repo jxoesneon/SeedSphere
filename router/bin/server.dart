@@ -110,10 +110,22 @@ final _router = Router()
     (Request req, String roomId) =>
         _eventsHandler(req, req.url.queryParameters['gardenerId'] ?? roomId),
   )
-  ..get('/api/devices/<id>/status', (Request req, String id) => deviceController.status(req, id))
-  ..post('/api/devices/<id>/unlink', (Request req, String id) => deviceController.unlink(req, id, context))
-  ..get('/device/<id>', (Request req, String id) => deviceController.status(req, id)) // Legacy
-  ..delete('/device/<id>', (Request req, String id) => deviceController.unlink(req, id, context)) // Legacy
+  ..get(
+    '/api/devices/<id>/status',
+    (Request req, String id) => deviceController.status(req, id),
+  )
+  ..post(
+    '/api/devices/<id>/unlink',
+    (Request req, String id) => deviceController.unlink(req, id, context),
+  )
+  ..get(
+    '/device/<id>',
+    (Request req, String id) => deviceController.status(req, id),
+  ) // Legacy
+  ..delete(
+    '/device/<id>',
+    (Request req, String id) => deviceController.unlink(req, id, context),
+  ) // Legacy
   ..get('/u/<userId>/configure', _userConfigureHandler)
   ..get('/api/heartbeat/<gardenerId>', _heartbeatHandler)
   ..post('/api/telemetry', (Request req) => telemetryController.handle(req))
@@ -564,29 +576,38 @@ Response _userConfigureHandler(Request req, String userId) {
 /// Unlinks a device from its owner. Requires valid JWT and ownership verification.
 Future<Response> _deviceUnlinkHandler(Request req, String id) async {
   final services = _services(req);
-  
+
   // 1. JWT Authentication
   final authHeader = req.headers['authorization'];
   if (authHeader == null || !authHeader.startsWith('Bearer ')) {
-    return Response(401, body: jsonEncode({'ok': false, 'error': 'unauthorized'}));
+    return Response(
+      401,
+      body: jsonEncode({'ok': false, 'error': 'unauthorized'}),
+    );
   }
-  
+
   final token = authHeader.substring(7);
   final claims = services.auth.verifyJwt(token);
   if (claims == null) {
-    return Response(401, body: jsonEncode({'ok': false, 'error': 'invalid_token'}));
+    return Response(
+      401,
+      body: jsonEncode({'ok': false, 'error': 'invalid_token'}),
+    );
   }
-  
+
   // 2. Ownership Verification
   final ownerId = services.db.getOwnerForDevice(id);
   final tokenUserId = claims['sub'] as String?;
-  
+
   if (ownerId == null || tokenUserId == null || ownerId != tokenUserId) {
     return Response(403, body: jsonEncode({'ok': false, 'error': 'forbidden'}));
   }
 
   services.db.unlinkDevice(id);
-  services.db.writeAudit('device_unlink', {'device_id': id, 'owner_id': ownerId});
+  services.db.writeAudit('device_unlink', {
+    'device_id': id,
+    'owner_id': ownerId,
+  });
 
   return Response.ok(jsonEncode({'ok': true}));
 }
@@ -640,7 +661,10 @@ Future<Response> _telemetryHandler(Request req) async {
   // If TELEMETRY_KEY is not set (null) or empty, disable telemetry entirely.
   final sharedKey = Platform.environment['TELEMETRY_KEY'];
   if (sharedKey == null || sharedKey.isEmpty) {
-     return Response(403, body: jsonEncode({'ok': false, 'error': 'telemetry_disabled'}));
+    return Response(
+      403,
+      body: jsonEncode({'ok': false, 'error': 'telemetry_disabled'}),
+    );
   }
 
   final provided =

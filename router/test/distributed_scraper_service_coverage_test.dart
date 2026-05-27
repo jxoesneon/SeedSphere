@@ -24,11 +24,17 @@ void main() {
       mockDb = MockDbService();
       mockEvents = MockEventService();
       mockTrackers = MockTrackerService();
-      scraper = DistributedScraperService(mockTrackers, db: mockDb, events: mockEvents);
+      scraper = DistributedScraperService(
+        mockTrackers,
+        db: mockDb,
+        events: mockEvents,
+      );
     });
 
     test('getStreams from cache', () async {
-      when(mockDb.getScrapCache('tt123')).thenReturn([{'name': 'cached'}]);
+      when(mockDb.getScrapCache('tt123')).thenReturn([
+        {'name': 'cached'},
+      ]);
       final streams = await scraper.getStreams('movie', 'tt123', {});
       expect(streams[0]['name'], 'cached');
     });
@@ -41,17 +47,24 @@ void main() {
 
     test('getStreams disconnected if no gardener', () async {
       when(mockDb.getScrapCache('tt123')).thenReturn(null);
-      when(mockDb.getBindings('u1')).thenReturn([{'device_id': 'g1'}]);
+      when(mockDb.getBindings('u1')).thenReturn([
+        {'device_id': 'g1'},
+      ]);
       when(mockEvents.isConnected('g1')).thenReturn(false);
 
-      final streams = await scraper.getStreams('movie', 'tt123', {}, userId: 'u1');
+      final streams = await scraper.getStreams(
+        'movie',
+        'tt123',
+        {},
+        userId: 'u1',
+      );
       expect(streams[0]['title'], contains('Gardener Disconnected'));
     });
 
     test('getDynamicCatalog error handling', () async {
       when(mockDb.getScrapCache(any)).thenReturn(null);
       when(mockDb.getBindings('u1')).thenReturn([]);
-      
+
       final results = await scraper.getDynamicCatalog('movie', 'query', 'u1');
       expect(results[0]['id'], 'error_no_gardener');
     });

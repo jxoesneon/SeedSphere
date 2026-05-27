@@ -23,8 +23,13 @@ void main() {
     });
 
     test('generateManifest includes user hints', () async {
-      when(mockDb.getUser('u1')).thenReturn({'id': 'u1', 'settings_json': '{}'});
-      final manifest = await addonService.generateManifest('u1', baseUrl: 'http://base');
+      when(
+        mockDb.getUser('u1'),
+      ).thenReturn({'id': 'u1', 'settings_json': '{}'});
+      final manifest = await addonService.generateManifest(
+        'u1',
+        baseUrl: 'http://base',
+      );
       expect(manifest['name'], contains('SeedSphere'));
       expect(manifest['configurationURL'], contains('http://base/configure'));
     });
@@ -39,10 +44,15 @@ void main() {
 
     test('user manifest route', () async {
       when(mockDb.getUser('u1')).thenReturn({
-        'id': 'u1', 
-        'settings': {'dynamic_catalogs': ['sci-fi']}
+        'id': 'u1',
+        'settings': {
+          'dynamic_catalogs': ['sci-fi'],
+        },
       });
-      final req = Request('GET', Uri.parse('http://localhost/u/u1/manifest.json'));
+      final req = Request(
+        'GET',
+        Uri.parse('http://localhost/u/u1/manifest.json'),
+      );
       final res = await addonService.router(req);
       expect(res.statusCode, 200);
       final body = jsonDecode(await res.readAsString());
