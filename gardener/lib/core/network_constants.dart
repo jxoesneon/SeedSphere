@@ -208,8 +208,9 @@ class NetworkConstants {
         );
 
         if (bestAddr.isNotEmpty) {
-          // If the Router reports "0.0.0.0" (bind all interfaces), we must dial "127.0.0.1" locally.
-          final fixedAddr = bestAddr.replaceAll('0.0.0.0', '127.0.0.1');
+          // If the Router reports "0.0.0.0" (bind all interfaces), we must dial its actual host.
+          final host = kDebugMode ? '127.0.0.1' : uri.host;
+          final fixedAddr = bestAddr.replaceAll('0.0.0.0', host);
           final peerId = data['peerId'] as String?;
 
           if (peerId != null) {
