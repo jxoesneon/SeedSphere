@@ -1,7 +1,9 @@
 import 'package:ed25519_edwards/ed25519_edwards.dart' as ed;
+import 'package:flutter/services.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:crypto/crypto.dart';
 import 'dart:convert';
+import 'package:shared_preferences/shared_preferences.dart';
 
 /// Cryptographic security manager for peer identity and message signing.
 ///
@@ -9,6 +11,9 @@ import 'dart:convert';
 /// and HMAC-SHA256 for authenticated server communication (SeedSphere Router).
 class SecurityManager {
   final FlutterSecureStorage _storage;
+  SharedPreferences? _prefs;
+  bool _useFallback = false;
+
   static const _privateKeyKey = 'ss_private_key';
   static const _publicKeyKey = 'ss_public_key';
   static const _sharedSecretKey = 'ss_shared_secret';
@@ -22,6 +27,12 @@ class SecurityManager {
   SecurityManager({FlutterSecureStorage? storage})
     : _storage = storage ?? const FlutterSecureStorage();
 
+  Future<void> _ensureInitialized() async {
+    if (_useFallback && _prefs == null) {
+      _prefs = await SharedPreferences.getInstance();
+    }
+  }
+
   /// Retrieves or generates an Ed25519 key pair.
   ///
   /// If no key pair exists, generates a new one and stores it securely.
@@ -31,32 +42,63 @@ class SecurityManager {
   Future<ed.KeyPair> getKeyPair() async {
     if (_cachedKeyPair != null) return _cachedKeyPair!;
 
-    final privHex = await _storage.read(key: _privateKeyKey);
-    final pubHex = await _storage.read(key: _publicKeyKey);
-    ed.KeyPair keyPair;
+    try {
+      if (_useFallback) {
+        await _ensureInitialized();
+        final privHex = _prefs?.getString(_privateKeyKey);
+        final pubHex = _prefs?.getString(_publicKeyKey);
+        if (privHex == null || pubHex == null) {
+          final keyPair = ed.generateKey();
+          await _prefs?.setString(
+            _privateKeyKey,
+            base64Encode(keyPair.privateKey.bytes),
+          );
+          await _prefs?.setString(
+            _publicKeyKey,
+            base64Encode(keyPair.publicKey.bytes),
+          );
+          _cachedKeyPair = keyPair;
+          return keyPair;
+        }
+        final privateKey = ed.PrivateKey(base64Decode(privHex));
+        final publicKey = ed.PublicKey(base64Decode(pubHex));
+        _cachedKeyPair = ed.KeyPair(privateKey, publicKey);
+        return _cachedKeyPair!;
+      }
 
-    if (privHex == null || pubHex == null) {
-      // Generate new key pair if none exists
-      keyPair = ed.generateKey();
-      await _storage.write(
-        key: _privateKeyKey,
-        value: base64Encode(keyPair.privateKey.bytes),
-      );
-      await _storage.write(
-        key: _publicKeyKey,
-        value: base64Encode(keyPair.publicKey.bytes),
-      );
-    } else {
-      // Reconstruct key pair from stored keys
-      final privateBytes = base64Decode(privHex);
-      final publicBytes = base64Decode(pubHex);
-      final privateKey = ed.PrivateKey(privateBytes);
-      final publicKey = ed.PublicKey(publicBytes);
-      keyPair = ed.KeyPair(privateKey, publicKey);
+      final privHex = await _storage.read(key: _privateKeyKey);
+      final pubHex = await _storage.read(key: _publicKeyKey);
+      ed.KeyPair keyPair;
+
+      if (privHex == null || pubHex == null) {
+        // Generate new key pair if none exists
+        keyPair = ed.generateKey();
+        await _storage.write(
+          key: _privateKeyKey,
+          value: base64Encode(keyPair.privateKey.bytes),
+        );
+        await _storage.write(
+          key: _publicKeyKey,
+          value: base64Encode(keyPair.publicKey.bytes),
+        );
+      } else {
+        // Reconstruct key pair from stored keys
+        final privateBytes = base64Decode(privHex);
+        final publicBytes = base64Decode(pubHex);
+        final privateKey = ed.PrivateKey(privateBytes);
+        final publicKey = ed.PublicKey(publicBytes);
+        keyPair = ed.KeyPair(privateKey, publicKey);
+      }
+
+      _cachedKeyPair = keyPair;
+      return keyPair;
+    } on PlatformException catch (e) {
+      if (e.code == '-34018') {
+        _useFallback = true;
+        return await getKeyPair();
+      }
+      rethrow;
     }
-
-    _cachedKeyPair = keyPair;
-    return keyPair;
   }
 
   /// Signs a message using the stored private key.
@@ -108,12 +150,38 @@ class SecurityManager {
 
   /// Sets the shared secret for HMAC communication with the Router.
   Future<void> setSharedSecret(String secret) async {
-    await _storage.write(key: _sharedSecretKey, value: secret);
+    try {
+      if (_useFallback) {
+        await _ensureInitialized();
+        await _prefs?.setString(_sharedSecretKey, secret);
+        return;
+      }
+      await _storage.write(key: _sharedSecretKey, value: secret);
+    } on PlatformException catch (e) {
+      if (e.code == '-34018') {
+        _useFallback = true;
+        await setSharedSecret(secret);
+      } else {
+        rethrow;
+      }
+    }
   }
 
   /// Retrieves the shared secret if it exists.
   Future<String?> getSharedSecret() async {
-    return await _storage.read(key: _sharedSecretKey);
+    try {
+      if (_useFallback) {
+        await _ensureInitialized();
+        return _prefs?.getString(_sharedSecretKey);
+      }
+      return await _storage.read(key: _sharedSecretKey);
+    } on PlatformException catch (e) {
+      if (e.code == '-34018') {
+        _useFallback = true;
+        return await getSharedSecret();
+      }
+      rethrow;
+    }
   }
 
   /// Generates an HMAC-SHA256 signature for server requests.

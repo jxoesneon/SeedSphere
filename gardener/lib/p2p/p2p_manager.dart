@@ -110,12 +110,30 @@ class P2PManager {
     if (_isInitialized) return;
 
     // Load or generate Gardener ID
-    final savedId = await _storage.read(key: 'ss_gardener_id');
-    if (savedId == null) {
-      _gardenerId = const Uuid().v4();
-      await _storage.write(key: 'ss_gardener_id', value: _gardenerId!);
-    } else {
-      _gardenerId = savedId;
+    try {
+      final savedId = await _storage.read(key: 'ss_gardener_id');
+      if (savedId == null) {
+        _gardenerId = const Uuid().v4();
+        await _storage.write(key: 'ss_gardener_id', value: _gardenerId!);
+      } else {
+        _gardenerId = savedId;
+      }
+    } on PlatformException catch (e) {
+      if (e.code == '-34018') {
+        DebugLogger.warn(
+          'P2P: Keychain access failed (-34018). Falling back to SharedPreferences.',
+        );
+        final prefs = await SharedPreferences.getInstance();
+        final savedId = prefs.getString('ss_gardener_id');
+        if (savedId == null) {
+          _gardenerId = const Uuid().v4();
+          await prefs.setString('ss_gardener_id', _gardenerId!);
+        } else {
+          _gardenerId = savedId;
+        }
+      } else {
+        rethrow;
+      }
     }
     DebugLogger.info('P2P: Loaded Gardener ID: $_gardenerId');
 
