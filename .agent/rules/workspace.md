@@ -60,6 +60,7 @@
   - **Conciseness**: Keep logs brief.
 - **File Editing**:
   - **Read-First**: Always call view_file immediately before replace_file_content.
+- **Vulnerability Scanning**: Preemptively run and resolve vulnerability scans (e.g., `npm audit`) immediately whenever package files are modified, upgraded, or resolved, to prevent introducing or neglecting security issues.
 
 ## 8. Security Standards
 
