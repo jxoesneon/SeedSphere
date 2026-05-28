@@ -101,6 +101,13 @@ class ScraperEngine {
                   if (onLog != null) onLog('[${s.name}] $msg');
                 },
               )
+              .then((results) => results.map((r) {
+                    // Inject provider name if not present
+                    if (r['provider'] == null) {
+                      r['provider'] = s.name;
+                    }
+                    return r;
+                  }).toList())
               .catchError((e) {
                 if (onLog != null) onLog('[${s.name}] Error: $e');
                 return <Map<String, dynamic>>[];

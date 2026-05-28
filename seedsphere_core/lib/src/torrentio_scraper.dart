@@ -61,9 +61,13 @@ class TorrentioScraper extends BaseScraper {
           seeders = int.tryParse(seederMatch.group(1)!) ?? 0;
         }
 
+        final infoHash = stream['infoHash'];
+        final magnet = 'magnet:?xt=urn:btih:$infoHash&dn=${Uri.encodeComponent(title)}';
+
         streams.add({
           'title': title,
-          'infoHash': stream['infoHash'],
+          'infoHash': infoHash,
+          'magnet': magnet,
           'fileIdx': stream['fileIdx'],
           'seeders': seeders,
         });

@@ -194,10 +194,12 @@ class ParseUtils {
     if (resMatch != null) {
       final r = resMatch.group(1)!.toLowerCase();
       if (r == '4k' || r == 'uhd') {
-        out['resolution'] = '2160P';
+        out['resolution'] = '4K';
       } else {
         out['resolution'] = r.toUpperCase();
       }
+    } else {
+      out['resolution'] = 'SD';
     }
 
     // Source

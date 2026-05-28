@@ -222,12 +222,6 @@ class StreamAggregator {
       final parsed = ParseUtils.parseReleaseInfo(magnet, title);
       final sizeData = ParseUtils.parseSize(title); // Or use stream['size']
 
-      // 4. Inject Trackers (Prefer Encrypted / Normalize HTTPS handled in MagnetUtils if updated, or here)
-      // For now we assume MagnetUtils handles protocol normalization if we pass flags to it,
-      // but MagnetUtils isn't updated for that yet.
-      // We will stick to appending trackers. Protocol normalization/encryption preference
-      // usually happens at the generation of the magnet string or in the list we pass.
-
       final optimizedMagnet = MagnetUtils.appendTrackers(
         magnet,
         globalTrackers, // Uses sorted set if preferEncrypted is true
@@ -240,7 +234,7 @@ class StreamAggregator {
       // Or we can do it for more if needed. Legacy usually does it for a few.
       if (_config.neuroLinkEnabled && finalStreams.isEmpty) {
         final aiDesc = await _cortex.generateDescription(
-          title: title,
+          title: parsed['name'] ?? title,
           type: type ?? 'movie',
           metadata:
               '${parsed['resolution']} ${parsed['codec']} ${sizeData['sizeStr']}',
@@ -252,23 +246,31 @@ class StreamAggregator {
 
       // Construct final Stremio Stream Object
       final stremioStream = {
-        'name': 'SeedSphere\n${parsed['resolution'] ?? 'UNK'}',
+        'name': 'SeedSphere\n${parsed['resolution'] ?? 'SD'}',
         'title': description, // Stremio uses 'title' for the description block
-        'infoHash': stream['infoHash'], // Must use infoHash for torrents, NOT url (unless HTTP)
+        'infoHash': stream['infoHash'],
+        'sources': globalTrackers.map((t) => 'tracker:$t').toList(),
+        'url': optimizedMagnet, // Keep URL as full magnet for Stremio Web player support
         'seeders': stream['seeders'],
-        'fileIdx': null, // Logic handled in StreamResolver via ID parsing
-        'behaviorHints': {'bingeGroup': 'seedsphere-${parsed['resolution']}'},
+        'behaviorHints': {'bingeGroup': 'seedsphere-${parsed['resolution'] ?? 'SD'}'},
         // Sort keys
         '_sort': {
-          'resolution': parsed['resolution'],
+          'resolution': parsed['resolution'] ?? 'SD',
           'seeds': int.tryParse(stream['seeders']?.toString() ?? '0') ?? 0,
           'sizeBytes': sizeData['sizeBytes'] ?? 0,
           'codec': parsed['codec'],
           'audio': parsed['audio'],
           'languages': parsed['languages'],
-          'title': title, // Added for HDR Check
+          'title': parsed['name'] ?? title, // Use parsed name for sort
         },
       };
+
+      if (stream['fileIdx'] != null) {
+        final fIdx = int.tryParse(stream['fileIdx'].toString());
+        if (fIdx != null) {
+          stremioStream['fileIdx'] = fIdx;
+        }
+      }
 
       finalStreams.add(stremioStream);
     }
@@ -466,12 +468,12 @@ class StreamAggregator {
         : parsed['name'];
     buffer.writeln('🎥 $cleanName');
 
-    // Line 2: 💿 Resolution | Codec | HDR
+    // Line 2: 💿 Resolution | Codec | HDR | Provider
     final tech = [
       parsed['resolution'],
       parsed['codec'],
       parsed['hdr'],
-      parsed['source'],
+      parsed['source'] ?? stream['provider'],
     ].where((e) => e != null).join(' • ');
     if (tech.isNotEmpty) buffer.writeln('💿 $tech');
 

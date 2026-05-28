@@ -52,12 +52,19 @@ class YTSScraper extends BaseScraper {
     // YTS returns movie details inside data['movies'] if found
     if (data['data']['movie_count'] > 0) {
       final movie = data['data']['movies'][0];
+      final movieTitle = movie['title'];
       for (var torrent in movie['torrents']) {
+        final hash = torrent['hash'];
+        final quality = torrent['quality'];
+        final type = torrent['type'];
+        final fullTitle = '$movieTitle [$quality] [$type]';
+        final magnet = 'magnet:?xt=urn:btih:$hash&dn=${Uri.encodeComponent(fullTitle)}';
+
         streams.add({
-          'title':
-              '${movie['title']} [${torrent['quality']}] [${torrent['type']}]',
-          'infoHash': torrent['hash'],
-          'seeders': torrent['seeds'],
+          'title': fullTitle,
+          'infoHash': hash,
+          'magnet': magnet,
+          'seeders': torrent['seeders'],
           'size': torrent['size'],
         });
       }

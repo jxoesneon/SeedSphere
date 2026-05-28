@@ -29,12 +29,7 @@ class HttpLogger {
 class NetworkConstants {
   /// The base URL for the SeedSphere Router API.
   static String get apiBase {
-    if (_kDebugMode) {
-      if (!_kIsWeb && Platform.isAndroid) {
-        return 'http://10.0.2.2:8080';
-      }
-      return 'http://127.0.0.1:8080';
-    }
+    // FORCE PRODUCTION FOR LOCAL E2E TESTING
     return 'https://seedsphere.fly.dev';
   }
 

@@ -37,8 +37,8 @@ class EztvScraper extends BaseScraper {
             streams.add({
               'title': t['title'] ?? 'EZTV',
               'infoHash': t['hash'],
-              'magnetUrl': magnet,
-              'seeds': t['seeds'],
+              'magnet': magnet,
+              'seeders': t['seeds'],
               'peers': t['peers'],
               'size': t['size'],
               'sizeBytes': t['size_bytes'],

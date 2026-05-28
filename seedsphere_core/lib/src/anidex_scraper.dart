@@ -37,7 +37,7 @@ class AnidexScraper extends BaseScraper {
             (m) => {
               'title': metaInfo['title'],
               'infoHash': _extractInfoHash(m),
-              'magnetUrl': m,
+              'magnet': m,
               'provider': 'AniDex',
             },
           )
@@ -79,5 +79,10 @@ class AnidexScraper extends BaseScraper {
   String? _extractInfoHash(String magnetUrl) {
     final match = RegExp(r'btih:([a-fA-F0-9]{40})').firstMatch(magnetUrl);
     return match?.group(1)?.toLowerCase();
+  }
+
+  String? _extractMagnetDN(String magnetUrl) {
+    final match = RegExp(r'dn=([^&]+)').firstMatch(magnetUrl);
+    return match?.group(1);
   }
 }

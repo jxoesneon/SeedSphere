@@ -93,7 +93,7 @@ class SecurityManager {
       _cachedKeyPair = keyPair;
       return keyPair;
     } on PlatformException catch (e) {
-      if (e.code == '-34018') {
+      if (e.code == '-34018' || e.message?.contains('-34018') == true) {
         _useFallback = true;
         return await getKeyPair();
       }
@@ -158,7 +158,7 @@ class SecurityManager {
       }
       await _storage.write(key: _sharedSecretKey, value: secret);
     } on PlatformException catch (e) {
-      if (e.code == '-34018') {
+      if (e.code == '-34018' || e.message?.contains('-34018') == true) {
         _useFallback = true;
         await setSharedSecret(secret);
       } else {
@@ -176,7 +176,7 @@ class SecurityManager {
       }
       return await _storage.read(key: _sharedSecretKey);
     } on PlatformException catch (e) {
-      if (e.code == '-34018') {
+      if (e.code == '-34018' || e.message?.contains('-34018') == true) {
         _useFallback = true;
         return await getSharedSecret();
       }

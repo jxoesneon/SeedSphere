@@ -83,7 +83,7 @@ class PirateBayScraper extends BaseScraper {
           validStreams.add({
             'title': result.title,
             'infoHash': hash,
-            'magnetUrl': result.magnet,
+            'magnet': result.magnet,
             'provider': 'PirateBay',
             'seeders':
                 0, // TPB scraping seeds is harder, explicit 0 implies unknown

@@ -149,7 +149,7 @@ class X1337Scraper extends BaseScraper {
             return {
               'title': c.title, // Use the REAL title we found
               'infoHash': hash,
-              'magnetUrl': magnetUrl,
+              'magnet': magnetUrl,
               'provider': '1337x',
               'seeders':
                   0, // 1337x scraping often misses seeds unless we parse list

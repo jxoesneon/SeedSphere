@@ -7,6 +7,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
+import 'package:flutter/services.dart';
 import 'package:uuid/uuid.dart';
 import 'package:gardener/core/security_manager.dart';
 import 'package:seedsphere_core/seedsphere_core.dart';
@@ -119,7 +120,7 @@ class P2PManager {
         _gardenerId = savedId;
       }
     } on PlatformException catch (e) {
-      if (e.code == '-34018') {
+      if (e.code == '-34018' || e.message?.contains('-34018') == true) {
         DebugLogger.warn(
           'P2P: Keychain access failed (-34018). Falling back to SharedPreferences.',
         );

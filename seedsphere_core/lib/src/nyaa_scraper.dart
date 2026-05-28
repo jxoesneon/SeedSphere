@@ -47,16 +47,24 @@ class NyaaScraper extends BaseScraper {
 
       return magnets.take(40).map((magnetUrl) {
         final hash = _extractInfoHash(magnetUrl);
+        final dn = _extractMagnetDN(magnetUrl);
+        final cleanDn = dn != null ? Uri.decodeComponent(dn).replaceAll('+', ' ') : metaInfo['title'];
+        
         return {
-          'title': metaInfo['title'] ?? 'Nyaa',
+          'title': cleanDn ?? 'Nyaa',
           'infoHash': hash,
-          'magnetUrl': magnetUrl,
+          'magnet': magnetUrl,
           'provider': 'Nyaa',
         };
       }).toList();
     } catch (_) {
       return [];
     }
+  }
+
+  String? _extractMagnetDN(String magnetUrl) {
+    final match = RegExp(r'dn=([^&]+)').firstMatch(magnetUrl);
+    return match?.group(1);
   }
 
   Future<Map<String, dynamic>?> _fetchCinemetaTitle(

@@ -47,7 +47,7 @@ class LocalKMS {
       }
       await _storage.write(key: _aiKeyName, value: key);
     } on PlatformException catch (e) {
-      if (e.code == '-34018') {
+      if (e.code == '-34018' || e.message?.contains('-34018') == true) {
         debugPrint(
           '[LocalKMS] Keychain access failed (-34018). Falling back to SharedPreferences.',
         );
@@ -68,7 +68,7 @@ class LocalKMS {
       }
       return await _storage.read(key: _aiKeyName);
     } on PlatformException catch (e) {
-      if (e.code == '-34018') {
+      if (e.code == '-34018' || e.message?.contains('-34018') == true) {
         _useFallback = true;
         return await getAIKey();
       }
@@ -86,7 +86,7 @@ class LocalKMS {
       }
       await _storage.write(key: _debridKeyName, value: key);
     } on PlatformException catch (e) {
-      if (e.code == '-34018') {
+      if (e.code == '-34018' || e.message?.contains('-34018') == true) {
         _useFallback = true;
         await storeDebridKey(key);
       } else {
@@ -104,7 +104,7 @@ class LocalKMS {
       }
       return await _storage.read(key: _debridKeyName);
     } on PlatformException catch (e) {
-      if (e.code == '-34018') {
+      if (e.code == '-34018' || e.message?.contains('-34018') == true) {
         _useFallback = true;
         return await getDebridKey();
       }

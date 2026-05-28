@@ -41,10 +41,13 @@ class TorrentGalaxyScraper extends BaseScraper {
       final magnets = _parseMagnetsFromHtml(response.body);
 
       return magnets.take(40).map((magnetUrl) {
+        final hash = _extractInfoHash(magnetUrl);
+        final dn = _extractMagnetDN(magnetUrl);
+        final cleanDn = dn != null ? Uri.decodeComponent(dn).replaceAll('+', ' ') : metaInfo['title'];
         return {
-          'title': metaInfo['title'] ?? 'TorrentGalaxy',
+          'title': cleanDn ?? 'Unknown',
           'infoHash': _extractInfoHash(magnetUrl),
-          'magnetUrl': magnetUrl,
+          'magnet': magnetUrl,
           'provider': 'TorrentGalaxy',
         };
       }).toList();
@@ -87,5 +90,10 @@ class TorrentGalaxyScraper extends BaseScraper {
   String? _extractInfoHash(String magnetUrl) {
     final match = RegExp(r'btih:([a-fA-F0-9]{40})').firstMatch(magnetUrl);
     return match?.group(1)?.toLowerCase();
+  }
+
+  String? _extractMagnetDN(String magnetUrl) {
+    final match = RegExp(r'dn=([^&]+)').firstMatch(magnetUrl);
+    return match?.group(1);
   }
 }

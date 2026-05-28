@@ -5,6 +5,7 @@ import 'package:gardener/core/debug_logger.dart';
 import 'package:seedsphere_core/seedsphere_core.dart';
 import 'package:gardener/p2p/p2p_manager.dart';
 import 'package:gardener/core/cortex_service.dart';
+import 'package:gardener/core/stream_aggregator.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -20,13 +21,15 @@ final taskExecutorProvider = Provider<TaskExecutorService>((ref) {
 /// Listens for scrape tasks from the Router and executes them.
 class TaskExecutorService {
   final P2PManager _p2p;
+  final StreamAggregator _aggregator;
   final ScraperEngine _scraper;
   final CortexService _cortex;
   StreamSubscription? _subscription;
   final ValueNotifier<int> activeTaskCount = ValueNotifier<int>(0);
 
   TaskExecutorService(this._p2p, this._cortex)
-    : _scraper = ScraperEngine.defaults();
+    : _aggregator = StreamAggregator(cortex: _cortex),
+      _scraper = ScraperEngine.defaults();
 
   void start() {
     DebugLogger.info(
@@ -157,13 +160,19 @@ class TaskExecutorService {
     );
     final taskId = task['taskId'] as String;
     final imdbId = task['imdbId'] as String;
-    // final type = task['type'] as String;
+    final type = task['type'] as String? ?? 'movie';
 
     DebugLogger.info('TaskExecutor: Received scrape task $taskId for $imdbId');
+    activeTaskCount.value++;
 
     try {
-      // Execute Scrape
-      final results = await _scraper.scrapeAll(imdbId);
+      // Execute Scrape & Aggregate
+      final rawResults = await _scraper.scrapeAll(imdbId);
+      final results = await _aggregator.aggregateStreams(
+        rawResults,
+        type: type,
+        imdbId: imdbId,
+      );
 
       DebugLogger.info(
         'TaskExecutor: Scrape complete for $imdbId. Found ${results.length} streams.',
@@ -174,6 +183,8 @@ class TaskExecutorService {
     } catch (e) {
       DebugLogger.error('TaskExecutor: Scrape failed', error: e);
       // Optional: Send error result
+    } finally {
+      activeTaskCount.value = (activeTaskCount.value - 1).clamp(0, 999);
     }
   }
 
