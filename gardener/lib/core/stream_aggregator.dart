@@ -253,10 +253,8 @@ class StreamAggregator {
       // Construct final Stremio Stream Object
       final stremioStream = {
         'name': 'SeedSphere\n${parsed['resolution'] ?? 'UNK'}',
-        'title': title,
-        'url': optimizedMagnet,
-        'magnet': optimizedMagnet,
-        'infoHash': stream['infoHash'],
+        'title': description, // Stremio uses 'title' for the description block
+        'infoHash': stream['infoHash'], // Must use infoHash for torrents, NOT url (unless HTTP)
         'seeders': stream['seeders'],
         'fileIdx': null, // Logic handled in StreamResolver via ID parsing
         'behaviorHints': {'bingeGroup': 'seedsphere-${parsed['resolution']}'},
@@ -271,9 +269,6 @@ class StreamAggregator {
           'title': title, // Added for HDR Check
         },
       };
-
-      // Set description
-      stremioStream['description'] = description;
 
       finalStreams.add(stremioStream);
     }
