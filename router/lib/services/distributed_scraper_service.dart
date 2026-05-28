@@ -226,9 +226,9 @@ class DistributedScraperService extends ScraperService {
   _pendingTasks = {};
 
   /// Called by the Task Result API endpoint
-  static void handleResult(String taskId, List<dynamic> results) {
+  static void handleResult(String taskId, List<Map<String, dynamic>> results) {
     if (_pendingTasks.containsKey(taskId)) {
-      _pendingTasks[taskId]!.complete(results.cast<Map<String, dynamic>>());
+      _pendingTasks[taskId]!.complete(results);
       _pendingTasks.remove(taskId);
     }
   }

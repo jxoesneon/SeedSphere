@@ -862,7 +862,8 @@ Future<Response> _taskResultHandler(Request req) async {
     // Check for the new Direct Task format (used by DistributedScraper)
     if (body.containsKey('taskId') && body.containsKey('results')) {
       final taskId = body['taskId'] as String;
-      final results = body['results'] as List<dynamic>;
+      final rawResults = body['results'] as List<dynamic>;
+      final results = rawResults.map((e) => e as Map<String, dynamic>).toList();
       
       DistributedScraperService.handleResult(taskId, results);
       return Response.ok(jsonEncode({'ok': true}));
