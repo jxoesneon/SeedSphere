@@ -32,7 +32,7 @@ class StremioServer {
   }) : _p2p = p2p ?? P2PManager.instance,
        _resolver = resolver ?? StreamResolver(),
        _scrapers =
-           scrapers ?? ScraperEngine.defaults(),
+           scrapers ?? ScraperEngine.defaults(ConfigManager()),
        _aggregator = aggregator ?? StreamAggregator();
 
   /// The port the server is listening on.

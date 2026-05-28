@@ -456,7 +456,7 @@ class _SwarmDashboardState extends ConsumerState<SwarmDashboard>
       if (imdbId != null) {
         _addLog('Executing resolution for $imdbId...');
         // 1. Scrape
-        final ScraperEngine engine = ScraperEngine.defaults();
+        final ScraperEngine engine = ScraperEngine.defaults(ConfigManager());
         final results = await engine.scrapeAll(imdbId);
 
         if (results.isNotEmpty) {

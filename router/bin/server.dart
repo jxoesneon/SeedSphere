@@ -23,6 +23,7 @@ import 'package:router/swarm_service.dart';
 import 'package:router/auth_service.dart';
 import 'package:router/mailer_service.dart';
 import 'package:router/services/distributed_scraper_service.dart';
+import 'package:router/core/router_config.dart';
 import 'package:router/addon_service.dart';
 import 'package:uuid/uuid.dart';
 
@@ -1023,8 +1024,10 @@ void main(List<String> args) async {
 
   trackerService = TrackerService(db, healthService);
   unawaited(trackerService.init());
+  final routerConfig = RouterConfig(db);
   scraperService = DistributedScraperService(
     trackerService,
+    config: routerConfig,
     db: db,
     events: eventService,
   );

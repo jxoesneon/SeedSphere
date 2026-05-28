@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'core/app_config.dart';
 import 'core/user_agent_rotator.dart';
 import 'core/rate_limiter.dart';
 import 'eztv_scraper.dart';
@@ -15,6 +16,7 @@ import 'zooqle_scraper.dart';
 import 'rutor_scraper.dart';
 import 'torrentio_scraper.dart';
 import 'yts_scraper.dart';
+import 'torznab_scraper.dart';
 
 /// Base class for all torrent and stream metadata scrapers.
 abstract class BaseScraper {
@@ -67,7 +69,7 @@ class ScraperEngine {
   ScraperEngine({required this.scrapers});
 
   /// Creates a [ScraperEngine] configured with all supported providers.
-  factory ScraperEngine.defaults() {
+  factory ScraperEngine.defaults(AppConfig config) {
     return ScraperEngine(
       scrapers: [
         TorrentioScraper(),
@@ -83,6 +85,7 @@ class ScraperEngine {
         TokyoToshoScraper(),
         ZooqleScraper(),
         RutorScraper(),
+        TorznabScraper(config: config),
       ],
     );
   }

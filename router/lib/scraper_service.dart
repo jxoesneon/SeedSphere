@@ -21,10 +21,11 @@ class ScraperService {
   /// Creates a new ScraperService instance.
   ScraperService(
     this._trackers, {
+    required AppConfig config,
     AiService? aiService,
     http.Client? client,
     EventService? eventService,
-  }) : _engine = ScraperEngine.defaults(),
+  }) : _engine = ScraperEngine.defaults(config),
        _ai = aiService ?? AiService(),
        _eventService = eventService,
        _httpClient = client ?? http.Client();

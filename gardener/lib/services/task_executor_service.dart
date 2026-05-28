@@ -29,7 +29,7 @@ class TaskExecutorService {
 
   TaskExecutorService(this._p2p, this._cortex)
     : _aggregator = StreamAggregator(cortex: _cortex),
-      _scraper = ScraperEngine.defaults();
+      _scraper = ScraperEngine.defaults(ConfigManager());
 
   void start() {
     DebugLogger.info(
