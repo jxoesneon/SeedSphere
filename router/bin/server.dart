@@ -858,6 +858,17 @@ Future<Response> _taskResultHandler(Request req) async {
   final services = _services(req);
   try {
     final body = jsonDecode(await req.readAsString());
+    
+    // Check for the new Direct Task format (used by DistributedScraper)
+    if (body.containsKey('taskId') && body.containsKey('results')) {
+      final taskId = body['taskId'] as String;
+      final results = body['results'] as List<dynamic>;
+      
+      DistributedScraperService.handleResult(taskId, results);
+      return Response.ok(jsonEncode({'ok': true}));
+    }
+
+    // Legacy JWT format handling
     final token = body['token'];
     final result = body['result'];
 
