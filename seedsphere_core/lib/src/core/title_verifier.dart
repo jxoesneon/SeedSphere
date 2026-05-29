@@ -84,9 +84,9 @@ class TitleVerifier {
       } else {
         // Result MISSING the year. Strict check.
         final ratio = _levenshteinRatio(reqClean, resClean);
-        if (ratio >= 0.85) {
+        if (ratio >= 0.92) {
           log(
-            '✅ Accepted: Missing year but high fuzzy match (Ratio: ${ratio.toStringAsFixed(2)})',
+            '✅ Accepted: Missing year but very high fuzzy match (Ratio: ${ratio.toStringAsFixed(2)})',
           );
           return true;
         }
@@ -101,8 +101,9 @@ class TitleVerifier {
       // We rely on inclusion + safe extras for partial matches.
       // 0.85 allows "Spider-man" vs "Spiderman" (dist=1, len=10, ratio~0.9).
       // 0.85 rejects "Iron Man" vs "Iron Man 2" (dist=2, len=10, ratio=0.8).
+      // TIGHTENED: Rejects sequels or similar titles if no year match
       final ratio = _levenshteinRatio(reqClean, resClean);
-      if (ratio >= 0.85) {
+      if (ratio >= 0.92) {
         log(
           '✅ Accepted: High fuzzy match (Ratio: ${ratio.toStringAsFixed(2)})',
         );
@@ -178,7 +179,8 @@ class TitleVerifier {
 
   static bool _containsAllWords(String needle, String haystack) {
     if (needle.isEmpty) return false;
-    final needleWords = needle.split(' ').where((w) => w.isNotEmpty);
+    // TIGHTENED: Only consider words > 1 char
+    final needleWords = needle.split(' ').where((w) => w.length > 1);
     // Use Set for O(1) lookup
     final haystackWords = haystack
         .split(' ')

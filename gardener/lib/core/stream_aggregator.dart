@@ -97,6 +97,10 @@ class StreamAggregator {
 
       if (!uniqueStreams.containsKey(infoHash)) {
         res['infoHash'] = infoHash;
+        // Normalize seeders
+        res['seeders'] =
+            int.tryParse((res['seeders'] ?? res['seeds'])?.toString() ?? '0') ??
+            0;
         uniqueStreams[infoHash] = res;
         // Ensure magnet is set and normalized
         if (magnet.isEmpty) {
@@ -118,14 +122,11 @@ class StreamAggregator {
             int.tryParse((res['seeders'] ?? res['seeds'])?.toString() ?? '0') ??
             0;
         final oldSeeds =
-            int.tryParse(
-              (existing['seeders'] ?? existing['seeds'])?.toString() ?? '0',
-            ) ??
-            0;
+            int.tryParse((existing['seeders'] ?? 0).toString()) ?? 0;
 
         if (newSeeds > oldSeeds) {
           existing['seeders'] = newSeeds;
-          existing['leechers'] = res['leechers'];
+          existing['leechers'] = res['leechers'] ?? res['peers'];
           // Keep provider name etc? Legacy keeps first, but updates stats.
         }
       }
@@ -246,11 +247,12 @@ class StreamAggregator {
 
       // Construct final Stremio Stream Object
       final stremioStream = {
-        'name': 'SeedSphere\n${parsed['resolution'] ?? 'SD'}',
+        'name': 'SeedSphere [${parsed['resolution'] ?? 'SD'}]',
         'title': description, // Stremio uses 'title' for the description block
-        'infoHash': stream['infoHash'],
+        'infoHash': (stream['infoHash'] as String).toLowerCase(),
         'sources': globalTrackers.map((t) => 'tracker:$t').toList(),
-        'url': optimizedMagnet, // Keep URL as full magnet for Stremio Web player support
+        'announce': globalTrackers, // Compatibility with some Stremio clients
+        // NO 'url' for torrents - prevents "Video not supported" on Stremio Web
         'seeders': stream['seeders'],
         'behaviorHints': {'bingeGroup': 'seedsphere-${parsed['resolution'] ?? 'SD'}'},
         // Sort keys

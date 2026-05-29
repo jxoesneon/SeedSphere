@@ -3,18 +3,14 @@ import 'package:http/http.dart' as http;
 import 'scraper_engine.dart';
 import 'core/title_verifier.dart';
 
-/// Scraper implementation for the Pirate Bay provider (Classic).
+/// Scraper implementation for The Pirate Bay.
 class PirateBayScraper extends BaseScraper {
   final http.Client _client;
 
   /// Creates a new PirateBayScraper.
   PirateBayScraper({http.Client? client})
     : _client = client ?? http.Client(),
-      super(
-        name: 'Pirate Bay',
-        baseUrl: 'https://thepiratebay.org',
-        requestsPerMinute: 30,
-      );
+      super(name: 'ThePirateBay', baseUrl: 'https://thepiratebay.org');
 
   @override
   Future<List<Map<String, dynamic>>> scrape(
@@ -22,31 +18,25 @@ class PirateBayScraper extends BaseScraper {
     Function(String)? onLog,
   }) async {
     try {
-      final type = imdbId.contains('tt') ? 'series' : 'movie';
-      var metaInfo = await _fetchCinemetaTitle(type, imdbId);
-      if (metaInfo == null && type == 'series') {
-        metaInfo = await _fetchCinemetaTitle('movie', imdbId);
-      }
+      final cinemeta = await _fetchCinemetaTitle(
+        imdbId.startsWith('tt') ? 'movie' : 'series',
+        imdbId,
+      );
+      if (cinemeta == null) return [];
+      final requestedTitle = cinemeta['title'] as String;
+      final requestedYear = int.tryParse(cinemeta['year'].toString());
+      final type = imdbId.startsWith('tt') ? 'movie' : 'series';
 
-      if (metaInfo == null) return [];
-      final requestedTitle = metaInfo['title'] as String;
-      final requestedYear = int.tryParse(metaInfo['year'].toString());
+      final query = Uri.encodeComponent(requestedTitle);
+      final searchUrl = '$baseUrl/search.php?q=$query&all=on&search=Pirate+Search';
 
-      final searchQuery = Uri.encodeComponent(requestedTitle);
-      // Order by seeds (99), page 1, category 0 (all)
-      final url = '$baseUrl/search/$searchQuery/1/99/0';
-
-      await waitForRateLimit(); // Enforce rate limit
-      final response = await _client
-          .get(
-            Uri.parse(url),
-            headers: {'User-Agent': userAgent},
-          ) // Use rotated UA
-          .timeout(const Duration(seconds: 5));
+      final response = await _client.get(
+        Uri.parse(searchUrl),
+        headers: {'User-Agent': userAgent},
+      ).timeout(const Duration(seconds: 5));
 
       if (response.statusCode != 200) return [];
 
-      // ReDoS Protection: Limit analysis to first 2MB
       String html = response.body;
       if (html.length > 2 * 1024 * 1024) {
         html = html.substring(0, 2 * 1024 * 1024);
@@ -63,6 +53,7 @@ class PirateBayScraper extends BaseScraper {
           result.title,
           year: requestedYear,
           isSeries: type == 'series',
+          onLog: onLog,
         )) {
           final hash = _extractInfoHash(result.magnet);
 
@@ -85,8 +76,7 @@ class PirateBayScraper extends BaseScraper {
             'infoHash': hash,
             'magnet': result.magnet,
             'provider': 'PirateBay',
-            'seeders':
-                0, // TPB scraping seeds is harder, explicit 0 implies unknown
+            'seeders': result.seeders,
           });
         }
       }
@@ -97,34 +87,51 @@ class PirateBayScraper extends BaseScraper {
     }
   }
 
-  // Parse pairs of (Title, Magnet)
-  List<({String title, String magnet})> _parseResults(String html) {
-    final results = <({String title, String magnet})>[];
+  // Parse tuples of (Title, Magnet, Seeders)
+  List<({String title, String magnet, int seeders})> _parseResults(String html) {
+    final results = <({String title, String magnet, int seeders})>[];
 
-    // Split by table row to keep title/magnet paired
-    // TPB uses <tr class="header"> for header, then normal <tr> for items
+    // Split by table row to keep data paired
     final rows = html.split('<tr');
 
     for (var row in rows) {
-      // Extract Title: class="detLink" title="Details for The Matrix"
-      // OR >The Matrix<
+      // 1. Extract Title
       final titleMatch = RegExp(
         r'class="detLink" title="Details for ([^"]+)"',
       ).firstMatch(row);
       if (titleMatch == null) continue;
-
       final title = titleMatch.group(1)!;
 
-      // Extract Magnet
+      // 2. Extract Magnet
       final magnetMatch = RegExp(
         r'href="(magnet:\?xt=urn:btih:[^"]+)"',
       ).firstMatch(row);
       if (magnetMatch == null) continue;
+      final magnet = magnetMatch.group(1)!;
 
-      results.add((title: title, magnet: magnetMatch.group(1)!));
+      // 3. Extract Seeders (3rd or 4th cell usually)
+      // TPB structure: <td>Type</td> <td>Title...</td> <td>Seeders</td> <td>Leechers</td>
+      // We look for digits between <td> and </td> after the title link.
+      int seeders = 0;
+      final seederMatch = RegExp(r'<td align="right">(\d+)</td>').firstMatch(row);
+      if (seederMatch != null) {
+        seeders = int.tryParse(seederMatch.group(1)!) ?? 0;
+      }
+
+      results.add((title: title, magnet: magnet, seeders: seeders));
     }
 
     return results;
+  }
+
+  String? _extractInfoHash(String magnetUrl) {
+    final match = RegExp(r'btih:([a-fA-F0-9]{40})').firstMatch(magnetUrl);
+    return match?.group(1)?.toLowerCase();
+  }
+
+  String? _extractMagnetDN(String magnetUrl) {
+    final match = RegExp(r'dn=([^&]+)').firstMatch(magnetUrl);
+    return match?.group(1);
   }
 
   Future<Map<String, dynamic>?> _fetchCinemetaTitle(
@@ -151,15 +158,5 @@ class PirateBayScraper extends BaseScraper {
     } catch (_) {
       return null;
     }
-  }
-
-  String? _extractInfoHash(String magnetUrl) {
-    final match = RegExp(r'btih:([a-fA-F0-9]{40})').firstMatch(magnetUrl);
-    return match?.group(1)?.toLowerCase();
-  }
-
-  String? _extractMagnetDN(String magnetUrl) {
-    final match = RegExp(r'dn=([^&]+)').firstMatch(magnetUrl);
-    return match?.group(1);
   }
 }

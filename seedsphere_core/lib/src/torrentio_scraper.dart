@@ -55,8 +55,8 @@ class TorrentioScraper extends BaseScraper {
         final title = stream['title'] ?? stream['name'] ?? '';
         int seeders = 0;
 
-        // Try to extract seeders from title: "👤 524 💾 20.11 GB"
-        final seederMatch = RegExp(r'👤\s*(\d+)').firstMatch(title);
+        // Try to extract seeders from title: "👤 524 💾 20.11 GB" or similar
+        final seederMatch = RegExp(r'[👤👥]\s*(\d+)').firstMatch(title);
         if (seederMatch != null) {
           seeders = int.tryParse(seederMatch.group(1)!) ?? 0;
         }

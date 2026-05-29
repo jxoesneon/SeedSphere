@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:seedsphere_core/seedsphere_core.dart';
 import 'package:router/db_service.dart';
 import 'package:router/event_service.dart';
 import 'package:router/scraper_service.dart';
@@ -20,7 +21,7 @@ class DistributedScraperService extends ScraperService {
     super.aiService,
   }) : _db = db,
        _events = events,
-       super(eventService: events);
+       super(config: config, eventService: events);
 
   @override
   Future<List<Map<String, dynamic>>> getStreams(
@@ -28,8 +29,10 @@ class DistributedScraperService extends ScraperService {
     String id,
     Map<String, dynamic> settings, {
     String? userId,
+    String? title,
+    int? year,
   }) async {
-    print('[DistributedScraper] getStreams($type, $id) for user=$userId');
+    print('[DistributedScraper] getStreams($type, $id, title=$title, year=$year) for user=$userId');
 
     // 1. Check Cache (24h)
     final cached = _db.getScrapCache(id);
@@ -38,7 +41,32 @@ class DistributedScraperService extends ScraperService {
       return cached;
     }
 
-    // 2. Check Available Gardeners
+    // 2. Metadata Enrichment (Critical for P2P Context)
+    String? effectiveTitle = title;
+    int? effectiveYear = year;
+
+    if (effectiveTitle == null && id.startsWith('tt')) {
+      try {
+        final uri = Uri.parse('https://v3-cinemeta.strem.io/meta/$type/$id.json');
+        final resp = await _httpClient.get(uri).timeout(const Duration(seconds: 3));
+        if (resp.statusCode == 200) {
+          final data = jsonDecode(resp.body);
+          final meta = data['meta'];
+          if (meta != null) {
+            effectiveTitle = meta['name'] ?? meta['title'];
+            final releaseInfo = meta['releaseInfo']?.toString();
+            if (releaseInfo != null) {
+              effectiveYear = int.tryParse(releaseInfo.split('-')[0]);
+            }
+            print('[DistributedScraper] Enriched metadata from Cinemeta: $effectiveTitle ($effectiveYear)');
+          }
+        }
+      } catch (e) {
+        print('[DistributedScraper] Metadata enrichment failed: $e');
+      }
+    }
+
+    // 3. Check Available Gardeners
     if (userId == null) {
       // Public request? We can't delegate easily without a user context.
       // But typically requests come from users.
@@ -124,6 +152,8 @@ class DistributedScraperService extends ScraperService {
       'taskId': taskId,
       'imdbId': id,
       'type': type,
+      'title': effectiveTitle,
+      'year': effectiveYear,
     });
 
     try {

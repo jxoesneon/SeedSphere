@@ -76,6 +76,8 @@ class ScraperService {
     String id,
     Map<String, dynamic> settings, {
     String? userId, // Optional: Target user for debug logs
+    String? title,
+    int? year,
   }) async {
     // Determine IMDb ID (assuming 'tt' format for now)
     final imdbId = id;
@@ -93,19 +95,12 @@ class ScraperService {
 
     // Normalize
     final normalized = rawResults.map((raw) {
-      // Extract provider name if available in raw map, or infer one
-      // The current ScraperEngine returns raw maps, normalizing them here
-      // But ScraperEngine doesn't attach 'source' in base implementation easily?
-      // Wait, BaseScraper implementations just return raw maps.
-      // MetadataNormalizer needs 'provider'.
-      // The Engine's scrapeAll flattens results. We lose the provider context unless the scraper adds it.
-      // Let's assume scrapers don't add 'source' by default (based on YTS review).
-      // We might need to update ScraperEngine to preserve source, or individual scrapers to include it.
-
-      // For now, let's inject a generic source or check raw data structure.
-      // Actually, YTS scraper returns a map.
-      // Let's rely on basic normalization for now.
-      return MetadataNormalizer.normalize(raw, 'MultiScraper').toJson();
+      // Inject title and year from request context if missing in raw data
+      // This helps the normalizer and verifier perform better.
+      if (raw['title'] == null && title != null) raw['title'] = title;
+      if (raw['year'] == null && year != null) raw['year'] = year;
+      
+      return MetadataNormalizer.normalize(raw, raw['provider'] ?? 'MultiScraper').toJson();
     }).toList();
     // Filter out invalid streams
     final validStreams = normalized
@@ -119,14 +114,7 @@ class ScraperService {
       final optimized = await _trackers.optimize([]);
       final bestTrackers = optimized['added'] as List<String>;
 
-      final infoHash = s['infoHash'] as String;
-      // Build magnet link with injected best trackers
-      final trackersPart = bestTrackers
-          .map((t) => 'tr=${Uri.encodeComponent(t)}')
-          .join('&');
-      final dn = Uri.encodeComponent(s['title'] as String? ?? 'video');
-      final magnet =
-          'magnet:?xt=urn:btih:$infoHash&dn=$dn${trackersPart.isNotEmpty ? '&$trackersPart' : ''}';
+      final infoHash = (s['infoHash'] as String).toLowerCase();
 
       // Build basic description
       String description =
@@ -165,10 +153,11 @@ class ScraperService {
       }
 
       streams.add({
+        'name': 'SeedSphere\n${s['resolution'] ?? 'SD'}',
         'title': description,
         'infoHash': infoHash,
-        'url': magnet, // Inject the full magnet with corrected trackers
-        'seeders': s['seeders'] ?? 0, // Explicit seeders field for Gardener
+        'sources': bestTrackers.map((t) => 'tracker:$t').toList(),
+        'seeders': s['seeders'] ?? 0,
         'behaviorHints': {'bingeGroup': 'seedsphere-p2p'},
       });
     }

@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'scraper_engine.dart';
+import 'core/title_verifier.dart';
 
 /// Scraper implementation for the Nyaa provider (Anime).
 class NyaaScraper extends BaseScraper {
@@ -17,49 +18,80 @@ class NyaaScraper extends BaseScraper {
     Function(String)? onLog,
   }) async {
     try {
-      // 1. Fetch metadata title from Cinemeta (same as legacy)
-      // Nyaa needs a query string, not just an ID
-      // We can infer type from ID format roughly, but Cinemeta is safer or just try both
-      // For simplicity, assume if it's series/movie we need title.
-      // But BaseScraper only gives us ID.
-      // Let's port the _fetchCinemetaTitle logic
-
-      // Actually standard IMDB IDs don't distinguish type easily without lookup.
-      // We'll try fetching metadata for 'series' then 'movie' or rely on what we find.
-      // Porting the logic from NyaaProvider:
-
-      final metaInfo =
-          await _fetchCinemetaTitle('series', imdbId) ??
-          await _fetchCinemetaTitle('movie', imdbId);
-
+      final metaInfo = await _fetchCinemetaTitle(
+        imdbId.startsWith('tt') ? 'movie' : 'series',
+        imdbId,
+      );
       if (metaInfo == null) return [];
 
-      final searchQuery = Uri.encodeComponent(metaInfo['title'] as String);
-      final url = '$baseUrl/?f=0&c=0_0&q=$searchQuery';
+      final query = Uri.encodeComponent(metaInfo['title']);
+      final type = imdbId.startsWith('tt') ? 'movie' : 'series';
+      final year = int.tryParse(metaInfo['year'].toString());
 
-      final response = await _client
-          .get(Uri.parse(url))
-          .timeout(const Duration(seconds: 4));
+      final url = '$baseUrl/?f=0&c=0_0&q=$query';
+
+      final response = await _client.get(
+        Uri.parse(url),
+        headers: {'User-Agent': userAgent},
+      ).timeout(const Duration(seconds: 5));
 
       if (response.statusCode != 200) return [];
 
-      final magnets = _parseMagnetsFromHtml(response.body);
+      final results = _parseResults(response.body);
 
-      return magnets.take(40).map((magnetUrl) {
-        final hash = _extractInfoHash(magnetUrl);
-        final dn = _extractMagnetDN(magnetUrl);
+      return results.take(40).map((res) {
+        final hash = _extractInfoHash(res.magnet);
+        final dn = _extractMagnetDN(res.magnet);
         final cleanDn = dn != null ? Uri.decodeComponent(dn).replaceAll('+', ' ') : metaInfo['title'];
-        
+
         return {
-          'title': cleanDn ?? 'Nyaa',
+          'title': cleanDn ?? 'Unknown',
           'infoHash': hash,
-          'magnet': magnetUrl,
+          'magnet': res.magnet,
           'provider': 'Nyaa',
+          'seeders': res.seeders,
         };
       }).toList();
     } catch (_) {
       return [];
     }
+  }
+
+  List<({String magnet, int seeders})> _parseResults(String html) {
+    final results = <({String magnet, int seeders})>[];
+    
+    // Nyaa table rows
+    final rows = html.split('<tr');
+    for (final row in rows) {
+      // 1. Extract Magnet
+      final magnetMatch = RegExp(
+        r"""href=["\']?(magnet:\?xt=[^"\s\']+)["\']?""",
+        caseSensitive: false,
+      ).firstMatch(row);
+      if (magnetMatch == null) continue;
+      final magnet = magnetMatch.group(1)!;
+
+      // 2. Extract Seeders
+      // <td class="text-center">123</td> (Seeders is usually the 2nd to last cell)
+      final seederMatches = RegExp(r'<td class="text-center">(\d+)</td>').allMatches(row);
+      int seeders = 0;
+      if (seederMatches.isNotEmpty) {
+        // Nyaa structure: [Size, Date, Seeders, Leechers, Completed]
+        // Usually Seeders is the 3rd match in this specific row-segment
+        if (seederMatches.length >= 3) {
+          seeders = int.tryParse(seederMatches.elementAt(seederMatches.length - 3).group(1)!) ?? 0;
+        }
+      }
+
+      results.add((magnet: magnet, seeders: seeders));
+    }
+
+    return results;
+  }
+
+  String? _extractInfoHash(String magnetUrl) {
+    final match = RegExp(r'btih:([a-fA-F0-9]{40})').firstMatch(magnetUrl);
+    return match?.group(1)?.toLowerCase();
   }
 
   String? _extractMagnetDN(String magnetUrl) {
@@ -91,27 +123,5 @@ class NyaaScraper extends BaseScraper {
     } catch (_) {
       return null;
     }
-  }
-
-  List<String> _parseMagnetsFromHtml(String html) {
-    final magnets = <String>{};
-    final regex = RegExp(
-      r"""href=["\']?(magnet:\?xt=[^"\s\']+)["\']?""",
-      caseSensitive: false,
-    );
-
-    for (final match in regex.allMatches(html)) {
-      final magnetUrl = match.group(1);
-      if (magnetUrl != null && magnetUrl.startsWith('magnet:?')) {
-        magnets.add(magnetUrl);
-      }
-    }
-
-    return magnets.toList();
-  }
-
-  String? _extractInfoHash(String magnetUrl) {
-    final match = RegExp(r'btih:([a-fA-F0-9]{40})').firstMatch(magnetUrl);
-    return match?.group(1)?.toLowerCase();
   }
 }

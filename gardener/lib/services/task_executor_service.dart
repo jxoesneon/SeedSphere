@@ -161,17 +161,25 @@ class TaskExecutorService {
     final taskId = task['taskId'] as String;
     final imdbId = task['imdbId'] as String;
     final type = task['type'] as String? ?? 'movie';
+    final title = task['title'] as String?;
+    final year = task['year'] as int?;
 
-    DebugLogger.info('TaskExecutor: Received scrape task $taskId for $imdbId');
+    DebugLogger.info('TaskExecutor: Received scrape task $taskId for $imdbId ($title)');
     activeTaskCount.value++;
 
     try {
-      // Execute Scrape & Aggregate
-      final rawResults = await _scraper.scrapeAll(imdbId);
+      // Execute Scrape & Aggregate with a soft timeout
+      final rawResults = await _scraper.scrapeAll(imdbId).timeout(
+        const Duration(seconds: 9),
+        onTimeout: () => [], // Fallback to empty if it takes too long
+      );
+      
       final results = await _aggregator.aggregateStreams(
         rawResults,
         type: type,
         imdbId: imdbId,
+        requestedTitle: title,
+        year: year,
       );
 
       DebugLogger.info(

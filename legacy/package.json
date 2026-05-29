@@ -26,7 +26,7 @@
   "dependencies": {
     "axios": "^1.16.1",
     "bencode": "^4.0.0",
-    "better-sqlite3": "^12.9.0",
+    "better-sqlite3": "^12.10.0",
     "cookie-parser": "^1.4.7",
     "csurf": "^1.11.0",
     "express": "^5.2.1",
@@ -34,7 +34,7 @@
     "jsonwebtoken": "^9.0.3",
     "libsodium-wrappers": "^0.8.4",
     "nanoid": "^5.1.7",
-    "nodemailer": "^8.0.5",
+    "nodemailer": "^8.0.9",
     "openid-client": "^6.8.3",
     "stremio-addon-sdk": "^1.6.10",
     "uuid": "^14.0.0",
@@ -61,6 +61,7 @@
     "tmp": "0.2.6",
     "ip-address": "10.2.0",
     "jose": ">=6.2.3",
-    "qs": "6.15.2"
+    "qs": "6.15.2",
+    "lodash": "4.18.1"
   }
 }
