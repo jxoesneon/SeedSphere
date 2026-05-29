@@ -1,31 +1,25 @@
 import 'package:test/test.dart';
 import 'package:mockito/mockito.dart';
-import 'package:mockito/annotations.dart';
 import 'package:router/services/distributed_scraper_service.dart';
-import 'package:router/db_service.dart';
-import 'package:router/event_service.dart';
-import 'package:router/tracker_service.dart';
-
-@GenerateNiceMocks([
-  MockSpec<DbService>(),
-  MockSpec<EventService>(),
-  MockSpec<TrackerService>(),
-])
-import 'distributed_scraper_service_coverage_test.mocks.dart';
+import 'manual_mocks.dart';
 
 void main() {
   group('DistributedScraperService Full Coverage', () {
     late DistributedScraperService scraper;
-    late MockDbService mockDb;
-    late MockEventService mockEvents;
-    late MockTrackerService mockTrackers;
+    late ManualMockDbService mockDb;
+    late ManualMockEventService mockEvents;
+    late ManualMockTrackerService mockTrackers;
+    late ManualMockAppConfig mockConfig;
 
     setUp(() {
-      mockDb = MockDbService();
-      mockEvents = MockEventService();
-      mockTrackers = MockTrackerService();
+      mockDb = ManualMockDbService();
+      mockEvents = ManualMockEventService();
+      mockTrackers = ManualMockTrackerService();
+      mockConfig = ManualMockAppConfig();
+      
       scraper = DistributedScraperService(
         mockTrackers,
+        config: mockConfig,
         db: mockDb,
         events: mockEvents,
       );
@@ -62,7 +56,7 @@ void main() {
     });
 
     test('getDynamicCatalog error handling', () async {
-      when(mockDb.getScrapCache(any)).thenReturn(null);
+      when(mockDb.getScrapCache('query')).thenReturn(null);
       when(mockDb.getBindings('u1')).thenReturn([]);
 
       final results = await scraper.getDynamicCatalog('movie', 'query', 'u1');
@@ -70,9 +64,6 @@ void main() {
     });
 
     test('handleResult completes task', () {
-      // Since _pendingTasks is static, we can't easily isolate tests.
-      // But we can test it by setting a task manually? No, it's private.
-      // I'll just call it and ensure it doesn't crash.
       DistributedScraperService.handleResult('non-existent', []);
     });
   });

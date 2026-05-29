@@ -14,7 +14,7 @@ class DistributedScraperService extends ScraperService {
   /// Creates a [DistributedScraperService] with the given [trackers] and [aiService].
   DistributedScraperService(
     super.trackers, {
-    required AppConfig super.config,
+    required super.config,
     required DbService db,
     required EventService events,
     super.aiService,

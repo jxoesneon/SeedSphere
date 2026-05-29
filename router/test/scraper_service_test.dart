@@ -1,22 +1,19 @@
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
-import 'package:mockito/annotations.dart';
-import 'package:mockito/mockito.dart';
 import 'package:router/scraper_service.dart';
-import 'package:router/tracker_service.dart';
 import 'package:test/test.dart';
+import 'manual_mocks.dart';
 
-import 'scraper_service_test.mocks.dart';
-
-@GenerateMocks([TrackerService])
 void main() {
   group('ScraperService', () {
     late ScraperService service;
-    late MockTrackerService mockTrackers;
+    late ManualMockTrackerService mockTrackers;
+    late ManualMockAppConfig mockConfig;
     late MockClient mockClient;
 
     setUp(() {
-      mockTrackers = MockTrackerService();
+      mockTrackers = ManualMockTrackerService();
+      mockConfig = ManualMockAppConfig();
 
       mockClient = MockClient((request) async {
         if (request.url.toString().contains('torrentio')) {
@@ -33,7 +30,7 @@ void main() {
         return http.Response('', 404);
       });
 
-      service = ScraperService(mockTrackers, client: mockClient);
+      service = ScraperService(mockTrackers, config: mockConfig, client: mockClient);
     });
 
     test('probeProviders checks endpoints correctly', () async {
@@ -54,23 +51,7 @@ void main() {
       expect(eztv['ok'], false); // 500 is not < 500
     });
 
-    // Note: getStreams uses ScraperEngine which is hard to mock internal logic of
-    // without refactoring ScraperService to accept an engine.
-    // However, we can test that it calls optimize on trackers.
-    // Testing the *actual* scraping requires integration with real network or deep mocks.
-    // For coverage, validating the flow wrapper is key.
-
     test('getStreams integrates with TrackerService', () async {
-      // We accept that scrapeAll will likely return empty in test env
-      // or error out if it hits network.
-      // But we can verify the tracker optimization call if we could feed it data.
-      // Since _engine is private and hardcoded, we can't easily inject fake results
-      // without more refactoring.
-      // However, we check that the method runs without crashing.
-      when(
-        mockTrackers.optimize(any),
-      ).thenAnswer((_) async => {'added': <String>[]});
-
       try {
         final streams = await service.getStreams('movie', 'tt0000000', {});
         expect(streams, isList);
