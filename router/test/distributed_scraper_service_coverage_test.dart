@@ -1,25 +1,34 @@
 import 'package:test/test.dart';
 import 'package:mockito/mockito.dart';
+import 'package:mockito/annotations.dart';
 import 'package:router/services/distributed_scraper_service.dart';
-import 'manual_mocks.dart';
+import 'package:router/db_service.dart';
+import 'package:router/event_service.dart';
+import 'package:router/tracker_service.dart';
 
+import 'distributed_scraper_service_coverage_test.mocks.dart';
+import 'test_config.dart';
+
+@GenerateNiceMocks([
+  MockSpec<DbService>(),
+  MockSpec<EventService>(),
+  MockSpec<TrackerService>(),
+])
 void main() {
   group('DistributedScraperService Full Coverage', () {
     late DistributedScraperService scraper;
-    late ManualMockDbService mockDb;
-    late ManualMockEventService mockEvents;
-    late ManualMockTrackerService mockTrackers;
-    late ManualMockAppConfig mockConfig;
+    late MockDbService mockDb;
+    late MockEventService mockEvents;
+    late MockTrackerService mockTrackers;
 
     setUp(() {
-      mockDb = ManualMockDbService();
-      mockEvents = ManualMockEventService();
-      mockTrackers = ManualMockTrackerService();
-      mockConfig = ManualMockAppConfig();
+      mockDb = MockDbService();
+      mockEvents = MockEventService();
+      mockTrackers = MockTrackerService();
       
       scraper = DistributedScraperService(
         mockTrackers,
-        config: mockConfig,
+        config: TestConfig(),
         db: mockDb,
         events: mockEvents,
       );
@@ -56,7 +65,7 @@ void main() {
     });
 
     test('getDynamicCatalog error handling', () async {
-      when(mockDb.getScrapCache('query')).thenReturn(null);
+      when(mockDb.getScrapCache(any)).thenReturn(null);
       when(mockDb.getBindings('u1')).thenReturn([]);
 
       final results = await scraper.getDynamicCatalog('movie', 'query', 'u1');
@@ -64,6 +73,7 @@ void main() {
     });
 
     test('handleResult completes task', () {
+      // Just ensure it doesn't crash
       DistributedScraperService.handleResult('non-existent', []);
     });
   });
