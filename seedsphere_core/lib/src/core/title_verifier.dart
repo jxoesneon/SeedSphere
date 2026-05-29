@@ -44,7 +44,7 @@ class TitleVerifier {
 
       // Fallback to fuzzy ratio for slightly messy titles
       final ratio = _levenshteinRatio(reqClean, resClean);
-      if (ratio > 0.65) {
+      if (ratio > 0.85) {
         log(
           '✅ Accepted: Series fuzzy match (Ratio: ${ratio.toStringAsFixed(2)})',
         );
@@ -72,11 +72,11 @@ class TitleVerifier {
 
         // Check fuzzy match as fallback for messy titles
         final ratio = _levenshteinRatio(reqClean, resClean);
-        if (ratio > 0.3) {
+        if (ratio > 0.6) {
           log(
             '✅ Accepted: Year matched & basic fuzzy pass (Ratio: ${ratio.toStringAsFixed(2)})',
           );
-          return true; // Very loose because "Avngrs Endgm 2019" is fine
+          return true; // "Avngrs Endgm 2019" is fine
         }
         log(
           '❌ Rejected: Year matched but content mismatch (Ratio: ${ratio.toStringAsFixed(2)})',

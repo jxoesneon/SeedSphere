@@ -127,19 +127,33 @@ class DistributedScraperService extends ScraperService {
     });
 
     try {
+      // 1:1 Parity: Increase timeout for heavy scrapes, but use a race for UI responsiveness
       final results = await completer.future.timeout(
-        const Duration(seconds: 12),
-      );
+        const Duration(seconds: 25),
+      ).catchError((e) {
+        // If we timeout the full 25s, return informative
+        return <Map<String, dynamic>>[];
+      });
+
+      if (results.isEmpty) {
+         return _informativeStream(
+          'Scrape Timeout',
+          'Gardener did not respond in time. Please try again.',
+        );
+      }
+
+      // Limit results to top 40 for Stremio compliance
+      final cappedResults = results.length > 40 ? results.take(40).toList() : results;
 
       // Cache Result
-      _db.setScrapCache(id, results);
-      return results;
+      _db.setScrapCache(id, cappedResults);
+      return cappedResults;
     } catch (e) {
-      print('[DistributedScraper] Task timeout or error: $e');
+      print('[DistributedScraper] Task error: $e');
       _pendingTasks.remove(taskId);
       return _informativeStream(
-        'Scrape Timeout',
-        'Gardener did not respond in time. Please try again.',
+        'Scrape Error',
+        'An unexpected error occurred during resolution.',
       );
     }
   }

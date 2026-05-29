@@ -47,10 +47,21 @@ class StremioServer {
 
     try {
       debugPrint('STREMIO: Attempting to bind to anyIPv4 on port $bindPort');
-      _server = await HttpServer.bind(InternetAddress.loopbackIPv4, bindPort);
+      _server = await HttpServer.bind(InternetAddress.anyIPv4, bindPort);
       debugPrint('STREMIO: Server listening on port ${_server!.port}');
 
       _server!.listen((HttpRequest request) async {
+        // Add CORS headers for Stremio Web
+        request.response.headers.add('Access-Control-Allow-Origin', '*');
+        request.response.headers.add('Access-Control-Allow-Methods', 'GET, OPTIONS');
+        request.response.headers.add('Access-Control-Allow-Headers', '*');
+        
+        if (request.method == 'OPTIONS') {
+          request.response.statusCode = HttpStatus.ok;
+          await request.response.close();
+          return;
+        }
+
         try {
           final path = request.uri.path;
 
