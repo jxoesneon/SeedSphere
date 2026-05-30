@@ -16,6 +16,7 @@ class ScraperService {
   final Logger _logger = Logger('ScraperService');
   final AiService _ai;
   final EventService? _eventService; // Optional for debugging
+  /// The internal HTTP client used for metadata enrichment and health checks.
   final http.Client httpClient;
 
   /// Creates a new ScraperService instance.
