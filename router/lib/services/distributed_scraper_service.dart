@@ -17,14 +17,14 @@ class DistributedScraperService extends ScraperService {
 
   /// Creates a [DistributedScraperService] with the given [trackers] and [aiService].
   DistributedScraperService(
-    TrackerService trackers, {
-    required AppConfig config,
+    super.trackers, {
+    required super.config,
     required DbService db,
     required EventService events,
-    AiService? aiService,
+    super.aiService,
   }) : _db = db,
        _events = events,
-       super(trackers, config: config, eventService: events, aiService: aiService);
+       super(eventService: events);
 
   @override
   Future<List<Map<String, dynamic>>> getStreams(
