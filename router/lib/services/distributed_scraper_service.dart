@@ -29,19 +29,19 @@ class DistributedScraperService extends ScraperService {
   @override
   Future<List<Map<String, dynamic>>> getStreams(
     String type,
-    String rawId,
+    String id,
     Map<String, dynamic> settings, {
     String? userId,
     String? title,
     int? year,
   }) async {
-    final id = Uri.decodeComponent(rawId);
-    print('[DistributedScraper] getStreams($type, $id, title=$title, year=$year) for user=$userId');
+    final decodedId = Uri.decodeComponent(id);
+    print('[DistributedScraper] getStreams($type, $decodedId, title=$title, year=$year) for user=$userId');
 
     // 1. Check Cache (24h)
-    final cached = _db.getScrapCache(id);
+    final cached = _db.getScrapCache(decodedId);
     if (cached != null) {
-      print('[DistributedScraper] Serving cached streams for $id');
+      print('[DistributedScraper] Serving cached streams for $decodedId');
       return cached;
     }
 
@@ -49,10 +49,10 @@ class DistributedScraperService extends ScraperService {
     String? effectiveTitle = title;
     int? effectiveYear = year;
 
-    if (effectiveTitle == null && id.startsWith('tt')) {
+    if (effectiveTitle == null && decodedId.startsWith('tt')) {
       try {
         // Strip season:episode for Cinemeta metadata fetch (e.g. tt123:1:1 -> tt123)
-        final baseId = id.contains(':') ? id.split(':')[0] : id;
+        final baseId = decodedId.contains(':') ? decodedId.split(':')[0] : decodedId;
         final uri = Uri.parse('https://v3-cinemeta.strem.io/meta/$type/$baseId.json');
         final resp = await httpClient.get(uri).timeout(const Duration(seconds: 3));
         if (resp.statusCode == 200) {
@@ -75,9 +75,6 @@ class DistributedScraperService extends ScraperService {
     // 3. Check Available Gardeners
     if (userId == null) {
       // Public request? We can't delegate easily without a user context.
-      // But typically requests come from users.
-      // If public, we might need a fallback pool or just deny.
-      // For now, return informative stream.
       return _informativeStream(
         'Setup Required',
         'Please login to use distributed scraping.',
@@ -87,9 +84,7 @@ class DistributedScraperService extends ScraperService {
     // Find active gardeners for this user
     List<Map<String, dynamic>> bindings = [];
     if (userId == 'public') {
-      // For public requests, use any available gardener in the swarm.
       final allClients = _events.getConnectedClients();
-      print('[DistributedScraper] Public request. Connected clients: $allClients');
       if (allClients.isNotEmpty) {
         bindings = allClients.map((id) => {'device_id': id}).toList();
       }
@@ -97,22 +92,10 @@ class DistributedScraperService extends ScraperService {
       bindings = _db.getBindings(userId);
     }
 
-    print(
-      '[DistributedScraper] Found ${bindings.length} device bindings for $userId',
-    );
-    // Filter for gardeners (device_id usually)
-    // Actually getSessions logic might track active connections in eventService?
-    // EventService tracks connections by client ID.
-    // We need to find a client ID (Gardener) that is connected.
-
     String? targetGardener;
     for (final b in bindings) {
       final gardenerId = b['device_id'];
-      final isConnected = _events.isConnected(gardenerId);
-      print(
-        '[DistributedScraper] Checking device $gardenerId... Connected: $isConnected',
-      );
-      if (isConnected) {
+      if (_events.isConnected(gardenerId)) {
         targetGardener = gardenerId;
         break;
       }
@@ -127,43 +110,21 @@ class DistributedScraperService extends ScraperService {
     }
 
     // 3. Delegate Task
-    print('[DistributedScraper] Delegating scrape $id to $targetGardener');
+    print('[DistributedScraper] Delegating scrape $decodedId to $targetGardener');
     final completer = Completer<List<Map<String, dynamic>>>();
+    final taskId = '${DateTime.now().millisecondsSinceEpoch}_$decodedId';
 
-    // Subscribe to result (one-off)
-    // We need a unique ID for this correlation.
-    final taskId = '${DateTime.now().millisecondsSinceEpoch}_$id';
-
-    // We can't easily await a specific event in the current EventService architecture
-    // without a temporary listener.
-    // Let's assume we can add a transient listener or we modify EventService.
-    // For now, let's use a simple polling or callback map mechanism if implementing strictly.
-    // But since I can't modify EventService extensively right now, I'll assume we can use
-    // a "reply" channel concept.
-
-    // WORKAROUND: We will send the task and return a specific stream saying "Processing...".
-    // Real-time resolution is hard without WebSocket bi-directionality here and now.
-    // Stremio expects immediate response.
-    // If we wait, we might timeout (10-15s is Stremio limit).
-    // Let's try to wait for 10s.
-
-    // We need a way to receive the response.
-    // Let's rely on the Gardener sending a POST /api/task/result
-    // which triggers a callback we register here.
-
-    // Creating a static map for pending tasks in this service is risky for scaling but fine for single instance.
     _pendingTasks[taskId] = completer;
 
     _events.publish(targetGardener, 'scrape_task', {
       'taskId': taskId,
-      'imdbId': id,
+      'imdbId': decodedId,
       'type': type,
       'title': effectiveTitle,
       'year': effectiveYear,
     });
 
     try {
-      // 1:1 Parity: Increase timeout for heavy scrapes, but use a race for UI responsiveness
       bool timedOut = false;
       final results = await completer.future.timeout(
         const Duration(seconds: 25),
@@ -187,11 +148,8 @@ class DistributedScraperService extends ScraperService {
         );
       }
 
-      // Limit results to top 40 for Stremio compliance
       final cappedResults = results.length > 40 ? results.take(40).toList() : results;
-
-      // Cache Result
-      _db.setScrapCache(id, cappedResults);
+      _db.setScrapCache(decodedId, cappedResults);
       return cappedResults;
     } catch (e) {
       print('[DistributedScraper] Task error: $e');
@@ -209,17 +167,10 @@ class DistributedScraperService extends ScraperService {
     String query,
     String userId,
   ) async {
-    // 1. Check Cache
     final cacheKey = 'catalog:$userId:$query';
-    final cached = _db.getScrapCache(
-      cacheKey,
-    ); // Reusing scrap cache table for now
-    if (cached != null) {
-      print('[DistributedScraper] Serving cached catalog for "$query"');
-      return cached;
-    }
+    final cached = _db.getScrapCache(cacheKey);
+    if (cached != null) return cached;
 
-    // 2. Find Active Gardener
     final bindings = _db.getBindings(userId);
     String? targetGardener;
     for (final b in bindings) {
@@ -241,13 +192,8 @@ class DistributedScraperService extends ScraperService {
       ];
     }
 
-    // 3. Delegate Task
-    print(
-      '[DistributedScraper] Delegating catalog "$query" to $targetGardener',
-    );
     final completer = Completer<List<Map<String, dynamic>>>();
     final taskId = 'cat_${DateTime.now().millisecondsSinceEpoch}_$query';
-
     _pendingTasks[taskId] = completer;
 
     _events.publish(targetGardener, 'task', {
@@ -257,17 +203,10 @@ class DistributedScraperService extends ScraperService {
     });
 
     try {
-      final results = await completer.future.timeout(
-        const Duration(seconds: 15),
-      );
-
-      // Cache valid results
-      if (results.isNotEmpty) {
-        _db.setScrapCache(cacheKey, results);
-      }
+      final results = await completer.future.timeout(const Duration(seconds: 15));
+      if (results.isNotEmpty) _db.setScrapCache(cacheKey, results);
       return results;
     } catch (e) {
-      print('[DistributedScraper] Catalog task timeout: $e');
       _pendingTasks.remove(taskId);
       return [
         {
@@ -281,11 +220,9 @@ class DistributedScraperService extends ScraperService {
     }
   }
 
-  // Pending tasks map: TaskID -> Completer
-  static final Map<String, Completer<List<Map<String, dynamic>>>>
-  _pendingTasks = {};
+  static final Map<String, Completer<List<Map<String, dynamic>>>> _pendingTasks = {};
 
-  /// Called by the Task Result API endpoint
+  /// Called by the Task Result API endpoint to complete a pending scrape task.
   static void handleResult(String taskId, List<Map<String, dynamic>> results) {
     if (_pendingTasks.containsKey(taskId)) {
       _pendingTasks[taskId]!.complete(results);
