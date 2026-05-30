@@ -1,4 +1,4 @@
-import 'package:seedsphere_core/seedsphere_core.dart';
+import 'package:seedsphere_core/seedsphere_core.dart' hide TrackerService;
 
 class TestConfig implements AppConfig {
   @override String get torznabUrl => '';

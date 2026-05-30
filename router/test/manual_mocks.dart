@@ -16,7 +16,8 @@ class ManualMockTrackerService extends Mock implements TrackerService {
   @override
   Future<Map<String, dynamic>> optimize(List<String> trackers) async => {'added': <String>[]};
 }
-class ManualMockAppConfig extends Mock implements AppConfig {
+
+class ManualMockAppConfig implements AppConfig {
   @override String get torznabUrl => '';
   @override Future<String?> getTorznabKey() async => null;
   @override bool get enableTorznab => false;
@@ -30,6 +31,7 @@ class ManualMockAppConfig extends Mock implements AppConfig {
   @override int get maxResultsPerProvider => 20;
   @override bool get enableTrackerScraping => false;
 }
+
 class ManualMockHealthService extends Mock implements HealthService {}
 class ManualMockMailerService extends Mock implements MailerService {}
 class ManualMockLinkingService extends Mock implements LinkingService {}

@@ -1,23 +1,37 @@
 import 'package:test/test.dart';
 import 'package:mockito/mockito.dart';
+import 'package:mockito/annotations.dart';
 import 'package:router/services/distributed_scraper_service.dart';
-import 'manual_mocks.dart';
+import 'package:router/db_service.dart';
+import 'package:router/event_service.dart';
+import 'package:router/tracker_service.dart';
+import 'package:seedsphere_core/seedsphere_core.dart' hide TrackerService;
 
+import 'distributed_scraper_service_coverage_test.mocks.dart';
+
+@GenerateNiceMocks([
+  MockSpec<DbService>(),
+  MockSpec<EventService>(),
+  MockSpec<TrackerService>(),
+  MockSpec<AppConfig>(),
+])
 void main() {
   group('DistributedScraperService Full Coverage', () {
     late DistributedScraperService scraper;
-    late ManualMockDbService mockDb;
-    late ManualMockEventService mockEvents;
-    late ManualMockTrackerService mockTrackers;
+    late MockDbService mockDb;
+    late MockEventService mockEvents;
+    late MockTrackerService mockTrackers;
+    late MockAppConfig mockConfig;
 
     setUp(() {
-      mockDb = ManualMockDbService();
-      mockEvents = ManualMockEventService();
-      mockTrackers = ManualMockTrackerService();
+      mockDb = MockDbService();
+      mockEvents = MockEventService();
+      mockTrackers = MockTrackerService();
+      mockConfig = MockAppConfig();
       
       scraper = DistributedScraperService(
         mockTrackers,
-        config: ManualMockAppConfig(),
+        config: mockConfig,
         db: mockDb,
         events: mockEvents,
       );
@@ -54,7 +68,7 @@ void main() {
     });
 
     test('getDynamicCatalog error handling', () async {
-      when(mockDb.getScrapCache('query')).thenReturn(null);
+      when(mockDb.getScrapCache(any)).thenReturn(null);
       when(mockDb.getBindings('u1')).thenReturn([]);
 
       final results = await scraper.getDynamicCatalog('movie', 'query', 'u1');
@@ -62,7 +76,6 @@ void main() {
     });
 
     test('handleResult completes task', () {
-      // Just ensure it doesn't crash
       DistributedScraperService.handleResult('non-existent', []);
     });
   });

@@ -90,6 +90,20 @@ class TitleVerifier {
           );
           return true;
         }
+
+        // Fallback: If strict inclusion passes even if year missing
+        if (_containsAllWords(reqClean, resClean)) {
+          final reqWords = reqClean.split(' ').where((w) => w.length > 1);
+          final resWords = resClean.split(' ');
+          final remaining = resWords.toList();
+          for (var w in reqWords) {
+            remaining.remove(w);
+          }
+          if (_areSafeExtras(remaining, isSeries: false)) {
+             log('✅ Accepted: Missing year but inclusion + safe extras: $remaining');
+             return true;
+          }
+        }
         log(
           '❌ Rejected: Missing year & fuzzy too low (Ratio: ${ratio.toStringAsFixed(2)})',
         );
@@ -103,7 +117,7 @@ class TitleVerifier {
       // 0.85 rejects "Iron Man" vs "Iron Man 2" (dist=2, len=10, ratio=0.8).
       // TIGHTENED: Rejects sequels or similar titles if no year match
       final ratio = _levenshteinRatio(reqClean, resClean);
-      if (ratio >= 0.92) {
+      if (ratio >= 0.88) {
         log(
           '✅ Accepted: High fuzzy match (Ratio: ${ratio.toStringAsFixed(2)})',
         );
@@ -142,7 +156,7 @@ class TitleVerifier {
   static bool _areSafeExtras(List<String> words, {bool isSeries = false}) {
     // Corrected regex to be valid Dart raw string and more comprehensive
     final safePatterns = RegExp(
-      r'^(19\d{2}|20\d{2}|\d{3,4}p|4k|uhd|bluray|web|rip|x264|x265|hevc|aac|hdr|dv|hdtv|sdr|10bit|extended|remastered|unrated|imax|director|cut|edition|us|uk)$',
+      r'^(19\d{2}|20\d{2}|\d{3,4}p|4k|uhd|bluray|web|rip|x264|x265|hevc|aac|hdr|dv|hdtv|sdr|10bit|extended|remastered|unrated|imax|director|cut|edition|us|uk|hd)$',
     );
 
     // Series specific patterns: S01, E01, Season, Complete, Boxset

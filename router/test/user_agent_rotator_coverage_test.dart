@@ -1,5 +1,5 @@
 import 'package:test/test.dart';
-import 'package:seedsphere_core/seedsphere_core.dart';
+import 'package:seedsphere_core/seedsphere_core.dart' hide TrackerService;
 
 void main() {
   test('UserAgentRotator returns strings', () {
