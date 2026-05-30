@@ -49,7 +49,7 @@ void main() {
     });
 
     test('scrape follows links and returns magnets', () async {
-      final results = await scraper.scrape('ttmovie');
+      final results = await scraper.scrape('ttmovie', title: 'The Matrix', year: 1999);
       expect(results.length, 2);
       expect(
         results.any(

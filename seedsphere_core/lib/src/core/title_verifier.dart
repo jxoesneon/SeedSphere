@@ -17,9 +17,9 @@ class TitleVerifier {
 
     log('Verifying "$requested" vs "$result" (Year: $year, Series: $isSeries)');
 
-    // 0. Exact or StartsWith (Highest Priority)
-    if (resClean == reqClean || resClean.startsWith('$reqClean ')) {
-      log('✅ Accepted: Exact or StartsWith');
+    // 0. Exact Match (Highest Priority)
+    if (resClean == reqClean) {
+      log('✅ Accepted: Exact Match');
       return true;
     }
 

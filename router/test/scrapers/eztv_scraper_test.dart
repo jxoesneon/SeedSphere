@@ -39,7 +39,7 @@ void main() {
     });
 
     test('scrape returns results', () async {
-      final results = await scraper.scrape('tt12345');
+      final results = await scraper.scrape('tt12345', title: 'Test Series');
       expect(results, isNotEmpty);
       expect(results.length, 1);
       expect(results.first['title'], 'Test Show S01E01');

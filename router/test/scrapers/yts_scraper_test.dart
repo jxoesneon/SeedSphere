@@ -44,7 +44,7 @@ void main() {
         mockClient.get(any, headers: anyNamed('headers')),
       ).thenAnswer((_) async => http.Response(jsonEncode(mockJson), 200));
 
-      final results = await scraper.scrape('tt1375666');
+      final results = await scraper.scrape('tt1375666', title: 'Inception', year: 2010);
       expect(results, hasLength(1));
       expect(results[0]['title'], contains('Inception'));
       expect(results[0]['infoHash'], 'abc');

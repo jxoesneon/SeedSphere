@@ -95,11 +95,12 @@ class PirateBayScraper extends BaseScraper {
   List<({String title, String magnet, int seeders})> _parseResults(String html) {
     final results = <({String title, String magnet, int seeders})>[];
 
-    // Split by table row to keep data paired
-    final rows = html.split('<tr');
+    // Split by table row to keep data paired, but keep the '>' from tag closure
+    final rows = html.split('<tr').skip(1).toList();
 
     for (var row in rows) {
       // 1. Extract Title
+      // Handle detLink class with title attribute
       final titleMatch = RegExp(
         r'class="detLink" title="Details for ([^"]+)"',
       ).firstMatch(row);
@@ -114,9 +115,8 @@ class PirateBayScraper extends BaseScraper {
       final magnet = magnetMatch.group(1)!;
 
       // 3. Extract Seeders (3rd or 4th cell usually)
-      // TPB structure: <td>Type</td> <td>Title...</td> <td>Seeders</td> <td>Leechers</td>
-      // We look for digits between <td> and </td> after the title link.
       int seeders = 0;
+      // Look for any <td> with align="right" after the title/magnet
       final seederMatch = RegExp(r'<td align="right">(\d+)</td>').firstMatch(row);
       if (seederMatch != null) {
         seeders = int.tryParse(seederMatch.group(1)!) ?? 0;

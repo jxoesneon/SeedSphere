@@ -46,7 +46,7 @@ void main() {
 
     test('MagnetDLScraper', () async {
       final s = MagnetDLScraper(client: mockClient);
-      final r = await s.scrape('tt123');
+      final r = await s.scrape('tt123', title: 'Test');
       expect(r, isNotEmpty);
       expect(r.first['provider'], 'MagnetDL');
       expect(r.first['infoHash'], longHash);
@@ -54,42 +54,42 @@ void main() {
 
     test('AnidexScraper', () async {
       final s = AnidexScraper(client: mockClient);
-      final r = await s.scrape('tt123');
+      final r = await s.scrape('tt123', title: 'Test');
       expect(r, isNotEmpty);
       expect(r.first['provider'], 'AniDex');
     });
 
     test('ZooqleScraper', () async {
       final s = ZooqleScraper(client: mockClient);
-      final r = await s.scrape('tt123');
+      final r = await s.scrape('tt123', title: 'Test');
       expect(r, isNotEmpty);
       expect(r.first['provider'], 'Zooqle');
     });
 
     test('TokyoToshoScraper', () async {
       final s = TokyoToshoScraper(client: mockClient);
-      final r = await s.scrape('tt123');
+      final r = await s.scrape('tt123', title: 'Test');
       expect(r, isNotEmpty);
       expect(r.first['provider'], 'TokyoTosho');
     });
 
     test('RutorScraper', () async {
       final s = RutorScraper(client: mockClient);
-      final r = await s.scrape('tt123');
+      final r = await s.scrape('tt123', title: 'Test');
       expect(r, isNotEmpty);
       expect(r.first['provider'], 'Rutor');
     });
 
     test('TorlockScraper', () async {
       final s = TorlockScraper(client: mockClient);
-      final r = await s.scrape('tt123');
+      final r = await s.scrape('tt123', title: 'Test');
       expect(r, isNotEmpty);
       expect(r.first['provider'], 'Torlock');
     });
 
     test('TorrentGalaxyScraper', () async {
       final s = TorrentGalaxyScraper(client: mockClient);
-      final r = await s.scrape('tt123');
+      final r = await s.scrape('tt123', title: 'Test');
       expect(r, isNotEmpty);
       expect(r.first['provider'], 'TorrentGalaxy');
     });

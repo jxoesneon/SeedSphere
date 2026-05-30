@@ -24,8 +24,24 @@ void main() {
           return http.Response('''
             <html>
               <body>
-                <a href="magnet:?xt=urn:btih:1111111111111111111111111111111111111111&dn=Anime">Download</a>
-                <a href="magnet:?xt=urn:btih:2222222222222222222222222222222222222222&dn=Anime2">Download 2</a>
+                <table>
+                  <tr>
+                    <td><a href="magnet:?xt=urn:btih:1111111111111111111111111111111111111111&dn=Test+Anime+S01E01">Download</a></td>
+                    <td class="text-center">1 GB</td>
+                    <td class="text-center">2024-01-01</td>
+                    <td class="text-center">10</td>
+                    <td class="text-center">5</td>
+                    <td class="text-center">0</td>
+                  </tr>
+                  <tr>
+                    <td><a href="magnet:?xt=urn:btih:2222222222222222222222222222222222222222&dn=Test+Anime+S01E02">Download 2</a></td>
+                    <td class="text-center">1 GB</td>
+                    <td class="text-center">2024-01-01</td>
+                    <td class="text-center">20</td>
+                    <td class="text-center">5</td>
+                    <td class="text-center">0</td>
+                  </tr>
+                </table>
               </body>
             </html>
             ''', 200);
@@ -37,13 +53,14 @@ void main() {
     });
 
     test('scrape returns results', () async {
-      final results = await scraper.scrape('ttanime');
-      expect(results.length, 2);
+      final results = await scraper.scrape('ttanime', title: 'Test Anime');
+      expect(results, isNotEmpty);
       expect(
         results.first['infoHash'],
         '1111111111111111111111111111111111111111',
       );
       expect(results.first['provider'], 'Nyaa');
+      expect(results.first['seeders'], 10);
     });
   });
 }
