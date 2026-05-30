@@ -223,11 +223,6 @@ class StreamAggregator {
       final parsed = ParseUtils.parseReleaseInfo(magnet, title);
       final sizeData = ParseUtils.parseSize(title); // Or use stream['size']
 
-      final optimizedMagnet = MagnetUtils.appendTrackers(
-        magnet,
-        globalTrackers, // Uses sorted set if preferEncrypted is true
-      );
-
       // 5. Build Description
       String description = _buildDescription(stream, parsed, sizeData);
 

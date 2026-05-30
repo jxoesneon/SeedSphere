@@ -1,23 +1,17 @@
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
-import 'package:mockito/annotations.dart';
-import 'package:mockito/mockito.dart';
 import 'package:router/scraper_service.dart';
-import 'package:router/tracker_service.dart';
 import 'package:test/test.dart';
+import 'manual_mocks.dart';
 
-import 'scraper_service_test.mocks.dart';
-import 'test_config.dart';
-
-@GenerateMocks([TrackerService])
 void main() {
   group('ScraperService', () {
     late ScraperService service;
-    late MockTrackerService mockTrackers;
+    late ManualMockTrackerService mockTrackers;
     late MockClient mockClient;
 
     setUp(() {
-      mockTrackers = MockTrackerService();
+      mockTrackers = ManualMockTrackerService();
 
       mockClient = MockClient((request) async {
         if (request.url.toString().contains('torrentio')) {
@@ -34,7 +28,7 @@ void main() {
         return http.Response('', 404);
       });
 
-      service = ScraperService(mockTrackers, config: TestConfig(), client: mockClient);
+      service = ScraperService(mockTrackers, config: ManualMockAppConfig(), client: mockClient);
     });
 
     test('probeProviders checks endpoints correctly', () async {
@@ -56,10 +50,6 @@ void main() {
     });
 
     test('getStreams integrates with TrackerService', () async {
-      when(
-        mockTrackers.optimize(any),
-      ).thenAnswer((_) async => {'added': <String>[]});
-
       try {
         final streams = await service.getStreams('movie', 'tt0000000', {});
         expect(streams, isList);

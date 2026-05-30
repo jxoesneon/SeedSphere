@@ -3,12 +3,13 @@
 // Do not manually edit this file.
 
 // ignore_for_file: no_leading_underscores_for_library_prefixes
-import 'dart:async' as _i6;
+import 'dart:async' as _i7;
 
+import 'package:http/http.dart' as _i3;
 import 'package:mockito/mockito.dart' as _i1;
-import 'package:mockito/src/dummies.dart' as _i4;
-import 'package:router/db_service.dart' as _i3;
-import 'package:router/scraper_service.dart' as _i5;
+import 'package:mockito/src/dummies.dart' as _i5;
+import 'package:router/db_service.dart' as _i4;
+import 'package:router/scraper_service.dart' as _i6;
 import 'package:sqlite3/sqlite3.dart' as _i2;
 
 // ignore_for_file: type=lint
@@ -31,10 +32,15 @@ class _FakeDatabase_0 extends _i1.SmartFake implements _i2.Database {
     : super(parent, parentInvocation);
 }
 
+class _FakeClient_1 extends _i1.SmartFake implements _i3.Client {
+  _FakeClient_1(Object parent, Invocation parentInvocation)
+    : super(parent, parentInvocation);
+}
+
 /// A class which mocks [DbService].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockDbService extends _i1.Mock implements _i3.DbService {
+class MockDbService extends _i1.Mock implements _i4.DbService {
   @override
   _i2.Database get db =>
       (super.noSuchMethod(
@@ -346,11 +352,11 @@ class MockDbService extends _i1.Mock implements _i3.DbService {
   T transaction<T>(T Function()? action) =>
       (super.noSuchMethod(
             Invocation.method(#transaction, [action]),
-            returnValue: _i4.dummyValue<T>(
+            returnValue: _i5.dummyValue<T>(
               this,
               Invocation.method(#transaction, [action]),
             ),
-            returnValueForMissingStub: _i4.dummyValue<T>(
+            returnValueForMissingStub: _i5.dummyValue<T>(
               this,
               Invocation.method(#transaction, [action]),
             ),
@@ -361,59 +367,73 @@ class MockDbService extends _i1.Mock implements _i3.DbService {
 /// A class which mocks [ScraperService].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockScraperService extends _i1.Mock implements _i5.ScraperService {
+class MockScraperService extends _i1.Mock implements _i6.ScraperService {
   @override
-  _i6.Future<List<Map<String, dynamic>>> probeProviders() =>
+  _i3.Client get httpClient =>
+      (super.noSuchMethod(
+            Invocation.getter(#httpClient),
+            returnValue: _FakeClient_1(this, Invocation.getter(#httpClient)),
+            returnValueForMissingStub: _FakeClient_1(
+              this,
+              Invocation.getter(#httpClient),
+            ),
+          )
+          as _i3.Client);
+
+  @override
+  _i7.Future<List<Map<String, dynamic>>> probeProviders() =>
       (super.noSuchMethod(
             Invocation.method(#probeProviders, []),
-            returnValue: _i6.Future<List<Map<String, dynamic>>>.value(
+            returnValue: _i7.Future<List<Map<String, dynamic>>>.value(
               <Map<String, dynamic>>[],
             ),
             returnValueForMissingStub:
-                _i6.Future<List<Map<String, dynamic>>>.value(
+                _i7.Future<List<Map<String, dynamic>>>.value(
                   <Map<String, dynamic>>[],
                 ),
           )
-          as _i6.Future<List<Map<String, dynamic>>>);
+          as _i7.Future<List<Map<String, dynamic>>>);
 
   @override
-  _i6.Future<List<Map<String, dynamic>>> getDynamicCatalog(
+  _i7.Future<List<Map<String, dynamic>>> getDynamicCatalog(
     String? type,
     String? query,
     String? userId,
   ) =>
       (super.noSuchMethod(
             Invocation.method(#getDynamicCatalog, [type, query, userId]),
-            returnValue: _i6.Future<List<Map<String, dynamic>>>.value(
+            returnValue: _i7.Future<List<Map<String, dynamic>>>.value(
               <Map<String, dynamic>>[],
             ),
             returnValueForMissingStub:
-                _i6.Future<List<Map<String, dynamic>>>.value(
+                _i7.Future<List<Map<String, dynamic>>>.value(
                   <Map<String, dynamic>>[],
                 ),
           )
-          as _i6.Future<List<Map<String, dynamic>>>);
+          as _i7.Future<List<Map<String, dynamic>>>);
 
   @override
-  _i6.Future<List<Map<String, dynamic>>> getStreams(
+  _i7.Future<List<Map<String, dynamic>>> getStreams(
     String? type,
     String? id,
     Map<String, dynamic>? settings, {
     String? userId,
+    String? title,
+    int? year,
   }) =>
       (super.noSuchMethod(
             Invocation.method(
               #getStreams,
               [type, id, settings],
-              {#userId: userId},
+              {#userId: userId, #title: title, #year: year},
             ),
-            returnValue: _i6.Future<List<Map<String, dynamic>>>.value(
+            returnValue: _i7.Future<List<Map<String, dynamic>>>.value(
               <Map<String, dynamic>>[],
             ),
             returnValueForMissingStub:
-                _i6.Future<List<Map<String, dynamic>>>.value(
+                _i7.Future<List<Map<String, dynamic>>>.value(
                   <Map<String, dynamic>>[],
                 ),
           )
-          as _i6.Future<List<Map<String, dynamic>>>);
+          as _i7.Future<List<Map<String, dynamic>>>);
 }

@@ -1,5 +1,5 @@
 import 'dart:async';
-import 'package:seedsphere_core/seedsphere_core.dart';
+import 'dart:convert';
 import 'package:router/db_service.dart';
 import 'package:router/event_service.dart';
 import 'package:router/scraper_service.dart';
@@ -21,7 +21,7 @@ class DistributedScraperService extends ScraperService {
     super.aiService,
   }) : _db = db,
        _events = events,
-       super(config: config, eventService: events);
+       super(eventService: events);
 
   @override
   Future<List<Map<String, dynamic>>> getStreams(
@@ -47,8 +47,10 @@ class DistributedScraperService extends ScraperService {
 
     if (effectiveTitle == null && id.startsWith('tt')) {
       try {
-        final uri = Uri.parse('https://v3-cinemeta.strem.io/meta/$type/$id.json');
-        final resp = await _httpClient.get(uri).timeout(const Duration(seconds: 3));
+        // Strip season:episode for Cinemeta metadata fetch (e.g. tt123:1:1 -> tt123)
+        final baseId = id.contains(':') ? id.split(':')[0] : id;
+        final uri = Uri.parse('https://v3-cinemeta.strem.io/meta/$type/$baseId.json');
+        final resp = await httpClient.get(uri).timeout(const Duration(seconds: 3));
         if (resp.statusCode == 200) {
           final data = jsonDecode(resp.body);
           final meta = data['meta'];

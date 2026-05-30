@@ -31,14 +31,16 @@ class ZooqleScraper extends BaseScraper {
 
       return _parseMagnetsFromHtml(response.body)
           .take(30)
-          .map(
-            (m) => {
-              'title': metaInfo['title'],
+          .map((m) {
+            final dn = _extractMagnetDN(m);
+            final cleanDn = dn != null ? Uri.decodeComponent(dn).replaceAll('+', ' ') : metaInfo['title'];
+            return {
+              'title': cleanDn ?? 'Unknown',
               'infoHash': _extractInfoHash(m),
               'magnet': m,
               'provider': 'Zooqle',
-            },
-          )
+            };
+          })
           .toList();
     } catch (_) {
       return [];

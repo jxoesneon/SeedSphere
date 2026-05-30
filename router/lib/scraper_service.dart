@@ -16,7 +16,7 @@ class ScraperService {
   final Logger _logger = Logger('ScraperService');
   final AiService _ai;
   final EventService? _eventService; // Optional for debugging
-  final http.Client _httpClient;
+  final http.Client httpClient;
 
   /// Creates a new ScraperService instance.
   ScraperService(
@@ -28,7 +28,7 @@ class ScraperService {
   }) : _engine = ScraperEngine.defaults(config),
        _ai = aiService ?? AiService(),
        _eventService = eventService,
-       _httpClient = client ?? http.Client();
+       httpClient = client ?? http.Client();
 
   /// Probes all providers for health status.
   Future<List<Map<String, dynamic>>> probeProviders() async {
@@ -38,7 +38,7 @@ class ScraperService {
       bool ok = false;
       int status = 0;
       try {
-        final res = await _httpClient
+        final res = await httpClient
             .get(Uri.parse(s.baseUrl))
             .timeout(const Duration(seconds: 5));
         status = res.statusCode;

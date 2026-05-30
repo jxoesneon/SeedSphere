@@ -41,7 +41,7 @@ class TorrentGalaxyScraper extends BaseScraper {
       final magnets = _parseMagnetsFromHtml(response.body);
 
       return magnets.take(40).map((magnetUrl) {
-        final hash = _extractInfoHash(magnetUrl);
+        // final hash = _extractInfoHash(magnetUrl);
         final dn = _extractMagnetDN(magnetUrl);
         final cleanDn = dn != null ? Uri.decodeComponent(dn).replaceAll('+', ' ') : metaInfo['title'];
         return {

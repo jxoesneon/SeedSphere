@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'scraper_engine.dart';
-import 'core/title_verifier.dart';
 
 /// Scraper implementation for the Nyaa provider (Anime).
 class NyaaScraper extends BaseScraper {
@@ -25,8 +24,8 @@ class NyaaScraper extends BaseScraper {
       if (metaInfo == null) return [];
 
       final query = Uri.encodeComponent(metaInfo['title']);
-      final type = imdbId.startsWith('tt') ? 'movie' : 'series';
-      final year = int.tryParse(metaInfo['year'].toString());
+      // final type = imdbId.startsWith('tt') ? 'movie' : 'series';
+      // final year = int.tryParse(metaInfo['year'].toString());
 
       final url = '$baseUrl/?f=0&c=0_0&q=$query';
 

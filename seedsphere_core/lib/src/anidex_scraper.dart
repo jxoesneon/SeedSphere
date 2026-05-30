@@ -33,14 +33,16 @@ class AnidexScraper extends BaseScraper {
 
       return _parseMagnetsFromHtml(response.body)
           .take(40)
-          .map(
-            (m) => {
-              'title': metaInfo['title'],
+          .map((m) {
+            final dn = _extractMagnetDN(m);
+            final cleanDn = dn != null ? Uri.decodeComponent(dn).replaceAll('+', ' ') : metaInfo['title'];
+            return {
+              'title': cleanDn ?? 'Unknown',
               'infoHash': _extractInfoHash(m),
               'magnet': m,
               'provider': 'AniDex',
-            },
-          )
+            };
+          })
           .toList();
     } catch (_) {
       return [];

@@ -6,7 +6,6 @@ import 'package:http/http.dart' as http;
 
 // Constants for pure Dart (non-Flutter) compatibility
 const bool _kDebugMode = !bool.fromEnvironment('dart.vm.product');
-const bool _kIsWeb = identical(0, 0.0); // Simple web detection for core
 
 /// Wrapped HTTP client for tracing requests/responses (Optional).
 class HttpLogger {

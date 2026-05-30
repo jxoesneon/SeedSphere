@@ -16,7 +16,9 @@ class FakeScraperService extends Fake implements ScraperService {
     String type,
     String id,
     Map<String, dynamic> settings, {
+    String? title,
     String? userId,
+    int? year,
   }) async {
     return []; // Default empty
   }
@@ -154,7 +156,9 @@ class _StubScraperService extends FakeScraperService {
     String type,
     String id,
     Map<String, dynamic> settings, {
+    String? title,
     String? userId,
+    int? year,
   }) async {
     return streams;
   }

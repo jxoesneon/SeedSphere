@@ -3,10 +3,11 @@
 // Do not manually edit this file.
 
 // ignore_for_file: no_leading_underscores_for_library_prefixes
-import 'dart:async' as _i3;
+import 'dart:async' as _i4;
 
+import 'package:http/http.dart' as _i2;
 import 'package:mockito/mockito.dart' as _i1;
-import 'package:router/scraper_service.dart' as _i2;
+import 'package:router/scraper_service.dart' as _i3;
 
 // ignore_for_file: type=lint
 // ignore_for_file: avoid_redundant_argument_values
@@ -23,62 +24,81 @@ import 'package:router/scraper_service.dart' as _i2;
 // ignore_for_file: subtype_of_sealed_class
 // ignore_for_file: invalid_use_of_internal_member
 
+class _FakeClient_0 extends _i1.SmartFake implements _i2.Client {
+  _FakeClient_0(Object parent, Invocation parentInvocation)
+    : super(parent, parentInvocation);
+}
+
 /// A class which mocks [ScraperService].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockScraperService extends _i1.Mock implements _i2.ScraperService {
+class MockScraperService extends _i1.Mock implements _i3.ScraperService {
   @override
-  _i3.Future<List<Map<String, dynamic>>> probeProviders() =>
+  _i2.Client get httpClient =>
+      (super.noSuchMethod(
+            Invocation.getter(#httpClient),
+            returnValue: _FakeClient_0(this, Invocation.getter(#httpClient)),
+            returnValueForMissingStub: _FakeClient_0(
+              this,
+              Invocation.getter(#httpClient),
+            ),
+          )
+          as _i2.Client);
+
+  @override
+  _i4.Future<List<Map<String, dynamic>>> probeProviders() =>
       (super.noSuchMethod(
             Invocation.method(#probeProviders, []),
-            returnValue: _i3.Future<List<Map<String, dynamic>>>.value(
+            returnValue: _i4.Future<List<Map<String, dynamic>>>.value(
               <Map<String, dynamic>>[],
             ),
             returnValueForMissingStub:
-                _i3.Future<List<Map<String, dynamic>>>.value(
+                _i4.Future<List<Map<String, dynamic>>>.value(
                   <Map<String, dynamic>>[],
                 ),
           )
-          as _i3.Future<List<Map<String, dynamic>>>);
+          as _i4.Future<List<Map<String, dynamic>>>);
 
   @override
-  _i3.Future<List<Map<String, dynamic>>> getDynamicCatalog(
+  _i4.Future<List<Map<String, dynamic>>> getDynamicCatalog(
     String? type,
     String? query,
     String? userId,
   ) =>
       (super.noSuchMethod(
             Invocation.method(#getDynamicCatalog, [type, query, userId]),
-            returnValue: _i3.Future<List<Map<String, dynamic>>>.value(
+            returnValue: _i4.Future<List<Map<String, dynamic>>>.value(
               <Map<String, dynamic>>[],
             ),
             returnValueForMissingStub:
-                _i3.Future<List<Map<String, dynamic>>>.value(
+                _i4.Future<List<Map<String, dynamic>>>.value(
                   <Map<String, dynamic>>[],
                 ),
           )
-          as _i3.Future<List<Map<String, dynamic>>>);
+          as _i4.Future<List<Map<String, dynamic>>>);
 
   @override
-  _i3.Future<List<Map<String, dynamic>>> getStreams(
+  _i4.Future<List<Map<String, dynamic>>> getStreams(
     String? type,
     String? id,
     Map<String, dynamic>? settings, {
     String? userId,
+    String? title,
+    int? year,
   }) =>
       (super.noSuchMethod(
             Invocation.method(
               #getStreams,
               [type, id, settings],
-              {#userId: userId},
+              {#userId: userId, #title: title, #year: year},
             ),
-            returnValue: _i3.Future<List<Map<String, dynamic>>>.value(
+            returnValue: _i4.Future<List<Map<String, dynamic>>>.value(
               <Map<String, dynamic>>[],
             ),
             returnValueForMissingStub:
-                _i3.Future<List<Map<String, dynamic>>>.value(
+                _i4.Future<List<Map<String, dynamic>>>.value(
                   <Map<String, dynamic>>[],
                 ),
           )
-          as _i3.Future<List<Map<String, dynamic>>>);
+          as _i4.Future<List<Map<String, dynamic>>>);
 }
