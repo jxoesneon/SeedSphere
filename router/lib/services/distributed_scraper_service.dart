@@ -1,8 +1,11 @@
 import 'dart:async';
 import 'dart:convert';
+import 'package:seedsphere_core/seedsphere_core.dart' hide TrackerService;
 import 'package:router/db_service.dart';
 import 'package:router/event_service.dart';
 import 'package:router/scraper_service.dart';
+import 'package:router/tracker_service.dart';
+import 'package:router/services/ai_service.dart';
 
 /// Distributed Scraper Service
 ///
@@ -14,24 +17,25 @@ class DistributedScraperService extends ScraperService {
 
   /// Creates a [DistributedScraperService] with the given [trackers] and [aiService].
   DistributedScraperService(
-    super.trackers, {
-    required super.config,
+    TrackerService trackers, {
+    required AppConfig config,
     required DbService db,
     required EventService events,
-    super.aiService,
+    AiService? aiService,
   }) : _db = db,
        _events = events,
-       super(eventService: events);
+       super(trackers, config: config, eventService: events, aiService: aiService);
 
   @override
   Future<List<Map<String, dynamic>>> getStreams(
     String type,
-    String id,
+    String rawId,
     Map<String, dynamic> settings, {
     String? userId,
     String? title,
     int? year,
   }) async {
+    final id = Uri.decodeComponent(rawId);
     print('[DistributedScraper] getStreams($type, $id, title=$title, year=$year) for user=$userId');
 
     // 1. Check Cache (24h)
@@ -286,6 +290,8 @@ class DistributedScraperService extends ScraperService {
     if (_pendingTasks.containsKey(taskId)) {
       _pendingTasks[taskId]!.complete(results);
       _pendingTasks.remove(taskId);
+    } else {
+      print('[P2P] Received result for unknown/timed-out task: $taskId');
     }
   }
 

@@ -26,7 +26,7 @@ class TorrentGalaxyScraper extends BaseScraper {
     Function(String)? onLog,
   }) async {
     try {
-      final type = imdbId.contains('tt') ? 'series' : 'movie';
+      final type = imdbId.contains(':') ? 'series' : 'movie';
       final metaInfo = await _fetchCinemetaTitle(type, imdbId);
       if (metaInfo == null) return [];
 

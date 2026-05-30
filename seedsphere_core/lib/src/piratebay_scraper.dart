@@ -22,7 +22,7 @@ class PirateBayScraper extends BaseScraper {
     try {
       String requestedTitle = title ?? '';
       int? requestedYear = year;
-      final type = imdbId.startsWith('tt') ? 'movie' : 'series';
+      final type = imdbId.contains(':') ? 'series' : 'movie';
 
       if (requestedTitle.isEmpty) {
         final cinemeta = await _fetchCinemetaTitle(type, imdbId);
@@ -102,14 +102,20 @@ class PirateBayScraper extends BaseScraper {
       // 1. Extract Title
       // Handle detLink class with title attribute
       final titleMatch = RegExp(
-        r'class="detLink" title="Details for ([^"]+)"',
+        r'class="detLink"\s+title="Details for ([^"]+)"',
+        caseSensitive: false,
+      ).firstMatch(row) ?? RegExp(
+        r'class="detLink"[^>]*>([^<]+)</a>',
+        caseSensitive: false,
       ).firstMatch(row);
+      
       if (titleMatch == null) continue;
       final title = titleMatch.group(1)!;
 
       // 2. Extract Magnet
       final magnetMatch = RegExp(
         r'href="(magnet:\?xt=urn:btih:[^"]+)"',
+        caseSensitive: false,
       ).firstMatch(row);
       if (magnetMatch == null) continue;
       final magnet = magnetMatch.group(1)!;

@@ -90,9 +90,9 @@ class TitleVerifier {
       } else {
         // Result MISSING the year. Strict check.
         final ratio = _levenshteinRatio(reqClean, resClean);
-        if (ratio >= 0.92) {
+        if (ratio >= 0.88) {
           log(
-            '✅ Accepted: Missing year but very high fuzzy match (Ratio: ${ratio.toStringAsFixed(2)})',
+            '✅ Accepted: Missing year but high fuzzy match (Ratio: ${ratio.toStringAsFixed(2)})',
           );
           return true;
         }

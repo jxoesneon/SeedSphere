@@ -84,7 +84,7 @@ final _router = Router()
   ..get(
     '/stream/<type>/<id>.json',
     (Request req, String type, String id) =>
-        _userStreamHandler(req, 'public', type, id),
+        _userStreamHandler(req, 'public', type, Uri.decodeComponent(id)),
   )
   ..get(
     '/catalog/<type>/<id>.json',
@@ -188,8 +188,9 @@ Future<Response> _userStreamHandler(
   Request req,
   String userId,
   String type,
-  String id,
+  String rawId,
 ) async {
+  final id = Uri.decodeComponent(rawId);
   final services = _services(req);
   // Delegate to the addon service scraper for stream resolution
   try {

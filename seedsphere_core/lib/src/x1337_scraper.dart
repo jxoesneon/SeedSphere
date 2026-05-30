@@ -43,7 +43,7 @@ class X1337Scraper extends BaseScraper {
 
       String requestedTitle = title ?? '';
       int? requestedYear = year;
-      final type = imdbId.contains('tt') ? 'series' : 'movie';
+      final type = imdbId.contains(':') ? 'series' : 'movie';
 
       if (requestedTitle.isEmpty) {
         var metaInfo = await _fetchCinemetaTitle(type, imdbId);

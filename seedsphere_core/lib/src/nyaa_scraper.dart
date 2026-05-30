@@ -20,7 +20,8 @@ class NyaaScraper extends BaseScraper {
   }) async {
     try {
       String requestedTitle = title ?? '';
-      final type = imdbId.startsWith('tt') ? 'movie' : 'series';
+      final isSeries = imdbId.contains(':');
+      final type = isSeries ? 'series' : 'movie';
 
       if (requestedTitle.isEmpty) {
         final metaInfo = await _fetchCinemetaTitle(type, imdbId);

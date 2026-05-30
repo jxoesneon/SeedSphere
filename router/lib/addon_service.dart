@@ -167,8 +167,9 @@ class AddonService {
     Request req,
     String variant,
     String type,
-    String id,
+    String rawId,
   ) async {
+    final id = Uri.decodeComponent(rawId);
     _logger.fine(
       '[AddonService] Handling Variant Stream Request: variant=$variant, type=$type, id=$id, uri=${req.requestedUri}',
     );

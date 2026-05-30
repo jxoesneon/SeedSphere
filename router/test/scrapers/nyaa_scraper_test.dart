@@ -54,7 +54,7 @@ void main() {
 
     test('scrape returns results', () async {
       final results = await scraper.scrape('ttanime', title: 'Test Anime');
-      expect(results, isNotEmpty);
+      expect(results.length, 2);
       expect(
         results.first['infoHash'],
         '1111111111111111111111111111111111111111',
