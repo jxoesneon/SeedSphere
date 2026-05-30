@@ -17,6 +17,12 @@ class TitleVerifier {
 
     log('Verifying "$requested" vs "$result" (Year: $year, Series: $isSeries)');
 
+    // 0. Exact or StartsWith (Highest Priority)
+    if (resClean == reqClean || resClean.startsWith('$reqClean ')) {
+      log('✅ Accepted: Exact or StartsWith');
+      return true;
+    }
+
     // 0. Series Handling (High Priority)
     if (isSeries) {
       // Series torrents often lack the year in the title (e.g. "Breaking Bad S01").

@@ -37,6 +37,8 @@ class TorrentioScraper extends BaseScraper {
   @override
   Future<List<Map<String, dynamic>>> scrape(
     String imdbId, {
+    String? title,
+    int? year,
     Function(String)? onLog,
   }) async {
     final response = await _client.get(

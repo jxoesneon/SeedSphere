@@ -112,13 +112,20 @@ class MetadataNormalizer {
 
     sizeBytes ??= _parseSize(title); // Attempt to find size in title
 
+    // Standardize seeders
+    final seeders = _parseInt(raw['seeders'] ?? raw['seeds'] ?? raw['peers']) ?? 0;
+
+    // Standardize infoHash
+    final rawHash = (raw['infoHash'] ?? raw['hash'] ?? raw['info_hash'] ?? '').toString();
+    final infoHash = rawHash.toLowerCase().trim();
+
     return SeedStream(
       title: title,
-      infoHash: raw['infoHash'] ?? raw['hash'] ?? '',
+      infoHash: infoHash,
       fileIdx: raw['fileIdx']?.toString(),
       resolution: _extractResolution(title),
       source: provider,
-      seeders: _parseInt(raw['seeders']) ?? 0,
+      seeders: seeders,
       codec: _extractCodec(lowerTitle),
       hdr: _extractHdr(lowerTitle),
       audio: _extractAudio(title),

@@ -14,6 +14,8 @@ class MagnetDLScraper extends BaseScraper {
   @override
   Future<List<Map<String, dynamic>>> scrape(
     String imdbId, {
+    String? title,
+    int? year,
     Function(String)? onLog,
   }) async {
     try {

@@ -1,13 +1,7 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
-import 'package:router/scrapers/magnetdl_scraper.dart';
-import 'package:router/scrapers/anidex_scraper.dart';
-import 'package:router/scrapers/zooqle_scraper.dart';
-import 'package:router/scrapers/tokyotosho_scraper.dart';
-import 'package:router/scrapers/rutor_scraper.dart';
-import 'package:router/scrapers/torlock_scraper.dart';
-import 'package:router/scrapers/torrentgalaxy_scraper.dart';
+import 'package:seedsphere_core/seedsphere_core.dart';
 import 'package:test/test.dart';
 
 // Helper to generate a valid magnet with given hash

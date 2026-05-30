@@ -53,6 +53,8 @@ abstract class BaseScraper {
   /// Fetches stream metadata for the specified [imdbId].
   Future<List<Map<String, dynamic>>> scrape(
     String imdbId, {
+    String? title,
+    int? year,
     Function(String)? onLog,
   });
 
@@ -93,6 +95,8 @@ class ScraperEngine {
   /// Executes all configured scrapers for the given [imdbId] in parallel.
   Future<List<Map<String, dynamic>>> scrapeAll(
     String imdbId, {
+    String? title,
+    int? year,
     Function(String)? onLog,
   }) async {
     final List<Future<List<Map<String, dynamic>>>> futures = scrapers
@@ -100,6 +104,8 @@ class ScraperEngine {
           (s) => s
               .scrape(
                 imdbId,
+                title: title,
+                year: year,
                 onLog: (msg) {
                   if (onLog != null) onLog('[${s.name}] $msg');
                 },

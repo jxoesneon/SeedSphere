@@ -14,6 +14,8 @@ class EztvScraper extends BaseScraper {
   @override
   Future<List<Map<String, dynamic>>> scrape(
     String imdbId, {
+    String? title,
+    int? year,
     Function(String)? onLog,
   }) async {
     // EZTV is focused on TV Series; simple check if ID looks like TT ID but logic is mainly in API

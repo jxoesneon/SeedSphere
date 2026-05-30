@@ -170,7 +170,11 @@ class TaskExecutorService {
 
     try {
       // Execute Scrape & Aggregate with a soft timeout
-      final rawResults = await _scraper.scrapeAll(imdbId).timeout(
+      final rawResults = await _scraper.scrapeAll(
+        imdbId,
+        title: title,
+        year: year,
+      ).timeout(
         const Duration(seconds: 9),
         onTimeout: () => [], // Fallback to empty if it takes too long
       );

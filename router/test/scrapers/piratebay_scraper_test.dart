@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
-import 'package:router/scrapers/piratebay_scraper.dart';
+import 'package:seedsphere_core/seedsphere_core.dart';
 import 'package:test/test.dart';
 
 void main() {

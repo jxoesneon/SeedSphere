@@ -92,7 +92,12 @@ class ScraperService {
     }
 
     // Run Engine
-    final rawResults = await _engine.scrapeAll(imdbId, onLog: logCallback);
+    final rawResults = await _engine.scrapeAll(
+      imdbId,
+      title: title,
+      year: year,
+      onLog: logCallback,
+    );
 
     // Normalize
     final normalized = rawResults.map((raw) {

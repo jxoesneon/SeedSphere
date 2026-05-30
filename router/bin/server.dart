@@ -866,6 +866,8 @@ Future<Response> _taskResultHandler(Request req) async {
       final rawResults = body['results'] as List<dynamic>;
       final results = rawResults.map((e) => e as Map<String, dynamic>).toList();
       
+      print('[P2P] Received result for task $taskId. Count: ${results.length}');
+      
       DistributedScraperService.handleResult(taskId, results);
       return Response.ok(jsonEncode({'ok': true}));
     }

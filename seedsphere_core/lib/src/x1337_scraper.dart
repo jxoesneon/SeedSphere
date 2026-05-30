@@ -34,24 +34,29 @@ class X1337Scraper extends BaseScraper {
   @override
   Future<List<Map<String, dynamic>>> scrape(
     String imdbId, {
+    String? title,
+    int? year,
     Function(String)? onLog,
   }) async {
     try {
       if (onLog != null) onLog('Starting scrape for $imdbId');
 
-      // 1. Fetch metadata title from Cinemeta to get query
+      String requestedTitle = title ?? '';
+      int? requestedYear = year;
       final type = imdbId.contains('tt') ? 'series' : 'movie';
-      var metaInfo = await _fetchCinemetaTitle(type, imdbId);
-      if (metaInfo == null && type == 'series') {
-        metaInfo = await _fetchCinemetaTitle('movie', imdbId);
-      }
 
-      if (metaInfo == null) {
-        if (onLog != null) onLog('Failed to fetch Cinemeta metadata');
-        return [];
+      if (requestedTitle.isEmpty) {
+        var metaInfo = await _fetchCinemetaTitle(type, imdbId);
+        if (metaInfo == null && type == 'series') {
+          metaInfo = await _fetchCinemetaTitle('movie', imdbId);
+        }
+        if (metaInfo == null) {
+          if (onLog != null) onLog('Failed to fetch Cinemeta metadata');
+          return [];
+        }
+        requestedTitle = metaInfo['title'] as String;
+        requestedYear ??= int.tryParse(metaInfo['year'].toString());
       }
-      final requestedTitle = metaInfo['title'] as String;
-      final requestedYear = int.tryParse(metaInfo['year'].toString());
 
       if (onLog != null) {
         onLog('Resolved metadata: $requestedTitle ($requestedYear)');

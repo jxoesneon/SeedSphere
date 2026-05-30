@@ -1,8 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:http/http.dart' as http;
-import 'package:router/scrapers/x1337_scraper.dart';
-import 'package:router/scrapers/piratebay_scraper.dart';
+import 'package:seedsphere_core/seedsphere_core.dart';
 
 /// Script to verify resolution success rate for Top 100 Movies and Series.
 /// Run with: dart tool/verify_resolution.dart

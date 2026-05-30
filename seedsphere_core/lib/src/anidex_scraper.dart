@@ -14,16 +14,23 @@ class AnidexScraper extends BaseScraper {
   @override
   Future<List<Map<String, dynamic>>> scrape(
     String imdbId, {
+    String? title,
+    int? year,
     Function(String)? onLog,
   }) async {
     try {
-      // Anidex is anime-focused
-      final metaInfo =
-          await _fetchCinemetaTitle('series', imdbId) ??
-          await _fetchCinemetaTitle('movie', imdbId);
-      if (metaInfo == null) return [];
+      String requestedTitle = title ?? '';
+      
+      if (requestedTitle.isEmpty) {
+        // Anidex is anime-focused
+        final metaInfo =
+            await _fetchCinemetaTitle('series', imdbId) ??
+            await _fetchCinemetaTitle('movie', imdbId);
+        if (metaInfo == null) return [];
+        requestedTitle = metaInfo['title'] as String;
+      }
 
-      final q = Uri.encodeComponent(metaInfo['title'] as String);
+      final q = Uri.encodeComponent(requestedTitle);
       final url = '$baseUrl/?q=$q';
 
       final response = await _client
@@ -35,9 +42,9 @@ class AnidexScraper extends BaseScraper {
           .take(40)
           .map((m) {
             final dn = _extractMagnetDN(m);
-            final cleanDn = dn != null ? Uri.decodeComponent(dn).replaceAll('+', ' ') : metaInfo['title'];
+            final cleanDn = dn != null ? Uri.decodeComponent(dn).replaceAll('+', ' ') : requestedTitle;
             return {
-              'title': cleanDn ?? 'Unknown',
+              'title': cleanDn,
               'infoHash': _extractInfoHash(m),
               'magnet': m,
               'provider': 'AniDex',

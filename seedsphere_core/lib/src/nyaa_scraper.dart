@@ -14,19 +14,21 @@ class NyaaScraper extends BaseScraper {
   @override
   Future<List<Map<String, dynamic>>> scrape(
     String imdbId, {
+    String? title,
+    int? year,
     Function(String)? onLog,
   }) async {
     try {
-      final metaInfo = await _fetchCinemetaTitle(
-        imdbId.startsWith('tt') ? 'movie' : 'series',
-        imdbId,
-      );
-      if (metaInfo == null) return [];
+      String requestedTitle = title ?? '';
+      final type = imdbId.startsWith('tt') ? 'movie' : 'series';
 
-      final query = Uri.encodeComponent(metaInfo['title']);
-      // final type = imdbId.startsWith('tt') ? 'movie' : 'series';
-      // final year = int.tryParse(metaInfo['year'].toString());
+      if (requestedTitle.isEmpty) {
+        final metaInfo = await _fetchCinemetaTitle(type, imdbId);
+        if (metaInfo == null) return [];
+        requestedTitle = metaInfo['title'] as String;
+      }
 
+      final query = Uri.encodeComponent(requestedTitle);
       final url = '$baseUrl/?f=0&c=0_0&q=$query';
 
       final response = await _client.get(
@@ -41,10 +43,10 @@ class NyaaScraper extends BaseScraper {
       return results.take(40).map((res) {
         final hash = _extractInfoHash(res.magnet);
         final dn = _extractMagnetDN(res.magnet);
-        final cleanDn = dn != null ? Uri.decodeComponent(dn).replaceAll('+', ' ') : metaInfo['title'];
+        final cleanDn = dn != null ? Uri.decodeComponent(dn).replaceAll('+', ' ') : requestedTitle;
 
         return {
-          'title': cleanDn ?? 'Unknown',
+          'title': cleanDn,
           'infoHash': hash,
           'magnet': res.magnet,
           'provider': 'Nyaa',

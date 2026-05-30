@@ -1,7 +1,7 @@
 import 'package:test/test.dart';
 import 'package:mockito/mockito.dart';
 import 'package:mockito/annotations.dart';
-import 'package:router/scrapers/yts_scraper.dart';
+import 'package:seedsphere_core/seedsphere_core.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 

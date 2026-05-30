@@ -160,17 +160,26 @@ class DistributedScraperService extends ScraperService {
 
     try {
       // 1:1 Parity: Increase timeout for heavy scrapes, but use a race for UI responsiveness
+      bool timedOut = false;
       final results = await completer.future.timeout(
         const Duration(seconds: 25),
-      ).catchError((e) {
-        // If we timeout the full 25s, return informative
-        return <Map<String, dynamic>>[];
-      });
+        onTimeout: () {
+          timedOut = true;
+          return <Map<String, dynamic>>[];
+        },
+      );
 
-      if (results.isEmpty) {
+      if (timedOut) {
          return _informativeStream(
           'Scrape Timeout',
           'Gardener did not respond in time. Please try again.',
+        );
+      }
+
+      if (results.isEmpty) {
+        return _informativeStream(
+          'No Streams Found',
+          'No valid streams were resolved by the swarm.',
         );
       }
 

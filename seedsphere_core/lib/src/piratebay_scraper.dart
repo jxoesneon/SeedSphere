@@ -15,17 +15,21 @@ class PirateBayScraper extends BaseScraper {
   @override
   Future<List<Map<String, dynamic>>> scrape(
     String imdbId, {
+    String? title,
+    int? year,
     Function(String)? onLog,
   }) async {
     try {
-      final cinemeta = await _fetchCinemetaTitle(
-        imdbId.startsWith('tt') ? 'movie' : 'series',
-        imdbId,
-      );
-      if (cinemeta == null) return [];
-      final requestedTitle = cinemeta['title'] as String;
-      final requestedYear = int.tryParse(cinemeta['year'].toString());
+      String requestedTitle = title ?? '';
+      int? requestedYear = year;
       final type = imdbId.startsWith('tt') ? 'movie' : 'series';
+
+      if (requestedTitle.isEmpty) {
+        final cinemeta = await _fetchCinemetaTitle(type, imdbId);
+        if (cinemeta == null) return [];
+        requestedTitle = cinemeta['title'] as String;
+        requestedYear ??= int.tryParse(cinemeta['year'].toString());
+      }
 
       final query = Uri.encodeComponent(requestedTitle);
       final searchUrl = '$baseUrl/search.php?q=$query&all=on&search=Pirate+Search';
