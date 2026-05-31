@@ -232,11 +232,18 @@ class DistributedScraperService extends ScraperService {
   List<Map<String, dynamic>> _informativeStream(String title, String message) {
     return [
       {
+        'name': 'SeedSphere Info',
         'title': '⚠️ $title\n$message',
         'infoHash': 'static_error_${title.replaceAll(' ', '_')}',
         'url': 'data:text/plain;charset=utf-8,$message',
         'behaviorHints': {'bingeGroup': 'seedsphere-error'},
       },
+      {
+        'name': 'SeedSphere Test Play',
+        'title': '🎬 Play Test Video (Big Buck Bunny)\nUse this to confirm the Stremio player is working.',
+        'url': 'http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
+        'behaviorHints': {'bingeGroup': 'seedsphere-test'},
+      }
     ];
   }
 }
