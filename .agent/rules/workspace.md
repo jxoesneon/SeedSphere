@@ -67,3 +67,10 @@
 - **Regex Integrity**: ALWAYS use bounded quantifiers (e.g., `{1,128}`) for regular expressions that process user-controlled strings to prevent ReDoS.
 - **Secret Hygiene**: Sensitive API keys and tokens must NEVER be stored in `localStorage`. Use `sessionStorage` for temporary tab-scoped state or encrypted-at-rest backend storage (libsodium).
 - **Zero Vulnerability**: Maintain a zero High/Critical vulnerability state. All `npm audit` results must be documented; legitimate nested low-severity alerts must be mitigated with top-level `overrides`.
+
+## 9. Stremio Addon & Streaming Compatibility
+
+- **No Raw Magnet Links**: Stremio Web's browser player cannot play raw magnet links directly. To avoid "Video not supported" errors, remove the `url` property for torrent streams and provide only the `infoHash` and a full `sources` tracker list. Stremio Web will then correctly delegate to its BitTorrent/WebTorrent engine or the local streaming server.
+- **Mixed Content & SSL Enforcement**: Stremio Web runs over secure HTTPS (`https://web.stremio.com`). All direct stream URLs served by the addon must strictly use secure HTTPS (`https://...`) with open CORS headers (`Access-Control-Allow-Origin: *`) and range request support. Mixed content (HTTP stream URLs) will be blocked by browsers, resulting in "Video not supported" errors.
+- **No Data URIs for Player Playback**: Do not use `data:` URIs as the video `url` for playable streams or informative messages inside the Stremio Web player, as they are blocked by sandbox/iframe security policies in modern web browsers and lead to "Video not supported" errors. Use a secure HTTPS-hosted mp4 file or a native YouTube ID (`ytId`) to guarantee clean, standard-compliant error message rendering or test stream playback.
+
