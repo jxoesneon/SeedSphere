@@ -25,7 +25,7 @@
   },
   "dependencies": {
     "axios": "^1.16.1",
-    "bencode": "^4.0.0",
+    "bencode": "^4.0.1",
     "better-sqlite3": "^12.10.0",
     "cookie-parser": "^1.4.7",
     "csurf": "^1.11.0",
