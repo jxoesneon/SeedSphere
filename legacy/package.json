@@ -33,7 +33,7 @@
     "express-rate-limit": "^8.5.2",
     "jsonwebtoken": "^9.0.3",
     "libsodium-wrappers": "^0.8.4",
-    "nanoid": "^5.1.7",
+    "nanoid": "^5.1.11",
     "nodemailer": "^8.0.9",
     "openid-client": "^6.8.3",
     "stremio-addon-sdk": "^1.6.10",
