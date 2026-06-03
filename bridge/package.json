@@ -20,7 +20,7 @@
     "tsx": "^4.22.3",
     "typescript": "^6.0.3",
     "vitest": "^4.1.6",
-    "wrangler": "^4.90.1"
+    "wrangler": "^4.97.0"
   },
   "overrides": {
     "undici": "^8.3.0",
