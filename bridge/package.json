@@ -11,19 +11,19 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "hono": "^4.12.23"
+    "hono": "^4.12.34"
   },
   "devDependencies": {
-    "@cloudflare/vitest-pool-workers": "^0.16.4",
+    "@cloudflare/vitest-pool-workers": "^0.20.2",
     "@cloudflare/workers-types": "^4.20260511.1",
     "@vitest/coverage-v8": "^4.1.0",
     "tsx": "^4.22.3",
     "typescript": "^6.0.3",
     "vitest": "^4.1.6",
-    "wrangler": "^4.90.1"
+    "wrangler": "^4.119.0"
   },
   "overrides": {
     "undici": "^8.3.0",
-    "postcss": "^8.5.15"
+    "postcss": "^8.5.26"
   }
 }
