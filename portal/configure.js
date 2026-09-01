@@ -27,13 +27,12 @@ const dom = {
 
 async function init() {
     const params = new URLSearchParams(window.location.search);
-    state.deviceId = params.get('id');
+    state.deviceId = params.get('id') || params.get('seedling_id') || params.get('deviceId') || localStorage.getItem('seedsphere_device_id');
 
     if (!state.deviceId) {
-        showError("Invalid Device ID. Please open from Stremio.");
-        hideLoading();
-        return;
+        state.deviceId = 'dev_' + Math.random().toString(36).substring(2, 10);
     }
+    localStorage.setItem('seedsphere_device_id', state.deviceId);
 
     dom.deviceIdBox.textContent = `ID (Device or User): ${state.deviceId}`;
     
@@ -41,6 +40,12 @@ async function init() {
         updateStatus(),
         checkAuth()
     ]);
+
+    if (state.user && (!state.deviceId || state.deviceId.startsWith('dev_') || state.deviceId === 'public')) {
+        const userId = state.user.id.split(':').pop() || state.user.id;
+        state.deviceId = userId;
+        dom.deviceIdBox.textContent = `ID (Device or User): ${state.deviceId}`;
+    }
 
     render();
     hideLoading();

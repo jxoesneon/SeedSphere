@@ -91,17 +91,22 @@ class AuthService {
 
   Response _handleGoogleStart(Request req) {
     if (_googleClientId == null) {
-      return Response.internalServerError(body: 'google_not_configured');
+      return Response.internalServerError(
+        body: jsonEncode({'ok': false, 'error': 'google_not_configured'}),
+        headers: {'Content-Type': 'application/json'},
+      );
     }
 
     final redirectUri = '${_baseUrl(req)}/api/auth/google/callback';
+    final state = req.url.queryParameters['redirect'] ?? req.url.queryParameters['state'];
     final params = {
-      'client_id': _googleClientId,
+      'client_id': _googleClientId!,
       'redirect_uri': redirectUri,
       'response_type': 'code',
       'scope': 'openid email profile',
       'access_type': 'offline',
       'include_granted_scopes': 'true',
+      if (state != null) 'state': state,
     };
 
     final uri = Uri.https('accounts.google.com', '/o/oauth2/v2/auth', params);
@@ -521,7 +526,7 @@ class AuthService {
 
   String _baseUrl(Request req) {
     final host = req.headers['host'] ?? 'localhost:8080';
-    final proto = req.headers['x-forwarded-proto'] ?? 'http';
+    final proto = req.headers['x-forwarded-proto'] ?? req.requestedUri.scheme;
     return '$proto://$host';
   }
 
