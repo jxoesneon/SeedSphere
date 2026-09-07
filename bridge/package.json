@@ -14,13 +14,13 @@
     "hono": "^4.12.34"
   },
   "devDependencies": {
-    "@cloudflare/vitest-pool-workers": "^0.16.4",
-    "@cloudflare/workers-types": "^5.20260831.1",
-    "@vitest/coverage-v8": "^4.1.0",
+    "@cloudflare/vitest-pool-workers": "^0.22.0",
+    "@cloudflare/workers-types": "^5.20260904.1",
+    "@vitest/coverage-v8": "^5.0.0",
     "tsx": "^4.22.3",
-    "typescript": "^6.0.3",
-    "vitest": "^4.1.6",
-    "wrangler": "^4.90.1"
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.0",
+    "wrangler": "^4.129.0"
   },
   "overrides": {
     "nanoid": ">=5.1.16",
