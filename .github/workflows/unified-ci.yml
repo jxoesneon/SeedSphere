@@ -84,7 +84,7 @@ jobs:
       # --- PROJECT: ROUTER ---
       - name: Setup Dart
         if: matrix.project == 'router'
-        uses: dart-lang/setup-dart@v1.8.0
+        uses: dart-lang/setup-dart@v1.8.1
 
       - name: Install Router Linux Deps
         if: matrix.project == 'router' && runner.os == 'Linux'
