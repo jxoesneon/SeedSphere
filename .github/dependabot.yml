@@ -7,6 +7,10 @@ updates:
       interval: "weekly"
     commit-message:
       prefix: "ci"
+    groups:
+      github-actions:
+        patterns:
+          - "*"
 
   # Dart/Flutter (Router & Gardener)
   - package-ecosystem: "pub"
@@ -30,6 +34,10 @@ updates:
       interval: "weekly"
     commit-message:
       prefix: "chore(deps-bridge)"
+    groups:
+      bridge-dependencies:
+        patterns:
+          - "*"
 
   # NPM (Legacy)
   - package-ecosystem: "npm"
@@ -38,3 +46,7 @@ updates:
       interval: "weekly"
     commit-message:
       prefix: "chore(deps-legacy)"
+    groups:
+      legacy-dependencies:
+        patterns:
+          - "*"
